@@ -44,33 +44,33 @@ func newS3Client() (*s3Client, error) {
 	}, nil
 }
 
-type item struct {
+type objectItem struct {
 	dir  bool
 	name string
 }
 
-func (c *s3Client) listObjects(bucket, prefix string) ([]*item, error) {
-	params := &s3.ListObjectsV2Input{
+func (c *s3Client) listObjects(bucket, prefix string) ([]*objectItem, error) {
+	input := &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String(delimiter),
 		Prefix:    aws.String(prefix),
 	}
-	p := s3.NewListObjectsV2Paginator(c.client, params, func(o *s3.ListObjectsV2PaginatorOptions) {})
-	items := make([]*item, 0)
+	p := s3.NewListObjectsV2Paginator(c.client, input, func(o *s3.ListObjectsV2PaginatorOptions) {})
+	items := make([]*objectItem, 0)
 	for p.HasMorePages() {
-		page, err := p.NextPage(c.ctx)
+		output, err := p.NextPage(c.ctx)
 		if err != nil {
 			return nil, err
 		}
-		for _, obj := range page.Contents {
-			item := &item{
+		for _, obj := range output.Contents {
+			item := &objectItem{
 				dir:  false,
 				name: *obj.Key,
 			}
 			items = append(items, item)
 		}
-		for _, cp := range page.CommonPrefixes {
-			item := &item{
+		for _, cp := range output.CommonPrefixes {
+			item := &objectItem{
 				dir:  true,
 				name: *cp.Prefix,
 			}
@@ -80,10 +80,35 @@ func (c *s3Client) listObjects(bucket, prefix string) ([]*item, error) {
 	return items, nil
 }
 
+type bucketItem struct {
+	name string
+}
+
+func (c *s3Client) listBuckets() ([]*bucketItem, error) {
+	input := &s3.ListBucketsInput{}
+	output, err := c.client.ListBuckets(c.ctx, input)
+	if err != nil {
+		return nil, err
+	}
+	items := make([]*bucketItem, 0)
+	for _, bucket := range output.Buckets {
+		item := &bucketItem{name: *bucket.Name}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
 func run(args []string) error {
 	client, err := newS3Client()
 	if err != nil {
 		return err
+	}
+	buckets, err := client.listBuckets()
+	if err != nil {
+		return err
+	}
+	for _, bucket := range buckets {
+		fmt.Println(bucket.name)
 	}
 	objs, err := client.listObjects("test-bucket", "")
 	// objs, err := client.listObjects("test-bucket", "hoge/")
