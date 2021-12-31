@@ -43,7 +43,15 @@ func NewS3Client() (*S3Client, error) {
 
 type ObjectItem struct {
 	Dir  bool
-	Name string
+	name string
+}
+
+func (i *ObjectItem) Key() string {
+	return i.name
+}
+
+func (i *ObjectItem) FilterValue() string {
+	return i.name
 }
 
 func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
@@ -62,14 +70,14 @@ func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
 		for _, obj := range output.Contents {
 			item := &ObjectItem{
 				Dir:  false,
-				Name: *obj.Key,
+				name: *obj.Key,
 			}
 			items = append(items, item)
 		}
 		for _, cp := range output.CommonPrefixes {
 			item := &ObjectItem{
 				Dir:  true,
-				Name: *cp.Prefix,
+				name: *cp.Prefix,
 			}
 			items = append(items, item)
 		}
@@ -78,7 +86,15 @@ func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
 }
 
 type BucketItem struct {
-	Name string
+	name string
+}
+
+func (i *BucketItem) Key() string {
+	return i.name
+}
+
+func (i *BucketItem) FilterValue() string {
+	return i.name
 }
 
 func (c *S3Client) ListBuckets() ([]*BucketItem, error) {
@@ -89,7 +105,7 @@ func (c *S3Client) ListBuckets() ([]*BucketItem, error) {
 	}
 	items := make([]*BucketItem, 0)
 	for _, bucket := range output.Buckets {
-		item := &BucketItem{Name: *bucket.Name}
+		item := &BucketItem{name: *bucket.Name}
 		items = append(items, item)
 	}
 	return items, nil
