@@ -117,14 +117,48 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		case "backspace", "ctrl+h":
-			switch i := m.list.SelectedItem().(type) {
+			switch m.list.SelectedItem().(type) {
+			case *aws.BucketItem:
+				// do nothing
 			case *aws.ObjectItem:
-				_ = i
+				bl := len(m.breadcrumbs)
+				if bl == 0 {
+					buckets, err := m.client.ListBuckets()
+					if err != nil {
+						return m, tea.Quit
+					}
+					items := make([]list.Item, len(buckets))
+					for i, bucket := range buckets {
+						items[i] = bucket
+					}
+					m.list.SetItems(items)
+					m.list.ResetSelected()
+					m.list.ResetFilter()
+					m.bucket = ""
+				} else {
+					var key string
+					if bl == 1 {
+						key = ""
+					} else {
+						key = m.breadcrumbs[bl-2].ObjectKey()
+					}
+					objs, err := m.client.ListObjects(m.bucket, key)
+					if err != nil {
+						return m, tea.Quit
+					}
+					items := make([]list.Item, len(objs))
+					for i, obj := range objs {
+						items[i] = obj
+					}
+					m.list.SetItems(items)
+					m.list.ResetSelected()
+					m.list.ResetFilter()
+					m.breadcrumbs = m.breadcrumbs[:bl-1]
+				}
 			}
 		}
 	case tea.WindowSizeMsg:
-		// breadcrumbHeight(1) + borderTop(1)
-		m.list.SetSize(msg.Width, msg.Height-2)
+		m.list.SetSize(msg.Width, msg.Height-3)
 	}
 
 	var cmd tea.Cmd
