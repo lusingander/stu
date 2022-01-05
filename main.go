@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/lusingander/stu/internal/aws"
+	"github.com/mattn/go-runewidth"
 )
 
 var (
@@ -120,7 +121,13 @@ func (m model) View() string {
 	return docStyle.Render(m.list.View())
 }
 
+func setup() {
+	runewidth.DefaultCondition = &runewidth.Condition{EastAsianWidth: false}
+}
+
 func run(args []string) error {
+	setup()
+
 	client, err := aws.NewS3Client()
 	if err != nil {
 		return err
