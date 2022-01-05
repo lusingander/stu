@@ -49,18 +49,22 @@ type ObjectItem struct {
 }
 
 func (i *ObjectItem) Text() string {
-	return i.filename()
+	name := i.Filename()
+	if i.Dir {
+		name += delimiter
+	}
+	return name
 }
 
 func (i *ObjectItem) FilterValue() string {
-	return i.filename()
+	return i.Filename()
 }
 
 func (i *ObjectItem) ObjectKey() string {
 	return i.name
 }
 
-func (i *ObjectItem) filename() string {
+func (i *ObjectItem) Filename() string {
 	return i.paths[len(i.paths)-1]
 }
 
@@ -103,7 +107,7 @@ func parseObjectKey(key string, dir bool) []string {
 	ss := strings.Split(key, delimiter)
 	if dir {
 		li := len(ss) - 2 // foo/bar/baz/ => ["foo", "bar", "baz", ""]
-		return append(ss[:li], ss[li]+delimiter)
+		return append(ss[:li], ss[li])
 	}
 	return ss
 }

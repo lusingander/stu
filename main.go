@@ -14,16 +14,30 @@ import (
 )
 
 var (
-	docStyle          = lipgloss.NewStyle().Margin(1, 2)
-	itemStyle         = lipgloss.NewStyle().PaddingLeft(3)
-	selectedItemStyle = lipgloss.NewStyle().PaddingLeft(1).Foreground(lipgloss.Color("170"))
+	listStyle = lipgloss.NewStyle().
+			MarginTop(1).
+			BorderStyle(lipgloss.NormalBorder()).
+			BorderForeground(lipgloss.Color("63")).
+			BorderTop(true)
+
+	itemStyle = lipgloss.NewStyle().
+			PaddingLeft(2)
+
+	selectedItemStyle = lipgloss.NewStyle().
+				PaddingLeft(0).
+				Foreground(lipgloss.Color("170"))
+
+	breadcrumbStyle = lipgloss.NewStyle().
+			PaddingLeft(2).
+			Height(1)
 )
 
 type model struct {
 	list list.Model
 
-	client *aws.S3Client
-	bucket string
+	client      *aws.S3Client
+	bucket      string
+	breadcrumbs []*aws.ObjectItem
 }
 
 type listItem interface {
@@ -99,6 +113,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.list.SetItems(items)
 					m.list.ResetSelected()
 					m.list.ResetFilter()
+					m.breadcrumbs = append(m.breadcrumbs, i)
 				}
 			}
 		case "backspace", "ctrl+h":
@@ -108,8 +123,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	case tea.WindowSizeMsg:
-		top, right, bottom, left := docStyle.GetMargin()
-		m.list.SetSize(msg.Width-left-right, msg.Height-top-bottom)
+		// breadcrumbHeight(1) + borderTop(1)
+		m.list.SetSize(msg.Width, msg.Height-2)
 	}
 
 	var cmd tea.Cmd
@@ -117,8 +132,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m model) viewBreadcrumb() string {
+	sep := " > "
+	s := "STU"
+	if m.bucket != "" {
+		s += sep
+		s += m.bucket
+		for _, b := range m.breadcrumbs {
+			s += sep
+			s += b.Filename()
+		}
+	}
+	return s
+}
+
 func (m model) View() string {
-	return docStyle.Render(m.list.View())
+	bc := breadcrumbStyle.Render(m.viewBreadcrumb())
+	l := listStyle.Render(m.list.View())
+	return bc + l
 }
 
 func setup() {
@@ -143,11 +174,14 @@ func run(args []string) error {
 	}
 
 	m := model{
-		list:   list.NewModel(items, itemDelegate{}, 0, 0),
-		client: client,
-		bucket: "",
+		list:        list.NewModel(items, itemDelegate{}, 0, 0),
+		client:      client,
+		bucket:      "",
+		breadcrumbs: make([]*aws.ObjectItem, 0),
 	}
-	m.list.Title = "STU"
+	m.list.SetShowTitle(false)
+	m.list.Styles.TitleBar = lipgloss.Style{} // clear style...
+	m.list.Styles.Title = lipgloss.Style{}
 	m.list.SetShowStatusBar(false)
 
 	p := tea.NewProgram(m)
