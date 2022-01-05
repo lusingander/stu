@@ -18,6 +18,45 @@ const (
 type S3Client struct {
 	client *s3.Client
 	ctx    context.Context
+	cache  *cacheMap
+}
+
+type cacheMap struct {
+	buckets []*stu.BucketItem
+	objects map[string][]*stu.ObjectItem
+}
+
+func newCacheMap() *cacheMap {
+	return &cacheMap{
+		buckets: nil,
+		objects: make(map[string][]*stu.ObjectItem),
+	}
+}
+
+func (m *cacheMap) getBuckets() ([]*stu.BucketItem, bool) {
+	if m.buckets == nil {
+		return nil, false
+	}
+	return m.buckets, true
+}
+
+func (m *cacheMap) putBuckets(items []*stu.BucketItem) {
+	m.buckets = items
+}
+
+func (m *cacheMap) getObjects(bucket, prefix string) ([]*stu.ObjectItem, bool) {
+	key := m.objectMapKey(bucket, prefix)
+	is, ok := m.objects[key]
+	return is, ok
+}
+
+func (m *cacheMap) putObjects(bucket, prefix string, items []*stu.ObjectItem) {
+	key := m.objectMapKey(bucket, prefix)
+	m.objects[key] = items
+}
+
+func (*cacheMap) objectMapKey(bucket, prefix string) string {
+	return bucket + "_" + prefix
 }
 
 func NewS3Client() (*S3Client, error) {
@@ -36,13 +75,18 @@ func NewS3Client() (*S3Client, error) {
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.UsePathStyle = true
 	})
+	cache := newCacheMap()
 	return &S3Client{
 		client: client,
 		ctx:    ctx,
+		cache:  cache,
 	}, nil
 }
 
 func (c *S3Client) ListObjects(bucket, prefix string) ([]*stu.ObjectItem, error) {
+	if cache, ok := c.cache.getObjects(bucket, prefix); ok {
+		return cache, nil
+	}
 	input := &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String(delimiter),
@@ -64,10 +108,14 @@ func (c *S3Client) ListObjects(bucket, prefix string) ([]*stu.ObjectItem, error)
 			items = append(items, item)
 		}
 	}
+	c.cache.putObjects(bucket, prefix, items)
 	return items, nil
 }
 
 func (c *S3Client) ListBuckets() ([]*stu.BucketItem, error) {
+	if cache, ok := c.cache.getBuckets(); ok {
+		return cache, nil
+	}
 	input := &s3.ListBucketsInput{}
 	output, err := c.client.ListBuckets(c.ctx, input)
 	if err != nil {
@@ -78,5 +126,6 @@ func (c *S3Client) ListBuckets() ([]*stu.BucketItem, error) {
 		item := stu.NewBucketItem(*bucket.Name)
 		items = append(items, item)
 	}
+	c.cache.putBuckets(items)
 	return items, nil
 }
