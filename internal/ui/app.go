@@ -7,7 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/lusingander/stu/internal/aws"
+	"github.com/lusingander/stu/internal/stu"
 )
 
 var (
@@ -32,9 +32,9 @@ var (
 type model struct {
 	list list.Model
 
-	client      *aws.S3Client
+	client      stu.Client
 	bucket      string
-	breadcrumbs []*aws.ObjectItem
+	breadcrumbs []*stu.ObjectItem
 }
 
 type listItem interface {
@@ -83,7 +83,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "enter":
 			switch i := m.list.SelectedItem().(type) {
-			case *aws.BucketItem:
+			case *stu.BucketItem:
 				bucket := i.BucketName()
 				objs, err := m.client.ListObjects(bucket, "")
 				if err != nil {
@@ -97,7 +97,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.list.ResetSelected()
 				m.list.ResetFilter()
 				m.bucket = bucket
-			case *aws.ObjectItem:
+			case *stu.ObjectItem:
 				if i.Dir {
 					objs, err := m.client.ListObjects(m.bucket, i.ObjectKey())
 					if err != nil {
@@ -115,9 +115,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "backspace", "ctrl+h":
 			switch m.list.SelectedItem().(type) {
-			case *aws.BucketItem:
+			case *stu.BucketItem:
 				// do nothing
-			case *aws.ObjectItem:
+			case *stu.ObjectItem:
 				bl := len(m.breadcrumbs)
 				if bl == 0 {
 					buckets, err := m.client.ListBuckets()
@@ -183,13 +183,22 @@ func (m model) View() string {
 	return bc + l
 }
 
-func Start(client *aws.S3Client, buckets []list.Item) error {
+func Start(client stu.Client) error {
+
+	buckets, err := client.ListBuckets()
+	if err != nil {
+		return err
+	}
+	items := make([]list.Item, len(buckets))
+	for i, bucket := range buckets {
+		items[i] = bucket
+	}
 
 	m := model{
-		list:        list.NewModel(buckets, itemDelegate{}, 0, 0),
+		list:        list.NewModel(items, itemDelegate{}, 0, 0),
 		client:      client,
 		bucket:      "",
-		breadcrumbs: make([]*aws.ObjectItem, 0),
+		breadcrumbs: make([]*stu.ObjectItem, 0),
 	}
 	m.list.SetShowTitle(false)
 	m.list.Styles.TitleBar = lipgloss.Style{} // clear style...

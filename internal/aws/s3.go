@@ -2,11 +2,11 @@ package aws
 
 import (
 	"context"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/lusingander/stu/internal/stu"
 )
 
 const (
@@ -42,101 +42,40 @@ func NewS3Client() (*S3Client, error) {
 	}, nil
 }
 
-type ObjectItem struct {
-	Dir   bool
-	name  string
-	paths []string
-}
-
-func (i *ObjectItem) Text() string {
-	name := i.Filename()
-	if i.Dir {
-		name += delimiter
-	}
-	return name
-}
-
-func (i *ObjectItem) FilterValue() string {
-	return i.Filename()
-}
-
-func (i *ObjectItem) ObjectKey() string {
-	return i.name
-}
-
-func (i *ObjectItem) Filename() string {
-	return i.paths[len(i.paths)-1]
-}
-
-func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
+func (c *S3Client) ListObjects(bucket, prefix string) ([]*stu.ObjectItem, error) {
 	input := &s3.ListObjectsV2Input{
 		Bucket:    aws.String(bucket),
 		Delimiter: aws.String(delimiter),
 		Prefix:    aws.String(prefix),
 	}
 	p := s3.NewListObjectsV2Paginator(c.client, input, func(o *s3.ListObjectsV2PaginatorOptions) {})
-	items := make([]*ObjectItem, 0)
+	items := make([]*stu.ObjectItem, 0)
 	for p.HasMorePages() {
 		output, err := p.NextPage(c.ctx)
 		if err != nil {
 			return nil, err
 		}
 		for _, obj := range output.Contents {
-			key := *obj.Key
-			item := &ObjectItem{
-				Dir:   false,
-				name:  key,
-				paths: parseObjectKey(key, false),
-			}
+			item := stu.NewFileObjectItem(*obj.Key)
 			items = append(items, item)
 		}
 		for _, cp := range output.CommonPrefixes {
-			key := *cp.Prefix
-			item := &ObjectItem{
-				Dir:   true,
-				name:  key,
-				paths: parseObjectKey(key, true),
-			}
+			item := stu.NewDirObjectItem(*cp.Prefix)
 			items = append(items, item)
 		}
 	}
 	return items, nil
 }
 
-func parseObjectKey(key string, dir bool) []string {
-	ss := strings.Split(key, delimiter)
-	if dir {
-		li := len(ss) - 2 // foo/bar/baz/ => ["foo", "bar", "baz", ""]
-		return append(ss[:li], ss[li])
-	}
-	return ss
-}
-
-type BucketItem struct {
-	name string
-}
-
-func (i *BucketItem) Text() string {
-	return i.name
-}
-
-func (i *BucketItem) FilterValue() string {
-	return i.name
-}
-
-func (i *BucketItem) BucketName() string {
-	return i.name
-}
-
-func (c *S3Client) ListBuckets() ([]*BucketItem, error) {
+func (c *S3Client) ListBuckets() ([]*stu.BucketItem, error) {
 	input := &s3.ListBucketsInput{}
 	output, err := c.client.ListBuckets(c.ctx, input)
 	if err != nil {
 		return nil, err
 	}
-	items := make([]*BucketItem, 0)
+	items := make([]*stu.BucketItem, 0)
 	for _, bucket := range output.Buckets {
-		item := &BucketItem{name: *bucket.Name}
+		item := stu.NewBucketItem(*bucket.Name)
 		items = append(items, item)
 	}
 	return items, nil
