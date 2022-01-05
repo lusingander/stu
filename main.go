@@ -26,7 +26,7 @@ type model struct {
 }
 
 type listItem interface {
-	Key() string
+	Text() string
 }
 
 type itemDelegate struct{}
@@ -49,7 +49,7 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, item list.Ite
 		return
 	}
 
-	str := i.Key()
+	str := i.Text()
 
 	fn := itemStyle.Render
 	if index == m.Index() {
@@ -72,7 +72,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			switch i := m.list.SelectedItem().(type) {
 			case *aws.BucketItem:
-				bucket := i.Key()
+				bucket := i.BucketName()
 				objs, err := m.client.ListObjects(bucket, "")
 				if err != nil {
 					return m, tea.Quit
@@ -87,7 +87,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.bucket = bucket
 			case *aws.ObjectItem:
 				if i.Dir {
-					objs, err := m.client.ListObjects(m.bucket, i.Key())
+					objs, err := m.client.ListObjects(m.bucket, i.ObjectKey())
 					if err != nil {
 						return m, tea.Quit
 					}

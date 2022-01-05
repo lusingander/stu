@@ -2,6 +2,7 @@ package aws
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -42,16 +43,25 @@ func NewS3Client() (*S3Client, error) {
 }
 
 type ObjectItem struct {
-	Dir  bool
-	name string
+	Dir   bool
+	name  string
+	paths []string
 }
 
-func (i *ObjectItem) Key() string {
-	return i.name
+func (i *ObjectItem) Text() string {
+	return i.filename()
 }
 
 func (i *ObjectItem) FilterValue() string {
+	return i.filename()
+}
+
+func (i *ObjectItem) ObjectKey() string {
 	return i.name
+}
+
+func (i *ObjectItem) filename() string {
+	return i.paths[len(i.paths)-1]
 }
 
 func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
@@ -68,16 +78,20 @@ func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
 			return nil, err
 		}
 		for _, obj := range output.Contents {
+			key := *obj.Key
 			item := &ObjectItem{
-				Dir:  false,
-				name: *obj.Key,
+				Dir:   false,
+				name:  key,
+				paths: parseObjectKey(key, false),
 			}
 			items = append(items, item)
 		}
 		for _, cp := range output.CommonPrefixes {
+			key := *cp.Prefix
 			item := &ObjectItem{
-				Dir:  true,
-				name: *cp.Prefix,
+				Dir:   true,
+				name:  key,
+				paths: parseObjectKey(key, true),
 			}
 			items = append(items, item)
 		}
@@ -85,15 +99,28 @@ func (c *S3Client) ListObjects(bucket, prefix string) ([]*ObjectItem, error) {
 	return items, nil
 }
 
+func parseObjectKey(key string, dir bool) []string {
+	ss := strings.Split(key, delimiter)
+	if dir {
+		li := len(ss) - 2 // foo/bar/baz/ => ["foo", "bar", "baz", ""]
+		return append(ss[:li], ss[li]+delimiter)
+	}
+	return ss
+}
+
 type BucketItem struct {
 	name string
 }
 
-func (i *BucketItem) Key() string {
+func (i *BucketItem) Text() string {
 	return i.name
 }
 
 func (i *BucketItem) FilterValue() string {
+	return i.name
+}
+
+func (i *BucketItem) BucketName() string {
 	return i.name
 }
 
