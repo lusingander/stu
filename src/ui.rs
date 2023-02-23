@@ -26,6 +26,12 @@ pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Resul
                 KeyCode::Char('k') => {
                     app.select_prev();
                 }
+                KeyCode::Char('g') => {
+                    app.select_first();
+                }
+                KeyCode::Char('G') => {
+                    app.select_last();
+                }
                 KeyCode::Char('l') => {
                     app.move_down().await;
                 }
@@ -67,12 +73,12 @@ fn build_list(current_items: &[Item], width: u16) -> List {
         .map(|i| {
             let content = match i {
                 Item::Bucket { name, .. } => {
-                    let content = name.to_string();
+                    let content = format_bucket_item(name, width);
                     let style = Style::default();
                     Span::styled(content, style)
                 }
                 Item::Dir { name, .. } => {
-                    let content = format!("{}/", name);
+                    let content = format_dir_item(name, width);
                     let style = Style::default().add_modifier(Modifier::BOLD);
                     Span::styled(content, style)
                 }
@@ -95,6 +101,17 @@ fn build_list(current_items: &[Item], width: u16) -> List {
         .block(Block::default().borders(Borders::all()))
         .highlight_style(Style::default().bg(Color::Green))
         .highlight_symbol("")
+}
+
+fn format_bucket_item(name: &String, width: u16) -> String {
+    let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
+    format!(" {:<name_w$} ", name, name_w = name_w)
+}
+
+fn format_dir_item(name: &String, width: u16) -> String {
+    let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
+    let name = format!("{}/", name);
+    format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
 fn format_file_item(

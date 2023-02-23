@@ -58,30 +58,34 @@ impl App {
     }
 
     pub fn select_next(&mut self) {
-        let i = match self.current_list_state.selected() {
-            Some(i) => {
-                if i >= self.current_items_len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
+        if let Some(i) = self.current_list_state.selected() {
+            let i = if i >= self.current_items_len() - 1 {
+                0
+            } else {
+                i + 1
+            };
+            self.current_list_state.select(Some(i));
         };
-        self.current_list_state.select(Some(i));
     }
 
     pub fn select_prev(&mut self) {
-        let i = match self.current_list_state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    self.current_items_len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => 0,
+        if let Some(i) = self.current_list_state.selected() {
+            let i = if i == 0 {
+                self.current_items_len() - 1
+            } else {
+                i - 1
+            };
+            self.current_list_state.select(Some(i));
         };
+    }
+
+    pub fn select_first(&mut self) {
+        let i = 0;
+        self.current_list_state.select(Some(i));
+    }
+
+    pub fn select_last(&mut self) {
+        let i = self.current_items_len() - 1;
         self.current_list_state.select(Some(i));
     }
 
