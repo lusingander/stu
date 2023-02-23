@@ -1,5 +1,6 @@
 use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::Region;
+use chrono::TimeZone;
 
 use crate::app::Item;
 
@@ -81,6 +82,8 @@ impl Client {
             Item::File {
                 name: paths.last().unwrap().to_owned(),
                 paths,
+                size_byte: file.size(),
+                last_modified: convert_datetime(file.last_modified().unwrap()),
             }
         });
 
@@ -96,4 +99,9 @@ fn parse_path(path: &str, dir: bool) -> Vec<String> {
     } else {
         ss
     }
+}
+
+fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono::Local> {
+    let nanos = dt.as_nanos();
+    chrono::Local.timestamp_nanos(nanos as i64)
 }

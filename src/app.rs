@@ -1,3 +1,4 @@
+use chrono::{DateTime, Local};
 use std::collections::HashMap;
 use tui::widgets::ListState;
 
@@ -117,20 +118,22 @@ impl App {
 
 #[derive(Clone, Debug)]
 pub enum Item {
-    Bucket { name: String },
-    Dir { name: String, paths: Vec<String> },
-    File { name: String, paths: Vec<String> },
+    Bucket {
+        name: String,
+    },
+    Dir {
+        name: String,
+        paths: Vec<String>,
+    },
+    File {
+        name: String,
+        paths: Vec<String>,
+        size_byte: i64,
+        last_modified: DateTime<Local>,
+    },
 }
 
 impl Item {
-    pub fn display_name(&self) -> String {
-        match self {
-            Item::Bucket { name } => name.to_owned(),
-            Item::Dir { name, .. } => format!("{}/", name),
-            Item::File { name, .. } => name.to_owned(),
-        }
-    }
-
     fn name(&self) -> &String {
         match self {
             Item::Bucket { name } => name,
