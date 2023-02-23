@@ -2,6 +2,7 @@ mod app;
 mod client;
 mod ui;
 
+use clap::{arg, Parser};
 use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
@@ -15,12 +16,30 @@ use tui::{
 use crate::app::App;
 use crate::client::Client;
 
+/// STU - S3 Terminal UI
+#[derive(Parser)]
+struct Args {
+    /// AWS region
+    #[arg(short, long)]
+    region: Option<String>,
+
+    /// AWS endpoint url
+    #[arg(short, long, value_name = "URL")]
+    endpoint_url: Option<String>,
+
+    /// AWS profile name
+    #[arg(short, long, value_name = "NAME")]
+    profile: Option<String>,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+
     let mut stdout = stdout();
     let mut terminal = setup(&mut stdout)?;
 
-    let ret = run(&mut terminal).await;
+    let ret = run(&mut terminal, args).await;
 
     shutdown(&mut terminal)?;
 
@@ -37,8 +56,14 @@ fn setup(stdout: &mut Stdout) -> std::io::Result<Terminal<CrosstermBackend<&mut 
     Ok(terminal)
 }
 
-async fn run<B: Backend>(terminal: &mut Terminal<B>) -> std::io::Result<()> {
-    let client = Client::new().await;
+async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Result<()> {
+    let Args {
+        region,
+        endpoint_url,
+        profile,
+        ..
+    } = args;
+    let client = Client::new(region, endpoint_url, profile).await;
     let mut app = App::new(client).await;
 
     ui::run(&mut app, terminal).await

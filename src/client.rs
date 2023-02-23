@@ -1,25 +1,40 @@
 use aws_config::meta::region::RegionProviderChain;
+use aws_sdk_s3::Region;
 
 use crate::app::Item;
 
 const DELIMITER: &str = "/";
+const DEFAULT_REGION: &str = "ap-northeast-1";
 
 pub struct Client {
     pub client: aws_sdk_s3::Client,
 }
 
 impl Client {
-    pub async fn new() -> Client {
-        let region_provider = RegionProviderChain::default_provider().or_else("ap-northeast-1");
-        let config = aws_config::from_env()
-            .region(region_provider)
-            .endpoint_url("http://localhost:9000")
-            .profile_name("minio")
-            .load()
-            .await;
-        let config = aws_sdk_s3::config::Builder::from(&config)
-            .force_path_style(true)
-            .build();
+    pub async fn new(
+        region: Option<String>,
+        endpoint_url: Option<String>,
+        profile: Option<String>,
+    ) -> Client {
+        let region_provider = RegionProviderChain::first_try(region.map(Region::new))
+            .or_default_provider()
+            .or_else(DEFAULT_REGION);
+
+        let mut config_loader = aws_config::from_env().region(region_provider);
+        if let Some(url) = &endpoint_url {
+            config_loader = config_loader.endpoint_url(url);
+        }
+        if let Some(profile) = &profile {
+            config_loader = config_loader.profile_name(profile);
+        }
+        let sdk_config = config_loader.load().await;
+
+        let mut config_builder = aws_sdk_s3::config::Builder::from(&sdk_config);
+        if endpoint_url.is_some() {
+            config_builder = config_builder.force_path_style(true);
+        }
+        let config = config_builder.build();
+
         let client = aws_sdk_s3::Client::from_conf(config);
         Client { client }
     }

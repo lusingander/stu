@@ -11,6 +11,8 @@ use tui::{
 
 use crate::app::{App, Item};
 
+const APP_NAME: &str = "STU";
+
 pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Result<()> {
     loop {
         terminal.draw(|f| render(f, app))?;
@@ -43,7 +45,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let header = Paragraph::new(Span::styled(app.current_key_string(), Style::default())).block(
         Block::default()
-            .title(Span::styled("STU", Style::default()))
+            .title(Span::styled(APP_NAME, Style::default()))
             .borders(Borders::all()),
     );
     f.render_widget(header, chunks[0]);
