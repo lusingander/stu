@@ -100,9 +100,9 @@ impl App {
         } else {
             self.current_keys.push(selected.name().to_owned());
             self.load_objects().await;
-        }
 
-        self.current_list_state.select(Some(0));
+            self.current_list_state.select(Some(0));
+        }
     }
 
     pub async fn move_up(&mut self) {
