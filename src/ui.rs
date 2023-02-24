@@ -3,7 +3,7 @@ use crossterm::event::{self, Event, KeyCode};
 use std::io::Result;
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::Span,
     widgets::{Block, Borders, List, ListItem, Paragraph},
@@ -55,7 +55,8 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(header, chunks[0]);
 
     let current_items = app.current_items();
-    let list = build_list(&current_items, f.size().width);
+    let current_selected = app.current_list_state.selected();
+    let list = build_list(&current_items, current_selected, f.size().width);
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
 }
 
@@ -67,7 +68,7 @@ fn build_header(current_key: &String) -> Paragraph {
     )
 }
 
-fn build_list(current_items: &[Item], width: u16) -> List {
+fn build_list(current_items: &[Item], current_selected: Option<usize>, width: u16) -> List {
     let list_items: Vec<ListItem> = current_items
         .iter()
         .map(|i| {
@@ -97,8 +98,14 @@ fn build_list(current_items: &[Item], width: u16) -> List {
         })
         .collect();
 
+    let title = format_list_count(current_items, current_selected);
     List::new(list_items)
-        .block(Block::default().borders(Borders::all()))
+        .block(
+            Block::default()
+                .borders(Borders::all())
+                .title(title)
+                .title_alignment(Alignment::Right),
+        )
         .highlight_style(Style::default().bg(Color::Green))
         .highlight_symbol("")
 }
@@ -134,4 +141,26 @@ fn format_file_item(
         date_w = date_w,
         size_w = size_w
     )
+}
+
+fn format_list_count(current_items: &[Item], current_selected: Option<usize>) -> String {
+    current_selected
+        .and_then(|n| {
+            let total = current_items.len();
+            if total == 0 {
+                None
+            } else {
+                Some(format_count(n + 1, total))
+            }
+        })
+        .unwrap_or_default()
+}
+
+fn format_count(selected: usize, total: usize) -> String {
+    let digits = digits(total);
+    format!(" {:>digits$} / {} ", selected, total)
+}
+
+fn digits(n: usize) -> usize {
+    n.to_string().len()
 }
