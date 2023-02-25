@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local};
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
 use std::io::Result;
 use tui::{
     backend::Backend,
@@ -18,24 +18,49 @@ pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Resul
     loop {
         terminal.draw(|f| render(f, app))?;
         if let Event::Key(key) = event::read()? {
-            match key.code {
-                KeyCode::Esc => return Ok(()),
-                KeyCode::Char('j') => {
+            match key {
+                KeyEvent {
+                    code: KeyCode::Esc, ..
+                }
+                | KeyEvent {
+                    code: KeyCode::Char('c'),
+                    modifiers: KeyModifiers::CONTROL,
+                    ..
+                } => return Ok(()),
+                KeyEvent {
+                    code: KeyCode::Char('j'),
+                    ..
+                } => {
                     app.select_next();
                 }
-                KeyCode::Char('k') => {
+                KeyEvent {
+                    code: KeyCode::Char('k'),
+                    ..
+                } => {
                     app.select_prev();
                 }
-                KeyCode::Char('g') => {
+                KeyEvent {
+                    code: KeyCode::Char('g'),
+                    ..
+                } => {
                     app.select_first();
                 }
-                KeyCode::Char('G') => {
+                KeyEvent {
+                    code: KeyCode::Char('G'),
+                    ..
+                } => {
                     app.select_last();
                 }
-                KeyCode::Char('l') => {
+                KeyEvent {
+                    code: KeyCode::Char('l'),
+                    ..
+                } => {
                     app.move_down().await;
                 }
-                KeyCode::Char('h') => {
+                KeyEvent {
+                    code: KeyCode::Char('h'),
+                    ..
+                } => {
                     app.move_up().await;
                 }
                 _ => {}
