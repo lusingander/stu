@@ -5,12 +5,12 @@ use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    text::Span,
+    text::{Span, Spans},
     widgets::{Block, Borders, List, ListItem, Paragraph},
     Frame, Terminal,
 };
 
-use crate::app::{App, Item};
+use crate::app::{App, FileDetail, Item, ViewState};
 
 const APP_NAME: &str = "STU";
 
@@ -45,6 +45,13 @@ pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Resul
 }
 
 fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    match app.view_state {
+        ViewState::Default => render_default_view(f, app),
+        ViewState::ObjectDetail => render_object_detail_view(f, app),
+    }
+}
+
+fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
@@ -56,8 +63,43 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let current_items = app.current_items();
     let current_selected = app.current_list_state.selected();
-    let list = build_list(&current_items, current_selected, f.size().width);
+    let list = build_list(
+        &current_items,
+        current_selected,
+        f.size().width,
+        Color::Cyan,
+    );
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
+}
+
+fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(f.size());
+
+    let current_key = app.current_key_string();
+    let header = build_header(&current_key);
+    f.render_widget(header, chunks[0]);
+
+    let chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
+        .split(chunks[1]);
+
+    let current_items = app.current_items();
+    let current_selected = app.current_list_state.selected();
+    let list = build_list(
+        &current_items,
+        current_selected,
+        f.size().width,
+        Color::DarkGray,
+    );
+    f.render_stateful_widget(list, chunks[0], &mut app.current_list_state);
+
+    let current_file_detail = app.get_current_file_detail().unwrap();
+    let detail = build_file_detail(current_file_detail);
+    f.render_widget(detail, chunks[1]);
 }
 
 fn build_header(current_key: &String) -> Paragraph {
@@ -68,7 +110,12 @@ fn build_header(current_key: &String) -> Paragraph {
     )
 }
 
-fn build_list(current_items: &[Item], current_selected: Option<usize>, width: u16) -> List {
+fn build_list(
+    current_items: &[Item],
+    current_selected: Option<usize>,
+    width: u16,
+    color: Color,
+) -> List {
     let list_items: Vec<ListItem> = current_items
         .iter()
         .map(|i| {
@@ -106,8 +153,7 @@ fn build_list(current_items: &[Item], current_selected: Option<usize>, width: u1
                 .title(title)
                 .title_alignment(Alignment::Right),
         )
-        .highlight_style(Style::default().bg(Color::Green))
-        .highlight_symbol("")
+        .highlight_style(Style::default().bg(color))
 }
 
 fn format_bucket_item(name: &String, width: u16) -> String {
@@ -127,8 +173,8 @@ fn format_file_item(
     last_modified: &DateTime<Local>,
     width: u16,
 ) -> String {
-    let size = humansize::format_size_i(*size_byte, humansize::BINARY);
-    let date = last_modified.format("%y/%m/%d %H:%M:%S");
+    let size = format_size_byte(*size_byte);
+    let date = format_datetime(last_modified);
     let date_w: usize = 17;
     let size_w: usize = 10;
     let name_w: usize = (width as usize) - date_w - size_w - 12 /* spaces */ - 2 /* border */;
@@ -163,4 +209,62 @@ fn format_count(selected: usize, total: usize) -> String {
 
 fn digits(n: usize) -> usize {
     n.to_string().len()
+}
+
+fn build_file_detail(detail: &FileDetail) -> Paragraph {
+    let text = vec![
+        Spans::from(Span::styled(
+            " Name:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Spans::from(Span::styled(
+            format!("  {}", &detail.name),
+            Style::default(),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            " Size:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Spans::from(Span::styled(
+            format!("  {}", format_size_byte(detail.size_byte)),
+            Style::default(),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            " Last Modified:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Spans::from(Span::styled(
+            format!("  {}", format_datetime(&detail.last_modified)),
+            Style::default(),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            " ETag:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Spans::from(Span::styled(
+            format!("  {}", &detail.e_tag),
+            Style::default(),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            " Content-Type:",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Spans::from(Span::styled(
+            format!("  {}", &detail.content_type),
+            Style::default(),
+        )),
+    ];
+    Paragraph::new(text).block(Block::default().borders(Borders::all()))
+}
+
+fn format_size_byte(size_byte: i64) -> String {
+    humansize::format_size_i(size_byte, humansize::BINARY)
+}
+
+fn format_datetime(datetime: &DateTime<Local>) -> String {
+    datetime.format("%y/%m/%d %H:%M:%S").to_string()
 }

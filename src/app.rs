@@ -6,9 +6,17 @@ use crate::client::Client;
 
 pub struct App {
     pub current_list_state: ListState,
+    pub view_state: ViewState,
     current_keys: Vec<String>,
-    item_map: HashMap<Vec<String>, Vec<Item>>,
+    items_map: HashMap<Vec<String>, Vec<Item>>,
+    detail_map: HashMap<String, FileDetail>,
     client: Client,
+}
+
+#[derive(PartialEq, Eq)]
+pub enum ViewState {
+    Default,
+    ObjectDetail,
 }
 
 impl App {
@@ -21,9 +29,11 @@ impl App {
         item_map.insert(Vec::new(), buckets);
 
         App {
-            current_keys: Vec::new(),
             current_list_state,
-            item_map,
+            view_state: ViewState::Default,
+            current_keys: Vec::new(),
+            items_map: item_map,
+            detail_map: HashMap::new(),
             client,
         }
     }
@@ -46,77 +56,142 @@ impl App {
     }
 
     pub fn current_items(&self) -> Vec<Item> {
-        self.item_map.get(&self.current_keys).unwrap().to_vec()
+        self.items_map.get(&self.current_keys).unwrap().to_vec()
     }
 
     fn current_items_len(&self) -> usize {
-        self.item_map.get(&self.current_keys).unwrap().len()
+        self.items_map.get(&self.current_keys).unwrap().len()
     }
 
     fn get_from_current_items(&self, idx: usize) -> Option<&Item> {
-        self.item_map.get(&self.current_keys).unwrap().get(idx)
+        self.items_map.get(&self.current_keys).unwrap().get(idx)
+    }
+
+    fn get_current_selected(&self) -> &Item {
+        self.current_list_state
+            .selected()
+            .and_then(|i| self.get_from_current_items(i))
+            .unwrap()
+    }
+
+    pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
+        if let Item::File { name, .. } = self.get_current_selected() {
+            let bucket = &self.current_bucket();
+            let prefix = &self.current_object_prefix();
+            let key = &self.object_detail_map_key(bucket, prefix, name);
+            self.detail_map.get(key)
+        } else {
+            None
+        }
     }
 
     pub fn select_next(&mut self) {
-        if let Some(i) = self.current_list_state.selected() {
-            let i = if i >= self.current_items_len() - 1 {
-                0
-            } else {
-                i + 1
-            };
-            self.current_list_state.select(Some(i));
-        };
+        match self.view_state {
+            ViewState::Default => {
+                if let Some(i) = self.current_list_state.selected() {
+                    let i = if i >= self.current_items_len() - 1 {
+                        0
+                    } else {
+                        i + 1
+                    };
+                    self.current_list_state.select(Some(i));
+                };
+            }
+            ViewState::ObjectDetail => {}
+        }
     }
 
     pub fn select_prev(&mut self) {
-        if let Some(i) = self.current_list_state.selected() {
-            let i = if i == 0 {
-                self.current_items_len() - 1
-            } else {
-                i - 1
-            };
-            self.current_list_state.select(Some(i));
-        };
+        match self.view_state {
+            ViewState::Default => {
+                if let Some(i) = self.current_list_state.selected() {
+                    let i = if i == 0 {
+                        self.current_items_len() - 1
+                    } else {
+                        i - 1
+                    };
+                    self.current_list_state.select(Some(i));
+                };
+            }
+            ViewState::ObjectDetail => {}
+        }
     }
 
     pub fn select_first(&mut self) {
-        let i = 0;
-        self.current_list_state.select(Some(i));
+        match self.view_state {
+            ViewState::Default => {
+                let i = 0;
+                self.current_list_state.select(Some(i));
+            }
+            ViewState::ObjectDetail => {}
+        }
     }
 
     pub fn select_last(&mut self) {
-        let i = self.current_items_len() - 1;
-        self.current_list_state.select(Some(i));
+        match self.view_state {
+            ViewState::Default => {
+                let i = self.current_items_len() - 1;
+                self.current_list_state.select(Some(i));
+            }
+            ViewState::ObjectDetail => {}
+        }
     }
 
     pub async fn move_down(&mut self) {
-        let selected = self
-            .current_list_state
-            .selected()
-            .and_then(|i| self.get_from_current_items(i))
-            .unwrap();
-
-        if let Item::File { .. } = selected {
-        } else {
-            self.current_keys.push(selected.name().to_owned());
-            self.load_objects().await;
-
-            self.current_list_state.select(Some(0));
+        match self.view_state {
+            ViewState::Default => {
+                let selected = self.get_current_selected();
+                if let Item::File { .. } = selected {
+                    self.view_state = ViewState::ObjectDetail;
+                    self.load_object_detail().await;
+                } else {
+                    self.current_keys.push(selected.name().to_owned());
+                    self.load_objects().await;
+                    self.current_list_state.select(Some(0));
+                }
+            }
+            ViewState::ObjectDetail => {}
         }
     }
 
     pub async fn move_up(&mut self) {
-        self.current_keys.pop();
-
-        self.current_list_state.select(Some(0));
+        match self.view_state {
+            ViewState::Default => {
+                self.current_keys.pop();
+                self.current_list_state.select(Some(0));
+            }
+            ViewState::ObjectDetail => {
+                self.view_state = ViewState::Default;
+            }
+        }
     }
 
     async fn load_objects(&mut self) {
-        let items = self
-            .client
-            .load_objects(&self.current_bucket(), &self.current_object_prefix())
-            .await;
-        self.item_map.insert(self.current_keys.clone(), items);
+        let bucket = &self.current_bucket();
+        let prefix = &self.current_object_prefix();
+        let items = self.client.load_objects(bucket, prefix).await;
+        self.items_map.insert(self.current_keys.clone(), items);
+    }
+
+    async fn load_object_detail(&mut self) {
+        if let Item::File {
+            name, size_byte, ..
+        } = self.get_current_selected()
+        {
+            let bucket = &self.current_bucket();
+            let prefix = &self.current_object_prefix();
+            let key = &format!("{}{}", prefix, name);
+            let detail = self
+                .client
+                .load_object_detail(bucket, key, name, *size_byte)
+                .await;
+            let map_key = &self.object_detail_map_key(bucket, prefix, name);
+            self.detail_map.insert(map_key.to_owned(), detail);
+        }
+    }
+
+    fn object_detail_map_key(&self, bucket: &String, prefix: &String, name: &String) -> String {
+        format!("{}/{}{}", bucket, prefix, name)
     }
 }
 
@@ -145,4 +220,12 @@ impl Item {
             Item::File { name, .. } => name,
         }
     }
+}
+
+pub struct FileDetail {
+    pub name: String,
+    pub size_byte: i64,
+    pub last_modified: DateTime<Local>,
+    pub e_tag: String,
+    pub content_type: String,
 }

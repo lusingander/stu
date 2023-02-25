@@ -2,7 +2,7 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::Region;
 use chrono::TimeZone;
 
-use crate::app::Item;
+use crate::app::{FileDetail, Item};
 
 const DELIMITER: &str = "/";
 const DEFAULT_REGION: &str = "ap-northeast-1";
@@ -69,25 +69,55 @@ impl Client {
         let dirs = objects.iter().map(|dir| {
             let path = dir.prefix().unwrap().to_string();
             let paths = parse_path(&path, true);
-            Item::Dir {
-                name: paths.last().unwrap().to_owned(),
-                paths,
-            }
+            let name = paths.last().unwrap().to_owned();
+            Item::Dir { name, paths }
         });
 
         let objects = output.contents().unwrap_or_default();
         let files = objects.iter().map(|file| {
             let path = file.key().unwrap().to_string();
             let paths = parse_path(&path, false);
+            let name = paths.last().unwrap().to_owned();
+            let size_byte = file.size();
+            let last_modified = convert_datetime(file.last_modified().unwrap());
             Item::File {
-                name: paths.last().unwrap().to_owned(),
+                name,
                 paths,
-                size_byte: file.size(),
-                last_modified: convert_datetime(file.last_modified().unwrap()),
+                size_byte,
+                last_modified,
             }
         });
 
         dirs.chain(files).collect()
+    }
+
+    pub async fn load_object_detail(
+        &self,
+        bucket: &String,
+        key: &String,
+        name: &String,
+        size_byte: i64,
+    ) -> FileDetail {
+        let result = self
+            .client
+            .head_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await;
+        let output = result.unwrap();
+
+        let name = name.to_owned();
+        let last_modified = convert_datetime(output.last_modified().unwrap());
+        let e_tag = output.e_tag().unwrap().trim_matches('"').to_string();
+        let content_type = output.content_type().unwrap().to_string();
+        FileDetail {
+            name,
+            size_byte,
+            last_modified,
+            e_tag,
+            content_type,
+        }
     }
 }
 
