@@ -1,5 +1,6 @@
 mod app;
 mod client;
+mod event;
 mod ui;
 
 use clap::{arg, Parser};
@@ -7,6 +8,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use event::AppEvent;
 use std::io::{stdout, Result, Stdout};
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -65,9 +67,10 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
         ..
     } = args;
     let client = Client::new(region, endpoint_url, profile).await;
+    let app_event = AppEvent::new();
     let mut app = App::new(client).await;
 
-    ui::run(&mut app, terminal).await
+    ui::run(&mut app, terminal, &app_event).await
 }
 
 fn shutdown<W: std::io::Write>(

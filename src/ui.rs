@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::io::Result;
 use tui::{
     backend::Backend,
@@ -10,17 +10,24 @@ use tui::{
     Frame, Terminal,
 };
 
-use crate::app::{App, FileDetail, FileDetailViewState, FileVersion, Item, ViewState};
+use crate::{
+    app::{App, FileDetail, FileDetailViewState, FileVersion, Item, ViewState},
+    event::{AppEvent, AppEventType},
+};
 
 const APP_NAME: &str = "STU";
 
 const SELECTED_COLOR: Color = Color::Cyan;
 
-pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Result<()> {
+pub async fn run<B: Backend>(
+    app: &mut App,
+    terminal: &mut Terminal<B>,
+    app_event: &AppEvent,
+) -> Result<()> {
     loop {
         terminal.draw(|f| render(f, app))?;
-        if let Event::Key(key) = event::read()? {
-            match key {
+        match app_event.receive() {
+            AppEventType::Key(key) => match key {
                 KeyEvent {
                     code: KeyCode::Esc, ..
                 }
@@ -86,7 +93,8 @@ pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Resul
                     app.select_tabs();
                 }
                 _ => {}
-            }
+            },
+            AppEventType::Error(_) => {}
         }
     }
 }
