@@ -12,6 +12,7 @@ pub struct App {
     items_map: HashMap<Vec<String>, Vec<Item>>,
     detail_map: HashMap<String, FileDetail>,
     versions_map: HashMap<String, Vec<FileVersion>>,
+    error_msg: Option<String>,
     client: Client,
 }
 
@@ -44,6 +45,7 @@ impl App {
             items_map: item_map,
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
+            error_msg: None,
             client,
         }
     }
@@ -233,6 +235,22 @@ impl App {
                 }
             },
         }
+    }
+
+    pub fn set_error_msg(&mut self, msg: String) {
+        self.error_msg = Some(msg);
+    }
+
+    pub fn clear_error_msg(&mut self) {
+        self.error_msg = None;
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.error_msg.is_some()
+    }
+
+    pub fn get_error_msg(&self) -> &String {
+        self.error_msg.as_ref().unwrap()
     }
 }
 

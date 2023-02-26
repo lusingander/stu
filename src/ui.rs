@@ -27,74 +27,87 @@ pub async fn run<B: Backend>(
     loop {
         terminal.draw(|f| render(f, app))?;
         match app_event.receive() {
-            AppEventType::Key(key) => match key {
-                KeyEvent {
-                    code: KeyCode::Esc, ..
+            AppEventType::Key(key) => {
+                match key {
+                    KeyEvent {
+                        code: KeyCode::Esc, ..
+                    }
+                    | KeyEvent {
+                        code: KeyCode::Char('c'),
+                        modifiers: KeyModifiers::CONTROL,
+                        ..
+                    } => return Ok(()),
+                    _ => {}
                 }
-                | KeyEvent {
-                    code: KeyCode::Char('c'),
-                    modifiers: KeyModifiers::CONTROL,
-                    ..
-                } => return Ok(()),
-                KeyEvent {
-                    code: KeyCode::Char('j'),
-                    ..
-                } => {
-                    app.select_next();
+
+                if app.has_error() {
+                    app.clear_error_msg();
+                    continue;
                 }
-                KeyEvent {
-                    code: KeyCode::Char('k'),
-                    ..
-                } => {
-                    app.select_prev();
+
+                match key {
+                    KeyEvent {
+                        code: KeyCode::Char('j'),
+                        ..
+                    } => {
+                        app.select_next();
+                    }
+                    KeyEvent {
+                        code: KeyCode::Char('k'),
+                        ..
+                    } => {
+                        app.select_prev();
+                    }
+                    KeyEvent {
+                        code: KeyCode::Char('g'),
+                        ..
+                    } => {
+                        app.select_first();
+                    }
+                    KeyEvent {
+                        code: KeyCode::Char('G'),
+                        ..
+                    } => {
+                        app.select_last();
+                    }
+                    KeyEvent {
+                        code: KeyCode::Enter,
+                        ..
+                    }
+                    | KeyEvent {
+                        code: KeyCode::Char('m'),
+                        modifiers: KeyModifiers::CONTROL,
+                        ..
+                    } => {
+                        app.move_down().await;
+                    }
+                    KeyEvent {
+                        code: KeyCode::Backspace,
+                        ..
+                    }
+                    | KeyEvent {
+                        code: KeyCode::Char('h'),
+                        modifiers: KeyModifiers::CONTROL,
+                        ..
+                    } => {
+                        app.move_up().await;
+                    }
+                    KeyEvent {
+                        code: KeyCode::Char('h'),
+                        ..
+                    }
+                    | KeyEvent {
+                        code: KeyCode::Char('l'),
+                        ..
+                    } => {
+                        app.select_tabs();
+                    }
+                    _ => {}
                 }
-                KeyEvent {
-                    code: KeyCode::Char('g'),
-                    ..
-                } => {
-                    app.select_first();
-                }
-                KeyEvent {
-                    code: KeyCode::Char('G'),
-                    ..
-                } => {
-                    app.select_last();
-                }
-                KeyEvent {
-                    code: KeyCode::Enter,
-                    ..
-                }
-                | KeyEvent {
-                    code: KeyCode::Char('m'),
-                    modifiers: KeyModifiers::CONTROL,
-                    ..
-                } => {
-                    app.move_down().await;
-                }
-                KeyEvent {
-                    code: KeyCode::Backspace,
-                    ..
-                }
-                | KeyEvent {
-                    code: KeyCode::Char('h'),
-                    modifiers: KeyModifiers::CONTROL,
-                    ..
-                } => {
-                    app.move_up().await;
-                }
-                KeyEvent {
-                    code: KeyCode::Char('h'),
-                    ..
-                }
-                | KeyEvent {
-                    code: KeyCode::Char('l'),
-                    ..
-                } => {
-                    app.select_tabs();
-                }
-                _ => {}
-            },
-            AppEventType::Error(_) => {}
+            }
+            AppEventType::Error(e) => {
+                app.set_error_msg(e);
+            }
         }
     }
 }
@@ -133,8 +146,13 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     );
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
 
-    let help = build_help(app);
-    f.render_widget(help, chunks[2]);
+    if app.has_error() {
+        let err = build_error_status(app);
+        f.render_widget(err, chunks[2]);
+    } else {
+        let help = build_help(app);
+        f.render_widget(help, chunks[2]);
+    }
 }
 
 fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -154,8 +172,13 @@ fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let header = build_header(&current_key);
     f.render_widget(header, chunks[0]);
 
-    let help = build_help(app);
-    f.render_widget(help, chunks[2]);
+    if app.has_error() {
+        let err = build_error_status(app);
+        f.render_widget(err, chunks[2]);
+    } else {
+        let help = build_help(app);
+        f.render_widget(help, chunks[2]);
+    }
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -431,4 +454,14 @@ fn build_help(app: &App) -> Paragraph {
     };
     let help = format!("  {}", help);
     Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
+}
+
+fn build_error_status(app: &App) -> Paragraph {
+    let err = app.get_error_msg();
+    let err = format!("  ERROR: {}", err);
+    Paragraph::new(Span::styled(
+        err,
+        Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
+    ))
+    .block(Block::default())
 }
