@@ -105,6 +105,9 @@ pub async fn run<B: Backend>(
                     _ => {}
                 }
             }
+            AppEventType::ClientInitialized(client) => {
+                app.initialize(client).await;
+            }
             AppEventType::Error(e) => {
                 app.set_error_msg(e);
             }
@@ -114,9 +117,31 @@ pub async fn run<B: Backend>(
 
 fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.view_state {
+        ViewState::Initializing => render_initializing_view(f),
         ViewState::Default => render_default_view(f, app),
         ViewState::ObjectDetail => render_object_detail_view(f, app),
     }
+}
+
+fn render_initializing_view<B: Backend>(f: &mut Frame<B>) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(2),
+            ]
+            .as_ref(),
+        )
+        .split(f.size());
+
+    let empty = String::new();
+    let header = build_header(&empty);
+    f.render_widget(header, chunks[0]);
+
+    let content = Block::default().borders(Borders::all());
+    f.render_widget(content, chunks[1]);
 }
 
 fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -449,6 +474,7 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
 
 fn build_help(app: &App) -> Paragraph {
     let help = match app.view_state {
+        ViewState::Initializing => "",
         ViewState::Default => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back",
         ViewState::ObjectDetail => "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close",
     };

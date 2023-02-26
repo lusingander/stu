@@ -2,14 +2,17 @@ use std::{sync::mpsc, thread};
 
 use crossterm::event::KeyEvent;
 
+use crate::client::Client;
+
 pub enum AppEventType {
     Key(KeyEvent),
+    ClientInitialized(Client),
     Error(String),
 }
 
 pub struct AppEvent {
     rx: mpsc::Receiver<AppEventType>,
-    _tx: mpsc::Sender<AppEventType>,
+    tx: mpsc::Sender<AppEventType>,
 }
 
 impl AppEvent {
@@ -30,10 +33,14 @@ impl AppEvent {
             }
         });
 
-        AppEvent { rx, _tx: tx }
+        AppEvent { rx, tx }
     }
 
     pub fn receive(&self) -> AppEventType {
         self.rx.recv().unwrap()
+    }
+
+    pub fn tx(&self) -> mpsc::Sender<AppEventType> {
+        self.tx.clone()
     }
 }
