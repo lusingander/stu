@@ -18,6 +18,7 @@ use crate::client::Client;
 
 /// STU - S3 Terminal UI
 #[derive(Parser)]
+#[command(version)]
 struct Args {
     /// AWS region
     #[arg(short, long)]

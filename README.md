@@ -18,6 +18,7 @@ Options:
   -e, --endpoint-url <URL>  AWS endpoint url
   -p, --profile <NAME>      AWS profile name
   -h, --help                Print help
+  -V, --version             Print version
 ```
 
 ## License
