@@ -101,7 +101,14 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
 fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(2),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
 
     let current_key = app.current_key_string();
@@ -117,17 +124,30 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         SELECTED_COLOR,
     );
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
+
+    let help = build_help(app);
+    f.render_widget(help, chunks[2]);
 }
 
 fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(2),
+            ]
+            .as_ref(),
+        )
         .split(f.size());
 
     let current_key = app.current_key_string();
     let header = build_header(&current_key);
     f.render_widget(header, chunks[0]);
+
+    let help = build_help(app);
+    f.render_widget(help, chunks[2]);
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -394,4 +414,13 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
     List::new(list_items)
         .block(Block::default())
         .highlight_style(Style::default().bg(SELECTED_COLOR))
+}
+
+fn build_help(app: &App) -> Paragraph {
+    let help = match app.view_state {
+        ViewState::Default => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back",
+        ViewState::ObjectDetail => "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close",
+    };
+    let help = format!("  {}", help);
+    Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
 }
