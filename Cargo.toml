@@ -1,9 +1,15 @@
 [package]
 name = "stu"
-version = "0.1.0"
+version = "0.0.1"
+description = "TUI application for AWS S3 written in Rust using tui-rs"
+authors = ["Kyosuke Fujimoto <kyoro.f@gmail.com>"]
+homepage = "https://github.com/lusingander/stu"
+repository = "https://github.com/lusingander/stu"
+readme = "README.md"
+license = "MIT"
+keywords = ["s3", "aws", "cli", "tui", "terminal"]
+categories = ["command-line-utilities"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 aws-config = "0.54.1"
