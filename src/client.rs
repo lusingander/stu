@@ -2,7 +2,7 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::Region;
 use chrono::TimeZone;
 
-use crate::app::{FileDetail, Item};
+use crate::app::{FileDetail, FileVersion, Item};
 
 const DELIMITER: &str = "/";
 const DEFAULT_REGION: &str = "ap-northeast-1";
@@ -118,6 +118,34 @@ impl Client {
             e_tag,
             content_type,
         }
+    }
+
+    pub async fn load_object_versions(&self, bucket: &String, key: &String) -> Vec<FileVersion> {
+        let result = self
+            .client
+            .list_object_versions()
+            .bucket(bucket)
+            .prefix(key)
+            .send()
+            .await;
+        let output = result.unwrap();
+
+        let versions = output.versions().unwrap_or_default();
+        versions
+            .iter()
+            .map(|v| {
+                let version_id = v.version_id().unwrap().to_string(); // returns "null" if empty...
+                let size_byte = v.size();
+                let last_modified = convert_datetime(v.last_modified().unwrap());
+                let is_latest = v.is_latest();
+                FileVersion {
+                    version_id,
+                    size_byte,
+                    last_modified,
+                    is_latest,
+                }
+            })
+            .collect()
     }
 }
 

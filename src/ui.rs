@@ -6,13 +6,15 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
 
-use crate::app::{App, FileDetail, Item, ViewState};
+use crate::app::{App, FileDetail, FileDetailViewState, FileVersion, Item, ViewState};
 
 const APP_NAME: &str = "STU";
+
+const SELECTED_COLOR: Color = Color::Cyan;
 
 pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Result<()> {
     loop {
@@ -52,16 +54,36 @@ pub async fn run<B: Backend>(app: &mut App, terminal: &mut Terminal<B>) -> Resul
                     app.select_last();
                 }
                 KeyEvent {
-                    code: KeyCode::Char('l'),
+                    code: KeyCode::Enter,
+                    ..
+                }
+                | KeyEvent {
+                    code: KeyCode::Char('m'),
+                    modifiers: KeyModifiers::CONTROL,
                     ..
                 } => {
                     app.move_down().await;
                 }
                 KeyEvent {
+                    code: KeyCode::Backspace,
+                    ..
+                }
+                | KeyEvent {
                     code: KeyCode::Char('h'),
+                    modifiers: KeyModifiers::CONTROL,
                     ..
                 } => {
                     app.move_up().await;
+                }
+                KeyEvent {
+                    code: KeyCode::Char('h'),
+                    ..
+                }
+                | KeyEvent {
+                    code: KeyCode::Char('l'),
+                    ..
+                } => {
+                    app.select_tabs();
                 }
                 _ => {}
             }
@@ -92,7 +114,7 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         &current_items,
         current_selected,
         f.size().width,
-        Color::Cyan,
+        SELECTED_COLOR,
     );
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
 }
@@ -122,9 +144,31 @@ fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     );
     f.render_stateful_widget(list, chunks[0], &mut app.current_list_state);
 
-    let current_file_detail = app.get_current_file_detail().unwrap();
-    let detail = build_file_detail(current_file_detail);
-    f.render_widget(detail, chunks[1]);
+    let block = build_file_detail_block("");
+    f.render_widget(block, chunks[1]);
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(2), Constraint::Min(0)].as_ref())
+        .margin(1)
+        .split(chunks[1]);
+
+    let selected = app.file_detail_view_state as usize;
+    let tabs = build_file_detail_tabs(&selected);
+    f.render_widget(tabs, chunks[0]);
+
+    match app.file_detail_view_state {
+        FileDetailViewState::Detail => {
+            let current_file_detail = app.get_current_file_detail().unwrap();
+            let detail = build_file_detail(current_file_detail);
+            f.render_widget(detail, chunks[1]);
+        }
+        FileDetailViewState::Version => {
+            let current_file_versions = app.get_current_file_versions().unwrap();
+            let versions = build_file_versions(current_file_versions, chunks[1].width);
+            f.render_widget(versions, chunks[1]);
+        }
+    }
 }
 
 fn build_header(current_key: &String) -> Paragraph {
@@ -236,6 +280,25 @@ fn digits(n: usize) -> usize {
     n.to_string().len()
 }
 
+fn build_file_detail_block(title: &str) -> Block {
+    Block::default().title(title).borders(Borders::all())
+}
+
+fn build_file_detail_tabs(selected: &usize) -> Tabs {
+    let tabs = vec![
+        Spans::from(Span::styled("Detail", Style::default())),
+        Spans::from(Span::styled("Version", Style::default())),
+    ];
+    Tabs::new(tabs)
+        .select(*selected)
+        .highlight_style(
+            Style::default()
+                .add_modifier(Modifier::BOLD)
+                .fg(SELECTED_COLOR),
+        )
+        .block(Block::default().borders(Borders::BOTTOM))
+}
+
 fn build_file_detail(detail: &FileDetail) -> Paragraph {
     let text = vec![
         Spans::from(Span::styled(
@@ -283,7 +346,7 @@ fn build_file_detail(detail: &FileDetail) -> Paragraph {
             Style::default(),
         )),
     ];
-    Paragraph::new(text).block(Block::default().borders(Borders::all()))
+    Paragraph::new(text).block(Block::default())
 }
 
 fn format_size_byte(size_byte: i64) -> String {
@@ -292,4 +355,43 @@ fn format_size_byte(size_byte: i64) -> String {
 
 fn format_datetime(datetime: &DateTime<Local>) -> String {
     datetime.format("%y/%m/%d %H:%M:%S").to_string()
+}
+
+fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
+    let list_items: Vec<ListItem> = versions
+        .iter()
+        .map(|v| {
+            let content = vec![
+                Spans::from(vec![
+                    Span::styled(
+                        "    Version ID: ",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(&v.version_id, Style::default()),
+                ]),
+                Spans::from(vec![
+                    Span::styled(
+                        " Last Modified: ",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(format_datetime(&v.last_modified), Style::default()),
+                ]),
+                Spans::from(vec![
+                    Span::styled(
+                        "          Size: ",
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ),
+                    Span::styled(format_size_byte(v.size_byte), Style::default()),
+                ]),
+                Spans::from(Span::styled(
+                    "-".repeat(width as usize),
+                    Style::default().fg(Color::DarkGray),
+                )),
+            ];
+            ListItem::new(content)
+        })
+        .collect();
+    List::new(list_items)
+        .block(Block::default())
+        .highlight_style(Style::default().bg(SELECTED_COLOR))
 }

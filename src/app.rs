@@ -7,9 +7,11 @@ use crate::client::Client;
 pub struct App {
     pub current_list_state: ListState,
     pub view_state: ViewState,
+    pub file_detail_view_state: FileDetailViewState,
     current_keys: Vec<String>,
     items_map: HashMap<Vec<String>, Vec<Item>>,
     detail_map: HashMap<String, FileDetail>,
+    versions_map: HashMap<String, Vec<FileVersion>>,
     client: Client,
 }
 
@@ -17,6 +19,12 @@ pub struct App {
 pub enum ViewState {
     Default,
     ObjectDetail,
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum FileDetailViewState {
+    Detail = 0,
+    Version = 1,
 }
 
 impl App {
@@ -31,9 +39,11 @@ impl App {
         App {
             current_list_state,
             view_state: ViewState::Default,
+            file_detail_view_state: FileDetailViewState::Detail,
             current_keys: Vec::new(),
             items_map: item_map,
             detail_map: HashMap::new(),
+            versions_map: HashMap::new(),
             client,
         }
     }
@@ -80,6 +90,17 @@ impl App {
             let prefix = &self.current_object_prefix();
             let key = &self.object_detail_map_key(bucket, prefix, name);
             self.detail_map.get(key)
+        } else {
+            None
+        }
+    }
+
+    pub fn get_current_file_versions(&self) -> Option<&Vec<FileVersion>> {
+        if let Item::File { name, .. } = self.get_current_selected() {
+            let bucket = &self.current_bucket();
+            let prefix = &self.current_object_prefix();
+            let key = &self.object_detail_map_key(bucket, prefix, name);
+            self.versions_map.get(key)
         } else {
             None
         }
@@ -143,7 +164,8 @@ impl App {
                 let selected = self.get_current_selected();
                 if let Item::File { .. } = selected {
                     self.view_state = ViewState::ObjectDetail;
-                    self.load_object_detail().await;
+                    self.file_detail_view_state = FileDetailViewState::Detail;
+                    self.load_object().await;
                 } else {
                     self.current_keys.push(selected.name().to_owned());
                     self.load_objects().await;
@@ -162,6 +184,7 @@ impl App {
             }
             ViewState::ObjectDetail => {
                 self.view_state = ViewState::Default;
+                self.file_detail_view_state = FileDetailViewState::Detail;
             }
         }
     }
@@ -173,7 +196,7 @@ impl App {
         self.items_map.insert(self.current_keys.clone(), items);
     }
 
-    async fn load_object_detail(&mut self) {
+    async fn load_object(&mut self) {
         if let Item::File {
             name, size_byte, ..
         } = self.get_current_selected()
@@ -181,17 +204,35 @@ impl App {
             let bucket = &self.current_bucket();
             let prefix = &self.current_object_prefix();
             let key = &format!("{}{}", prefix, name);
+
             let detail = self
                 .client
                 .load_object_detail(bucket, key, name, *size_byte)
                 .await;
             let map_key = &self.object_detail_map_key(bucket, prefix, name);
             self.detail_map.insert(map_key.to_owned(), detail);
+
+            let versions = self.client.load_object_versions(bucket, key).await;
+            self.versions_map.insert(map_key.to_owned(), versions);
         }
     }
 
     fn object_detail_map_key(&self, bucket: &String, prefix: &String, name: &String) -> String {
         format!("{}/{}{}", bucket, prefix, name)
+    }
+
+    pub fn select_tabs(&mut self) {
+        match self.view_state {
+            ViewState::Default => {}
+            ViewState::ObjectDetail => match self.file_detail_view_state {
+                FileDetailViewState::Detail => {
+                    self.file_detail_view_state = FileDetailViewState::Version;
+                }
+                FileDetailViewState::Version => {
+                    self.file_detail_view_state = FileDetailViewState::Detail;
+                }
+            },
+        }
     }
 }
 
@@ -228,4 +269,11 @@ pub struct FileDetail {
     pub last_modified: DateTime<Local>,
     pub e_tag: String,
     pub content_type: String,
+}
+
+pub struct FileVersion {
+    pub version_id: String,
+    pub size_byte: i64,
+    pub last_modified: DateTime<Local>,
+    pub is_latest: bool,
 }
