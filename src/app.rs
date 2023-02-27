@@ -175,22 +175,17 @@ impl App {
         }
     }
 
-    pub async fn move_down(&mut self) {
+    pub fn move_down(&mut self) {
         match self.view_state {
             ViewState::Initializing | ViewState::ObjectDetail => {}
             ViewState::Default => {
                 let selected = self.get_current_selected();
                 if let Item::File { .. } = selected {
-                    self.view_state = ViewState::ObjectDetail;
-                    self.file_detail_view_state = FileDetailViewState::Detail;
-                    self.load_object().await;
+                    self.tx.send(AppEventType::LoadObject).unwrap();
                 } else {
-                    self.current_keys.push(selected.name().to_owned());
-                    self.current_list_state.select(Some(0));
-
-                    self.is_loading = true;
                     self.tx.send(AppEventType::LoadObjects).unwrap();
                 }
+                self.is_loading = true;
             }
         }
     }
@@ -210,6 +205,10 @@ impl App {
     }
 
     pub async fn load_objects(&mut self) {
+        let selected = self.get_current_selected();
+        self.current_keys.push(selected.name().to_owned());
+        self.current_list_state.select(Some(0));
+
         let bucket = &self.current_bucket();
         let prefix = &self.current_object_prefix();
         let client = self.client.as_ref().unwrap();
@@ -219,7 +218,7 @@ impl App {
         self.is_loading = false;
     }
 
-    async fn load_object(&mut self) {
+    pub async fn load_object(&mut self) {
         if let Item::File {
             name, size_byte, ..
         } = self.get_current_selected()
@@ -237,7 +236,11 @@ impl App {
 
             let versions = client.load_object_versions(bucket, key).await;
             self.versions_map.insert(map_key.to_owned(), versions);
+
+            self.view_state = ViewState::ObjectDetail;
+            self.file_detail_view_state = FileDetailViewState::Detail;
         }
+        self.is_loading = false;
     }
 
     fn object_detail_map_key(&self, bucket: &String, prefix: &String, name: &String) -> String {

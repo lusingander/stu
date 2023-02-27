@@ -79,7 +79,7 @@ pub async fn run<B: Backend>(
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     } => {
-                        app.move_down().await;
+                        app.move_down();
                     }
                     KeyEvent {
                         code: KeyCode::Backspace,
@@ -110,6 +110,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::LoadObjects => {
                 app.load_objects().await;
+            }
+            AppEventType::LoadObject => {
+                app.load_object().await;
             }
             AppEventType::Error(e) => {
                 app.set_error_msg(e);

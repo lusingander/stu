@@ -8,6 +8,7 @@ pub enum AppEventType {
     Key(KeyEvent),
     ClientInitialized(Client),
     LoadObjects,
+    LoadObject,
     Error(String),
 }
 
