@@ -3,10 +3,10 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use std::io::Result;
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs},
+    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
 
@@ -136,12 +136,14 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>) {
         )
         .split(f.size());
 
-    let empty = String::new();
-    let header = build_header(&empty);
+    let header = build_header("");
     f.render_widget(header, chunks[0]);
 
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
+
+    let loading = build_loading_dialog("");
+    f.render_widget(loading, loading_dialog_rect(f.size()));
 }
 
 fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -247,7 +249,7 @@ fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn build_header(current_key: &String) -> Paragraph {
+fn build_header(current_key: &str) -> Paragraph {
     Paragraph::new(Span::styled(current_key, Style::default())).block(
         Block::default()
             .title(Span::styled(APP_NAME, Style::default()))
@@ -490,4 +492,46 @@ fn build_error_status(app: &App) -> Paragraph {
         Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
     ))
     .block(Block::default())
+}
+
+fn build_loading_dialog(title: &str) -> Paragraph {
+    let text = vec![
+        Spans::from(""),
+        Spans::from(Span::styled(
+            "Loading...",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+    ];
+    Paragraph::new(text).alignment(Alignment::Center).block(
+        Block::default()
+            .title(title)
+            .borders(Borders::all())
+            .border_type(BorderType::Double),
+    )
+}
+
+fn loading_dialog_rect(r: Rect) -> Rect {
+    let popup_layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length((r.height - 5) / 2),
+                Constraint::Length(5),
+                Constraint::Length((r.height - 5) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(r);
+
+    Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
+                Constraint::Length((r.width - 30) / 2),
+                Constraint::Length(30),
+                Constraint::Length((r.width - 30) / 2),
+            ]
+            .as_ref(),
+        )
+        .split(popup_layout[1])[1]
 }
