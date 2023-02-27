@@ -1,5 +1,5 @@
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_s3::Region;
+use aws_sdk_s3::{output::ListObjectsV2Output, Region};
 use chrono::TimeZone;
 
 use crate::app::{FileDetail, FileVersion, Item};
@@ -55,8 +55,8 @@ impl Client {
     }
 
     pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Vec<Item> {
-        let mut dirs: Vec<Item> = Vec::new();
-        let mut files: Vec<Item> = Vec::new();
+        let mut dirs_vec: Vec<Vec<Item>> = Vec::new();
+        let mut files_vec: Vec<Vec<Item>> = Vec::new();
 
         let mut token: Option<String> = None;
         loop {
@@ -71,36 +71,11 @@ impl Client {
                 .await;
             let output = result.unwrap();
 
-            let objects = output.common_prefixes().unwrap_or_default();
-            let mut ds = objects
-                .iter()
-                .map(|dir| {
-                    let path = dir.prefix().unwrap().to_string();
-                    let paths = parse_path(&path, true);
-                    let name = paths.last().unwrap().to_owned();
-                    Item::Dir { name, paths }
-                })
-                .collect();
-            dirs.append(&mut ds);
+            let dirs = objects_output_to_dirs(&output);
+            dirs_vec.push(dirs);
 
-            let objects = output.contents().unwrap_or_default();
-            let mut fs = objects
-                .iter()
-                .map(|file| {
-                    let path = file.key().unwrap().to_string();
-                    let paths = parse_path(&path, false);
-                    let name = paths.last().unwrap().to_owned();
-                    let size_byte = file.size();
-                    let last_modified = convert_datetime(file.last_modified().unwrap());
-                    Item::File {
-                        name,
-                        paths,
-                        size_byte,
-                        last_modified,
-                    }
-                })
-                .collect();
-            files.append(&mut fs);
+            let files = objects_output_to_files(&output);
+            files_vec.push(files);
 
             token = output.next_continuation_token().map(|s| s.to_string());
             if token.is_none() {
@@ -108,9 +83,9 @@ impl Client {
             }
         }
 
-        let mut ret = dirs;
-        ret.append(&mut files);
-        ret
+        let di = dirs_vec.into_iter().flatten();
+        let fi = files_vec.into_iter().flatten();
+        di.chain(fi).collect()
     }
 
     pub async fn load_object_detail(
@@ -169,6 +144,39 @@ impl Client {
             })
             .collect()
     }
+}
+
+fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<Item> {
+    let objects = output.common_prefixes().unwrap_or_default();
+    objects
+        .iter()
+        .map(|dir| {
+            let path = dir.prefix().unwrap().to_string();
+            let paths = parse_path(&path, true);
+            let name = paths.last().unwrap().to_owned();
+            Item::Dir { name, paths }
+        })
+        .collect()
+}
+
+fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<Item> {
+    let objects = output.contents().unwrap_or_default();
+    objects
+        .iter()
+        .map(|file| {
+            let path = file.key().unwrap().to_string();
+            let paths = parse_path(&path, false);
+            let name = paths.last().unwrap().to_owned();
+            let size_byte = file.size();
+            let last_modified = convert_datetime(file.last_modified().unwrap());
+            Item::File {
+                name,
+                paths,
+                size_byte,
+                last_modified,
+            }
+        })
+        .collect()
 }
 
 fn parse_path(path: &str, dir: bool) -> Vec<String> {
