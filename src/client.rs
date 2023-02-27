@@ -55,40 +55,62 @@ impl Client {
     }
 
     pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Vec<Item> {
-        let result = self
-            .client
-            .list_objects_v2()
-            .bucket(bucket)
-            .prefix(prefix)
-            .delimiter(DELIMITER)
-            .send()
-            .await;
-        let output = result.unwrap();
+        let mut dirs: Vec<Item> = Vec::new();
+        let mut files: Vec<Item> = Vec::new();
 
-        let objects = output.common_prefixes().unwrap_or_default();
-        let dirs = objects.iter().map(|dir| {
-            let path = dir.prefix().unwrap().to_string();
-            let paths = parse_path(&path, true);
-            let name = paths.last().unwrap().to_owned();
-            Item::Dir { name, paths }
-        });
+        let mut token: Option<String> = None;
+        loop {
+            let result = self
+                .client
+                .list_objects_v2()
+                .bucket(bucket)
+                .prefix(prefix)
+                .delimiter(DELIMITER)
+                .set_continuation_token(token)
+                .send()
+                .await;
+            let output = result.unwrap();
 
-        let objects = output.contents().unwrap_or_default();
-        let files = objects.iter().map(|file| {
-            let path = file.key().unwrap().to_string();
-            let paths = parse_path(&path, false);
-            let name = paths.last().unwrap().to_owned();
-            let size_byte = file.size();
-            let last_modified = convert_datetime(file.last_modified().unwrap());
-            Item::File {
-                name,
-                paths,
-                size_byte,
-                last_modified,
+            let objects = output.common_prefixes().unwrap_or_default();
+            let mut ds = objects
+                .iter()
+                .map(|dir| {
+                    let path = dir.prefix().unwrap().to_string();
+                    let paths = parse_path(&path, true);
+                    let name = paths.last().unwrap().to_owned();
+                    Item::Dir { name, paths }
+                })
+                .collect();
+            dirs.append(&mut ds);
+
+            let objects = output.contents().unwrap_or_default();
+            let mut fs = objects
+                .iter()
+                .map(|file| {
+                    let path = file.key().unwrap().to_string();
+                    let paths = parse_path(&path, false);
+                    let name = paths.last().unwrap().to_owned();
+                    let size_byte = file.size();
+                    let last_modified = convert_datetime(file.last_modified().unwrap());
+                    Item::File {
+                        name,
+                        paths,
+                        size_byte,
+                        last_modified,
+                    }
+                })
+                .collect();
+            files.append(&mut fs);
+
+            token = output.next_continuation_token().map(|s| s.to_string());
+            if token.is_none() {
+                break;
             }
-        });
+        }
 
-        dirs.chain(files).collect()
+        let mut ret = dirs;
+        ret.append(&mut files);
+        ret
     }
 
     pub async fn load_object_detail(
