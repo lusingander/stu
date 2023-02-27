@@ -8,7 +8,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use event::{AppEvent, AppEventType};
+use event::AppEventType;
 use std::io::{stdout, Result, Stdout};
 use tokio::spawn;
 use tui::{
@@ -68,16 +68,15 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
         ..
     } = args;
 
-    let app_event = AppEvent::new();
-    let mut app = App::new();
+    let (tx, rx) = event::new();
+    let mut app = App::new(tx.clone());
 
-    let tx = app_event.tx();
     spawn(async move {
         let client = Client::new(region, endpoint_url, profile).await;
         tx.send(AppEventType::ClientInitialized(client)).unwrap();
     });
 
-    ui::run(&mut app, terminal, &app_event).await
+    ui::run(&mut app, terminal, rx).await
 }
 
 fn shutdown<W: std::io::Write>(

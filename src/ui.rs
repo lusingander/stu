@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use std::io::Result;
+use std::{io::Result, sync::mpsc};
 use tui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -12,7 +12,7 @@ use tui::{
 
 use crate::{
     app::{App, FileDetail, FileDetailViewState, FileVersion, Item, ViewState},
-    event::{AppEvent, AppEventType},
+    event::AppEventType,
 };
 
 const APP_NAME: &str = "STU";
@@ -22,11 +22,11 @@ const SELECTED_COLOR: Color = Color::Cyan;
 pub async fn run<B: Backend>(
     app: &mut App,
     terminal: &mut Terminal<B>,
-    app_event: &AppEvent,
+    rx: mpsc::Receiver<AppEventType>,
 ) -> Result<()> {
     loop {
         terminal.draw(|f| render(f, app))?;
-        match app_event.receive() {
+        match rx.recv().unwrap() {
             AppEventType::Key(key) => {
                 match key {
                     KeyEvent {
@@ -108,6 +108,9 @@ pub async fn run<B: Backend>(
             AppEventType::ClientInitialized(client) => {
                 app.initialize(client).await;
             }
+            AppEventType::LoadObjects => {
+                app.load_objects().await;
+            }
             AppEventType::Error(e) => {
                 app.set_error_msg(e);
             }
@@ -120,6 +123,10 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ViewState::Initializing => render_initializing_view(f),
         ViewState::Default => render_default_view(f, app),
         ViewState::ObjectDetail => render_object_detail_view(f, app),
+    }
+    if app.is_loading {
+        let loading = build_loading_dialog("");
+        f.render_widget(loading, loading_dialog_rect(f.size()));
     }
 }
 
@@ -141,9 +148,6 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>) {
 
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
-
-    let loading = build_loading_dialog("");
-    f.render_widget(loading, loading_dialog_rect(f.size()));
 }
 
 fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {

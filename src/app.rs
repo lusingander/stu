@@ -1,19 +1,21 @@
 use chrono::{DateTime, Local};
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::mpsc};
 use tui::widgets::ListState;
 
-use crate::client::Client;
+use crate::{client::Client, event::AppEventType};
 
 pub struct App {
     pub current_list_state: ListState,
     pub view_state: ViewState,
     pub file_detail_view_state: FileDetailViewState,
+    pub is_loading: bool,
     current_keys: Vec<String>,
     items_map: HashMap<Vec<String>, Vec<Item>>,
     detail_map: HashMap<String, FileDetail>,
     versions_map: HashMap<String, Vec<FileVersion>>,
     error_msg: Option<String>,
     client: Option<Client>,
+    tx: mpsc::Sender<AppEventType>,
 }
 
 #[derive(PartialEq, Eq)]
@@ -30,7 +32,7 @@ pub enum FileDetailViewState {
 }
 
 impl App {
-    pub fn new() -> App {
+    pub fn new(tx: mpsc::Sender<AppEventType>) -> App {
         let mut current_list_state = ListState::default();
         current_list_state.select(Some(0));
 
@@ -38,12 +40,14 @@ impl App {
             current_list_state,
             view_state: ViewState::Initializing,
             file_detail_view_state: FileDetailViewState::Detail,
+            is_loading: true,
             current_keys: Vec::new(),
             items_map: HashMap::new(),
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
             error_msg: None,
             client: None,
+            tx,
         }
     }
 
@@ -55,6 +59,7 @@ impl App {
         self.items_map.insert(Vec::new(), buckets);
 
         self.view_state = ViewState::Default;
+        self.is_loading = false;
     }
 
     pub fn current_key_string(&self) -> String {
@@ -75,7 +80,10 @@ impl App {
     }
 
     pub fn current_items(&self) -> Vec<Item> {
-        self.items_map.get(&self.current_keys).unwrap().to_vec()
+        self.items_map
+            .get(&self.current_keys)
+            .unwrap_or(&Vec::new())
+            .to_vec()
     }
 
     fn current_items_len(&self) -> usize {
@@ -178,8 +186,10 @@ impl App {
                     self.load_object().await;
                 } else {
                     self.current_keys.push(selected.name().to_owned());
-                    self.load_objects().await;
                     self.current_list_state.select(Some(0));
+
+                    self.is_loading = true;
+                    self.tx.send(AppEventType::LoadObjects).unwrap();
                 }
             }
         }
@@ -199,12 +209,14 @@ impl App {
         }
     }
 
-    async fn load_objects(&mut self) {
+    pub async fn load_objects(&mut self) {
         let bucket = &self.current_bucket();
         let prefix = &self.current_object_prefix();
         let client = self.client.as_ref().unwrap();
         let items = client.load_objects(bucket, prefix).await;
         self.items_map.insert(self.current_keys.clone(), items);
+
+        self.is_loading = false;
     }
 
     async fn load_object(&mut self) {

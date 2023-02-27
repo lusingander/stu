@@ -7,40 +7,26 @@ use crate::client::Client;
 pub enum AppEventType {
     Key(KeyEvent),
     ClientInitialized(Client),
+    LoadObjects,
     Error(String),
 }
 
-pub struct AppEvent {
-    rx: mpsc::Receiver<AppEventType>,
-    tx: mpsc::Sender<AppEventType>,
-}
+pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
+    let (tx, rx) = mpsc::channel();
 
-impl AppEvent {
-    pub fn new() -> AppEvent {
-        let (tx, rx) = mpsc::channel();
-
-        let event_tx = tx.clone();
-        thread::spawn(move || loop {
-            match crossterm::event::read() {
-                Ok(e) => {
-                    if let crossterm::event::Event::Key(key) = e {
-                        event_tx.send(AppEventType::Key(key)).unwrap();
-                    }
-                }
-                Err(e) => {
-                    event_tx.send(AppEventType::Error(e.to_string())).unwrap();
+    let event_tx = tx.clone();
+    thread::spawn(move || loop {
+        match crossterm::event::read() {
+            Ok(e) => {
+                if let crossterm::event::Event::Key(key) = e {
+                    event_tx.send(AppEventType::Key(key)).unwrap();
                 }
             }
-        });
+            Err(e) => {
+                event_tx.send(AppEventType::Error(e.to_string())).unwrap();
+            }
+        }
+    });
 
-        AppEvent { rx, tx }
-    }
-
-    pub fn receive(&self) -> AppEventType {
-        self.rx.recv().unwrap()
-    }
-
-    pub fn tx(&self) -> mpsc::Sender<AppEventType> {
-        self.tx.clone()
-    }
+    (tx, rx)
 }
