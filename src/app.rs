@@ -213,7 +213,7 @@ impl App {
         self.items_map.contains_key(&self.current_keys)
     }
 
-    pub async fn move_up(&mut self) {
+    pub fn move_up(&mut self) {
         match self.view_state {
             ViewState::Initializing => {}
             ViewState::Default => {

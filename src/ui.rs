@@ -90,7 +90,7 @@ pub async fn run<B: Backend>(
                         modifiers: KeyModifiers::CONTROL,
                         ..
                     } => {
-                        app.move_up().await;
+                        app.move_up();
                     }
                     KeyEvent {
                         code: KeyCode::Char('h'),
