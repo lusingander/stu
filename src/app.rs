@@ -181,13 +181,36 @@ impl App {
             ViewState::Default => {
                 let selected = self.get_current_selected();
                 if let Item::File { .. } = selected {
-                    self.tx.send(AppEventType::LoadObject).unwrap();
+                    if self.exists_current_object_detail() {
+                        self.view_state = ViewState::ObjectDetail;
+                        self.file_detail_view_state = FileDetailViewState::Detail;
+                    } else {
+                        self.tx.send(AppEventType::LoadObject).unwrap();
+                        self.is_loading = true;
+                    }
                 } else {
-                    self.tx.send(AppEventType::LoadObjects).unwrap();
+                    self.current_keys.push(selected.name().to_owned());
+                    self.current_list_state.select(Some(0));
+
+                    if !self.exists_current_objects() {
+                        self.tx.send(AppEventType::LoadObjects).unwrap();
+                        self.is_loading = true;
+                    }
                 }
-                self.is_loading = true;
             }
         }
+    }
+
+    fn exists_current_object_detail(&self) -> bool {
+        let bucket = &self.current_bucket();
+        let prefix = &self.current_object_prefix();
+        let selected = self.get_current_selected();
+        let map_key = &self.object_detail_map_key(bucket, prefix, selected.name());
+        self.detail_map.contains_key(map_key) && self.versions_map.contains_key(map_key)
+    }
+
+    fn exists_current_objects(&self) -> bool {
+        self.items_map.contains_key(&self.current_keys)
     }
 
     pub async fn move_up(&mut self) {
@@ -205,10 +228,6 @@ impl App {
     }
 
     pub async fn load_objects(&mut self) {
-        let selected = self.get_current_selected();
-        self.current_keys.push(selected.name().to_owned());
-        self.current_list_state.select(Some(0));
-
         let bucket = &self.current_bucket();
         let prefix = &self.current_object_prefix();
         let client = self.client.as_ref().unwrap();
