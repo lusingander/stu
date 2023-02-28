@@ -7,6 +7,7 @@ use crate::{client::Client, event::AppEventType};
 pub struct App {
     pub current_list_state: ListState,
     pub view_state: ViewState,
+    pub before_view_state: Option<ViewState>,
     pub file_detail_view_state: FileDetailViewState,
     pub is_loading: bool,
     current_keys: Vec<String>,
@@ -18,11 +19,12 @@ pub struct App {
     tx: mpsc::Sender<AppEventType>,
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum ViewState {
     Initializing,
     Default,
     ObjectDetail,
+    Help,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -46,6 +48,7 @@ impl App {
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
             error_msg: None,
+            before_view_state: None,
             client: None,
             tx,
         }
@@ -131,7 +134,7 @@ impl App {
 
     pub fn select_next(&mut self) {
         match self.view_state {
-            ViewState::Initializing | ViewState::ObjectDetail => {}
+            ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 if let Some(i) = self.current_list_state.selected() {
                     let i = if i >= self.current_items_len() - 1 {
@@ -147,7 +150,7 @@ impl App {
 
     pub fn select_prev(&mut self) {
         match self.view_state {
-            ViewState::Initializing | ViewState::ObjectDetail => {}
+            ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 if let Some(i) = self.current_list_state.selected() {
                     let i = if i == 0 {
@@ -163,7 +166,7 @@ impl App {
 
     pub fn select_first(&mut self) {
         match self.view_state {
-            ViewState::Initializing | ViewState::ObjectDetail => {}
+            ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 let i = 0;
                 self.current_list_state.select(Some(i));
@@ -173,7 +176,7 @@ impl App {
 
     pub fn select_last(&mut self) {
         match self.view_state {
-            ViewState::Initializing | ViewState::ObjectDetail => {}
+            ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 let i = self.current_items_len() - 1;
                 self.current_list_state.select(Some(i));
@@ -183,7 +186,7 @@ impl App {
 
     pub fn move_down(&mut self) {
         match self.view_state {
-            ViewState::Initializing | ViewState::ObjectDetail => {}
+            ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 let selected = self.get_current_selected();
                 if let Item::File { .. } = selected {
@@ -221,7 +224,7 @@ impl App {
 
     pub fn move_up(&mut self) {
         match self.view_state {
-            ViewState::Initializing => {}
+            ViewState::Initializing | ViewState::Help => {}
             ViewState::Default => {
                 self.current_keys.pop();
                 self.current_list_state.select(Some(0));
@@ -274,7 +277,7 @@ impl App {
 
     pub fn select_tabs(&mut self) {
         match self.view_state {
-            ViewState::Initializing | ViewState::Default => {}
+            ViewState::Initializing | ViewState::Default | ViewState::Help => {}
             ViewState::ObjectDetail => match self.file_detail_view_state {
                 FileDetailViewState::Detail => {
                     self.file_detail_view_state = FileDetailViewState::Version;
@@ -283,6 +286,20 @@ impl App {
                     self.file_detail_view_state = FileDetailViewState::Detail;
                 }
             },
+        }
+    }
+
+    pub fn toggle_help(&mut self) {
+        match self.view_state {
+            ViewState::Initializing => {}
+            ViewState::Help => {
+                self.view_state = self.before_view_state.unwrap();
+                self.before_view_state = None;
+            }
+            ViewState::Default | ViewState::ObjectDetail => {
+                self.before_view_state = Some(self.view_state);
+                self.view_state = ViewState::Help;
+            }
         }
     }
 

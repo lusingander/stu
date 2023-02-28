@@ -19,6 +19,10 @@ const APP_NAME: &str = "STU";
 
 const SELECTED_COLOR: Color = Color::Cyan;
 
+const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
+
 pub async fn run<B: Backend>(
     app: &mut App,
     terminal: &mut Terminal<B>,
@@ -105,6 +109,12 @@ pub async fn run<B: Backend>(
                     } => {
                         app.select_tabs();
                     }
+                    KeyEvent {
+                        code: KeyCode::Char('?'),
+                        ..
+                    } => {
+                        app.toggle_help();
+                    }
                     _ => {}
                 }
             }
@@ -129,6 +139,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ViewState::Initializing => render_initializing_view(f, app),
         ViewState::Default => render_default_view(f, app),
         ViewState::ObjectDetail => render_object_detail_view(f, app),
+        ViewState::Help => render_help_view(f, app),
     }
     if app.is_loading {
         let loading = build_loading_dialog("");
@@ -192,7 +203,7 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         let err = build_error_status(app);
         f.render_widget(err, chunks[2]);
     } else {
-        let help = build_help(app);
+        let help = build_short_help(app);
         f.render_widget(help, chunks[2]);
     }
 }
@@ -218,7 +229,7 @@ fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         let err = build_error_status(app);
         f.render_widget(err, chunks[2]);
     } else {
-        let help = build_help(app);
+        let help = build_short_help(app);
         f.render_widget(help, chunks[2]);
     }
 
@@ -262,6 +273,19 @@ fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
             f.render_widget(versions, chunks[1]);
         }
     }
+}
+
+fn render_help_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(2)].as_ref())
+        .split(f.size());
+
+    let content = build_help(app, f.size().width);
+    f.render_widget(content, chunks[0]);
+
+    let help = build_short_help(app);
+    f.render_widget(help, chunks[1]);
 }
 
 fn build_header(current_key: &str) -> Paragraph {
@@ -489,14 +513,78 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .highlight_style(Style::default().bg(SELECTED_COLOR))
 }
 
-fn build_help(app: &App) -> Paragraph {
+fn build_short_help(app: &App) -> Paragraph {
     let help = match app.view_state {
         ViewState::Initializing => "",
-        ViewState::Default => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back",
-        ViewState::ObjectDetail => "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close",
+        ViewState::Default => {
+            "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
+        }
+        ViewState::ObjectDetail => "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close, <?> Help",
+        ViewState::Help => "<Esc>: Quit, <?>: Close help",
     };
     let help = format!("  {}", help);
     Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
+}
+
+fn build_help(app: &App, width: u16) -> Paragraph {
+    let w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
+
+    let app_detail = vec![
+        Spans::from(""),
+        Spans::from(Span::styled(
+            format!("  {} - {}", APP_NAME, APP_DESCRIPTION),
+            Style::default(),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            format!("  Version: {}", APP_VERSION),
+            Style::default(),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            format!("  {}", APP_HOMEPAGE),
+            Style::default().fg(Color::Blue),
+        )),
+        Spans::from(""),
+        Spans::from(Span::styled(
+            format!(" {}", "-".repeat(w)),
+            Style::default().fg(Color::DarkGray),
+        )),
+        Spans::from(""),
+    ]
+    .into_iter();
+
+    let help = match app.before_view_state {
+        Some(vs) => match vs {
+            ViewState::Initializing | ViewState::Help => vec![],
+            ViewState::Default => {
+                vec![
+                    Spans::from(Span::styled(
+                        "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
+                        Style::default(),
+                    )),
+                    Spans::from(""),
+                    Spans::from(Span::styled(
+                        "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
+                        Style::default(),
+                    )),
+                ]
+            }
+            ViewState::ObjectDetail => {
+                vec![
+                    Spans::from(Span::styled(
+                        "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
+                        Style::default(),
+                    )),
+                ]
+            }
+        },
+        None => vec![],
+    }
+    .into_iter();
+
+    let content: Vec<Spans> = app_detail.chain(help).collect();
+    Paragraph::new(content).block(Block::default().title(APP_NAME).borders(Borders::all()))
 }
 
 fn build_error_status(app: &App) -> Paragraph {
