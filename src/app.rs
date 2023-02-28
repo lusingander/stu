@@ -56,9 +56,15 @@ impl App {
 
         let client = self.client.as_ref().unwrap();
         let buckets = client.load_all_buckets().await;
-        self.items_map.insert(Vec::new(), buckets);
-
-        self.view_state = ViewState::Default;
+        match buckets {
+            Ok(buckets) => {
+                self.items_map.insert(Vec::new(), buckets);
+                self.view_state = ViewState::Default;
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::Error(e)).unwrap();
+            }
+        }
         self.is_loading = false;
     }
 

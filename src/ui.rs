@@ -41,6 +41,9 @@ pub async fn run<B: Backend>(
                 }
 
                 if app.has_error() {
+                    if app.view_state == ViewState::Initializing {
+                        return Ok(());
+                    }
                     app.clear_error_msg();
                     continue;
                 }
@@ -123,7 +126,7 @@ pub async fn run<B: Backend>(
 
 fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.view_state {
-        ViewState::Initializing => render_initializing_view(f),
+        ViewState::Initializing => render_initializing_view(f, app),
         ViewState::Default => render_default_view(f, app),
         ViewState::ObjectDetail => render_object_detail_view(f, app),
     }
@@ -133,7 +136,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_initializing_view<B: Backend>(f: &mut Frame<B>) {
+fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -151,6 +154,11 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>) {
 
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
+
+    if app.has_error() {
+        let err = build_error_status(app);
+        f.render_widget(err, chunks[2]);
+    }
 }
 
 fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {

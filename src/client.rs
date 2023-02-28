@@ -40,18 +40,20 @@ impl Client {
         Client { client }
     }
 
-    pub async fn load_all_buckets(&self) -> Vec<Item> {
+    pub async fn load_all_buckets(&self) -> Result<Vec<Item>, String> {
         let result = self.client.list_buckets().send().await;
-        let output = result.unwrap();
+        let output = result.map_err(|_| "Failed to load bucket".to_string())?;
 
-        let buckets = output.buckets().unwrap_or_default();
-        buckets
+        let buckets = output
+            .buckets()
+            .unwrap_or_default()
             .iter()
             .map(|bucket| {
                 let name = bucket.name().unwrap().to_string();
                 Item::Bucket { name }
             })
-            .collect()
+            .collect();
+        Ok(buckets)
     }
 
     pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Vec<Item> {
