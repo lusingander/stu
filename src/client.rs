@@ -56,7 +56,11 @@ impl Client {
         Ok(buckets)
     }
 
-    pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Vec<Item> {
+    pub async fn load_objects(
+        &self,
+        bucket: &String,
+        prefix: &String,
+    ) -> Result<Vec<Item>, String> {
         let mut dirs_vec: Vec<Vec<Item>> = Vec::new();
         let mut files_vec: Vec<Vec<Item>> = Vec::new();
 
@@ -71,7 +75,7 @@ impl Client {
                 .set_continuation_token(token)
                 .send()
                 .await;
-            let output = result.unwrap();
+            let output = result.map_err(|_| "Failed to load objects".to_string())?;
 
             let dirs = objects_output_to_dirs(&output);
             dirs_vec.push(dirs);
@@ -87,7 +91,7 @@ impl Client {
 
         let di = dirs_vec.into_iter().flatten();
         let fi = files_vec.into_iter().flatten();
-        di.chain(fi).collect()
+        Ok(di.chain(fi).collect())
     }
 
     pub async fn load_object_detail(
@@ -96,7 +100,7 @@ impl Client {
         key: &String,
         name: &String,
         size_byte: i64,
-    ) -> FileDetail {
+    ) -> Result<FileDetail, String> {
         let result = self
             .client
             .head_object()
@@ -104,22 +108,26 @@ impl Client {
             .key(key)
             .send()
             .await;
-        let output = result.unwrap();
+        let output = result.map_err(|_| "Failed to load object detail".to_string())?;
 
         let name = name.to_owned();
         let last_modified = convert_datetime(output.last_modified().unwrap());
         let e_tag = output.e_tag().unwrap().trim_matches('"').to_string();
         let content_type = output.content_type().unwrap().to_string();
-        FileDetail {
+        Ok(FileDetail {
             name,
             size_byte,
             last_modified,
             e_tag,
             content_type,
-        }
+        })
     }
 
-    pub async fn load_object_versions(&self, bucket: &String, key: &String) -> Vec<FileVersion> {
+    pub async fn load_object_versions(
+        &self,
+        bucket: &String,
+        key: &String,
+    ) -> Result<Vec<FileVersion>, String> {
         let result = self
             .client
             .list_object_versions()
@@ -127,10 +135,11 @@ impl Client {
             .prefix(key)
             .send()
             .await;
-        let output = result.unwrap();
+        let output = result.map_err(|_| "Failed to load object versions".to_string())?;
 
-        let versions = output.versions().unwrap_or_default();
-        versions
+        let versions = output
+            .versions()
+            .unwrap_or_default()
             .iter()
             .map(|v| {
                 let version_id = v.version_id().unwrap().to_string(); // returns "null" if empty...
@@ -144,7 +153,8 @@ impl Client {
                     is_latest,
                 }
             })
-            .collect()
+            .collect();
+        Ok(versions)
     }
 }
 

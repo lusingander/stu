@@ -241,8 +241,14 @@ impl App {
         let prefix = &self.current_object_prefix();
         let client = self.client.as_ref().unwrap();
         let items = client.load_objects(bucket, prefix).await;
-        self.items_map.insert(self.current_keys.clone(), items);
-
+        match items {
+            Ok(items) => {
+                self.items_map.insert(self.current_keys.clone(), items);
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::Error(e)).unwrap();
+            }
+        }
         self.is_loading = false;
     }
 
@@ -255,18 +261,29 @@ impl App {
             let prefix = &self.current_object_prefix();
             let key = &format!("{}{}", prefix, name);
 
+            let map_key = &self.object_detail_map_key(bucket, prefix, name);
+
             let client = self.client.as_ref().unwrap();
             let detail = client
                 .load_object_detail(bucket, key, name, *size_byte)
                 .await;
-            let map_key = &self.object_detail_map_key(bucket, prefix, name);
-            self.detail_map.insert(map_key.to_owned(), detail);
-
             let versions = client.load_object_versions(bucket, key).await;
-            self.versions_map.insert(map_key.to_owned(), versions);
 
-            self.view_state = ViewState::ObjectDetail;
-            self.file_detail_view_state = FileDetailViewState::Detail;
+            match (detail, versions) {
+                (Ok(detail), Ok(versions)) => {
+                    self.detail_map.insert(map_key.to_owned(), detail);
+                    self.versions_map.insert(map_key.to_owned(), versions);
+
+                    self.view_state = ViewState::ObjectDetail;
+                    self.file_detail_view_state = FileDetailViewState::Detail;
+                }
+                (Err(e), _) => {
+                    self.tx.send(AppEventType::Error(e)).unwrap();
+                }
+                (_, Err(e)) => {
+                    self.tx.send(AppEventType::Error(e)).unwrap();
+                }
+            }
         }
         self.is_loading = false;
     }
