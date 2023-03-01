@@ -44,7 +44,7 @@ impl Client {
         let result = self.client.list_buckets().send().await;
         let output = result.map_err(|_| "Failed to load bucket".to_string())?;
 
-        let buckets = output
+        let buckets: Vec<Item> = output
             .buckets()
             .unwrap_or_default()
             .iter()
@@ -53,7 +53,12 @@ impl Client {
                 Item::Bucket { name }
             })
             .collect();
-        Ok(buckets)
+
+        if buckets.is_empty() {
+            Err("No buckets exist".to_string())
+        } else {
+            Ok(buckets)
+        }
     }
 
     pub async fn load_objects(

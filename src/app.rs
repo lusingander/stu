@@ -96,40 +96,48 @@ impl App {
     }
 
     fn current_items_len(&self) -> usize {
-        self.items_map.get(&self.current_keys).unwrap().len()
+        self.items_map
+            .get(&self.current_keys)
+            .unwrap_or(&Vec::new())
+            .len()
     }
 
     fn get_from_current_items(&self, idx: usize) -> Option<&Item> {
-        self.items_map.get(&self.current_keys).unwrap().get(idx)
+        self.items_map
+            .get(&self.current_keys)
+            .and_then(|items| items.get(idx))
     }
 
-    fn get_current_selected(&self) -> &Item {
+    fn get_current_selected(&self) -> Option<&Item> {
         self.current_list_state
             .selected()
             .and_then(|i| self.get_from_current_items(i))
-            .unwrap()
     }
 
     pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
-        if let Item::File { name, .. } = self.get_current_selected() {
-            let bucket = &self.current_bucket();
-            let prefix = &self.current_object_prefix();
-            let key = &self.object_detail_map_key(bucket, prefix, name);
-            self.detail_map.get(key)
-        } else {
-            None
-        }
+        self.get_current_selected().and_then(|selected| {
+            if let Item::File { name, .. } = selected {
+                let bucket = &self.current_bucket();
+                let prefix = &self.current_object_prefix();
+                let key = &self.object_detail_map_key(bucket, prefix, name);
+                self.detail_map.get(key)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn get_current_file_versions(&self) -> Option<&Vec<FileVersion>> {
-        if let Item::File { name, .. } = self.get_current_selected() {
-            let bucket = &self.current_bucket();
-            let prefix = &self.current_object_prefix();
-            let key = &self.object_detail_map_key(bucket, prefix, name);
-            self.versions_map.get(key)
-        } else {
-            None
-        }
+        self.get_current_selected().and_then(|selected| {
+            if let Item::File { name, .. } = selected {
+                let bucket = &self.current_bucket();
+                let prefix = &self.current_object_prefix();
+                let key = &self.object_detail_map_key(bucket, prefix, name);
+                self.versions_map.get(key)
+            } else {
+                None
+            }
+        })
     }
 
     pub fn select_next(&mut self) {
@@ -137,11 +145,8 @@ impl App {
             ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 if let Some(i) = self.current_list_state.selected() {
-                    let i = if i >= self.current_items_len() - 1 {
-                        0
-                    } else {
-                        i + 1
-                    };
+                    let len = self.current_items_len();
+                    let i = if len == 0 || i >= len - 1 { 0 } else { i + 1 };
                     self.current_list_state.select(Some(i));
                 };
             }
@@ -153,8 +158,11 @@ impl App {
             ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
                 if let Some(i) = self.current_list_state.selected() {
-                    let i = if i == 0 {
-                        self.current_items_len() - 1
+                    let len = self.current_items_len();
+                    let i = if len == 0 {
+                        0
+                    } else if i == 0 {
+                        len - 1
                     } else {
                         i - 1
                     };
@@ -188,22 +196,23 @@ impl App {
         match self.view_state {
             ViewState::Initializing | ViewState::ObjectDetail | ViewState::Help => {}
             ViewState::Default => {
-                let selected = self.get_current_selected();
-                if let Item::File { .. } = selected {
-                    if self.exists_current_object_detail() {
-                        self.view_state = ViewState::ObjectDetail;
-                        self.file_detail_view_state = FileDetailViewState::Detail;
+                if let Some(selected) = self.get_current_selected() {
+                    if let Item::File { .. } = selected {
+                        if self.exists_current_object_detail() {
+                            self.view_state = ViewState::ObjectDetail;
+                            self.file_detail_view_state = FileDetailViewState::Detail;
+                        } else {
+                            self.tx.send(AppEventType::LoadObject).unwrap();
+                            self.is_loading = true;
+                        }
                     } else {
-                        self.tx.send(AppEventType::LoadObject).unwrap();
-                        self.is_loading = true;
-                    }
-                } else {
-                    self.current_keys.push(selected.name().to_owned());
-                    self.current_list_state.select(Some(0));
+                        self.current_keys.push(selected.name().to_owned());
+                        self.current_list_state.select(Some(0));
 
-                    if !self.exists_current_objects() {
-                        self.tx.send(AppEventType::LoadObjects).unwrap();
-                        self.is_loading = true;
+                        if !self.exists_current_objects() {
+                            self.tx.send(AppEventType::LoadObjects).unwrap();
+                            self.is_loading = true;
+                        }
                     }
                 }
             }
@@ -213,9 +222,13 @@ impl App {
     fn exists_current_object_detail(&self) -> bool {
         let bucket = &self.current_bucket();
         let prefix = &self.current_object_prefix();
-        let selected = self.get_current_selected();
-        let map_key = &self.object_detail_map_key(bucket, prefix, selected.name());
-        self.detail_map.contains_key(map_key) && self.versions_map.contains_key(map_key)
+        match self.get_current_selected() {
+            Some(selected) => {
+                let map_key = &self.object_detail_map_key(bucket, prefix, selected.name());
+                self.detail_map.contains_key(map_key) && self.versions_map.contains_key(map_key)
+            }
+            None => false,
+        }
     }
 
     fn exists_current_objects(&self) -> bool {
@@ -253,9 +266,9 @@ impl App {
     }
 
     pub async fn load_object(&mut self) {
-        if let Item::File {
+        if let Some(Item::File {
             name, size_byte, ..
-        } = self.get_current_selected()
+        }) = self.get_current_selected()
         {
             let bucket = &self.current_bucket();
             let prefix = &self.current_object_prefix();
