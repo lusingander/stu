@@ -79,6 +79,10 @@ impl App {
         self.current_keys[0].clone()
     }
 
+    fn current_bucket_opt(&self) -> Option<&String> {
+        self.current_keys.get(0)
+    }
+
     fn current_object_prefix(&self) -> String {
         let mut prefix = String::new();
         for key in &self.current_keys[1..] {
@@ -330,6 +334,33 @@ impl App {
                 self.before_view_state = Some(self.view_state);
                 self.view_state = ViewState::Help;
             }
+        }
+    }
+
+    pub fn open_management_console(&self) {
+        let client = self.client.as_ref().unwrap();
+        let bucket = self.current_bucket_opt();
+
+        let result = match self.view_state {
+            ViewState::Initializing | ViewState::Help => Ok(()),
+            ViewState::Default => match bucket {
+                Some(bucket) => {
+                    let prefix = self.current_object_prefix();
+                    client.open_management_console_list(bucket, &prefix)
+                }
+                None => client.open_management_console_buckets(),
+            },
+            ViewState::ObjectDetail => {
+                if let Some(Item::File { name, .. }) = self.get_current_selected() {
+                    let prefix = self.current_object_prefix();
+                    client.open_management_console_object(bucket.unwrap(), &prefix, name)
+                } else {
+                    Err("Failed to get current selected item".to_string())
+                }
+            }
+        };
+        if let Err(e) = result {
+            self.tx.send(AppEventType::Error(e)).unwrap();
         }
     }
 

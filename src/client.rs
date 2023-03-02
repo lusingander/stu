@@ -9,6 +9,7 @@ const DEFAULT_REGION: &str = "ap-northeast-1";
 
 pub struct Client {
     pub client: aws_sdk_s3::Client,
+    region: String,
 }
 
 impl Client {
@@ -37,7 +38,9 @@ impl Client {
         let config = config_builder.build();
 
         let client = aws_sdk_s3::Client::from_conf(config);
-        Client { client }
+        let region = sdk_config.region().unwrap().to_string();
+
+        Client { client, region }
     }
 
     pub async fn load_all_buckets(&self) -> Result<Vec<Item>, String> {
@@ -160,6 +163,39 @@ impl Client {
             })
             .collect();
         Ok(versions)
+    }
+
+    pub fn open_management_console_buckets(&self) -> Result<(), String> {
+        let path = format!(
+            "https://s3.console.aws.amazon.com/s3/buckets?region={}",
+            self.region
+        );
+        open::that(path).map_err(|e| e.to_string())
+    }
+
+    pub fn open_management_console_list(
+        &self,
+        bucket: &String,
+        prefix: &String,
+    ) -> Result<(), String> {
+        let path = format!(
+            "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}?prefix={}",
+            bucket, self.region, prefix
+        );
+        open::that(path).map_err(|e| e.to_string())
+    }
+
+    pub fn open_management_console_object(
+        &self,
+        bucket: &String,
+        prefix: &String,
+        name: &String,
+    ) -> Result<(), String> {
+        let path = format!(
+            "https://s3.console.aws.amazon.com/s3/object/{}?region={}?prefix={}{}",
+            bucket, self.region, prefix, name
+        );
+        open::that(path).map_err(|e| e.to_string())
     }
 }
 

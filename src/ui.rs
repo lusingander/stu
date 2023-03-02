@@ -110,6 +110,12 @@ pub async fn run<B: Backend>(
                         app.select_tabs();
                     }
                     KeyEvent {
+                        code: KeyCode::Char('x'),
+                        ..
+                    } => {
+                        app.open_management_console();
+                    }
+                    KeyEvent {
                         code: KeyCode::Char('?'),
                         ..
                     } => {
@@ -568,12 +574,22 @@ fn build_help(app: &App, width: u16) -> Paragraph {
                         "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
                         Style::default(),
                     )),
+                    Spans::from(""),
+                    Spans::from(Span::styled(
+                        "  <x>: Open management console in browser",
+                        Style::default(),
+                    )),
                 ]
             }
             ViewState::ObjectDetail => {
                 vec![
                     Spans::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
+                        Style::default(),
+                    )),
+                    Spans::from(""),
+                    Spans::from(Span::styled(
+                        "  <x>: Open management console in browser",
                         Style::default(),
                     )),
                 ]
