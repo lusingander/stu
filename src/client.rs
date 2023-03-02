@@ -179,7 +179,7 @@ impl Client {
         prefix: &String,
     ) -> Result<(), String> {
         let path = format!(
-            "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}?prefix={}",
+            "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}&prefix={}",
             bucket, self.region, prefix
         );
         open::that(path).map_err(|e| e.to_string())
@@ -192,7 +192,7 @@ impl Client {
         name: &String,
     ) -> Result<(), String> {
         let path = format!(
-            "https://s3.console.aws.amazon.com/s3/object/{}?region={}?prefix={}{}",
+            "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}{}",
             bucket, self.region, prefix, name
         );
         open::that(path).map_err(|e| e.to_string())
