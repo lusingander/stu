@@ -13,6 +13,7 @@ use tui::{
 use crate::{
     app::{App, FileDetail, FileDetailViewState, FileVersion, Item, ViewState},
     event::AppEventType,
+    key_code, key_code_char,
 };
 
 const APP_NAME: &str = "STU";
@@ -22,28 +23,6 @@ const SELECTED_COLOR: Color = Color::Cyan;
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
-
-macro_rules! key_code {
-    ( $code:path ) => {
-        KeyEvent { code: $code, .. }
-    };
-}
-
-macro_rules! key_code_char {
-    ( $c:expr ) => {
-        KeyEvent {
-            code: KeyCode::Char($c),
-            ..
-        }
-    };
-    ( $c:expr, Ctrl ) => {
-        KeyEvent {
-            code: KeyCode::Char($c),
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        }
-    };
-}
 
 pub async fn run<B: Backend>(
     app: &mut App,

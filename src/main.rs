@@ -1,6 +1,7 @@
 mod app;
 mod client;
 mod event;
+mod macros;
 mod ui;
 
 use clap::{arg, Parser};
