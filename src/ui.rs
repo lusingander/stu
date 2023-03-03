@@ -23,6 +23,28 @@ const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
 
+macro_rules! key_code {
+    ( $code:path ) => {
+        KeyEvent { code: $code, .. }
+    };
+}
+
+macro_rules! key_code_char {
+    ( $c:expr ) => {
+        KeyEvent {
+            code: KeyCode::Char($c),
+            ..
+        }
+    };
+    ( $c:expr, Ctrl ) => {
+        KeyEvent {
+            code: KeyCode::Char($c),
+            modifiers: KeyModifiers::CONTROL,
+            ..
+        }
+    };
+}
+
 pub async fn run<B: Backend>(
     app: &mut App,
     terminal: &mut Terminal<B>,
@@ -33,14 +55,7 @@ pub async fn run<B: Backend>(
         match rx.recv().unwrap() {
             AppEventType::Key(key) => {
                 match key {
-                    KeyEvent {
-                        code: KeyCode::Esc, ..
-                    }
-                    | KeyEvent {
-                        code: KeyCode::Char('c'),
-                        modifiers: KeyModifiers::CONTROL,
-                        ..
-                    } => return Ok(()),
+                    key_code!(KeyCode::Esc) | key_code_char!('c', Ctrl) => return Ok(()),
                     _ => {}
                 }
 
@@ -53,72 +68,31 @@ pub async fn run<B: Backend>(
                 }
 
                 match key {
-                    KeyEvent {
-                        code: KeyCode::Char('j'),
-                        ..
-                    } => {
+                    key_code_char!('j') => {
                         app.select_next();
                     }
-                    KeyEvent {
-                        code: KeyCode::Char('k'),
-                        ..
-                    } => {
+                    key_code_char!('k') => {
                         app.select_prev();
                     }
-                    KeyEvent {
-                        code: KeyCode::Char('g'),
-                        ..
-                    } => {
+                    key_code_char!('g') => {
                         app.select_first();
                     }
-                    KeyEvent {
-                        code: KeyCode::Char('G'),
-                        ..
-                    } => {
+                    key_code_char!('G') => {
                         app.select_last();
                     }
-                    KeyEvent {
-                        code: KeyCode::Enter,
-                        ..
-                    }
-                    | KeyEvent {
-                        code: KeyCode::Char('m'),
-                        modifiers: KeyModifiers::CONTROL,
-                        ..
-                    } => {
+                    key_code!(KeyCode::Enter) | key_code_char!('m', Ctrl) => {
                         app.move_down();
                     }
-                    KeyEvent {
-                        code: KeyCode::Backspace,
-                        ..
-                    }
-                    | KeyEvent {
-                        code: KeyCode::Char('h'),
-                        modifiers: KeyModifiers::CONTROL,
-                        ..
-                    } => {
+                    key_code!(KeyCode::Backspace) | key_code_char!('h', Ctrl) => {
                         app.move_up();
                     }
-                    KeyEvent {
-                        code: KeyCode::Char('h'),
-                        ..
-                    }
-                    | KeyEvent {
-                        code: KeyCode::Char('l'),
-                        ..
-                    } => {
+                    key_code_char!('h') | key_code_char!('l') => {
                         app.select_tabs();
                     }
-                    KeyEvent {
-                        code: KeyCode::Char('x'),
-                        ..
-                    } => {
+                    key_code_char!('x') => {
                         app.open_management_console();
                     }
-                    KeyEvent {
-                        code: KeyCode::Char('?'),
-                        ..
-                    } => {
+                    key_code_char!('?') => {
                         app.toggle_help();
                     }
                     _ => {}
