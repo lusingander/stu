@@ -144,7 +144,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.view_state {
         ViewState::Initializing => render_initializing_view(f, app),
         ViewState::Default => render_default_view(f, app),
-        ViewState::ObjectDetail => render_object_detail_view(f, app),
+        ViewState::ObjectDetail(vs) => render_object_detail_view(f, app, &vs),
         ViewState::Help => render_help_view(f, app),
     }
     if app.is_loading {
@@ -214,7 +214,11 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn render_object_detail_view<B: Backend>(
+    f: &mut Frame<B>,
+    app: &mut App,
+    vs: &FileDetailViewState,
+) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -263,11 +267,10 @@ fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .margin(1)
         .split(chunks[1]);
 
-    let selected = app.file_detail_view_state as usize;
-    let tabs = build_file_detail_tabs(&selected);
+    let tabs = build_file_detail_tabs(vs);
     f.render_widget(tabs, chunks[0]);
 
-    match app.file_detail_view_state {
+    match vs {
         FileDetailViewState::Detail => {
             let current_file_detail = app.get_current_file_detail().unwrap();
             let detail = build_file_detail(current_file_detail);
@@ -407,13 +410,13 @@ fn build_file_detail_block(title: &str) -> Block {
     Block::default().title(title).borders(Borders::all())
 }
 
-fn build_file_detail_tabs(selected: &usize) -> Tabs {
+fn build_file_detail_tabs(selected: &FileDetailViewState) -> Tabs {
     let tabs = vec![
         Spans::from(Span::styled("Detail", Style::default())),
         Spans::from(Span::styled("Version", Style::default())),
     ];
     Tabs::new(tabs)
-        .select(*selected)
+        .select(*selected as usize)
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
@@ -525,7 +528,9 @@ fn build_short_help(app: &App) -> Paragraph {
         ViewState::Default => {
             "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
         }
-        ViewState::ObjectDetail => "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close, <?> Help",
+        ViewState::ObjectDetail(_) => {
+            "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close, <?> Help"
+        }
         ViewState::Help => "<Esc>: Quit, <?>: Close help",
     };
     let help = format!("  {}", help);
@@ -581,7 +586,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
                     )),
                 ]
             }
-            ViewState::ObjectDetail => {
+            ViewState::ObjectDetail(_) => {
                 vec![
                     Spans::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
