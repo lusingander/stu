@@ -1,6 +1,6 @@
 [package]
 name = "stu"
-version = "0.0.1"
+version = "0.1.0"
 description = "TUI application for AWS S3 written in Rust using tui-rs"
 authors = ["Kyosuke Fujimoto <kyoro.f@gmail.com>"]
 homepage = "https://github.com/lusingander/stu"
