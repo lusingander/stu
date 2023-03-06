@@ -11,7 +11,7 @@ use tui::{
 };
 
 use crate::{
-    app::{App, FileDetail, FileDetailViewState, FileVersion, Item, ViewState},
+    app::{App, FileDetail, FileDetailViewState, FileVersion, Item, Notification, ViewState},
     event::AppEventType,
     key_code, key_code_char,
 };
@@ -38,12 +38,15 @@ pub async fn run<B: Backend>(
                     _ => {}
                 }
 
-                if app.has_error() {
-                    if app.view_state == ViewState::Initializing {
-                        return Ok(());
+                match app.notification {
+                    Notification::Error(_) => {
+                        if app.view_state == ViewState::Initializing {
+                            return Ok(());
+                        }
+                        app.notification = Notification::None;
+                        continue;
                     }
-                    app.clear_error_msg();
-                    continue;
+                    Notification::None => {}
                 }
 
                 match key {
@@ -93,7 +96,7 @@ pub async fn run<B: Backend>(
                 app.download_object().await;
             }
             AppEventType::Error(e) => {
-                app.set_error_msg(e);
+                app.notification = Notification::Error(e);
             }
         }
     }
@@ -131,8 +134,8 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
 
-    if app.has_error() {
-        let err = build_error_status(app);
+    if let Notification::Error(e) = &app.notification {
+        let err = build_error_status(e);
         f.render_widget(err, chunks[2]);
     }
 }
@@ -164,8 +167,8 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     );
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
 
-    if app.has_error() {
-        let err = build_error_status(app);
+    if let Notification::Error(e) = &app.notification {
+        let err = build_error_status(e);
         f.render_widget(err, chunks[2]);
     } else {
         let help = build_short_help(app);
@@ -194,8 +197,8 @@ fn render_object_detail_view<B: Backend>(
     let header = build_header(&current_key);
     f.render_widget(header, chunks[0]);
 
-    if app.has_error() {
-        let err = build_error_status(app);
+    if let Notification::Error(e) = &app.notification {
+        let err = build_error_status(e);
         f.render_widget(err, chunks[2]);
     } else {
         let help = build_short_help(app);
@@ -567,8 +570,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
     Paragraph::new(content).block(Block::default().title(APP_NAME).borders(Borders::all()))
 }
 
-fn build_error_status(app: &App) -> Paragraph {
-    let err = app.get_error_msg();
+fn build_error_status(err: &String) -> Paragraph {
     let err = format!("  ERROR: {}", err);
     Paragraph::new(Span::styled(
         err,

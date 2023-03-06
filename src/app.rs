@@ -8,12 +8,12 @@ pub struct App {
     pub current_list_state: ListState,
     pub view_state: ViewState,
     pub before_view_state: Option<ViewState>,
+    pub notification: Notification,
     pub is_loading: bool,
     current_keys: Vec<String>,
     items_map: HashMap<Vec<String>, Vec<Item>>,
     detail_map: HashMap<String, FileDetail>,
     versions_map: HashMap<String, Vec<FileVersion>>,
-    error_msg: Option<String>,
     client: Option<Client>,
     tx: mpsc::Sender<AppEventType>,
 }
@@ -32,6 +32,11 @@ pub enum FileDetailViewState {
     Version = 1,
 }
 
+pub enum Notification {
+    None,
+    Error(String),
+}
+
 impl App {
     pub fn new(tx: mpsc::Sender<AppEventType>) -> App {
         let mut current_list_state = ListState::default();
@@ -45,7 +50,7 @@ impl App {
             items_map: HashMap::new(),
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
-            error_msg: None,
+            notification: Notification::None,
             before_view_state: None,
             client: None,
             tx,
@@ -383,22 +388,6 @@ impl App {
         if let Err(e) = result {
             self.tx.send(AppEventType::Error(e)).unwrap();
         }
-    }
-
-    pub fn set_error_msg(&mut self, msg: String) {
-        self.error_msg = Some(msg);
-    }
-
-    pub fn clear_error_msg(&mut self) {
-        self.error_msg = None;
-    }
-
-    pub fn has_error(&self) -> bool {
-        self.error_msg.is_some()
-    }
-
-    pub fn get_error_msg(&self) -> &String {
-        self.error_msg.as_ref().unwrap()
     }
 }
 
