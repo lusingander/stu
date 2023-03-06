@@ -488,7 +488,7 @@ fn build_short_help(app: &App) -> Paragraph {
             "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
         }
         ViewState::ObjectDetail(_) => {
-            "<Esc>: Quit, <h/l>: Select tabs, <Backspace>: Close, <?> Help"
+            "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?> Help"
         }
         ViewState::Help => "<Esc>: Quit, <?>: Close help",
     };
@@ -553,7 +553,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
                     )),
                     Spans::from(""),
                     Spans::from(Span::styled(
-                        "  <x>: Open management console in browser",
+                        "  <s>: Download object,  <x>: Open management console in browser",
                         Style::default(),
                     )),
                 ]
