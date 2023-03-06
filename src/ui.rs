@@ -69,7 +69,7 @@ pub async fn run<B: Backend>(
                         app.select_tabs();
                     }
                     key_code_char!('s') => {
-                        app.download_object().await;
+                        app.download();
                     }
                     key_code_char!('x') => {
                         app.open_management_console();
@@ -88,6 +88,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::LoadObject => {
                 app.load_object().await;
+            }
+            AppEventType::DownloadObject => {
+                app.download_object().await;
             }
             AppEventType::Error(e) => {
                 app.set_error_msg(e);

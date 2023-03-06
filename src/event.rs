@@ -9,6 +9,7 @@ pub enum AppEventType {
     ClientInitialized(Client),
     LoadObjects,
     LoadObject,
+    DownloadObject,
     Error(String),
 }
 

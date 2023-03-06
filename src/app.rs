@@ -332,7 +332,17 @@ impl App {
         }
     }
 
-    pub async fn download_object(&self) {
+    pub fn download(&mut self) {
+        match self.view_state {
+            ViewState::Initializing | ViewState::Default | ViewState::Help => {}
+            ViewState::ObjectDetail(_) => {
+                self.tx.send(AppEventType::DownloadObject).unwrap();
+                self.is_loading = true;
+            }
+        }
+    }
+
+    pub async fn download_object(&mut self) {
         if let Some(Item::File { name, .. }) = self.get_current_selected() {
             let client = self.client.as_ref().unwrap();
             let bucket = &self.current_bucket();
@@ -345,6 +355,7 @@ impl App {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
+        self.is_loading = false;
     }
 
     pub fn open_management_console(&self) {
