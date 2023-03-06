@@ -46,6 +46,9 @@ pub async fn run<B: Backend>(
                         app.notification = Notification::None;
                         continue;
                     }
+                    Notification::Info(_) => {
+                        app.notification = Notification::None;
+                    }
                     Notification::None => {}
                 }
 
@@ -95,8 +98,11 @@ pub async fn run<B: Backend>(
             AppEventType::DownloadObject => {
                 app.download_object().await;
             }
-            AppEventType::Error(e) => {
-                app.notification = Notification::Error(e);
+            AppEventType::Info(msg) => {
+                app.notification = Notification::Info(msg);
+            }
+            AppEventType::Error(msg) => {
+                app.notification = Notification::Error(msg);
             }
         }
     }
@@ -134,9 +140,16 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
 
-    if let Notification::Error(e) = &app.notification {
-        let err = build_error_status(e);
-        f.render_widget(err, chunks[2]);
+    match &app.notification {
+        Notification::Info(msg) => {
+            let msg = build_info_status(msg);
+            f.render_widget(msg, chunks[2]);
+        }
+        Notification::Error(msg) => {
+            let msg = build_error_status(msg);
+            f.render_widget(msg, chunks[2]);
+        }
+        Notification::None => {}
     }
 }
 
@@ -167,12 +180,19 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     );
     f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
 
-    if let Notification::Error(e) = &app.notification {
-        let err = build_error_status(e);
-        f.render_widget(err, chunks[2]);
-    } else {
-        let help = build_short_help(app);
-        f.render_widget(help, chunks[2]);
+    match &app.notification {
+        Notification::Info(msg) => {
+            let msg = build_info_status(msg);
+            f.render_widget(msg, chunks[2]);
+        }
+        Notification::Error(msg) => {
+            let msg = build_error_status(msg);
+            f.render_widget(msg, chunks[2]);
+        }
+        Notification::None => {
+            let help = build_short_help(app);
+            f.render_widget(help, chunks[2]);
+        }
     }
 }
 
@@ -197,12 +217,19 @@ fn render_object_detail_view<B: Backend>(
     let header = build_header(&current_key);
     f.render_widget(header, chunks[0]);
 
-    if let Notification::Error(e) = &app.notification {
-        let err = build_error_status(e);
-        f.render_widget(err, chunks[2]);
-    } else {
-        let help = build_short_help(app);
-        f.render_widget(help, chunks[2]);
+    match &app.notification {
+        Notification::Info(msg) => {
+            let msg = build_info_status(msg);
+            f.render_widget(msg, chunks[2]);
+        }
+        Notification::Error(msg) => {
+            let msg = build_error_status(msg);
+            f.render_widget(msg, chunks[2]);
+        }
+        Notification::None => {
+            let help = build_short_help(app);
+            f.render_widget(help, chunks[2]);
+        }
     }
 
     let chunks = Layout::default()
@@ -568,6 +595,17 @@ fn build_help(app: &App, width: u16) -> Paragraph {
 
     let content: Vec<Spans> = app_detail.chain(help).collect();
     Paragraph::new(content).block(Block::default().title(APP_NAME).borders(Borders::all()))
+}
+
+fn build_info_status(msg: &String) -> Paragraph {
+    let msg = format!("  {}", msg);
+    Paragraph::new(Span::styled(
+        msg,
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .fg(Color::Green),
+    ))
+    .block(Block::default())
 }
 
 fn build_error_status(err: &String) -> Paragraph {

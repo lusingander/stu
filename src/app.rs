@@ -34,6 +34,7 @@ pub enum FileDetailViewState {
 
 pub enum Notification {
     None,
+    Info(String),
     Error(String),
 }
 
@@ -359,6 +360,9 @@ impl App {
             if let Err(e) = result {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
+
+            let msg = format!("Download completed successfully: {}", name);
+            self.tx.send(AppEventType::Info(msg)).unwrap();
         }
         self.is_loading = false;
     }

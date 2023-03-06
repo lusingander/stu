@@ -10,6 +10,7 @@ pub enum AppEventType {
     LoadObjects,
     LoadObject,
     DownloadObject,
+    Info(String),
     Error(String),
 }
 
