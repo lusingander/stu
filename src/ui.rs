@@ -68,6 +68,9 @@ pub async fn run<B: Backend>(
                     key_code_char!('h') | key_code_char!('l') => {
                         app.select_tabs();
                     }
+                    key_code_char!('s') => {
+                        app.download_object().await;
+                    }
                     key_code_char!('x') => {
                         app.open_management_console();
                     }

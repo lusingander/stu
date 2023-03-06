@@ -165,6 +165,29 @@ impl Client {
         Ok(versions)
     }
 
+    pub async fn download_object(&self, bucket: &String, key: &String) -> Result<Vec<u8>, String> {
+        let result = self
+            .client
+            .get_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await;
+        if let Err(e) = result {
+            panic!("bucket = {}, key = {}, error = {:?}", bucket, key, e);
+        }
+        let output = result.map_err(|_| "Failed to download object".to_string())?;
+
+        // todo: stream
+        let data = output
+            .body
+            .collect()
+            .await
+            .map_err(|_| "Failed to collect body".to_string())?;
+
+        Ok(data.to_vec())
+    }
+
     pub fn open_management_console_buckets(&self) -> Result<(), String> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets?region={}",

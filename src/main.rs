@@ -1,6 +1,7 @@
 mod app;
 mod client;
 mod event;
+mod file;
 mod macros;
 mod ui;
 

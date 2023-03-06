@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use std::{collections::HashMap, sync::mpsc};
 use tui::widgets::ListState;
 
-use crate::{client::Client, event::AppEventType};
+use crate::{client::Client, event::AppEventType, file::save_binary};
 
 pub struct App {
     pub current_list_state: ListState,
@@ -328,6 +328,21 @@ impl App {
             ViewState::Default | ViewState::ObjectDetail(_) => {
                 self.before_view_state = Some(self.view_state);
                 self.view_state = ViewState::Help;
+            }
+        }
+    }
+
+    pub async fn download_object(&self) {
+        if let Some(Item::File { name, .. }) = self.get_current_selected() {
+            let client = self.client.as_ref().unwrap();
+            let bucket = &self.current_bucket();
+            let prefix = &self.current_object_prefix();
+            let key = &format!("{}{}", prefix, name);
+            let bytes = client.download_object(bucket, key).await;
+
+            let result = bytes.and_then(|bs| save_binary(name, &bs));
+            if let Err(e) = result {
+                self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
     }
