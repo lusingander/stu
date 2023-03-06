@@ -6,7 +6,7 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Block, BorderType, Borders, List, ListItem, Paragraph, Tabs},
+    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
 
@@ -117,7 +117,9 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
     if app.is_loading {
         let loading = build_loading_dialog("");
-        f.render_widget(loading, loading_dialog_rect(f.size()));
+        let area = loading_dialog_rect(f.size());
+        f.render_widget(Clear, area);
+        f.render_widget(loading, area);
     }
 }
 
