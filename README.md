@@ -1,5 +1,7 @@
 # STU
 
+[![Crate Status](https://img.shields.io/crates/v/stu.svg)](https://crates.io/crates/stu)
+
 S3 Terminal UI
 
 ## About
