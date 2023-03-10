@@ -27,6 +27,16 @@ Options:
   -V, --version             Print version
 ```
 
+Detailed operations on each view can be displayed by pressing `?` key.
+
+### Config
+
+Config is loaded from `~/.stu/config.toml`. If the file does not exist, it will be created automatically at startup.
+
+The values that can be set are as follows:
+
+- `download_dir`: _string_ - Directory to save when downloading objects
+
 ## License
 
 MIT
