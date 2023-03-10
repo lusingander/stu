@@ -2,7 +2,7 @@ use chrono::{DateTime, Local};
 use std::{collections::HashMap, sync::mpsc};
 use tui::widgets::ListState;
 
-use crate::{client::Client, event::AppEventType, file::save_binary};
+use crate::{client::Client, config::Config, event::AppEventType, file::save_binary};
 
 pub struct App {
     pub current_list_state: ListState,
@@ -15,6 +15,7 @@ pub struct App {
     detail_map: HashMap<String, FileDetail>,
     versions_map: HashMap<String, Vec<FileVersion>>,
     client: Option<Client>,
+    config: Option<Config>,
     tx: mpsc::Sender<AppEventType>,
 }
 
@@ -54,11 +55,13 @@ impl App {
             notification: Notification::None,
             before_view_state: None,
             client: None,
+            config: None,
             tx,
         }
     }
 
-    pub async fn initialize(&mut self, client: Client) {
+    pub async fn initialize(&mut self, config: Config, client: Client) {
+        self.config = Some(config);
         self.client = Some(client);
 
         let client = self.client.as_ref().unwrap();
@@ -356,13 +359,15 @@ impl App {
             let key = &format!("{}{}", prefix, name);
             let bytes = client.download_object(bucket, key).await;
 
-            let result = bytes.and_then(|bs| save_binary(name, &bs));
+            let config = self.config.as_ref().unwrap();
+            let path = config.download_file_path(name);
+            let result = bytes.and_then(|bs| save_binary(&path, &bs));
             if let Err(e) = result {
                 self.tx.send(AppEventType::Error(e)).unwrap();
+            } else {
+                let msg = format!("Download completed successfully: {}", name);
+                self.tx.send(AppEventType::Info(msg)).unwrap();
             }
-
-            let msg = format!("Download completed successfully: {}", name);
-            self.tx.send(AppEventType::Info(msg)).unwrap();
         }
         self.is_loading = false;
     }

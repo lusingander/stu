@@ -2,11 +2,11 @@ use std::{sync::mpsc, thread};
 
 use crossterm::event::KeyEvent;
 
-use crate::client::Client;
+use crate::{client::Client, config::Config};
 
 pub enum AppEventType {
     Key(KeyEvent),
-    ClientInitialized(Client),
+    Initialize(Config, Client),
     LoadObjects,
     LoadObject,
     DownloadObject,

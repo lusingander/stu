@@ -86,8 +86,8 @@ pub async fn run<B: Backend>(
                     _ => {}
                 }
             }
-            AppEventType::ClientInitialized(client) => {
-                app.initialize(client).await;
+            AppEventType::Initialize(config, client) => {
+                app.initialize(config, client).await;
             }
             AppEventType::LoadObjects => {
                 app.load_objects().await;

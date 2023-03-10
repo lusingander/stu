@@ -1,5 +1,6 @@
 mod app;
 mod client;
+mod config;
 mod event;
 mod file;
 mod macros;
@@ -11,7 +12,10 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use event::AppEventType;
-use std::io::{stdout, Result, Stdout};
+use std::{
+    io::{stdout, Result, Stdout},
+    sync::mpsc::Sender,
+};
 use tokio::spawn;
 use tui::{
     backend::{Backend, CrosstermBackend},
@@ -20,6 +24,7 @@ use tui::{
 
 use crate::app::App;
 use crate::client::Client;
+use crate::config::Config;
 
 /// STU - S3 Terminal UI
 #[derive(Parser)]
@@ -74,11 +79,27 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
     let mut app = App::new(tx.clone());
 
     spawn(async move {
-        let client = Client::new(region, endpoint_url, profile).await;
-        tx.send(AppEventType::ClientInitialized(client)).unwrap();
+        load_config(tx, region, endpoint_url, profile).await;
     });
 
     ui::run(&mut app, terminal, rx).await
+}
+
+async fn load_config(
+    tx: Sender<AppEventType>,
+    region: Option<String>,
+    endpoint_url: Option<String>,
+    profile: Option<String>,
+) {
+    match Config::load() {
+        Ok(config) => {
+            let client = Client::new(region, endpoint_url, profile).await;
+            tx.send(AppEventType::Initialize(config, client)).unwrap();
+        }
+        Err(e) => {
+            tx.send(AppEventType::Error(e)).unwrap();
+        }
+    };
 }
 
 fn shutdown<W: std::io::Write>(
