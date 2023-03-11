@@ -173,9 +173,6 @@ impl Client {
             .key(key)
             .send()
             .await;
-        if let Err(e) = result {
-            panic!("bucket = {}, key = {}, error = {:?}", bucket, key, e);
-        }
         let output = result.map_err(|_| "Failed to download object".to_string())?;
 
         // todo: stream
