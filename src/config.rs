@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::error::AppError;
+use crate::error::{AppError, Result};
 
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";
@@ -27,7 +27,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load<'a>() -> Result<Config, AppError<'a>> {
+    pub fn load<'a>() -> Result<'a, Config> {
         match dirs::home_dir() {
             Some(home) => {
                 let path = home.join(APP_BASE_DIR).join(CONFIG_FILE_NAME);

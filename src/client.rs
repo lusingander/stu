@@ -4,7 +4,7 @@ use chrono::TimeZone;
 
 use crate::{
     app::{FileDetail, FileVersion, Item},
-    error::AppError,
+    error::{AppError, Result},
 };
 
 const DELIMITER: &str = "/";
@@ -46,7 +46,7 @@ impl Client {
         Client { client, region }
     }
 
-    pub async fn load_all_buckets(&self) -> Result<Vec<Item>, AppError> {
+    pub async fn load_all_buckets(&self) -> Result<Vec<Item>> {
         let result = self.client.list_buckets().send().await;
         let output = result.map_err(|e| AppError::new("Failed to load bucket", e))?;
 
@@ -67,11 +67,7 @@ impl Client {
         }
     }
 
-    pub async fn load_objects(
-        &self,
-        bucket: &String,
-        prefix: &String,
-    ) -> Result<Vec<Item>, AppError> {
+    pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Result<Vec<Item>> {
         let mut dirs_vec: Vec<Vec<Item>> = Vec::new();
         let mut files_vec: Vec<Vec<Item>> = Vec::new();
 
@@ -111,7 +107,7 @@ impl Client {
         key: &String,
         name: &String,
         size_byte: i64,
-    ) -> Result<FileDetail, AppError> {
+    ) -> Result<FileDetail> {
         let result = self
             .client
             .head_object()
@@ -138,7 +134,7 @@ impl Client {
         &self,
         bucket: &String,
         key: &String,
-    ) -> Result<Vec<FileVersion>, AppError> {
+    ) -> Result<Vec<FileVersion>> {
         let result = self
             .client
             .list_object_versions()
@@ -168,11 +164,7 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object(
-        &self,
-        bucket: &String,
-        key: &String,
-    ) -> Result<Vec<u8>, AppError> {
+    pub async fn download_object(&self, bucket: &String, key: &String) -> Result<Vec<u8>> {
         let result = self
             .client
             .get_object()
@@ -192,7 +184,7 @@ impl Client {
         Ok(data.to_vec())
     }
 
-    pub fn open_management_console_buckets(&self) -> Result<(), AppError> {
+    pub fn open_management_console_buckets(&self) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets?region={}",
             self.region
@@ -200,11 +192,7 @@ impl Client {
         open::that(path).map_err(AppError::error)
     }
 
-    pub fn open_management_console_list(
-        &self,
-        bucket: &String,
-        prefix: &String,
-    ) -> Result<(), AppError> {
+    pub fn open_management_console_list(&self, bucket: &String, prefix: &String) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}&prefix={}",
             bucket, self.region, prefix
@@ -217,7 +205,7 @@ impl Client {
         bucket: &String,
         prefix: &String,
         name: &String,
-    ) -> Result<(), AppError> {
+    ) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}{}",
             bucket, self.region, prefix, name

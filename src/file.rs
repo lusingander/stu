@@ -4,9 +4,9 @@ use std::{
     path::Path,
 };
 
-use crate::error::AppError;
+use crate::error::{AppError, Result};
 
-pub fn save_binary<'a>(path: &String, bytes: &[u8]) -> Result<(), AppError<'a>> {
+pub fn save_binary<'a>(path: &String, bytes: &[u8]) -> Result<'a, ()> {
     create_dirs(path)?;
 
     let f = File::create(path).map_err(|e| AppError::new("Failed to create file", e))?;
@@ -18,7 +18,7 @@ pub fn save_binary<'a>(path: &String, bytes: &[u8]) -> Result<(), AppError<'a>> 
     Ok(())
 }
 
-fn create_dirs<'a>(path: &String) -> Result<(), AppError<'a>> {
+fn create_dirs<'a>(path: &String) -> Result<'a, ()> {
     let path = Path::new(path);
     match path.parent() {
         Some(path) => std::fs::create_dir_all(path)
