@@ -116,7 +116,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         ViewState::Help => render_help_view(f, app),
     }
     if app.is_loading {
-        let loading = build_loading_dialog("");
+        let loading = build_loading_dialog("Loading...");
         let area = loading_dialog_rect(f.size());
         f.render_widget(Clear, area);
         f.render_widget(loading, area);
@@ -619,17 +619,16 @@ fn build_error_status(err: &String) -> Paragraph {
     .block(Block::default())
 }
 
-fn build_loading_dialog(title: &str) -> Paragraph {
+fn build_loading_dialog(msg: &str) -> Paragraph {
     let text = vec![
         Spans::from(""),
         Spans::from(Span::styled(
-            "Loading...",
+            msg,
             Style::default().add_modifier(Modifier::BOLD),
         )),
     ];
     Paragraph::new(text).alignment(Alignment::Center).block(
         Block::default()
-            .title(title)
             .borders(Borders::all())
             .border_type(BorderType::Double),
     )
