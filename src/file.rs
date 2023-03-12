@@ -4,7 +4,7 @@ use std::{
     path::Path,
 };
 
-use crate::app::AppError;
+use crate::error::AppError;
 
 pub fn save_binary<'a>(path: &String, bytes: &[u8]) -> Result<(), AppError<'a>> {
     create_dirs(path)?;

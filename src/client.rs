@@ -2,7 +2,10 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{output::ListObjectsV2Output, Region};
 use chrono::TimeZone;
 
-use crate::app::{AppError, FileDetail, FileVersion, Item};
+use crate::{
+    app::{FileDetail, FileVersion, Item},
+    error::AppError,
+};
 
 const DELIMITER: &str = "/";
 const DEFAULT_REGION: &str = "ap-northeast-1";

@@ -1,8 +1,10 @@
 use chrono::{DateTime, Local};
-use std::{collections::HashMap, error::Error, sync::mpsc};
+use std::{collections::HashMap, sync::mpsc};
 use tui::widgets::ListState;
 
-use crate::{client::Client, config::Config, event::AppEventType, file::save_binary};
+use crate::{
+    client::Client, config::Config, error::AppError, event::AppEventType, file::save_binary,
+};
 
 pub struct App {
     pub app_view_state: AppViewState,
@@ -494,32 +496,4 @@ pub struct FileVersion {
     pub size_byte: i64,
     pub last_modified: DateTime<Local>,
     pub is_latest: bool,
-}
-
-pub struct AppError<'a> {
-    pub msg: String,
-    pub e: Option<Box<dyn Error + Send + 'a>>,
-}
-
-impl<'a> AppError<'a> {
-    pub fn new<E: Error + Send + 'a>(msg: impl Into<String>, e: E) -> AppError<'a> {
-        AppError {
-            msg: msg.into(),
-            e: Some(Box::new(e)),
-        }
-    }
-
-    pub fn msg(msg: impl Into<String>) -> AppError<'a> {
-        AppError {
-            msg: msg.into(),
-            e: None,
-        }
-    }
-
-    pub fn error<E: Error + Send + 'a>(e: E) -> AppError<'a> {
-        AppError {
-            msg: e.to_string(),
-            e: Some(Box::new(e)),
-        }
-    }
 }

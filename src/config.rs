@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-use crate::app::AppError;
+use crate::error::AppError;
 
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";

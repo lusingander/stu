@@ -1,6 +1,7 @@
 mod app;
 mod client;
 mod config;
+mod error;
 mod event;
 mod file;
 mod macros;
