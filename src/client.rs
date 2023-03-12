@@ -91,7 +91,7 @@ impl Client {
             let files = objects_output_to_files(&output);
             files_vec.push(files);
 
-            token = output.next_continuation_token().map(|s| s.to_string());
+            token = output.next_continuation_token().map(String::from);
             if token.is_none() {
                 break;
             }
@@ -224,8 +224,8 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<Item> {
     objects
         .iter()
         .map(|dir| {
-            let path = dir.prefix().unwrap().to_string();
-            let paths = parse_path(&path, true);
+            let path = dir.prefix().unwrap();
+            let paths = parse_path(path, true);
             let name = paths.last().unwrap().to_owned();
             Item::Dir { name, paths }
         })
@@ -237,8 +237,8 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<Item> {
     objects
         .iter()
         .map(|file| {
-            let path = file.key().unwrap().to_string();
-            let paths = parse_path(&path, false);
+            let path = file.key().unwrap();
+            let paths = parse_path(path, false);
             let name = paths.last().unwrap().to_owned();
             let size_byte = file.size();
             let last_modified = convert_datetime(file.last_modified().unwrap());
@@ -253,7 +253,7 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<Item> {
 }
 
 fn parse_path(path: &str, dir: bool) -> Vec<String> {
-    let ss: Vec<String> = path.split(DELIMITER).map(|s| s.to_string()).collect();
+    let ss: Vec<String> = path.split(DELIMITER).map(String::from).collect();
     if dir {
         let n = ss.len() - 1;
         ss.into_iter().take(n).collect()
