@@ -2,6 +2,8 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
+use crate::app::AppError;
+
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";
 const DONWLOAD_DIR: &str = "donwload";
@@ -25,13 +27,13 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Config, String> {
+    pub fn load<'a>() -> Result<Config, AppError<'a>> {
         match dirs::home_dir() {
             Some(home) => {
                 let path = home.join(APP_BASE_DIR).join(CONFIG_FILE_NAME);
-                confy::load_path(path).map_err(|_| "Failed to load config file".to_string())
+                confy::load_path(path).map_err(|e| AppError::new("Failed to load config file", e))
             }
-            None => Err("Failed to load home directory".to_string()),
+            None => Err(AppError::msg("Failed to load home directory")),
         }
     }
 

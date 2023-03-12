@@ -2,7 +2,7 @@ use aws_config::meta::region::RegionProviderChain;
 use aws_sdk_s3::{output::ListObjectsV2Output, Region};
 use chrono::TimeZone;
 
-use crate::app::{FileDetail, FileVersion, Item};
+use crate::app::{AppError, FileDetail, FileVersion, Item};
 
 const DELIMITER: &str = "/";
 const DEFAULT_REGION: &str = "ap-northeast-1";
@@ -43,9 +43,9 @@ impl Client {
         Client { client, region }
     }
 
-    pub async fn load_all_buckets(&self) -> Result<Vec<Item>, String> {
+    pub async fn load_all_buckets(&self) -> Result<Vec<Item>, AppError> {
         let result = self.client.list_buckets().send().await;
-        let output = result.map_err(|_| "Failed to load bucket".to_string())?;
+        let output = result.map_err(|e| AppError::new("Failed to load bucket", e))?;
 
         let buckets: Vec<Item> = output
             .buckets()
@@ -58,7 +58,7 @@ impl Client {
             .collect();
 
         if buckets.is_empty() {
-            Err("No buckets exist".to_string())
+            Err(AppError::msg("No buckets exist"))
         } else {
             Ok(buckets)
         }
@@ -68,7 +68,7 @@ impl Client {
         &self,
         bucket: &String,
         prefix: &String,
-    ) -> Result<Vec<Item>, String> {
+    ) -> Result<Vec<Item>, AppError> {
         let mut dirs_vec: Vec<Vec<Item>> = Vec::new();
         let mut files_vec: Vec<Vec<Item>> = Vec::new();
 
@@ -83,7 +83,7 @@ impl Client {
                 .set_continuation_token(token)
                 .send()
                 .await;
-            let output = result.map_err(|_| "Failed to load objects".to_string())?;
+            let output = result.map_err(|e| AppError::new("Failed to load objects", e))?;
 
             let dirs = objects_output_to_dirs(&output);
             dirs_vec.push(dirs);
@@ -108,7 +108,7 @@ impl Client {
         key: &String,
         name: &String,
         size_byte: i64,
-    ) -> Result<FileDetail, String> {
+    ) -> Result<FileDetail, AppError> {
         let result = self
             .client
             .head_object()
@@ -116,7 +116,7 @@ impl Client {
             .key(key)
             .send()
             .await;
-        let output = result.map_err(|_| "Failed to load object detail".to_string())?;
+        let output = result.map_err(|e| AppError::new("Failed to load object detail", e))?;
 
         let name = name.to_owned();
         let last_modified = convert_datetime(output.last_modified().unwrap());
@@ -135,7 +135,7 @@ impl Client {
         &self,
         bucket: &String,
         key: &String,
-    ) -> Result<Vec<FileVersion>, String> {
+    ) -> Result<Vec<FileVersion>, AppError> {
         let result = self
             .client
             .list_object_versions()
@@ -143,7 +143,7 @@ impl Client {
             .prefix(key)
             .send()
             .await;
-        let output = result.map_err(|_| "Failed to load object versions".to_string())?;
+        let output = result.map_err(|e| AppError::new("Failed to load object versions", e))?;
 
         let versions = output
             .versions()
@@ -165,7 +165,11 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object(&self, bucket: &String, key: &String) -> Result<Vec<u8>, String> {
+    pub async fn download_object(
+        &self,
+        bucket: &String,
+        key: &String,
+    ) -> Result<Vec<u8>, AppError> {
         let result = self
             .client
             .get_object()
@@ -173,36 +177,36 @@ impl Client {
             .key(key)
             .send()
             .await;
-        let output = result.map_err(|_| "Failed to download object".to_string())?;
+        let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
 
         // todo: stream
         let data = output
             .body
             .collect()
             .await
-            .map_err(|_| "Failed to collect body".to_string())?;
+            .map_err(|e| AppError::new("Failed to collect body", e))?;
 
         Ok(data.to_vec())
     }
 
-    pub fn open_management_console_buckets(&self) -> Result<(), String> {
+    pub fn open_management_console_buckets(&self) -> Result<(), AppError> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets?region={}",
             self.region
         );
-        open::that(path).map_err(|e| e.to_string())
+        open::that(path).map_err(AppError::error)
     }
 
     pub fn open_management_console_list(
         &self,
         bucket: &String,
         prefix: &String,
-    ) -> Result<(), String> {
+    ) -> Result<(), AppError> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}&prefix={}",
             bucket, self.region, prefix
         );
-        open::that(path).map_err(|e| e.to_string())
+        open::that(path).map_err(AppError::error)
     }
 
     pub fn open_management_console_object(
@@ -210,12 +214,12 @@ impl Client {
         bucket: &String,
         prefix: &String,
         name: &String,
-    ) -> Result<(), String> {
+    ) -> Result<(), AppError> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}{}",
             bucket, self.region, prefix, name
         );
-        open::that(path).map_err(|e| e.to_string())
+        open::that(path).map_err(AppError::error)
     }
 }
 

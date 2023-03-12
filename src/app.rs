@@ -1,5 +1,5 @@
 use chrono::{DateTime, Local};
-use std::{collections::HashMap, sync::mpsc};
+use std::{collections::HashMap, error::Error, sync::mpsc};
 use tui::widgets::ListState;
 
 use crate::{client::Client, config::Config, event::AppEventType, file::save_binary};
@@ -133,7 +133,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::Default;
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::Error(e.msg)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -319,7 +319,7 @@ impl App {
                 self.app_objects.set_items(self.current_keys.clone(), items);
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::Error(e.msg)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -351,10 +351,10 @@ impl App {
                         ViewState::ObjectDetail(FileDetailViewState::Detail);
                 }
                 (Err(e), _) => {
-                    self.tx.send(AppEventType::Error(e)).unwrap();
+                    self.tx.send(AppEventType::Error(e.msg)).unwrap();
                 }
                 (_, Err(e)) => {
-                    self.tx.send(AppEventType::Error(e)).unwrap();
+                    self.tx.send(AppEventType::Error(e.msg)).unwrap();
                 }
             }
         }
@@ -417,7 +417,7 @@ impl App {
             let path = config.download_file_path(name);
             let result = bytes.and_then(|bs| save_binary(&path, &bs));
             if let Err(e) = result {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::Error(e.msg)).unwrap();
             } else {
                 let msg = format!("Download completed successfully: {}", name);
                 self.tx.send(AppEventType::Info(msg)).unwrap();
@@ -444,12 +444,12 @@ impl App {
                     let prefix = self.current_object_prefix();
                     client.open_management_console_object(bucket.unwrap(), &prefix, name)
                 } else {
-                    Err("Failed to get current selected item".to_string())
+                    Err(AppError::msg("Failed to get current selected item"))
                 }
             }
         };
         if let Err(e) = result {
-            self.tx.send(AppEventType::Error(e)).unwrap();
+            self.tx.send(AppEventType::Error(e.msg)).unwrap();
         }
     }
 }
@@ -494,4 +494,32 @@ pub struct FileVersion {
     pub size_byte: i64,
     pub last_modified: DateTime<Local>,
     pub is_latest: bool,
+}
+
+pub struct AppError<'a> {
+    pub msg: String,
+    pub e: Option<Box<dyn Error + Send + 'a>>,
+}
+
+impl<'a> AppError<'a> {
+    pub fn new<E: Error + Send + 'a>(msg: impl Into<String>, e: E) -> AppError<'a> {
+        AppError {
+            msg: msg.into(),
+            e: Some(Box::new(e)),
+        }
+    }
+
+    pub fn msg(msg: impl Into<String>) -> AppError<'a> {
+        AppError {
+            msg: msg.into(),
+            e: None,
+        }
+    }
+
+    pub fn error<E: Error + Send + 'a>(e: E) -> AppError<'a> {
+        AppError {
+            msg: e.to_string(),
+            e: Some(Box::new(e)),
+        }
+    }
 }

@@ -97,7 +97,7 @@ async fn load_config(
             tx.send(AppEventType::Initialize(config, client)).unwrap();
         }
         Err(e) => {
-            tx.send(AppEventType::Error(e)).unwrap();
+            tx.send(AppEventType::Error(e.msg)).unwrap();
         }
     };
 }
