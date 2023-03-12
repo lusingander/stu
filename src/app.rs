@@ -6,10 +6,8 @@ use crate::{client::Client, config::Config, event::AppEventType, file::save_bina
 
 pub struct App {
     pub app_view_state: AppViewState,
+    app_objects: AppObjects,
     current_keys: Vec<String>,
-    items_map: HashMap<Vec<String>, Vec<Item>>,
-    detail_map: HashMap<String, FileDetail>,
-    versions_map: HashMap<String, Vec<FileVersion>>,
     client: Option<Client>,
     config: Option<Config>,
     tx: mpsc::Sender<AppEventType>,
@@ -58,14 +56,28 @@ impl AppViewState {
     }
 }
 
+struct AppObjects {
+    items_map: HashMap<Vec<String>, Vec<Item>>,
+    detail_map: HashMap<String, FileDetail>,
+    versions_map: HashMap<String, Vec<FileVersion>>,
+}
+
+impl AppObjects {
+    fn new() -> AppObjects {
+        AppObjects {
+            items_map: HashMap::new(),
+            detail_map: HashMap::new(),
+            versions_map: HashMap::new(),
+        }
+    }
+}
+
 impl App {
     pub fn new(tx: mpsc::Sender<AppEventType>) -> App {
         App {
             app_view_state: AppViewState::new(),
+            app_objects: AppObjects::new(),
             current_keys: Vec::new(),
-            items_map: HashMap::new(),
-            detail_map: HashMap::new(),
-            versions_map: HashMap::new(),
             client: None,
             config: None,
             tx,
@@ -80,7 +92,7 @@ impl App {
         let buckets = client.load_all_buckets().await;
         match buckets {
             Ok(buckets) => {
-                self.items_map.insert(Vec::new(), buckets);
+                self.app_objects.items_map.insert(Vec::new(), buckets);
                 self.app_view_state.view_state = ViewState::Default;
             }
             Err(e) => {
@@ -112,21 +124,24 @@ impl App {
     }
 
     pub fn current_items(&self) -> Vec<Item> {
-        self.items_map
+        self.app_objects
+            .items_map
             .get(&self.current_keys)
             .unwrap_or(&Vec::new())
             .to_vec()
     }
 
     fn current_items_len(&self) -> usize {
-        self.items_map
+        self.app_objects
+            .items_map
             .get(&self.current_keys)
             .unwrap_or(&Vec::new())
             .len()
     }
 
     fn get_from_current_items(&self, idx: usize) -> Option<&Item> {
-        self.items_map
+        self.app_objects
+            .items_map
             .get(&self.current_keys)
             .and_then(|items| items.get(idx))
     }
@@ -144,7 +159,7 @@ impl App {
                 let bucket = &self.current_bucket();
                 let prefix = &self.current_object_prefix();
                 let key = &self.object_detail_map_key(bucket, prefix, name);
-                self.detail_map.get(key)
+                self.app_objects.detail_map.get(key)
             } else {
                 None
             }
@@ -157,7 +172,7 @@ impl App {
                 let bucket = &self.current_bucket();
                 let prefix = &self.current_object_prefix();
                 let key = &self.object_detail_map_key(bucket, prefix, name);
-                self.versions_map.get(key)
+                self.app_objects.versions_map.get(key)
             } else {
                 None
             }
@@ -249,14 +264,15 @@ impl App {
         match self.get_current_selected() {
             Some(selected) => {
                 let map_key = &self.object_detail_map_key(bucket, prefix, selected.name());
-                self.detail_map.contains_key(map_key) && self.versions_map.contains_key(map_key)
+                self.app_objects.detail_map.contains_key(map_key)
+                    && self.app_objects.versions_map.contains_key(map_key)
             }
             None => false,
         }
     }
 
     fn exists_current_objects(&self) -> bool {
-        self.items_map.contains_key(&self.current_keys)
+        self.app_objects.items_map.contains_key(&self.current_keys)
     }
 
     pub fn move_up(&mut self) {
@@ -279,7 +295,9 @@ impl App {
         let items = client.load_objects(bucket, prefix).await;
         match items {
             Ok(items) => {
-                self.items_map.insert(self.current_keys.clone(), items);
+                self.app_objects
+                    .items_map
+                    .insert(self.current_keys.clone(), items);
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -307,8 +325,12 @@ impl App {
 
             match (detail, versions) {
                 (Ok(detail), Ok(versions)) => {
-                    self.detail_map.insert(map_key.to_owned(), detail);
-                    self.versions_map.insert(map_key.to_owned(), versions);
+                    self.app_objects
+                        .detail_map
+                        .insert(map_key.to_owned(), detail);
+                    self.app_objects
+                        .versions_map
+                        .insert(map_key.to_owned(), versions);
 
                     self.app_view_state.view_state =
                         ViewState::ObjectDetail(FileDetailViewState::Detail);
