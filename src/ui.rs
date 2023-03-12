@@ -38,16 +38,16 @@ pub async fn run<B: Backend>(
                     _ => {}
                 }
 
-                match app.notification {
+                match app.app_view_state.notification {
                     Notification::Error(_) => {
-                        if app.view_state == ViewState::Initializing {
+                        if app.app_view_state.view_state == ViewState::Initializing {
                             return Ok(());
                         }
-                        app.notification = Notification::None;
+                        app.app_view_state.notification = Notification::None;
                         continue;
                     }
                     Notification::Info(_) => {
-                        app.notification = Notification::None;
+                        app.app_view_state.notification = Notification::None;
                     }
                     Notification::None => {}
                 }
@@ -99,23 +99,23 @@ pub async fn run<B: Backend>(
                 app.download_object().await;
             }
             AppEventType::Info(msg) => {
-                app.notification = Notification::Info(msg);
+                app.app_view_state.notification = Notification::Info(msg);
             }
             AppEventType::Error(msg) => {
-                app.notification = Notification::Error(msg);
+                app.app_view_state.notification = Notification::Error(msg);
             }
         }
     }
 }
 
 fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
-    match app.view_state {
+    match app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, app),
         ViewState::Default => render_default_view(f, app),
         ViewState::ObjectDetail(vs) => render_object_detail_view(f, app, &vs),
         ViewState::Help => render_help_view(f, app),
     }
-    if app.is_loading {
+    if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...");
         let area = loading_dialog_rect(f.size());
         f.render_widget(Clear, area);
@@ -142,7 +142,7 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
 
-    match &app.notification {
+    match &app.app_view_state.notification {
         Notification::Info(msg) => {
             let msg = build_info_status(msg);
             f.render_widget(msg, chunks[2]);
@@ -173,16 +173,16 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(header, chunks[0]);
 
     let current_items = app.current_items();
-    let current_selected = app.current_list_state.selected();
+    let current_selected = app.app_view_state.current_list_state.selected();
     let list = build_list(
         &current_items,
         current_selected,
         f.size().width,
         SELECTED_COLOR,
     );
-    f.render_stateful_widget(list, chunks[1], &mut app.current_list_state);
+    f.render_stateful_widget(list, chunks[1], &mut app.app_view_state.current_list_state);
 
-    match &app.notification {
+    match &app.app_view_state.notification {
         Notification::Info(msg) => {
             let msg = build_info_status(msg);
             f.render_widget(msg, chunks[2]);
@@ -219,7 +219,7 @@ fn render_object_detail_view<B: Backend>(
     let header = build_header(&current_key);
     f.render_widget(header, chunks[0]);
 
-    match &app.notification {
+    match &app.app_view_state.notification {
         Notification::Info(msg) => {
             let msg = build_info_status(msg);
             f.render_widget(msg, chunks[2]);
@@ -240,14 +240,14 @@ fn render_object_detail_view<B: Backend>(
         .split(chunks[1]);
 
     let current_items = app.current_items();
-    let current_selected = app.current_list_state.selected();
+    let current_selected = app.app_view_state.current_list_state.selected();
     let list = build_list(
         &current_items,
         current_selected,
         f.size().width,
         Color::DarkGray,
     );
-    f.render_stateful_widget(list, chunks[0], &mut app.current_list_state);
+    f.render_stateful_widget(list, chunks[0], &mut app.app_view_state.current_list_state);
 
     let block = build_file_detail_block("");
     f.render_widget(block, chunks[1]);
@@ -514,7 +514,7 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
 }
 
 fn build_short_help(app: &App) -> Paragraph {
-    let help = match app.view_state {
+    let help = match app.app_view_state.view_state {
         ViewState::Initializing => "",
         ViewState::Default => {
             "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
@@ -556,7 +556,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
     ]
     .into_iter();
 
-    let help = match app.before_view_state {
+    let help = match app.app_view_state.before_view_state {
         Some(vs) => match vs {
             ViewState::Initializing | ViewState::Help => vec![],
             ViewState::Default => {

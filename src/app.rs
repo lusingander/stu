@@ -5,11 +5,7 @@ use tui::widgets::ListState;
 use crate::{client::Client, config::Config, event::AppEventType, file::save_binary};
 
 pub struct App {
-    pub current_list_state: ListState,
-    pub view_state: ViewState,
-    pub before_view_state: Option<ViewState>,
-    pub notification: Notification,
-    pub is_loading: bool,
+    pub app_view_state: AppViewState,
     current_keys: Vec<String>,
     items_map: HashMap<Vec<String>, Vec<Item>>,
     detail_map: HashMap<String, FileDetail>,
@@ -17,6 +13,14 @@ pub struct App {
     client: Option<Client>,
     config: Option<Config>,
     tx: mpsc::Sender<AppEventType>,
+}
+
+pub struct AppViewState {
+    pub current_list_state: ListState,
+    pub view_state: ViewState,
+    pub before_view_state: Option<ViewState>,
+    pub notification: Notification,
+    pub is_loading: bool,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -39,21 +43,29 @@ pub enum Notification {
     Error(String),
 }
 
-impl App {
-    pub fn new(tx: mpsc::Sender<AppEventType>) -> App {
+impl AppViewState {
+    fn new() -> AppViewState {
         let mut current_list_state = ListState::default();
         current_list_state.select(Some(0));
 
-        App {
+        AppViewState {
             current_list_state,
             view_state: ViewState::Initializing,
+            notification: Notification::None,
+            before_view_state: None,
             is_loading: true,
+        }
+    }
+}
+
+impl App {
+    pub fn new(tx: mpsc::Sender<AppEventType>) -> App {
+        App {
+            app_view_state: AppViewState::new(),
             current_keys: Vec::new(),
             items_map: HashMap::new(),
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
-            notification: Notification::None,
-            before_view_state: None,
             client: None,
             config: None,
             tx,
@@ -69,13 +81,13 @@ impl App {
         match buckets {
             Ok(buckets) => {
                 self.items_map.insert(Vec::new(), buckets);
-                self.view_state = ViewState::Default;
+                self.app_view_state.view_state = ViewState::Default;
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
-        self.is_loading = false;
+        self.app_view_state.is_loading = false;
     }
 
     pub fn current_key_string(&self) -> String {
@@ -120,7 +132,8 @@ impl App {
     }
 
     fn get_current_selected(&self) -> Option<&Item> {
-        self.current_list_state
+        self.app_view_state
+            .current_list_state
             .selected()
             .and_then(|i| self.get_from_current_items(i))
     }
@@ -152,23 +165,23 @@ impl App {
     }
 
     pub fn select_next(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::ObjectDetail(_) | ViewState::Help => {}
             ViewState::Default => {
-                if let Some(i) = self.current_list_state.selected() {
+                if let Some(i) = self.app_view_state.current_list_state.selected() {
                     let len = self.current_items_len();
                     let i = if len == 0 || i >= len - 1 { 0 } else { i + 1 };
-                    self.current_list_state.select(Some(i));
+                    self.app_view_state.current_list_state.select(Some(i));
                 };
             }
         }
     }
 
     pub fn select_prev(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::ObjectDetail(_) | ViewState::Help => {}
             ViewState::Default => {
-                if let Some(i) = self.current_list_state.selected() {
+                if let Some(i) = self.app_view_state.current_list_state.selected() {
                     let len = self.current_items_len();
                     let i = if len == 0 {
                         0
@@ -177,51 +190,52 @@ impl App {
                     } else {
                         i - 1
                     };
-                    self.current_list_state.select(Some(i));
+                    self.app_view_state.current_list_state.select(Some(i));
                 };
             }
         }
     }
 
     pub fn select_first(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::ObjectDetail(_) | ViewState::Help => {}
             ViewState::Default => {
                 let i = 0;
-                self.current_list_state.select(Some(i));
+                self.app_view_state.current_list_state.select(Some(i));
             }
         }
     }
 
     pub fn select_last(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::ObjectDetail(_) | ViewState::Help => {}
             ViewState::Default => {
                 let i = self.current_items_len() - 1;
-                self.current_list_state.select(Some(i));
+                self.app_view_state.current_list_state.select(Some(i));
             }
         }
     }
 
     pub fn move_down(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::ObjectDetail(_) | ViewState::Help => {}
             ViewState::Default => {
                 if let Some(selected) = self.get_current_selected() {
                     if let Item::File { .. } = selected {
                         if self.exists_current_object_detail() {
-                            self.view_state = ViewState::ObjectDetail(FileDetailViewState::Detail);
+                            self.app_view_state.view_state =
+                                ViewState::ObjectDetail(FileDetailViewState::Detail);
                         } else {
                             self.tx.send(AppEventType::LoadObject).unwrap();
-                            self.is_loading = true;
+                            self.app_view_state.is_loading = true;
                         }
                     } else {
                         self.current_keys.push(selected.name().to_owned());
-                        self.current_list_state.select(Some(0));
+                        self.app_view_state.current_list_state.select(Some(0));
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
-                            self.is_loading = true;
+                            self.app_view_state.is_loading = true;
                         }
                     }
                 }
@@ -246,14 +260,14 @@ impl App {
     }
 
     pub fn move_up(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Help => {}
             ViewState::Default => {
                 self.current_keys.pop();
-                self.current_list_state.select(Some(0));
+                self.app_view_state.current_list_state.select(Some(0));
             }
             ViewState::ObjectDetail(_) => {
-                self.view_state = ViewState::Default;
+                self.app_view_state.view_state = ViewState::Default;
             }
         }
     }
@@ -271,7 +285,7 @@ impl App {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
-        self.is_loading = false;
+        self.app_view_state.is_loading = false;
     }
 
     pub async fn load_object(&mut self) {
@@ -296,7 +310,8 @@ impl App {
                     self.detail_map.insert(map_key.to_owned(), detail);
                     self.versions_map.insert(map_key.to_owned(), versions);
 
-                    self.view_state = ViewState::ObjectDetail(FileDetailViewState::Detail);
+                    self.app_view_state.view_state =
+                        ViewState::ObjectDetail(FileDetailViewState::Detail);
                 }
                 (Err(e), _) => {
                     self.tx.send(AppEventType::Error(e)).unwrap();
@@ -306,7 +321,7 @@ impl App {
                 }
             }
         }
-        self.is_loading = false;
+        self.app_view_state.is_loading = false;
     }
 
     fn object_detail_map_key(&self, bucket: &String, prefix: &String, name: &String) -> String {
@@ -314,39 +329,41 @@ impl App {
     }
 
     pub fn select_tabs(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Default | ViewState::Help => {}
             ViewState::ObjectDetail(vs) => match vs {
                 FileDetailViewState::Detail => {
-                    self.view_state = ViewState::ObjectDetail(FileDetailViewState::Version);
+                    self.app_view_state.view_state =
+                        ViewState::ObjectDetail(FileDetailViewState::Version);
                 }
                 FileDetailViewState::Version => {
-                    self.view_state = ViewState::ObjectDetail(FileDetailViewState::Detail);
+                    self.app_view_state.view_state =
+                        ViewState::ObjectDetail(FileDetailViewState::Detail);
                 }
             },
         }
     }
 
     pub fn toggle_help(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing => {}
             ViewState::Help => {
-                self.view_state = self.before_view_state.unwrap();
-                self.before_view_state = None;
+                self.app_view_state.view_state = self.app_view_state.before_view_state.unwrap();
+                self.app_view_state.before_view_state = None;
             }
             ViewState::Default | ViewState::ObjectDetail(_) => {
-                self.before_view_state = Some(self.view_state);
-                self.view_state = ViewState::Help;
+                self.app_view_state.before_view_state = Some(self.app_view_state.view_state);
+                self.app_view_state.view_state = ViewState::Help;
             }
         }
     }
 
     pub fn download(&mut self) {
-        match self.view_state {
+        match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Default | ViewState::Help => {}
             ViewState::ObjectDetail(_) => {
                 self.tx.send(AppEventType::DownloadObject).unwrap();
-                self.is_loading = true;
+                self.app_view_state.is_loading = true;
             }
         }
     }
@@ -369,14 +386,14 @@ impl App {
                 self.tx.send(AppEventType::Info(msg)).unwrap();
             }
         }
-        self.is_loading = false;
+        self.app_view_state.is_loading = false;
     }
 
     pub fn open_management_console(&self) {
         let client = self.client.as_ref().unwrap();
         let bucket = self.current_bucket_opt();
 
-        let result = match self.view_state {
+        let result = match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Help => Ok(()),
             ViewState::Default => match bucket {
                 Some(bucket) => {
