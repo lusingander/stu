@@ -70,6 +70,43 @@ impl AppObjects {
             versions_map: HashMap::new(),
         }
     }
+
+    fn get_items(&self, keys: &[String]) -> Vec<Item> {
+        self.items_map.get(keys).unwrap_or(&Vec::new()).to_vec()
+    }
+
+    fn get_items_len(&self, keys: &[String]) -> usize {
+        self.items_map.get(keys).unwrap_or(&Vec::new()).len()
+    }
+
+    fn get_item(&self, keys: &[String], idx: usize) -> Option<&Item> {
+        self.items_map.get(keys).and_then(|items| items.get(idx))
+    }
+
+    fn set_items(&mut self, keys: Vec<String>, items: Vec<Item>) {
+        self.items_map.insert(keys, items);
+    }
+
+    fn exists_item(&self, keys: &[String]) -> bool {
+        self.items_map.contains_key(keys)
+    }
+
+    fn get_object_detail(&self, key: &str) -> Option<&FileDetail> {
+        self.detail_map.get(key)
+    }
+
+    fn get_object_versions(&self, key: &str) -> Option<&Vec<FileVersion>> {
+        self.versions_map.get(key)
+    }
+
+    fn set_object_details(&mut self, key: &str, detail: FileDetail, versions: Vec<FileVersion>) {
+        self.detail_map.insert(key.to_string(), detail);
+        self.versions_map.insert(key.to_string(), versions);
+    }
+
+    fn exists_object_details(&self, key: &str) -> bool {
+        self.detail_map.contains_key(key) && self.versions_map.contains_key(key)
+    }
 }
 
 impl App {
@@ -92,7 +129,7 @@ impl App {
         let buckets = client.load_all_buckets().await;
         match buckets {
             Ok(buckets) => {
-                self.app_objects.items_map.insert(Vec::new(), buckets);
+                self.app_objects.set_items(Vec::new(), buckets);
                 self.app_view_state.view_state = ViewState::Default;
             }
             Err(e) => {
@@ -124,33 +161,18 @@ impl App {
     }
 
     pub fn current_items(&self) -> Vec<Item> {
-        self.app_objects
-            .items_map
-            .get(&self.current_keys)
-            .unwrap_or(&Vec::new())
-            .to_vec()
+        self.app_objects.get_items(&self.current_keys)
     }
 
     fn current_items_len(&self) -> usize {
-        self.app_objects
-            .items_map
-            .get(&self.current_keys)
-            .unwrap_or(&Vec::new())
-            .len()
-    }
-
-    fn get_from_current_items(&self, idx: usize) -> Option<&Item> {
-        self.app_objects
-            .items_map
-            .get(&self.current_keys)
-            .and_then(|items| items.get(idx))
+        self.app_objects.get_items_len(&self.current_keys)
     }
 
     fn get_current_selected(&self) -> Option<&Item> {
         self.app_view_state
             .current_list_state
             .selected()
-            .and_then(|i| self.get_from_current_items(i))
+            .and_then(|i| self.app_objects.get_item(&self.current_keys, i))
     }
 
     pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
@@ -159,7 +181,7 @@ impl App {
                 let bucket = &self.current_bucket();
                 let prefix = &self.current_object_prefix();
                 let key = &self.object_detail_map_key(bucket, prefix, name);
-                self.app_objects.detail_map.get(key)
+                self.app_objects.get_object_detail(key)
             } else {
                 None
             }
@@ -172,7 +194,7 @@ impl App {
                 let bucket = &self.current_bucket();
                 let prefix = &self.current_object_prefix();
                 let key = &self.object_detail_map_key(bucket, prefix, name);
-                self.app_objects.versions_map.get(key)
+                self.app_objects.get_object_versions(key)
             } else {
                 None
             }
@@ -264,15 +286,14 @@ impl App {
         match self.get_current_selected() {
             Some(selected) => {
                 let map_key = &self.object_detail_map_key(bucket, prefix, selected.name());
-                self.app_objects.detail_map.contains_key(map_key)
-                    && self.app_objects.versions_map.contains_key(map_key)
+                self.app_objects.exists_object_details(map_key)
             }
             None => false,
         }
     }
 
     fn exists_current_objects(&self) -> bool {
-        self.app_objects.items_map.contains_key(&self.current_keys)
+        self.app_objects.exists_item(&self.current_keys)
     }
 
     pub fn move_up(&mut self) {
@@ -295,9 +316,7 @@ impl App {
         let items = client.load_objects(bucket, prefix).await;
         match items {
             Ok(items) => {
-                self.app_objects
-                    .items_map
-                    .insert(self.current_keys.clone(), items);
+                self.app_objects.set_items(self.current_keys.clone(), items);
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -326,11 +345,7 @@ impl App {
             match (detail, versions) {
                 (Ok(detail), Ok(versions)) => {
                     self.app_objects
-                        .detail_map
-                        .insert(map_key.to_owned(), detail);
-                    self.app_objects
-                        .versions_map
-                        .insert(map_key.to_owned(), versions);
+                        .set_object_details(map_key, detail, versions);
 
                     self.app_view_state.view_state =
                         ViewState::ObjectDetail(FileDetailViewState::Detail);
