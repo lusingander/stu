@@ -3,7 +3,11 @@ use std::{collections::HashMap, sync::mpsc};
 use tui::widgets::ListState;
 
 use crate::{
-    client::Client, config::Config, error::AppError, event::AppEventType, file::save_binary,
+    client::Client,
+    config::Config,
+    error::AppError,
+    event::AppEventType,
+    file::{save_binary, save_error_log},
 };
 
 pub struct App {
@@ -135,7 +139,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::Default;
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e.msg)).unwrap();
+                self.tx.send(AppEventType::error(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -321,7 +325,7 @@ impl App {
                 self.app_objects.set_items(self.current_keys.clone(), items);
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e.msg)).unwrap();
+                self.tx.send(AppEventType::error(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -353,10 +357,10 @@ impl App {
                         ViewState::ObjectDetail(FileDetailViewState::Detail);
                 }
                 (Err(e), _) => {
-                    self.tx.send(AppEventType::Error(e.msg)).unwrap();
+                    self.tx.send(AppEventType::error(e)).unwrap();
                 }
                 (_, Err(e)) => {
-                    self.tx.send(AppEventType::Error(e.msg)).unwrap();
+                    self.tx.send(AppEventType::error(e)).unwrap();
                 }
             }
         }
@@ -419,13 +423,20 @@ impl App {
             let path = config.download_file_path(name);
             let result = bytes.and_then(|bs| save_binary(&path, &bs));
             if let Err(e) = result {
-                self.tx.send(AppEventType::Error(e.msg)).unwrap();
+                self.tx.send(AppEventType::error(e)).unwrap();
             } else {
                 let msg = format!("Download completed successfully: {}", name);
                 self.tx.send(AppEventType::Info(msg)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
+    }
+
+    pub fn save_error(&self, msg: &String, e: &String) {
+        let config = self.config.as_ref().unwrap();
+        // cause panic if save errors
+        let path = config.error_log_path().unwrap();
+        save_error_log(&path, msg, e).unwrap();
     }
 
     pub fn open_management_console(&self) {
@@ -451,7 +462,7 @@ impl App {
             }
         };
         if let Err(e) = result {
-            self.tx.send(AppEventType::Error(e.msg)).unwrap();
+            self.tx.send(AppEventType::error(e)).unwrap();
         }
     }
 }

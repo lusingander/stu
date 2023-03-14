@@ -1,5 +1,6 @@
+use chrono::Local;
 use std::{
-    fs::File,
+    fs::{File, OpenOptions},
     io::{BufWriter, Write},
     path::Path,
 };
@@ -14,6 +15,21 @@ pub fn save_binary<'a>(path: &String, bytes: &[u8]) -> Result<'a, ()> {
     writer
         .write_all(bytes)
         .map_err(|e| AppError::new("Failed to write file", e))?;
+
+    Ok(())
+}
+
+pub fn save_error_log<'a>(path: &String, msg: &String, e: &String) -> Result<'a, ()> {
+    create_dirs(path)?;
+
+    let mut f = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|e| AppError::new("Failed to open file", e))?;
+
+    let now = Local::now();
+    writeln!(f, "{} {}: {}", now, msg, e).map_err(|e| AppError::new("Failed to write file", e))?;
 
     Ok(())
 }
