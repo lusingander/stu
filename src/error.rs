@@ -1,29 +1,29 @@
 use std::error::Error;
 
-pub type Result<'a, T> = std::result::Result<T, AppError<'a>>;
+pub type Result<T> = std::result::Result<T, AppError>;
 
 #[derive(Debug)]
-pub struct AppError<'a> {
+pub struct AppError {
     pub msg: String,
-    pub e: Option<Box<dyn Error + Send + 'a>>,
+    pub e: Option<Box<dyn Error + Send + 'static>>,
 }
 
-impl<'a> AppError<'a> {
-    pub fn new<E: Error + Send + 'a>(msg: impl Into<String>, e: E) -> AppError<'a> {
+impl AppError {
+    pub fn new<E: Error + Send + 'static>(msg: impl Into<String>, e: E) -> AppError {
         AppError {
             msg: msg.into(),
             e: Some(Box::new(e)),
         }
     }
 
-    pub fn msg(msg: impl Into<String>) -> AppError<'a> {
+    pub fn msg(msg: impl Into<String>) -> AppError {
         AppError {
             msg: msg.into(),
             e: None,
         }
     }
 
-    pub fn error<E: Error + Send + 'a>(e: E) -> AppError<'a> {
+    pub fn error<E: Error + Send + 'static>(e: E) -> AppError {
         AppError {
             msg: e.to_string(),
             e: Some(Box::new(e)),

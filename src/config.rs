@@ -28,7 +28,7 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load<'a>() -> Result<'a, Config> {
+    pub fn load() -> Result<Config> {
         let dir = Config::get_app_base_dir()?;
         let path = dir.join(CONFIG_FILE_NAME);
         confy::load_path(path).map_err(|e| AppError::new("Failed to load config file", e))
@@ -46,7 +46,7 @@ impl Config {
         Ok(String::from(path.to_string_lossy()))
     }
 
-    fn get_app_base_dir() -> Result<'static, PathBuf> {
+    fn get_app_base_dir() -> Result<PathBuf> {
         dirs::home_dir()
             .map(|home| home.join(APP_BASE_DIR))
             .ok_or_else(|| AppError::msg("Failed to load home directory"))
