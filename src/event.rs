@@ -11,17 +11,7 @@ pub enum AppEventType {
     LoadObject,
     DownloadObject,
     Info(String),
-    Error(String, String),
-}
-
-impl AppEventType {
-    pub fn error(e: AppError) -> AppEventType {
-        AppEventType::Error(e.msg, format!("{:?}", e.e))
-    }
-
-    fn error_with_msg<E: std::error::Error>(msg: impl Into<String>, e: E) -> AppEventType {
-        AppEventType::Error(msg.into(), format!("{:?}", e))
-    }
+    Error(AppError),
 }
 
 pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
@@ -36,8 +26,8 @@ pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
                 }
             }
             Err(e) => {
-                let e = AppEventType::error_with_msg("Failed to read event", e);
-                event_tx.send(e).unwrap();
+                let e = AppError::new("Failed to read event", e);
+                event_tx.send(AppEventType::Error(e)).unwrap();
             }
         }
     });

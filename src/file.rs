@@ -19,7 +19,7 @@ pub fn save_binary(path: &String, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn save_error_log(path: &String, msg: &String, e: &String) -> Result<()> {
+pub fn save_error_log(path: &String, e: &AppError) -> Result<()> {
     create_dirs(path)?;
 
     let mut f = OpenOptions::new()
@@ -29,9 +29,16 @@ pub fn save_error_log(path: &String, msg: &String, e: &String) -> Result<()> {
         .map_err(|e| AppError::new("Failed to open file", e))?;
 
     let now = Local::now();
-    writeln!(f, "{} {}: {}", now, msg, e).map_err(|e| AppError::new("Failed to write file", e))?;
 
-    Ok(())
+    match &e.cause {
+        Some(cause) => {
+            writeln!(f, "{} {}: {:?}", now, e.msg, cause)
+        }
+        None => {
+            writeln!(f, "{} {}", now, e.msg)
+        }
+    }
+    .map_err(|e| AppError::new("Failed to write file", e))
 }
 
 fn create_dirs(path: &String) -> Result<()> {

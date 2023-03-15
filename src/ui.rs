@@ -101,9 +101,9 @@ pub async fn run<B: Backend>(
             AppEventType::Info(msg) => {
                 app.app_view_state.notification = Notification::Info(msg);
             }
-            AppEventType::Error(msg, e) => {
-                app.save_error(&msg, &e);
-                app.app_view_state.notification = Notification::Error(msg);
+            AppEventType::Error(e) => {
+                app.save_error(&e);
+                app.app_view_state.notification = Notification::Error(e.msg);
             }
         }
     }
