@@ -37,7 +37,7 @@ Config is loaded from `~/.stu/config.toml`. If the file does not exist, it will 
 
 The values that can be set are as follows:
 
-- `download_dir`: _string_ - Directory to save when downloading objects
+- `download_dir`: _string_ - Directory to save when downloading objects (_default_: `~/.stu/download`)
 
 ## License
 
