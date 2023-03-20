@@ -342,37 +342,47 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub async fn load_object(&mut self) {
+    pub fn load_object(&self) {
         if let Some(Item::File {
             name, size_byte, ..
         }) = self.get_current_selected()
         {
-            let bucket = &self.current_bucket();
-            let prefix = &self.current_object_prefix();
-            let key = &format!("{}{}", prefix, name);
+            let name = name.clone();
+            let size_byte = *size_byte;
 
-            let map_key = &self.object_detail_map_key(bucket, prefix, name);
+            let bucket = self.current_bucket();
+            let prefix = self.current_object_prefix();
+            let key = format!("{}{}", prefix, name);
 
-            let client = self.client.as_ref().unwrap();
-            let detail = client
-                .load_object_detail(bucket, key, name, *size_byte)
-                .await;
-            let versions = client.load_object_versions(bucket, key).await;
+            let map_key = self.object_detail_map_key(&bucket, &prefix, &name);
 
-            match (detail, versions) {
-                (Ok(detail), Ok(versions)) => {
-                    self.app_objects
-                        .set_object_details(map_key, detail, versions);
+            let client = self.client.as_ref().unwrap().clone();
+            let tx = self.tx.clone();
 
-                    self.app_view_state.view_state =
-                        ViewState::ObjectDetail(FileDetailViewState::Detail);
-                }
-                (Err(e), _) => {
-                    self.tx.send(AppEventType::Error(e)).unwrap();
-                }
-                (_, Err(e)) => {
-                    self.tx.send(AppEventType::Error(e)).unwrap();
-                }
+            spawn(async move {
+                let detail = client
+                    .load_object_detail(&bucket, &key, &name, size_byte)
+                    .await;
+                let versions = client.load_object_versions(&bucket, &key).await;
+                let result = detail.and_then(|d| versions.map(|v| (d, v, map_key)));
+                tx.send(AppEventType::CompleteLoadObject(result)).unwrap();
+            });
+        }
+    }
+
+    pub fn complete_load_object(
+        &mut self,
+        result: Result<(FileDetail, Vec<FileVersion>, String), AppError>,
+    ) {
+        match result {
+            Ok((detail, versions, map_key)) => {
+                self.app_objects
+                    .set_object_details(&map_key, detail, versions);
+                self.app_view_state.view_state =
+                    ViewState::ObjectDetail(FileDetailViewState::Detail);
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;

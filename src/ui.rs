@@ -100,7 +100,10 @@ pub async fn run<B: Backend>(
                 app.complete_load_objects(result);
             }
             AppEventType::LoadObject => {
-                app.load_object().await;
+                app.load_object();
+            }
+            AppEventType::CompleteLoadObject(result) => {
+                app.complete_load_object(result);
             }
             AppEventType::DownloadObject => {
                 app.download_object().await;

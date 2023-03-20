@@ -2,7 +2,12 @@ use std::{sync::mpsc, thread};
 
 use crossterm::event::KeyEvent;
 
-use crate::{app::Item, client::Client, config::Config, error::AppError};
+use crate::{
+    app::{FileDetail, FileVersion, Item},
+    client::Client,
+    config::Config,
+    error::AppError,
+};
 
 pub enum AppEventType {
     Key(KeyEvent),
@@ -10,6 +15,7 @@ pub enum AppEventType {
     LoadObjects,
     CompleteLoadObjects(Result<Vec<Item>, AppError>),
     LoadObject,
+    CompleteLoadObject(Result<(FileDetail, Vec<FileVersion>, String), AppError>),
     DownloadObject,
     Info(String),
     Error(AppError),
