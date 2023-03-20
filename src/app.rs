@@ -1,5 +1,9 @@
 use chrono::{DateTime, Local};
-use std::{collections::HashMap, sync::mpsc};
+use std::{
+    collections::HashMap,
+    sync::{mpsc, Arc},
+};
+use tokio::spawn;
 use tui::widgets::ListState;
 
 use crate::{
@@ -14,7 +18,7 @@ pub struct App {
     pub app_view_state: AppViewState,
     app_objects: AppObjects,
     current_keys: Vec<String>,
-    client: Option<Client>,
+    client: Option<Arc<Client>>,
     config: Option<Config>,
     tx: mpsc::Sender<AppEventType>,
 }
@@ -129,7 +133,7 @@ impl App {
 
     pub async fn initialize(&mut self, config: Config, client: Client) {
         self.config = Some(config);
-        self.client = Some(client);
+        self.client = Some(Arc::new(client));
 
         let client = self.client.as_ref().unwrap();
         let buckets = client.load_all_buckets().await;
@@ -315,12 +319,19 @@ impl App {
         }
     }
 
-    pub async fn load_objects(&mut self) {
-        let bucket = &self.current_bucket();
-        let prefix = &self.current_object_prefix();
-        let client = self.client.as_ref().unwrap();
-        let items = client.load_objects(bucket, prefix).await;
-        match items {
+    pub fn load_objects(&self) {
+        let bucket = self.current_bucket();
+        let prefix = self.current_object_prefix();
+        let client = self.client.as_ref().unwrap().clone();
+        let tx = self.tx.clone();
+        spawn(async move {
+            let result = client.load_objects(&bucket, &prefix).await;
+            tx.send(AppEventType::CompleteLoadObjects(result)).unwrap();
+        });
+    }
+
+    pub fn complete_load_objects(&mut self, result: Result<Vec<Item>, AppError>) {
+        match result {
             Ok(items) => {
                 self.app_objects.set_items(self.current_keys.clone(), items);
             }

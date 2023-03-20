@@ -38,6 +38,10 @@ pub async fn run<B: Backend>(
                     _ => {}
                 }
 
+                if app.app_view_state.is_loading {
+                    continue;
+                }
+
                 match app.app_view_state.notification {
                     Notification::Error(_) => {
                         if app.app_view_state.view_state == ViewState::Initializing {
@@ -90,7 +94,10 @@ pub async fn run<B: Backend>(
                 app.initialize(config, client).await;
             }
             AppEventType::LoadObjects => {
-                app.load_objects().await;
+                app.load_objects();
+            }
+            AppEventType::CompleteLoadObjects(result) => {
+                app.complete_load_objects(result);
             }
             AppEventType::LoadObject => {
                 app.load_object().await;
