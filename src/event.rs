@@ -32,6 +32,7 @@ pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
                 if let crossterm::event::Event::Key(key) = e {
                     event_tx.send(AppEventType::Key(key)).unwrap();
                 }
+                // TODO: Resize
             }
             Err(e) => {
                 let e = AppError::new("Failed to read event", e);

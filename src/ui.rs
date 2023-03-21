@@ -188,14 +188,17 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(header, chunks[0]);
 
     let current_items = app.current_items();
-    let current_selected = app.app_view_state.current_list_state.selected();
+    let current_selected = app.app_view_state.list_selected;
+    let current_offset = app.app_view_state.list_offset;
     let list = build_list(
         &current_items,
         current_selected,
+        current_offset,
         f.size().width,
+        chunks[1].height,
         SELECTED_COLOR,
     );
-    f.render_stateful_widget(list, chunks[1], &mut app.app_view_state.current_list_state);
+    f.render_widget(list, chunks[1]);
 
     match &app.app_view_state.notification {
         Notification::Info(msg) => {
@@ -251,14 +254,17 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailVi
         .split(chunks[1]);
 
     let current_items = app.current_items();
-    let current_selected = app.app_view_state.current_list_state.selected();
+    let current_selected = app.app_view_state.list_selected;
+    let current_offset = app.app_view_state.list_offset;
     let list = build_list(
         &current_items,
         current_selected,
+        current_offset,
         f.size().width,
+        chunks[0].height,
         Color::DarkGray,
     );
-    f.render_stateful_widget(list, chunks[0], &mut app.app_view_state.current_list_state);
+    f.render_widget(list, chunks[0]);
 
     let block = build_file_detail_block("");
     f.render_widget(block, chunks[1]);
@@ -309,14 +315,20 @@ fn build_header(current_key: &str) -> Paragraph {
 
 fn build_list(
     current_items: &[Item],
-    current_selected: Option<usize>,
+    current_selected: usize,
+    current_offset: usize,
     width: u16,
+    height: u16,
     color: Color,
 ) -> List {
+    let show_item_count = (height as usize) - 2 /* border */;
     let list_items: Vec<ListItem> = current_items
         .iter()
-        .map(|i| {
-            let content = match i {
+        .skip(current_offset)
+        .take(show_item_count)
+        .enumerate()
+        .map(|(i, item)| {
+            let content = match item {
                 Item::Bucket { name, .. } => {
                     let content = format_bucket_item(name, width);
                     let style = Style::default();
@@ -338,19 +350,21 @@ fn build_list(
                     Span::styled(content, style)
                 }
             };
-            ListItem::new(content)
+            if i + current_offset == current_selected {
+                ListItem::new(content).style(Style::default().bg(color))
+            } else {
+                ListItem::new(content)
+            }
         })
         .collect();
 
     let title = format_list_count(current_items, current_selected);
-    List::new(list_items)
-        .block(
-            Block::default()
-                .borders(Borders::all())
-                .title(title)
-                .title_alignment(Alignment::Right),
-        )
-        .highlight_style(Style::default().bg(color))
+    List::new(list_items).block(
+        Block::default()
+            .borders(Borders::all())
+            .title(title)
+            .title_alignment(Alignment::Right),
+    )
 }
 
 fn format_bucket_item(name: &String, width: u16) -> String {
@@ -386,17 +400,13 @@ fn format_file_item(
     )
 }
 
-fn format_list_count(current_items: &[Item], current_selected: Option<usize>) -> String {
-    current_selected
-        .and_then(|n| {
-            let total = current_items.len();
-            if total == 0 {
-                None
-            } else {
-                Some(format_count(n + 1, total))
-            }
-        })
-        .unwrap_or_default()
+fn format_list_count(current_items: &[Item], current_selected: usize) -> String {
+    let total = current_items.len();
+    if total == 0 {
+        String::new()
+    } else {
+        format_count(current_selected + 1, total)
+    }
 }
 
 fn format_count(selected: usize, total: usize) -> String {

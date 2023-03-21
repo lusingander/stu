@@ -78,13 +78,19 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
     } = args;
 
     let (tx, rx) = event::new();
-    let mut app = App::new(tx.clone());
+    let (_, height) = get_frame_size(terminal);
+    let mut app = App::new(tx.clone(), height);
 
     spawn(async move {
         load_config(tx, region, endpoint_url, profile).await;
     });
 
     ui::run(&mut app, terminal, rx).await
+}
+
+fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
+    let size = terminal.get_frame().size();
+    (size.width as usize, size.height as usize)
 }
 
 async fn load_config(

@@ -3,7 +3,6 @@ use std::{
     sync::{mpsc, Arc},
 };
 use tokio::spawn;
-use tui::widgets::ListState;
 
 use crate::{
     client::Client,
@@ -24,7 +23,9 @@ pub struct App {
 }
 
 pub struct AppViewState {
-    pub current_list_state: ListState,
+    pub list_selected: usize,
+    pub list_offset: usize,
+    list_height: usize,
     pub view_state: ViewState,
     pub before_view_state: Option<ViewState>,
     pub notification: Notification,
@@ -52,12 +53,11 @@ pub enum Notification {
 }
 
 impl AppViewState {
-    fn new() -> AppViewState {
-        let mut current_list_state = ListState::default();
-        current_list_state.select(Some(0));
-
+    fn new(height: usize) -> AppViewState {
         AppViewState {
-            current_list_state,
+            list_selected: 0,
+            list_offset: 0,
+            list_height: height - 3 /* header */ - 2 /* footer */ - 2, /* list area border */
             view_state: ViewState::Initializing,
             notification: Notification::None,
             before_view_state: None,
@@ -120,9 +120,9 @@ impl AppObjects {
 }
 
 impl App {
-    pub fn new(tx: mpsc::Sender<AppEventType>) -> App {
+    pub fn new(tx: mpsc::Sender<AppEventType>, height: usize) -> App {
         App {
-            app_view_state: AppViewState::new(),
+            app_view_state: AppViewState::new(height),
             app_objects: AppObjects::new(),
             current_keys: Vec::new(),
             client: None,
@@ -179,10 +179,8 @@ impl App {
     }
 
     fn get_current_selected(&self) -> Option<&Item> {
-        self.app_view_state
-            .current_list_state
-            .selected()
-            .and_then(|i| self.app_objects.get_item(&self.current_keys, i))
+        let i = self.app_view_state.list_selected;
+        self.app_objects.get_item(&self.current_keys, i)
     }
 
     pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
@@ -215,10 +213,19 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                if let Some(i) = self.app_view_state.current_list_state.selected() {
-                    let len = self.current_items_len();
-                    let i = if len == 0 || i >= len - 1 { 0 } else { i + 1 };
-                    self.app_view_state.current_list_state.select(Some(i));
+                let current_selected = self.app_view_state.list_selected;
+                let len = self.current_items_len();
+                if len == 0 || current_selected >= len - 1 {
+                    self.app_view_state.list_selected = 0;
+                    self.app_view_state.list_offset = 0;
+                } else {
+                    self.app_view_state.list_selected = current_selected + 1;
+
+                    if current_selected - self.app_view_state.list_offset
+                        == self.app_view_state.list_height - 1
+                    {
+                        self.app_view_state.list_offset += 1;
+                    }
                 };
             }
         }
@@ -228,16 +235,23 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                if let Some(i) = self.app_view_state.current_list_state.selected() {
-                    let len = self.current_items_len();
-                    let i = if len == 0 {
-                        0
-                    } else if i == 0 {
-                        len - 1
-                    } else {
-                        i - 1
-                    };
-                    self.app_view_state.current_list_state.select(Some(i));
+                let current_selected = self.app_view_state.list_selected;
+                let len = self.current_items_len();
+                if len == 0 {
+                    self.app_view_state.list_selected = 0;
+                    self.app_view_state.list_offset = 0;
+                } else if current_selected == 0 {
+                    self.app_view_state.list_selected = len - 1;
+
+                    if self.app_view_state.list_height < len {
+                        self.app_view_state.list_offset = len - self.app_view_state.list_height;
+                    }
+                } else {
+                    self.app_view_state.list_selected = current_selected - 1;
+
+                    if current_selected - self.app_view_state.list_offset == 0 {
+                        self.app_view_state.list_offset -= 1;
+                    }
                 };
             }
         }
@@ -247,8 +261,8 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                let i = 0;
-                self.app_view_state.current_list_state.select(Some(i));
+                self.app_view_state.list_selected = 0;
+                self.app_view_state.list_offset = 0;
             }
         }
     }
@@ -257,8 +271,11 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                let i = self.current_items_len() - 1;
-                self.app_view_state.current_list_state.select(Some(i));
+                let len = self.current_items_len();
+                self.app_view_state.list_selected = len - 1;
+                if self.app_view_state.list_height < len {
+                    self.app_view_state.list_offset = len - self.app_view_state.list_height;
+                }
             }
         }
     }
@@ -278,7 +295,8 @@ impl App {
                         }
                     } else {
                         self.current_keys.push(selected.name().to_owned());
-                        self.app_view_state.current_list_state.select(Some(0));
+                        self.app_view_state.list_selected = 0;
+                        self.app_view_state.list_offset = 0;
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -312,7 +330,8 @@ impl App {
             ViewState::List => {
                 let key = self.current_keys.pop();
                 if key.is_some() {
-                    self.app_view_state.current_list_state.select(Some(0));
+                    self.app_view_state.list_selected = 0;
+                    self.app_view_state.list_offset = 0;
                 }
             }
             ViewState::Detail(_) => {
