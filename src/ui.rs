@@ -11,8 +11,9 @@ use tui::{
 };
 
 use crate::{
-    app::{App, FileDetail, FileDetailViewState, FileVersion, Item, Notification, ViewState},
+    app::{App, FileDetailViewState, Notification, ViewState},
     event::AppEventType,
+    item::{FileDetail, FileVersion, Item},
     key_code, key_code_char,
 };
 

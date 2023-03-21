@@ -3,10 +3,10 @@ use std::{sync::mpsc, thread};
 use crossterm::event::KeyEvent;
 
 use crate::{
-    app::{FileDetail, FileVersion, Item},
     client::Client,
     config::Config,
     error::AppError,
+    item::{FileDetail, FileVersion, Item},
 };
 
 pub enum AppEventType {

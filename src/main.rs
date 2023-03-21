@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod event;
 mod file;
+mod item;
 mod macros;
 mod ui;
 

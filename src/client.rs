@@ -3,8 +3,8 @@ use aws_sdk_s3::{output::ListObjectsV2Output, Region};
 use chrono::TimeZone;
 
 use crate::{
-    app::{FileDetail, FileVersion, Item},
     error::{AppError, Result},
+    item::{FileDetail, FileVersion, Item},
 };
 
 const DELIMITER: &str = "/";
