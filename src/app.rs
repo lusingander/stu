@@ -308,7 +308,7 @@ impl App {
 
     pub fn move_up(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Help => {}
+            ViewState::Initializing => {}
             ViewState::List => {
                 let key = self.current_keys.pop();
                 if key.is_some() {
@@ -317,6 +317,9 @@ impl App {
             }
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::List;
+            }
+            ViewState::Help => {
+                self.toggle_help();
             }
         }
     }
