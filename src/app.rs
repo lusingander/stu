@@ -35,12 +35,12 @@ pub struct AppViewState {
 pub enum ViewState {
     Initializing,
     List,
-    Detail(FileDetailViewState),
+    Detail(DetailViewState),
     Help,
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub enum FileDetailViewState {
+pub enum DetailViewState {
     Detail = 0,
     Version = 1,
 }
@@ -271,7 +271,7 @@ impl App {
                     if let Item::File { .. } = selected {
                         if self.exists_current_object_detail() {
                             self.app_view_state.view_state =
-                                ViewState::Detail(FileDetailViewState::Detail);
+                                ViewState::Detail(DetailViewState::Detail);
                         } else {
                             self.tx.send(AppEventType::LoadObject).unwrap();
                             self.app_view_state.is_loading = true;
@@ -378,7 +378,7 @@ impl App {
             Ok((detail, versions, map_key)) => {
                 self.app_objects
                     .set_object_details(&map_key, detail, versions);
-                self.app_view_state.view_state = ViewState::Detail(FileDetailViewState::Detail);
+                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -395,12 +395,11 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::List | ViewState::Help => {}
             ViewState::Detail(vs) => match vs {
-                FileDetailViewState::Detail => {
-                    self.app_view_state.view_state =
-                        ViewState::Detail(FileDetailViewState::Version);
+                DetailViewState::Detail => {
+                    self.app_view_state.view_state = ViewState::Detail(DetailViewState::Version);
                 }
-                FileDetailViewState::Version => {
-                    self.app_view_state.view_state = ViewState::Detail(FileDetailViewState::Detail);
+                DetailViewState::Version => {
+                    self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
                 }
             },
         }

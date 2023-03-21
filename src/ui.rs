@@ -11,7 +11,7 @@ use tui::{
 };
 
 use crate::{
-    app::{App, FileDetailViewState, Notification, ViewState},
+    app::{App, DetailViewState, Notification, ViewState},
     event::AppEventType,
     item::{FileDetail, FileVersion, Item},
     key_code, key_code_char,
@@ -213,11 +213,7 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_object_detail_view<B: Backend>(
-    f: &mut Frame<B>,
-    app: &mut App,
-    vs: &FileDetailViewState,
-) {
+fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailViewState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -277,12 +273,12 @@ fn render_object_detail_view<B: Backend>(
     f.render_widget(tabs, chunks[0]);
 
     match vs {
-        FileDetailViewState::Detail => {
+        DetailViewState::Detail => {
             let current_file_detail = app.get_current_file_detail().unwrap();
             let detail = build_file_detail(current_file_detail);
             f.render_widget(detail, chunks[1]);
         }
-        FileDetailViewState::Version => {
+        DetailViewState::Version => {
             let current_file_versions = app.get_current_file_versions().unwrap();
             let versions = build_file_versions(current_file_versions, chunks[1].width);
             f.render_widget(versions, chunks[1]);
@@ -416,7 +412,7 @@ fn build_file_detail_block(title: &str) -> Block {
     Block::default().title(title).borders(Borders::all())
 }
 
-fn build_file_detail_tabs(selected: &FileDetailViewState) -> Tabs {
+fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
     let tabs = vec![
         Spans::from(Span::styled("Detail", Style::default())),
         Spans::from(Span::styled("Version", Style::default())),
