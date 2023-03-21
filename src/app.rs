@@ -37,6 +37,32 @@ impl AppListState {
         }
     }
 
+    fn select_next(&mut self) {
+        if self.selected - self.offset == self.height - 1 {
+            self.offset += 1;
+        }
+        self.selected += 1;
+    }
+
+    fn select_prev(&mut self) {
+        if self.selected - self.offset == 0 {
+            self.offset -= 1;
+        }
+        self.selected -= 1;
+    }
+
+    fn select_first(&mut self) {
+        self.selected = 0;
+        self.offset = 0;
+    }
+
+    fn select_last(&mut self, total: usize) {
+        self.selected = total - 1;
+        if self.height < total {
+            self.offset = total - self.height;
+        }
+    }
+
     fn calc_list_height(height: usize) -> usize {
         height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
     }
@@ -237,16 +263,9 @@ impl App {
                 let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
                 if len == 0 || current_selected >= len - 1 {
-                    self.app_view_state.list_state.selected = 0;
-                    self.app_view_state.list_state.offset = 0;
+                    self.app_view_state.list_state.select_first();
                 } else {
-                    self.app_view_state.list_state.selected = current_selected + 1;
-
-                    if current_selected - self.app_view_state.list_state.offset
-                        == self.app_view_state.list_state.height - 1
-                    {
-                        self.app_view_state.list_state.offset += 1;
-                    }
+                    self.app_view_state.list_state.select_next();
                 };
             }
         }
@@ -259,21 +278,11 @@ impl App {
                 let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
                 if len == 0 {
-                    self.app_view_state.list_state.selected = 0;
-                    self.app_view_state.list_state.offset = 0;
+                    self.app_view_state.list_state.select_first();
                 } else if current_selected == 0 {
-                    self.app_view_state.list_state.selected = len - 1;
-
-                    if self.app_view_state.list_state.height < len {
-                        self.app_view_state.list_state.offset =
-                            len - self.app_view_state.list_state.height;
-                    }
+                    self.app_view_state.list_state.select_last(len);
                 } else {
-                    self.app_view_state.list_state.selected = current_selected - 1;
-
-                    if current_selected - self.app_view_state.list_state.offset == 0 {
-                        self.app_view_state.list_state.offset -= 1;
-                    }
+                    self.app_view_state.list_state.select_prev();
                 };
             }
         }
@@ -283,8 +292,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                self.app_view_state.list_state.selected = 0;
-                self.app_view_state.list_state.offset = 0;
+                self.app_view_state.list_state.select_first();
             }
         }
     }
@@ -294,11 +302,7 @@ impl App {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
                 let len = self.current_items_len();
-                self.app_view_state.list_state.selected = len - 1;
-                if self.app_view_state.list_state.height < len {
-                    self.app_view_state.list_state.offset =
-                        len - self.app_view_state.list_state.height;
-                }
+                self.app_view_state.list_state.select_last(len);
             }
         }
     }
@@ -318,8 +322,7 @@ impl App {
                         }
                     } else {
                         self.current_keys.push(selected.name().to_owned());
-                        self.app_view_state.list_state.selected = 0;
-                        self.app_view_state.list_state.offset = 0;
+                        self.app_view_state.list_state.select_first();
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -353,8 +356,7 @@ impl App {
             ViewState::List => {
                 let key = self.current_keys.pop();
                 if key.is_some() {
-                    self.app_view_state.list_state.selected = 0;
-                    self.app_view_state.list_state.offset = 0;
+                    self.app_view_state.list_state.select_first();
                 }
             }
             ViewState::Detail(_) => {
