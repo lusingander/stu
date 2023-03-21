@@ -310,8 +310,10 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Help => {}
             ViewState::List => {
-                self.current_keys.pop();
-                self.app_view_state.current_list_state.select(Some(0));
+                let key = self.current_keys.pop();
+                if key.is_some() {
+                    self.app_view_state.current_list_state.select(Some(0));
+                }
             }
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::List;
