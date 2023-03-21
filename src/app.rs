@@ -22,10 +22,28 @@ pub struct App {
     tx: mpsc::Sender<AppEventType>,
 }
 
+pub struct AppListState {
+    pub selected: usize,
+    pub offset: usize,
+    height: usize,
+}
+
+impl AppListState {
+    fn new(height: usize) -> AppListState {
+        AppListState {
+            selected: 0,
+            offset: 0,
+            height: AppListState::calc_list_height(height),
+        }
+    }
+
+    fn calc_list_height(height: usize) -> usize {
+        height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
+    }
+}
+
 pub struct AppViewState {
-    pub list_selected: usize,
-    pub list_offset: usize,
-    list_height: usize,
+    pub list_state: AppListState,
     pub view_state: ViewState,
     pub before_view_state: Option<ViewState>,
     pub notification: Notification,
@@ -55,18 +73,12 @@ pub enum Notification {
 impl AppViewState {
     fn new(height: usize) -> AppViewState {
         AppViewState {
-            list_selected: 0,
-            list_offset: 0,
-            list_height: AppViewState::calc_list_height(height),
+            list_state: AppListState::new(height),
             view_state: ViewState::Initializing,
             notification: Notification::None,
             before_view_state: None,
             is_loading: true,
         }
-    }
-
-    fn calc_list_height(height: usize) -> usize {
-        height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
     }
 }
 
@@ -154,7 +166,7 @@ impl App {
     }
 
     pub fn resize(&mut self, height: usize) {
-        self.app_view_state.list_height = AppViewState::calc_list_height(height);
+        self.app_view_state.list_state.height = AppListState::calc_list_height(height);
         // todo: adjust
     }
 
@@ -188,7 +200,7 @@ impl App {
     }
 
     fn get_current_selected(&self) -> Option<&Item> {
-        let i = self.app_view_state.list_selected;
+        let i = self.app_view_state.list_state.selected;
         self.app_objects.get_item(&self.current_keys, i)
     }
 
@@ -222,18 +234,18 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                let current_selected = self.app_view_state.list_selected;
+                let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
                 if len == 0 || current_selected >= len - 1 {
-                    self.app_view_state.list_selected = 0;
-                    self.app_view_state.list_offset = 0;
+                    self.app_view_state.list_state.selected = 0;
+                    self.app_view_state.list_state.offset = 0;
                 } else {
-                    self.app_view_state.list_selected = current_selected + 1;
+                    self.app_view_state.list_state.selected = current_selected + 1;
 
-                    if current_selected - self.app_view_state.list_offset
-                        == self.app_view_state.list_height - 1
+                    if current_selected - self.app_view_state.list_state.offset
+                        == self.app_view_state.list_state.height - 1
                     {
-                        self.app_view_state.list_offset += 1;
+                        self.app_view_state.list_state.offset += 1;
                     }
                 };
             }
@@ -244,22 +256,23 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                let current_selected = self.app_view_state.list_selected;
+                let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
                 if len == 0 {
-                    self.app_view_state.list_selected = 0;
-                    self.app_view_state.list_offset = 0;
+                    self.app_view_state.list_state.selected = 0;
+                    self.app_view_state.list_state.offset = 0;
                 } else if current_selected == 0 {
-                    self.app_view_state.list_selected = len - 1;
+                    self.app_view_state.list_state.selected = len - 1;
 
-                    if self.app_view_state.list_height < len {
-                        self.app_view_state.list_offset = len - self.app_view_state.list_height;
+                    if self.app_view_state.list_state.height < len {
+                        self.app_view_state.list_state.offset =
+                            len - self.app_view_state.list_state.height;
                     }
                 } else {
-                    self.app_view_state.list_selected = current_selected - 1;
+                    self.app_view_state.list_state.selected = current_selected - 1;
 
-                    if current_selected - self.app_view_state.list_offset == 0 {
-                        self.app_view_state.list_offset -= 1;
+                    if current_selected - self.app_view_state.list_state.offset == 0 {
+                        self.app_view_state.list_state.offset -= 1;
                     }
                 };
             }
@@ -270,8 +283,8 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
-                self.app_view_state.list_selected = 0;
-                self.app_view_state.list_offset = 0;
+                self.app_view_state.list_state.selected = 0;
+                self.app_view_state.list_state.offset = 0;
             }
         }
     }
@@ -281,9 +294,10 @@ impl App {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
             ViewState::List => {
                 let len = self.current_items_len();
-                self.app_view_state.list_selected = len - 1;
-                if self.app_view_state.list_height < len {
-                    self.app_view_state.list_offset = len - self.app_view_state.list_height;
+                self.app_view_state.list_state.selected = len - 1;
+                if self.app_view_state.list_state.height < len {
+                    self.app_view_state.list_state.offset =
+                        len - self.app_view_state.list_state.height;
                 }
             }
         }
@@ -304,8 +318,8 @@ impl App {
                         }
                     } else {
                         self.current_keys.push(selected.name().to_owned());
-                        self.app_view_state.list_selected = 0;
-                        self.app_view_state.list_offset = 0;
+                        self.app_view_state.list_state.selected = 0;
+                        self.app_view_state.list_state.offset = 0;
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -339,8 +353,8 @@ impl App {
             ViewState::List => {
                 let key = self.current_keys.pop();
                 if key.is_some() {
-                    self.app_view_state.list_selected = 0;
-                    self.app_view_state.list_offset = 0;
+                    self.app_view_state.list_state.selected = 0;
+                    self.app_view_state.list_state.offset = 0;
                 }
             }
             ViewState::Detail(_) => {

@@ -191,8 +191,8 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     f.render_widget(header, chunks[0]);
 
     let current_items = app.current_items();
-    let current_selected = app.app_view_state.list_selected;
-    let current_offset = app.app_view_state.list_offset;
+    let current_selected = app.app_view_state.list_state.selected;
+    let current_offset = app.app_view_state.list_state.offset;
     let list = build_list(
         &current_items,
         current_selected,
@@ -257,8 +257,8 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailVi
         .split(chunks[1]);
 
     let current_items = app.current_items();
-    let current_selected = app.app_view_state.list_selected;
-    let current_offset = app.app_view_state.list_offset;
+    let current_selected = app.app_view_state.list_state.selected;
+    let current_offset = app.app_view_state.list_state.offset;
     let list = build_list(
         &current_items,
         current_selected,
