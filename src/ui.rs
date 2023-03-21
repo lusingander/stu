@@ -126,8 +126,8 @@ pub async fn run<B: Backend>(
 fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, app),
-        ViewState::Default => render_default_view(f, app),
-        ViewState::ObjectDetail(vs) => render_object_detail_view(f, app, &vs),
+        ViewState::List => render_default_view(f, app),
+        ViewState::Detail(vs) => render_object_detail_view(f, app, &vs),
         ViewState::Help => render_help_view(f, app),
     }
     if app.app_view_state.is_loading {
@@ -531,10 +531,10 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
 fn build_short_help(app: &App) -> Paragraph {
     let help = match app.app_view_state.view_state {
         ViewState::Initializing => "",
-        ViewState::Default => {
+        ViewState::List => {
             "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
         }
-        ViewState::ObjectDetail(_) => {
+        ViewState::Detail(_) => {
             "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?> Help"
         }
         ViewState::Help => "<Esc>: Quit, <?>: Close help",
@@ -574,7 +574,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
     let help = match app.app_view_state.before_view_state {
         Some(vs) => match vs {
             ViewState::Initializing | ViewState::Help => vec![],
-            ViewState::Default => {
+            ViewState::List => {
                 vec![
                     Spans::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
@@ -592,7 +592,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
                     )),
                 ]
             }
-            ViewState::ObjectDetail(_) => {
+            ViewState::Detail(_) => {
                 vec![
                     Spans::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
