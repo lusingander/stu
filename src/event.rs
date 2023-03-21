@@ -17,6 +17,7 @@ pub enum AppEventType {
     LoadObject,
     CompleteLoadObject(Result<(FileDetail, Vec<FileVersion>, String), AppError>),
     DownloadObject,
+    CompleteDownloadObject(Result<(Vec<u8>, String), AppError>),
     Info(String),
     Error(AppError),
 }

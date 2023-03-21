@@ -106,7 +106,10 @@ pub async fn run<B: Backend>(
                 app.complete_load_object(result);
             }
             AppEventType::DownloadObject => {
-                app.download_object().await;
+                app.download_object();
+            }
+            AppEventType::CompleteDownloadObject(result) => {
+                app.complete_download_object(result);
             }
             AppEventType::Info(msg) => {
                 app.app_view_state.notification = Notification::Info(msg);

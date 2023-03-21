@@ -432,22 +432,36 @@ impl App {
         }
     }
 
-    pub async fn download_object(&mut self) {
+    pub fn download_object(&mut self) {
         if let Some(Item::File { name, .. }) = self.get_current_selected() {
-            let client = self.client.as_ref().unwrap();
-            let bucket = &self.current_bucket();
-            let prefix = &self.current_object_prefix();
-            let key = &format!("{}{}", prefix, name);
-            let bytes = client.download_object(bucket, key).await;
+            let bucket = self.current_bucket();
+            let prefix = self.current_object_prefix();
+            let key = format!("{}{}", prefix, name);
 
             let config = self.config.as_ref().unwrap();
             let path = config.download_file_path(name);
-            let result = bytes.and_then(|bs| save_binary(&path, &bs));
-            if let Err(e) = result {
-                self.tx.send(AppEventType::Error(e)).unwrap();
-            } else {
-                let msg = format!("Download completed successfully: {}", name);
+
+            let client = self.client.as_ref().unwrap().clone();
+            let tx = self.tx.clone();
+
+            spawn(async move {
+                let bytes = client.download_object(&bucket, &key).await;
+                let result = bytes.map(|bs| (bs, path));
+                tx.send(AppEventType::CompleteDownloadObject(result))
+                    .unwrap();
+            });
+        }
+    }
+
+    pub fn complete_download_object(&mut self, result: Result<(Vec<u8>, String), AppError>) {
+        let result = result.and_then(|(bs, path)| save_binary(&path, &bs).map(|_| path));
+        match result {
+            Ok(path) => {
+                let msg = format!("Download completed successfully: {}", path);
                 self.tx.send(AppEventType::Info(msg)).unwrap();
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
