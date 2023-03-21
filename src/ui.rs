@@ -126,8 +126,8 @@ pub async fn run<B: Backend>(
 fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     match app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, app),
-        ViewState::List => render_default_view(f, app),
-        ViewState::Detail(vs) => render_object_detail_view(f, app, &vs),
+        ViewState::List => render_list_view(f, app),
+        ViewState::Detail(vs) => render_detail_view(f, app, &vs),
         ViewState::Help => render_help_view(f, app),
     }
     if app.app_view_state.is_loading {
@@ -170,7 +170,7 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -213,7 +213,7 @@ fn render_default_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_object_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailViewState) {
+fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailViewState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
