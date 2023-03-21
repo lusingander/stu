@@ -11,6 +11,7 @@ use crate::{
 
 pub enum AppEventType {
     Key(KeyEvent),
+    Resize(u16, u16),
     Initialize(Config, Client),
     LoadObjects,
     CompleteLoadObjects(Result<Vec<Item>, AppError>),
@@ -28,12 +29,15 @@ pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
     let event_tx = tx.clone();
     thread::spawn(move || loop {
         match crossterm::event::read() {
-            Ok(e) => {
-                if let crossterm::event::Event::Key(key) = e {
+            Ok(e) => match e {
+                crossterm::event::Event::Key(key) => {
                     event_tx.send(AppEventType::Key(key)).unwrap();
                 }
-                // TODO: Resize
-            }
+                crossterm::event::Event::Resize(w, h) => {
+                    event_tx.send(AppEventType::Resize(w, h)).unwrap();
+                }
+                _ => {}
+            },
             Err(e) => {
                 let e = AppError::new("Failed to read event", e);
                 event_tx.send(AppEventType::Error(e)).unwrap();

@@ -57,12 +57,16 @@ impl AppViewState {
         AppViewState {
             list_selected: 0,
             list_offset: 0,
-            list_height: height - 3 /* header */ - 2 /* footer */ - 2, /* list area border */
+            list_height: AppViewState::calc_list_height(height),
             view_state: ViewState::Initializing,
             notification: Notification::None,
             before_view_state: None,
             is_loading: true,
         }
+    }
+
+    fn calc_list_height(height: usize) -> usize {
+        height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
     }
 }
 
@@ -147,6 +151,11 @@ impl App {
             }
         }
         self.app_view_state.is_loading = false;
+    }
+
+    pub fn resize(&mut self, height: usize) {
+        self.app_view_state.list_height = AppViewState::calc_list_height(height);
+        // todo: adjust
     }
 
     pub fn current_key_string(&self) -> String {

@@ -91,6 +91,9 @@ pub async fn run<B: Backend>(
                     _ => {}
                 }
             }
+            AppEventType::Resize(_, height) => {
+                app.resize(height as usize);
+            }
             AppEventType::Initialize(config, client) => {
                 app.initialize(config, client).await;
             }
