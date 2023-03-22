@@ -597,6 +597,11 @@ fn build_help(app: &App, width: u16) -> Paragraph {
                     )),
                     Spans::from(""),
                     Spans::from(Span::styled(
+                        "  <f>: Scroll page forward,  <b>: Scroll page backward",
+                        Style::default(),
+                    )),
+                    Spans::from(""),
+                    Spans::from(Span::styled(
                         "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
                         Style::default(),
                     )),
