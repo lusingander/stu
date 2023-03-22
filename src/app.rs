@@ -51,6 +51,40 @@ impl AppListState {
         self.selected -= 1;
     }
 
+    fn select_next_page(&mut self, total: usize) {
+        if total < self.height {
+            self.selected = total - 1;
+            self.offset = 0;
+        } else if self.selected + self.height < total - 1 {
+            self.selected += self.height;
+            if self.selected + self.height > total - 1 {
+                self.offset = total - self.height;
+            } else {
+                self.offset = self.selected;
+            }
+        } else {
+            self.selected = total - 1;
+            self.offset = total - self.height;
+        }
+    }
+
+    fn select_prev_page(&mut self, total: usize) {
+        if total < self.height {
+            self.selected = 0;
+            self.offset = 0;
+        } else if self.selected > self.height {
+            self.selected -= self.height;
+            if self.selected < self.height {
+                self.offset = 0;
+            } else {
+                self.offset = self.selected - self.height + 1;
+            }
+        } else {
+            self.selected = 0;
+            self.offset = 0;
+        }
+    }
+
     fn select_first(&mut self) {
         self.selected = 0;
         self.offset = 0;
@@ -284,6 +318,26 @@ impl App {
                 } else {
                     self.app_view_state.list_state.select_prev();
                 };
+            }
+        }
+    }
+
+    pub fn select_next_page(&mut self) {
+        match self.app_view_state.view_state {
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::List => {
+                let len = self.current_items_len();
+                self.app_view_state.list_state.select_next_page(len)
+            }
+        }
+    }
+
+    pub fn select_prev_page(&mut self) {
+        match self.app_view_state.view_state {
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::List => {
+                let len = self.current_items_len();
+                self.app_view_state.list_state.select_prev_page(len)
             }
         }
     }

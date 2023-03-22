@@ -70,6 +70,12 @@ pub async fn run<B: Backend>(
                     key_code_char!('G') => {
                         app.select_last();
                     }
+                    key_code_char!('f') => {
+                        app.select_next_page();
+                    }
+                    key_code_char!('b') => {
+                        app.select_prev_page();
+                    }
                     key_code!(KeyCode::Enter) | key_code_char!('m', Ctrl) => {
                         app.move_down();
                     }
