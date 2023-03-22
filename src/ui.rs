@@ -126,7 +126,7 @@ pub async fn run<B: Backend>(
     }
 }
 
-fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
     match app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, app),
         ViewState::List => render_list_view(f, app),
@@ -141,7 +141,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -173,7 +173,7 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -219,7 +219,7 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
     }
 }
 
-fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailViewState) {
+fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &App, vs: &DetailViewState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -295,7 +295,7 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &mut App, vs: &DetailVi
     }
 }
 
-fn render_help_view<B: Backend>(f: &mut Frame<B>, app: &mut App) {
+fn render_help_view<B: Backend>(f: &mut Frame<B>, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(2)].as_ref())
