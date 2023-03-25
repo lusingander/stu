@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    sync::{mpsc, Arc},
-};
+use std::sync::{mpsc, Arc};
 use tokio::spawn;
 
 use crate::{
@@ -10,7 +7,7 @@ use crate::{
     error::AppError,
     event::AppEventType,
     file::{save_binary, save_error_log},
-    item::{FileDetail, FileVersion, Item},
+    item::{AppObjects, FileDetail, FileVersion, Item},
 };
 
 pub struct AppListState {
@@ -130,59 +127,6 @@ impl AppViewState {
             before_view_state: None,
             is_loading: true,
         }
-    }
-}
-
-struct AppObjects {
-    items_map: HashMap<Vec<String>, Vec<Item>>,
-    detail_map: HashMap<String, FileDetail>,
-    versions_map: HashMap<String, Vec<FileVersion>>,
-}
-
-impl AppObjects {
-    fn new() -> AppObjects {
-        AppObjects {
-            items_map: HashMap::new(),
-            detail_map: HashMap::new(),
-            versions_map: HashMap::new(),
-        }
-    }
-
-    fn get_items(&self, keys: &[String]) -> Vec<Item> {
-        self.items_map.get(keys).unwrap_or(&Vec::new()).to_vec()
-    }
-
-    fn get_items_len(&self, keys: &[String]) -> usize {
-        self.items_map.get(keys).unwrap_or(&Vec::new()).len()
-    }
-
-    fn get_item(&self, keys: &[String], idx: usize) -> Option<&Item> {
-        self.items_map.get(keys).and_then(|items| items.get(idx))
-    }
-
-    fn set_items(&mut self, keys: Vec<String>, items: Vec<Item>) {
-        self.items_map.insert(keys, items);
-    }
-
-    fn exists_item(&self, keys: &[String]) -> bool {
-        self.items_map.contains_key(keys)
-    }
-
-    fn get_object_detail(&self, key: &str) -> Option<&FileDetail> {
-        self.detail_map.get(key)
-    }
-
-    fn get_object_versions(&self, key: &str) -> Option<&Vec<FileVersion>> {
-        self.versions_map.get(key)
-    }
-
-    fn set_object_details(&mut self, key: &str, detail: FileDetail, versions: Vec<FileVersion>) {
-        self.detail_map.insert(key.to_string(), detail);
-        self.versions_map.insert(key.to_string(), versions);
-    }
-
-    fn exists_object_details(&self, key: &str) -> bool {
-        self.detail_map.contains_key(key) && self.versions_map.contains_key(key)
     }
 }
 
