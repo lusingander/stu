@@ -13,15 +13,6 @@ use crate::{
     item::{FileDetail, FileVersion, Item},
 };
 
-pub struct App {
-    pub app_view_state: AppViewState,
-    app_objects: AppObjects,
-    current_keys: Vec<String>,
-    client: Option<Arc<Client>>,
-    config: Option<Config>,
-    tx: mpsc::Sender<AppEventType>,
-}
-
 pub struct AppListState {
     pub selected: usize,
     pub offset: usize,
@@ -102,14 +93,6 @@ impl AppListState {
     }
 }
 
-pub struct AppViewState {
-    pub list_state: AppListState,
-    pub view_state: ViewState,
-    pub before_view_state: Option<ViewState>,
-    pub notification: Notification,
-    pub is_loading: bool,
-}
-
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub enum ViewState {
     Initializing,
@@ -128,6 +111,14 @@ pub enum Notification {
     None,
     Info(String),
     Error(String),
+}
+
+pub struct AppViewState {
+    pub list_state: AppListState,
+    pub view_state: ViewState,
+    pub before_view_state: Option<ViewState>,
+    pub notification: Notification,
+    pub is_loading: bool,
 }
 
 impl AppViewState {
@@ -193,6 +184,15 @@ impl AppObjects {
     fn exists_object_details(&self, key: &str) -> bool {
         self.detail_map.contains_key(key) && self.versions_map.contains_key(key)
     }
+}
+
+pub struct App {
+    pub app_view_state: AppViewState,
+    app_objects: AppObjects,
+    current_keys: Vec<String>,
+    client: Option<Arc<Client>>,
+    config: Option<Config>,
+    tx: mpsc::Sender<AppEventType>,
 }
 
 impl App {
