@@ -4,8 +4,11 @@ use tokio::spawn;
 use crate::{
     client::Client,
     config::Config,
-    error::AppError,
-    event::AppEventType,
+    error::{AppError, Result},
+    event::{
+        AppEventType, CompleteDownloadObjectResult, CompleteLoadObjectResult,
+        CompleteLoadObjectsResult,
+    },
     file::{save_binary, save_error_log},
     item::{AppObjects, FileDetail, FileVersion, Item},
 };
@@ -372,14 +375,15 @@ impl App {
         let client = self.client.as_ref().unwrap().clone();
         let tx = self.tx.clone();
         spawn(async move {
-            let result = client.load_objects(&bucket, &prefix).await;
+            let items = client.load_objects(&bucket, &prefix).await;
+            let result = CompleteLoadObjectsResult::new(items);
             tx.send(AppEventType::CompleteLoadObjects(result)).unwrap();
         });
     }
 
-    pub fn complete_load_objects(&mut self, result: Result<Vec<Item>, AppError>) {
+    pub fn complete_load_objects(&mut self, result: Result<CompleteLoadObjectsResult>) {
         match result {
-            Ok(items) => {
+            Ok(CompleteLoadObjectsResult { items }) => {
                 self.app_objects.set_items(self.current_keys.clone(), items);
             }
             Err(e) => {
@@ -411,18 +415,19 @@ impl App {
                     .load_object_detail(&bucket, &key, &name, size_byte)
                     .await;
                 let versions = client.load_object_versions(&bucket, &key).await;
-                let result = detail.and_then(|d| versions.map(|v| (d, v, map_key)));
+                let result = CompleteLoadObjectResult::new(detail, versions, map_key);
                 tx.send(AppEventType::CompleteLoadObject(result)).unwrap();
             });
         }
     }
 
-    pub fn complete_load_object(
-        &mut self,
-        result: Result<(FileDetail, Vec<FileVersion>, String), AppError>,
-    ) {
+    pub fn complete_load_object(&mut self, result: Result<CompleteLoadObjectResult>) {
         match result {
-            Ok((detail, versions, map_key)) => {
+            Ok(CompleteLoadObjectResult {
+                detail,
+                versions,
+                map_key,
+            }) => {
                 self.app_objects
                     .set_object_details(&map_key, detail, versions);
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
@@ -490,15 +495,20 @@ impl App {
 
             spawn(async move {
                 let bytes = client.download_object(&bucket, &key).await;
-                let result = bytes.map(|bs| (bs, path));
+                let result = CompleteDownloadObjectResult::new(bytes, path);
                 tx.send(AppEventType::CompleteDownloadObject(result))
                     .unwrap();
             });
         }
     }
 
-    pub fn complete_download_object(&mut self, result: Result<(Vec<u8>, String), AppError>) {
-        let result = result.and_then(|(bs, path)| save_binary(&path, &bs).map(|_| path));
+    pub fn complete_download_object(&mut self, result: Result<CompleteDownloadObjectResult>) {
+        let result = match result {
+            Ok(CompleteDownloadObjectResult { path, bytes }) => {
+                save_binary(&path, &bytes).map(|_| path)
+            }
+            Err(e) => Err(e),
+        };
         match result {
             Ok(path) => {
                 let msg = format!("Download completed successfully: {}", path);
