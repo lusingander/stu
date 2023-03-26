@@ -269,34 +269,8 @@ fn build_list(
         .skip(current_offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(i, item)| {
-            let content = match item {
-                Item::Bucket { name, .. } => {
-                    let content = format_bucket_item(name, width);
-                    let style = Style::default();
-                    Span::styled(content, style)
-                }
-                Item::Dir { name, .. } => {
-                    let content = format_dir_item(name, width);
-                    let style = Style::default().add_modifier(Modifier::BOLD);
-                    Span::styled(content, style)
-                }
-                Item::File {
-                    name,
-                    size_byte,
-                    last_modified,
-                    ..
-                } => {
-                    let content = format_file_item(name, size_byte, last_modified, width);
-                    let style = Style::default();
-                    Span::styled(content, style)
-                }
-            };
-            if i + current_offset == current_selected {
-                ListItem::new(content).style(Style::default().bg(color))
-            } else {
-                ListItem::new(content)
-            }
+        .map(|(idx, item)| {
+            build_list_item(item, idx, current_selected, current_offset, width, color)
         })
         .collect();
 
@@ -307,6 +281,43 @@ fn build_list(
             .title(title)
             .title_alignment(Alignment::Right),
     )
+}
+
+fn build_list_item(
+    item: &Item,
+    idx: usize,
+    current_selected: usize,
+    current_offset: usize,
+    width: u16,
+    color: Color,
+) -> ListItem {
+    let content = match item {
+        Item::Bucket { name, .. } => {
+            let content = format_bucket_item(name, width);
+            let style = Style::default();
+            Span::styled(content, style)
+        }
+        Item::Dir { name, .. } => {
+            let content = format_dir_item(name, width);
+            let style = Style::default().add_modifier(Modifier::BOLD);
+            Span::styled(content, style)
+        }
+        Item::File {
+            name,
+            size_byte,
+            last_modified,
+            ..
+        } => {
+            let content = format_file_item(name, size_byte, last_modified, width);
+            let style = Style::default();
+            Span::styled(content, style)
+        }
+    };
+    if idx + current_offset == current_selected {
+        ListItem::new(content).style(Style::default().bg(color))
+    } else {
+        ListItem::new(content)
+    }
 }
 
 fn format_bucket_item(name: &String, width: u16) -> String {
