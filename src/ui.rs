@@ -133,64 +133,43 @@ pub async fn run<B: Backend>(
 }
 
 fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(0), Constraint::Length(2)].as_ref())
+        .split(f.size());
+
+    render_content(f, chunks[0], app);
+    render_footer(f, chunks[1], app);
+    render_loading_dialog(f, app);
+}
+
+fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     match app.app_view_state.view_state {
-        ViewState::Initializing => render_initializing_view(f, app),
-        ViewState::List => render_list_view(f, app),
-        ViewState::Detail(vs) => render_detail_view(f, app, &vs),
-        ViewState::Help => render_help_view(f, app),
-    }
-    if app.app_view_state.is_loading {
-        let loading = build_loading_dialog("Loading...");
-        let area = loading_dialog_rect(f.size());
-        f.render_widget(Clear, area);
-        f.render_widget(loading, area);
+        ViewState::Initializing => render_initializing_view(f, area),
+        ViewState::List => render_list_view(f, area, app),
+        ViewState::Detail(vs) => render_detail_view(f, area, app, &vs),
+        ViewState::Help => render_help_view(f, area, app),
     }
 }
 
-fn render_initializing_view<B: Backend>(f: &mut Frame<B>, app: &App) {
+fn render_initializing_view<B: Backend>(f: &mut Frame<B>, area: Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length(3),
-                Constraint::Min(0),
-                Constraint::Length(2),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(area);
 
     let header = build_header("");
     f.render_widget(header, chunks[0]);
 
     let content = Block::default().borders(Borders::all());
     f.render_widget(content, chunks[1]);
-
-    match &app.app_view_state.notification {
-        Notification::Info(msg) => {
-            let msg = build_info_status(msg);
-            f.render_widget(msg, chunks[2]);
-        }
-        Notification::Error(msg) => {
-            let msg = build_error_status(msg);
-            f.render_widget(msg, chunks[2]);
-        }
-        Notification::None => {}
-    }
 }
 
-fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &App) {
+fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length(3),
-                Constraint::Min(0),
-                Constraint::Length(2),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(area);
 
     let current_key = app.current_key_string();
     let header = build_header(&current_key);
@@ -208,54 +187,17 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, app: &App) {
         SELECTED_COLOR,
     );
     f.render_widget(list, chunks[1]);
-
-    match &app.app_view_state.notification {
-        Notification::Info(msg) => {
-            let msg = build_info_status(msg);
-            f.render_widget(msg, chunks[2]);
-        }
-        Notification::Error(msg) => {
-            let msg = build_error_status(msg);
-            f.render_widget(msg, chunks[2]);
-        }
-        Notification::None => {
-            let help = build_short_help(app);
-            f.render_widget(help, chunks[2]);
-        }
-    }
 }
 
-fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &App, vs: &DetailViewState) {
+fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &DetailViewState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length(3),
-                Constraint::Min(0),
-                Constraint::Length(2),
-            ]
-            .as_ref(),
-        )
-        .split(f.size());
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(area);
 
     let current_key = app.current_key_string();
     let header = build_header(&current_key);
     f.render_widget(header, chunks[0]);
-
-    match &app.app_view_state.notification {
-        Notification::Info(msg) => {
-            let msg = build_info_status(msg);
-            f.render_widget(msg, chunks[2]);
-        }
-        Notification::Error(msg) => {
-            let msg = build_error_status(msg);
-            f.render_widget(msg, chunks[2]);
-        }
-        Notification::None => {
-            let help = build_short_help(app);
-            f.render_widget(help, chunks[2]);
-        }
-    }
 
     let chunks = Layout::default()
         .direction(Direction::Horizontal)
@@ -301,17 +243,9 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, app: &App, vs: &DetailViewSt
     }
 }
 
-fn render_help_view<B: Backend>(f: &mut Frame<B>, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(2)].as_ref())
-        .split(f.size());
-
+fn render_help_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     let content = build_help(app, f.size().width);
-    f.render_widget(content, chunks[0]);
-
-    let help = build_short_help(app);
-    f.render_widget(help, chunks[1]);
+    f.render_widget(content, area);
 }
 
 fn build_header(current_key: &str) -> Paragraph {
@@ -543,21 +477,6 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .highlight_style(Style::default().bg(SELECTED_COLOR))
 }
 
-fn build_short_help(app: &App) -> Paragraph {
-    let help = match app.app_view_state.view_state {
-        ViewState::Initializing => "",
-        ViewState::List => {
-            "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
-        }
-        ViewState::Detail(_) => {
-            "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?> Help"
-        }
-        ViewState::Help => "<Esc>: Quit, <?>: Close help",
-    };
-    let help = format!("  {}", help);
-    Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
-}
-
 fn build_help(app: &App, width: u16) -> Paragraph {
     let w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
 
@@ -634,6 +553,21 @@ fn build_help(app: &App, width: u16) -> Paragraph {
     Paragraph::new(content).block(Block::default().title(APP_NAME).borders(Borders::all()))
 }
 
+fn build_short_help(app: &App) -> Paragraph {
+    let help = match app.app_view_state.view_state {
+        ViewState::Initializing => "",
+        ViewState::List => {
+            "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
+        }
+        ViewState::Detail(_) => {
+            "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?> Help"
+        }
+        ViewState::Help => "<Esc>: Quit, <?>: Close help",
+    };
+    let help = format!("  {}", help);
+    Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
+}
+
 fn build_info_status(msg: &String) -> Paragraph {
     let msg = format!("  {}", msg);
     Paragraph::new(Span::styled(
@@ -652,6 +586,23 @@ fn build_error_status(err: &String) -> Paragraph {
         Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
     ))
     .block(Block::default())
+}
+
+fn render_footer<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+    match &app.app_view_state.notification {
+        Notification::Info(msg) => {
+            let msg = build_info_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::Error(msg) => {
+            let msg = build_error_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::None => {
+            let help = build_short_help(app);
+            f.render_widget(help, area);
+        }
+    }
 }
 
 fn build_loading_dialog(msg: &str) -> Paragraph {
@@ -693,4 +644,13 @@ fn loading_dialog_rect(r: Rect) -> Rect {
             .as_ref(),
         )
         .split(popup_layout[1])[1]
+}
+
+fn render_loading_dialog<B: Backend>(f: &mut Frame<B>, app: &App) {
+    if app.app_view_state.is_loading {
+        let loading = build_loading_dialog("Loading...");
+        let area = loading_dialog_rect(f.size());
+        f.render_widget(Clear, area);
+        f.render_widget(loading, area);
+    }
 }
