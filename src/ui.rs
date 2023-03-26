@@ -145,20 +145,20 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
 
 fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     match app.app_view_state.view_state {
-        ViewState::Initializing => render_initializing_view(f, area),
+        ViewState::Initializing => render_initializing_view(f, area, app),
         ViewState::List => render_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, &vs),
         ViewState::Help => render_help_view(f, area, app),
     }
 }
 
-fn render_initializing_view<B: Backend>(f: &mut Frame<B>, area: Rect) {
+fn render_initializing_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(area);
 
-    let header = build_header("");
+    let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
     let content = Block::default().borders(Borders::all());
@@ -171,8 +171,7 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(area);
 
-    let current_key = app.current_key_string();
-    let header = build_header(&current_key);
+    let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
     let current_items = app.current_items();
@@ -195,8 +194,7 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(area);
 
-    let current_key = app.current_key_string();
-    let header = build_header(&current_key);
+    let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
     let chunks = Layout::default()
@@ -248,7 +246,8 @@ fn render_help_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     f.render_widget(content, area);
 }
 
-fn build_header(current_key: &str) -> Paragraph {
+fn build_header(app: &App) -> Paragraph {
+    let current_key = app.current_key_string();
     Paragraph::new(Span::styled(current_key, Style::default())).block(
         Block::default()
             .title(Span::styled(APP_NAME, Style::default()))
