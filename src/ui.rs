@@ -619,7 +619,7 @@ fn build_loading_dialog(msg: &str) -> Paragraph {
     )
 }
 
-fn loading_dialog_rect(r: Rect) -> Rect {
+fn calc_loading_dialog_rect(r: Rect) -> Rect {
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
@@ -648,7 +648,7 @@ fn loading_dialog_rect(r: Rect) -> Rect {
 fn render_loading_dialog<B: Backend>(f: &mut Frame<B>, app: &App) {
     if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...");
-        let area = loading_dialog_rect(f.size());
+        let area = calc_loading_dialog_rect(f.size());
         f.render_widget(Clear, area);
         f.render_widget(loading, area);
     }
