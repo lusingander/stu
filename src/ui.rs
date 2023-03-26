@@ -215,7 +215,7 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
     );
     f.render_widget(list, chunks[0]);
 
-    let block = build_file_detail_block("");
+    let block = build_file_detail_block();
     f.render_widget(block, chunks[1]);
 
     let chunks = Layout::default()
@@ -360,8 +360,8 @@ fn digits(n: usize) -> usize {
     n.to_string().len()
 }
 
-fn build_file_detail_block(title: &str) -> Block {
-    Block::default().title(title).borders(Borders::all())
+fn build_file_detail_block() -> Block<'static> {
+    Block::default().borders(Borders::all())
 }
 
 fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
