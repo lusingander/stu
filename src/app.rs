@@ -93,12 +93,12 @@ impl AppListState {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum ViewState {
     Initializing,
     List,
     Detail(DetailViewState),
-    Help,
+    Help(Box<ViewState>),
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -116,7 +116,6 @@ pub enum Notification {
 pub struct AppViewState {
     pub list_state: AppListState,
     pub view_state: ViewState,
-    pub before_view_state: Option<ViewState>,
     pub notification: Notification,
     pub is_loading: bool,
 }
@@ -127,7 +126,6 @@ impl AppViewState {
             list_state: AppListState::new(height),
             view_state: ViewState::Initializing,
             notification: Notification::None,
-            before_view_state: None,
             is_loading: true,
         }
     }
@@ -247,7 +245,7 @@ impl App {
 
     pub fn select_next(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
@@ -262,7 +260,7 @@ impl App {
 
     pub fn select_prev(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
@@ -279,7 +277,7 @@ impl App {
 
     pub fn select_next_page(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 let len = self.current_items_len();
                 self.app_view_state.list_state.select_next_page(len)
@@ -289,7 +287,7 @@ impl App {
 
     pub fn select_prev_page(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 let len = self.current_items_len();
                 self.app_view_state.list_state.select_prev_page(len)
@@ -299,7 +297,7 @@ impl App {
 
     pub fn select_first(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 self.app_view_state.list_state.select_first();
             }
@@ -308,7 +306,7 @@ impl App {
 
     pub fn select_last(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 let len = self.current_items_len();
                 self.app_view_state.list_state.select_last(len);
@@ -318,7 +316,7 @@ impl App {
 
     pub fn move_down(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help => {}
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::List => {
                 if let Some(selected) = self.get_current_selected() {
                     if let Item::File { .. } = selected {
@@ -371,7 +369,7 @@ impl App {
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::List;
             }
-            ViewState::Help => {
+            ViewState::Help(_) => {
                 self.toggle_help();
             }
         }
@@ -453,7 +451,7 @@ impl App {
 
     pub fn select_tabs(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::List | ViewState::Help => {}
+            ViewState::Initializing | ViewState::List | ViewState::Help(_) => {}
             ViewState::Detail(vs) => match vs {
                 DetailViewState::Detail => {
                     self.app_view_state.view_state = ViewState::Detail(DetailViewState::Version);
@@ -466,22 +464,21 @@ impl App {
     }
 
     pub fn toggle_help(&mut self) {
-        match self.app_view_state.view_state {
+        match &self.app_view_state.view_state {
             ViewState::Initializing => {}
-            ViewState::Help => {
-                self.app_view_state.view_state = self.app_view_state.before_view_state.unwrap();
-                self.app_view_state.before_view_state = None;
+            ViewState::Help(before) => {
+                self.app_view_state.view_state = *before.clone();
             }
             ViewState::List | ViewState::Detail(_) => {
-                self.app_view_state.before_view_state = Some(self.app_view_state.view_state);
-                self.app_view_state.view_state = ViewState::Help;
+                let before = self.app_view_state.view_state.clone();
+                self.app_view_state.view_state = ViewState::Help(Box::new(before));
             }
         }
     }
 
     pub fn download(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::List | ViewState::Help => {}
+            ViewState::Initializing | ViewState::List | ViewState::Help(_) => {}
             ViewState::Detail(_) => {
                 self.tx.send(AppEventType::DownloadObject).unwrap();
                 self.app_view_state.is_loading = true;
@@ -541,7 +538,7 @@ impl App {
         let bucket = self.current_bucket_opt();
 
         let result = match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Help => Ok(()),
+            ViewState::Initializing | ViewState::Help(_) => Ok(()),
             ViewState::List => match bucket {
                 Some(bucket) => {
                     let prefix = self.current_object_prefix();

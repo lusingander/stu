@@ -147,11 +147,11 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
 }
 
 fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
-    match app.app_view_state.view_state {
+    match &app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, area, app),
         ViewState::List => render_list_view(f, area, app),
-        ViewState::Detail(vs) => render_detail_view(f, area, app, &vs),
-        ViewState::Help => render_help_view(f, area, app),
+        ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
+        ViewState::Help(before) => render_help_view(f, area, before),
     }
 }
 
@@ -244,8 +244,8 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
     }
 }
 
-fn render_help_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
-    let content = build_help(app, f.size().width);
+fn render_help_view<B: Backend>(f: &mut Frame<B>, area: Rect, before: &ViewState) {
+    let content = build_help(before, f.size().width);
     f.render_widget(content, area);
 }
 
@@ -505,7 +505,7 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .highlight_style(Style::default().bg(SELECTED_COLOR))
 }
 
-fn build_help(app: &App, width: u16) -> Paragraph {
+fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     let w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
 
     let app_detail = vec![
@@ -533,9 +533,8 @@ fn build_help(app: &App, width: u16) -> Paragraph {
     ]
     .into_iter();
 
-    let help = match app.app_view_state.before_view_state {
-        Some(vs) => match vs {
-            ViewState::Initializing | ViewState::Help => vec![],
+    let help = match before {
+            ViewState::Initializing | ViewState::Help(_) => vec![],
             ViewState::List => {
                 vec![
                     Spans::from(Span::styled(
@@ -572,9 +571,7 @@ fn build_help(app: &App, width: u16) -> Paragraph {
                     )),
                 ]
             }
-        },
-        None => vec![],
-    }
+        }
     .into_iter();
 
     let content: Vec<Spans> = app_detail.chain(help).collect();
@@ -590,7 +587,7 @@ fn build_short_help(app: &App) -> Paragraph {
         ViewState::Detail(_) => {
             "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?> Help"
         }
-        ViewState::Help => "<Esc>: Quit, <?>: Close help",
+        ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
     };
     let help = format!("  {}", help);
     Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
