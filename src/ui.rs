@@ -181,9 +181,9 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
         &current_items,
         current_selected,
         current_offset,
-        f.size().width,
-        chunks[1].height,
+        chunks[1],
         SELECTED_COLOR,
+        true,
     );
     f.render_widget(list, chunks[1]);
 }
@@ -209,9 +209,9 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
         &current_items,
         current_selected,
         current_offset,
-        f.size().width,
-        chunks[0].height,
+        chunks[0],
         Color::DarkGray,
+        false,
     );
     f.render_widget(list, chunks[0]);
 
@@ -259,18 +259,26 @@ fn build_list(
     current_items: &[Item],
     current_selected: usize,
     current_offset: usize,
-    width: u16,
-    height: u16,
+    area: Rect,
     color: Color,
+    show_file_detail: bool,
 ) -> List {
-    let show_item_count = (height as usize) - 2 /* border */;
+    let show_item_count = (area.height as usize) - 2 /* border */;
     let list_items: Vec<ListItem> = current_items
         .iter()
         .skip(current_offset)
         .take(show_item_count)
         .enumerate()
         .map(|(idx, item)| {
-            build_list_item(item, idx, current_selected, current_offset, width, color)
+            build_list_item(
+                item,
+                idx,
+                current_selected,
+                current_offset,
+                area.width,
+                color,
+                show_file_detail,
+            )
         })
         .collect();
 
@@ -290,6 +298,7 @@ fn build_list_item(
     current_offset: usize,
     width: u16,
     color: Color,
+    show_file_detail: bool,
 ) -> ListItem {
     let content = match item {
         Item::Bucket { name, .. } => {
@@ -308,7 +317,7 @@ fn build_list_item(
             last_modified,
             ..
         } => {
-            let content = format_file_item(name, size_byte, last_modified, width);
+            let content = format_file_item(name, size_byte, last_modified, width, show_file_detail);
             let style = Style::default();
             Span::styled(content, style)
         }
@@ -336,21 +345,27 @@ fn format_file_item(
     size_byte: &i64,
     last_modified: &DateTime<Local>,
     width: u16,
+    show_file_detail: bool,
 ) -> String {
-    let size = format_size_byte(*size_byte);
-    let date = format_datetime(last_modified);
-    let date_w: usize = 17;
-    let size_w: usize = 10;
-    let name_w: usize = (width as usize) - date_w - size_w - 12 /* spaces */ - 2 /* border */;
-    format!(
-        " {:<name_w$}    {:<date_w$}    {:<size_w$} ",
-        name,
-        date,
-        size,
-        name_w = name_w,
-        date_w = date_w,
-        size_w = size_w
-    )
+    if show_file_detail {
+        let size = format_size_byte(*size_byte);
+        let date = format_datetime(last_modified);
+        let date_w: usize = 17;
+        let size_w: usize = 10;
+        let name_w: usize = (width as usize) - date_w - size_w - 12 /* spaces */ - 2 /* border */;
+        format!(
+            " {:<name_w$}    {:<date_w$}    {:<size_w$} ",
+            name,
+            date,
+            size,
+            name_w = name_w,
+            date_w = date_w,
+            size_w = size_w
+        )
+    } else {
+        let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
+        format!(" {:<name_w$} ", name, name_w = name_w)
+    }
 }
 
 fn format_list_count(current_items: &[Item], current_selected: usize) -> String {
