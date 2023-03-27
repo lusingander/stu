@@ -101,7 +101,10 @@ pub async fn run<B: Backend>(
                 app.resize(height as usize);
             }
             AppEventType::Initialize(config, client) => {
-                app.initialize(config, client).await;
+                app.initialize(config, client);
+            }
+            AppEventType::CompleteInitialize(result) => {
+                app.complete_initialize(result);
             }
             AppEventType::LoadObjects => {
                 app.load_objects();

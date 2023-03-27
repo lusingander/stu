@@ -13,6 +13,7 @@ pub enum AppEventType {
     Key(KeyEvent),
     Resize(u16, u16),
     Initialize(Config, Client),
+    CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
     LoadObject,
@@ -21,6 +22,17 @@ pub enum AppEventType {
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     Info(String),
     Error(AppError),
+}
+
+pub struct CompleteInitializeResult {
+    pub buckets: Vec<Item>,
+}
+
+impl CompleteInitializeResult {
+    pub fn new(buckets: Result<Vec<Item>>) -> Result<CompleteInitializeResult> {
+        let buckets = buckets?;
+        Ok(CompleteInitializeResult { buckets })
+    }
 }
 
 pub struct CompleteLoadObjectsResult {

@@ -6,8 +6,8 @@ use crate::{
     config::Config,
     error::{AppError, Result},
     event::{
-        AppEventType, CompleteDownloadObjectResult, CompleteLoadObjectResult,
-        CompleteLoadObjectsResult,
+        AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
+        CompleteLoadObjectResult, CompleteLoadObjectsResult,
     },
     file::{save_binary, save_error_log},
     item::{AppObjects, FileDetail, FileVersion, Item},
@@ -154,14 +154,22 @@ impl App {
         }
     }
 
-    pub async fn initialize(&mut self, config: Config, client: Client) {
+    pub fn initialize(&mut self, config: Config, client: Client) {
         self.config = Some(config);
         self.client = Some(Arc::new(client));
 
-        let client = self.client.as_ref().unwrap();
-        let buckets = client.load_all_buckets().await;
-        match buckets {
-            Ok(buckets) => {
+        let client = self.client.as_ref().unwrap().clone();
+        let tx = self.tx.clone();
+        spawn(async move {
+            let buckets = client.load_all_buckets().await;
+            let result = CompleteInitializeResult::new(buckets);
+            tx.send(AppEventType::CompleteInitialize(result)).unwrap();
+        });
+    }
+
+    pub fn complete_initialize(&mut self, result: Result<CompleteInitializeResult>) {
+        match result {
+            Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_items(Vec::new(), buckets);
                 self.app_view_state.view_state = ViewState::List;
             }
