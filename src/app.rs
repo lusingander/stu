@@ -489,7 +489,7 @@ impl App {
         }
     }
 
-    pub fn download_object(&mut self) {
+    pub fn download_object(&self) {
         if let Some(Item::File { name, .. }) = self.get_current_selected() {
             let bucket = self.current_bucket();
             let prefix = self.current_object_prefix();
