@@ -1,7 +1,6 @@
 use chrono::{DateTime, Local};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use std::{io::Result, sync::mpsc};
-use tui::{
+use ratatui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
@@ -9,6 +8,7 @@ use tui::{
     widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
+use std::{io::Result, sync::mpsc};
 
 use crate::{
     app::{App, DetailViewState, Notification, ViewState},

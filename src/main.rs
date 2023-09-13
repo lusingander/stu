@@ -14,15 +14,15 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use event::AppEventType;
+use ratatui::{
+    backend::{Backend, CrosstermBackend},
+    Terminal,
+};
 use std::{
     io::{stdout, Result, Stdout},
     sync::mpsc::Sender,
 };
 use tokio::spawn;
-use tui::{
-    backend::{Backend, CrosstermBackend},
-    Terminal,
-};
 
 use crate::app::App;
 use crate::client::Client;
