@@ -3,5 +3,5 @@ plugins:
   - jekyll-remote-theme
   - jekyll-sitemap
 title: STU
-description: TUI application for AWS S3 written in Rust using tui-rs
+description: TUI application for AWS S3 written in Rust using ratatui
 show_downloads: false
