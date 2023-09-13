@@ -4,7 +4,7 @@ use ratatui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    text::{Span, Spans},
+    text::{Line, Span},
     widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Tabs},
     Frame, Terminal,
 };
@@ -395,8 +395,8 @@ fn build_file_detail_block() -> Block<'static> {
 
 fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
     let tabs = vec![
-        Spans::from(Span::styled("Detail", Style::default())),
-        Spans::from(Span::styled("Version", Style::default())),
+        Line::from(Span::styled("Detail", Style::default())),
+        Line::from(Span::styled("Version", Style::default())),
     ];
     Tabs::new(tabs)
         .select(*selected as usize)
@@ -410,47 +410,47 @@ fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
 
 fn build_file_detail(detail: &FileDetail) -> Paragraph {
     let text = vec![
-        Spans::from(Span::styled(
+        Line::from(Span::styled(
             " Name:",
             Style::default().add_modifier(Modifier::BOLD),
         )),
-        Spans::from(Span::styled(
+        Line::from(Span::styled(
             format!("  {}", &detail.name),
             Style::default(),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             " Size:",
             Style::default().add_modifier(Modifier::BOLD),
         )),
-        Spans::from(Span::styled(
+        Line::from(Span::styled(
             format!("  {}", format_size_byte(detail.size_byte)),
             Style::default(),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             " Last Modified:",
             Style::default().add_modifier(Modifier::BOLD),
         )),
-        Spans::from(Span::styled(
+        Line::from(Span::styled(
             format!("  {}", format_datetime(&detail.last_modified)),
             Style::default(),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             " ETag:",
             Style::default().add_modifier(Modifier::BOLD),
         )),
-        Spans::from(Span::styled(
+        Line::from(Span::styled(
             format!("  {}", &detail.e_tag),
             Style::default(),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             " Content-Type:",
             Style::default().add_modifier(Modifier::BOLD),
         )),
-        Spans::from(Span::styled(
+        Line::from(Span::styled(
             format!("  {}", &detail.content_type),
             Style::default(),
         )),
@@ -471,28 +471,28 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .iter()
         .map(|v| {
             let content = vec![
-                Spans::from(vec![
+                Line::from(vec![
                     Span::styled(
                         "    Version ID: ",
                         Style::default().add_modifier(Modifier::BOLD),
                     ),
                     Span::styled(&v.version_id, Style::default()),
                 ]),
-                Spans::from(vec![
+                Line::from(vec![
                     Span::styled(
                         " Last Modified: ",
                         Style::default().add_modifier(Modifier::BOLD),
                     ),
                     Span::styled(format_datetime(&v.last_modified), Style::default()),
                 ]),
-                Spans::from(vec![
+                Line::from(vec![
                     Span::styled(
                         "          Size: ",
                         Style::default().add_modifier(Modifier::BOLD),
                     ),
                     Span::styled(format_size_byte(v.size_byte), Style::default()),
                 ]),
-                Spans::from(Span::styled(
+                Line::from(Span::styled(
                     "-".repeat(width as usize),
                     Style::default().fg(Color::DarkGray),
                 )),
@@ -509,27 +509,27 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     let w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
 
     let app_detail = vec![
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             format!("  {} - {}", APP_NAME, APP_DESCRIPTION),
             Style::default(),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             format!("  Version: {}", APP_VERSION),
             Style::default(),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             format!("  {}", APP_HOMEPAGE),
             Style::default().fg(Color::Blue),
         )),
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             format!(" {}", "-".repeat(w)),
             Style::default().fg(Color::DarkGray),
         )),
-        Spans::from(""),
+        Line::from(""),
     ]
     .into_iter();
 
@@ -537,22 +537,22 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
             ViewState::Initializing | ViewState::Help(_) => vec![],
             ViewState::List => {
                 vec![
-                    Spans::from(Span::styled(
+                    Line::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
                         Style::default(),
                     )),
-                    Spans::from(""),
-                    Spans::from(Span::styled(
+                    Line::from(""),
+                    Line::from(Span::styled(
                         "  <f>: Scroll page forward,  <b>: Scroll page backward",
                         Style::default(),
                     )),
-                    Spans::from(""),
-                    Spans::from(Span::styled(
+                    Line::from(""),
+                    Line::from(Span::styled(
                         "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
                         Style::default(),
                     )),
-                    Spans::from(""),
-                    Spans::from(Span::styled(
+                    Line::from(""),
+                    Line::from(Span::styled(
                         "  <x>: Open management console in browser",
                         Style::default(),
                     )),
@@ -560,12 +560,12 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
             }
             ViewState::Detail(_) => {
                 vec![
-                    Spans::from(Span::styled(
+                    Line::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
                         Style::default(),
                     )),
-                    Spans::from(""),
-                    Spans::from(Span::styled(
+                    Line::from(""),
+                    Line::from(Span::styled(
                         "  <s>: Download object,  <x>: Open management console in browser",
                         Style::default(),
                     )),
@@ -574,7 +574,7 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
         }
     .into_iter();
 
-    let content: Vec<Spans> = app_detail.chain(help).collect();
+    let content: Vec<Line> = app_detail.chain(help).collect();
     Paragraph::new(content).block(Block::default().title(APP_NAME).borders(Borders::all()))
 }
 
@@ -632,8 +632,8 @@ fn render_footer<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
 
 fn build_loading_dialog(msg: &str) -> Paragraph {
     let text = vec![
-        Spans::from(""),
-        Spans::from(Span::styled(
+        Line::from(""),
+        Line::from(Span::styled(
             msg,
             Style::default().add_modifier(Modifier::BOLD),
         )),
