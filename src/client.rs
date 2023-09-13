@@ -1,5 +1,5 @@
 use aws_config::meta::region::RegionProviderChain;
-use aws_sdk_s3::{output::ListObjectsV2Output, Region};
+use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output};
 use chrono::TimeZone;
 
 use crate::{
