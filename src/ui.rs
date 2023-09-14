@@ -24,6 +24,7 @@ const SELECTED_COLOR: Color = Color::Cyan;
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
+const APP_COMMIT_HASH: &str = env!("BUILD_COMMIT_HASH");
 
 pub async fn run<B: Backend>(
     app: &mut App,
@@ -516,7 +517,7 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
         )),
         Line::from(""),
         Line::from(Span::styled(
-            format!("  Version: {}", APP_VERSION),
+            format!("  Version: {} ({})", APP_VERSION, APP_COMMIT_HASH),
             Style::default(),
         )),
         Line::from(""),
