@@ -83,6 +83,9 @@ pub async fn run<B: Backend>(
                     key_code!(KeyCode::Backspace) | key_code_char!('h', Ctrl) => {
                         app.move_up();
                     }
+                    key_code_char!('~') => {
+                        app.back_to_bucket_list();
+                    }
                     key_code_char!('h') | key_code_char!('l') => {
                         app.select_tabs();
                     }
@@ -550,6 +553,11 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
                     Line::from(""),
                     Line::from(Span::styled(
                         "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
+                        Style::default(),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "  <~>: Go back to bucket list",
                         Style::default(),
                     )),
                     Line::from(""),

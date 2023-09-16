@@ -375,6 +375,15 @@ impl App {
         }
     }
 
+    pub fn back_to_bucket_list(&mut self) {
+        match self.app_view_state.view_state {
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::List => {
+                self.current_keys.clear();
+            }
+        }
+    }
+
     pub fn load_objects(&self) {
         let bucket = self.current_bucket();
         let prefix = self.current_object_prefix();
