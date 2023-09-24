@@ -3,9 +3,14 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
+    prelude::Margin,
     style::{Color, Modifier, Style},
+    symbols::scrollbar::VERTICAL,
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, List, ListItem, Paragraph, Tabs},
+    widgets::{
+        Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Scrollbar,
+        ScrollbarState, Tabs,
+    },
     Frame, Terminal,
 };
 use std::{io::Result, sync::mpsc};
@@ -193,6 +198,37 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
         true,
     );
     f.render_widget(list, chunks[1]);
+
+    // fixme:
+    let scrollbar_area = chunks[1].inner(&Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
+    let current_items_len = current_items.len() as u16;
+    if current_items_len > scrollbar_area.height {
+        let mut scrollbar_state = ScrollbarState::default()
+            .content_length(current_items_len)
+            .viewport_content_length(scrollbar_area.height)
+            .position(current_selected as u16);
+        let scrollbar = Scrollbar::default()
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some(VERTICAL.track))
+            .thumb_symbol(VERTICAL.thumb);
+        f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state)
+    }
+    // fixme:
+    //  It seems to be better to calculate based on offset position
+    //  Scrolling with f/b has been implemented by extending the list independently,
+    //  but this does not seem to be suitable for standard scrolling behavior
+    //
+    // if current_items.len() as u16 > (scrollbar_area.height - 1) {
+    //     let scrollbar_content_length = (current_items.len() as u16) - (scrollbar_area.height - 1);
+    //     let mut scrollbar_state = ScrollbarState::default()
+    //         .content_length(scrollbar_content_length)
+    //         .viewport_content_length(scrollbar_area.height - 1)
+    //         .position(current_offset as u16);
+    // }
 }
 
 fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &DetailViewState) {
@@ -294,7 +330,13 @@ fn build_list(
         Block::default()
             .borders(Borders::all())
             .title(title)
-            .title_alignment(Alignment::Right),
+            .title_alignment(Alignment::Right)
+            .padding(Padding {
+                left: 1,
+                right: 1,
+                top: 0,
+                bottom: 0,
+            }),
     )
 }
 
