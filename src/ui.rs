@@ -25,6 +25,8 @@ use crate::{
 const APP_NAME: &str = "STU";
 
 const SELECTED_COLOR: Color = Color::Cyan;
+const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
+const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
@@ -195,6 +197,7 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
         current_offset,
         chunks[1],
         SELECTED_COLOR,
+        SELECTED_ITEM_TEXT_COLOR,
         true,
     );
     f.render_widget(list, chunks[1]);
@@ -253,7 +256,8 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
         current_selected,
         current_offset,
         chunks[0],
-        Color::DarkGray,
+        SELECTED_DISABLED_COLOR,
+        SELECTED_ITEM_TEXT_COLOR,
         false,
     );
     f.render_widget(list, chunks[0]);
@@ -303,7 +307,8 @@ fn build_list(
     current_selected: usize,
     current_offset: usize,
     area: Rect,
-    color: Color,
+    selected_bg_color: Color,
+    selected_fg_color: Color,
     show_file_detail: bool,
 ) -> List {
     let show_item_count = (area.height as usize) - 2 /* border */;
@@ -319,7 +324,8 @@ fn build_list(
                 current_selected,
                 current_offset,
                 area.width,
-                color,
+                selected_bg_color,
+                selected_fg_color,
                 show_file_detail,
             )
         })
@@ -340,13 +346,15 @@ fn build_list(
     )
 }
 
+#[allow(clippy::too_many_arguments)] // fixme
 fn build_list_item(
     item: &Item,
     idx: usize,
     current_selected: usize,
     current_offset: usize,
     width: u16,
-    color: Color,
+    selected_bg_color: Color,
+    selected_fg_color: Color,
     show_file_detail: bool,
 ) -> ListItem {
     let content = match item {
@@ -372,7 +380,7 @@ fn build_list_item(
         }
     };
     if idx + current_offset == current_selected {
-        ListItem::new(content).style(Style::default().bg(color))
+        ListItem::new(content).style(Style::default().bg(selected_bg_color).fg(selected_fg_color))
     } else {
         ListItem::new(content)
     }
