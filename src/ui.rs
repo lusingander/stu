@@ -217,7 +217,9 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
             .begin_symbol(None)
             .end_symbol(None)
             .track_symbol(Some(VERTICAL.track))
-            .thumb_symbol(VERTICAL.thumb);
+            .track_style(Style::default().fg(Color::DarkGray))
+            .thumb_symbol(VERTICAL.thumb)
+            .thumb_style(Style::default().fg(Color::DarkGray));
         f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state)
     }
     // fixme:
