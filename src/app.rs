@@ -170,7 +170,7 @@ impl App {
         match result {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_items(Vec::new(), buckets);
-                self.app_view_state.view_state = ViewState::ObjectList;
+                self.app_view_state.view_state = ViewState::BucketList;
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -331,6 +331,7 @@ impl App {
                     } else {
                         self.current_keys.push(selected.name().to_owned());
                         self.app_view_state.list_state.select_first();
+                        self.app_view_state.view_state = ViewState::ObjectList;
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -360,11 +361,14 @@ impl App {
 
     pub fn move_up(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::Initializing | ViewState::BucketList => {}
+            ViewState::ObjectList => {
                 let key = self.current_keys.pop();
                 if key.is_some() {
                     self.app_view_state.list_state.select_first();
+                }
+                if self.current_keys.is_empty() {
+                    self.app_view_state.view_state = ViewState::BucketList;
                 }
             }
             ViewState::Detail(_) => {
@@ -378,8 +382,12 @@ impl App {
 
     pub fn back_to_bucket_list(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::Initializing
+            | ViewState::BucketList
+            | ViewState::Detail(_)
+            | ViewState::Help(_) => {}
+            ViewState::ObjectList => {
+                self.app_view_state.view_state = ViewState::BucketList;
                 self.current_keys.clear();
             }
         }
@@ -555,12 +563,13 @@ impl App {
 
         let result = match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Help(_) => Ok(()),
-            ViewState::BucketList | ViewState::ObjectList => match bucket {
+            ViewState::BucketList => client.open_management_console_buckets(),
+            ViewState::ObjectList => match bucket {
                 Some(bucket) => {
                     let prefix = self.current_object_prefix();
                     client.open_management_console_list(bucket, &prefix)
                 }
-                None => client.open_management_console_buckets(),
+                None => Err(AppError::msg("Failed to get current bucket")),
             },
             ViewState::Detail(_) => {
                 if let Some(Item::File { name, .. }) = self.get_current_selected() {

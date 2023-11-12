@@ -590,7 +590,30 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
 
     let help = match before {
             ViewState::Initializing | ViewState::Help(_) => vec![],
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::BucketList => {
+                vec![
+                    Line::from(Span::styled(
+                        "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
+                        Style::default(),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "  <f>: Scroll page forward,  <b>: Scroll page backward",
+                        Style::default(),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "  <Enter>: Open bucket",
+                        Style::default(),
+                    )),
+                    Line::from(""),
+                    Line::from(Span::styled(
+                        "  <x>: Open management console in browser",
+                        Style::default(),
+                    )),
+                ]
+            }
+            ViewState::ObjectList => {
                 vec![
                     Line::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
@@ -641,7 +664,8 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
 fn build_short_help(app: &App) -> Paragraph {
     let help = match app.app_view_state.view_state {
         ViewState::Initializing => "",
-        ViewState::BucketList | ViewState::ObjectList => {
+        ViewState::BucketList => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <?> Help",
+        ViewState::ObjectList => {
             "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
         }
         ViewState::Detail(_) => {
