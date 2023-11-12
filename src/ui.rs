@@ -159,7 +159,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
 fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     match &app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, area, app),
-        ViewState::List => render_list_view(f, area, app),
+        ViewState::ObjectList => render_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, before),
     }
@@ -590,7 +590,7 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
 
     let help = match before {
             ViewState::Initializing | ViewState::Help(_) => vec![],
-            ViewState::List => {
+            ViewState::ObjectList => {
                 vec![
                     Line::from(Span::styled(
                         "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
@@ -641,7 +641,7 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
 fn build_short_help(app: &App) -> Paragraph {
     let help = match app.app_view_state.view_state {
         ViewState::Initializing => "",
-        ViewState::List => {
+        ViewState::ObjectList => {
             "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
         }
         ViewState::Detail(_) => {
