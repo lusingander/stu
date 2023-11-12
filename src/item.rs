@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use chrono::{DateTime, Local};
 
 #[derive(Clone, Debug)]
-pub enum Item {
+pub enum ObjectItem {
     Bucket {
         name: String,
     },
@@ -19,12 +19,12 @@ pub enum Item {
     },
 }
 
-impl Item {
+impl ObjectItem {
     pub fn name(&self) -> &String {
         match self {
-            Item::Bucket { name } => name,
-            Item::Dir { name, .. } => name,
-            Item::File { name, .. } => name,
+            ObjectItem::Bucket { name } => name,
+            ObjectItem::Dir { name, .. } => name,
+            ObjectItem::File { name, .. } => name,
         }
     }
 }
@@ -45,7 +45,7 @@ pub struct FileVersion {
 }
 
 pub struct AppObjects {
-    items_map: HashMap<Vec<String>, Vec<Item>>,
+    object_items_map: HashMap<Vec<String>, Vec<ObjectItem>>,
     detail_map: HashMap<String, FileDetail>,
     versions_map: HashMap<String, Vec<FileVersion>>,
 }
@@ -53,30 +53,35 @@ pub struct AppObjects {
 impl AppObjects {
     pub fn new() -> AppObjects {
         AppObjects {
-            items_map: HashMap::new(),
+            object_items_map: HashMap::new(),
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
         }
     }
 
-    pub fn get_items(&self, keys: &[String]) -> Vec<Item> {
-        self.items_map.get(keys).unwrap_or(&Vec::new()).to_vec()
+    pub fn get_items(&self, keys: &[String]) -> Vec<ObjectItem> {
+        self.object_items_map
+            .get(keys)
+            .unwrap_or(&Vec::new())
+            .to_vec()
     }
 
     pub fn get_items_len(&self, keys: &[String]) -> usize {
-        self.items_map.get(keys).unwrap_or(&Vec::new()).len()
+        self.object_items_map.get(keys).unwrap_or(&Vec::new()).len()
     }
 
-    pub fn get_item(&self, keys: &[String], idx: usize) -> Option<&Item> {
-        self.items_map.get(keys).and_then(|items| items.get(idx))
+    pub fn get_item(&self, keys: &[String], idx: usize) -> Option<&ObjectItem> {
+        self.object_items_map
+            .get(keys)
+            .and_then(|items| items.get(idx))
     }
 
-    pub fn set_items(&mut self, keys: Vec<String>, items: Vec<Item>) {
-        self.items_map.insert(keys, items);
+    pub fn set_object_items(&mut self, keys: Vec<String>, items: Vec<ObjectItem>) {
+        self.object_items_map.insert(keys, items);
     }
 
     pub fn exists_item(&self, keys: &[String]) -> bool {
-        self.items_map.contains_key(keys)
+        self.object_items_map.contains_key(keys)
     }
 
     pub fn get_object_detail(&self, key: &str) -> Option<&FileDetail> {

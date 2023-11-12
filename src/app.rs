@@ -10,7 +10,7 @@ use crate::{
         CompleteLoadObjectResult, CompleteLoadObjectsResult,
     },
     file::{save_binary, save_error_log},
-    item::{AppObjects, FileDetail, FileVersion, Item},
+    item::{AppObjects, FileDetail, FileVersion, ObjectItem},
 };
 
 pub struct AppListState {
@@ -169,7 +169,7 @@ impl App {
     pub fn complete_initialize(&mut self, result: Result<CompleteInitializeResult>) {
         match result {
             Ok(CompleteInitializeResult { buckets }) => {
-                self.app_objects.set_items(Vec::new(), buckets);
+                self.app_objects.set_object_items(Vec::new(), buckets);
                 self.app_view_state.view_state = ViewState::BucketList;
             }
             Err(e) => {
@@ -205,7 +205,7 @@ impl App {
         prefix
     }
 
-    pub fn current_items(&self) -> Vec<Item> {
+    pub fn current_items(&self) -> Vec<ObjectItem> {
         self.app_objects.get_items(&self.current_keys)
     }
 
@@ -213,14 +213,14 @@ impl App {
         self.app_objects.get_items_len(&self.current_keys)
     }
 
-    fn get_current_selected(&self) -> Option<&Item> {
+    fn get_current_selected(&self) -> Option<&ObjectItem> {
         let i = self.app_view_state.list_state.selected;
         self.app_objects.get_item(&self.current_keys, i)
     }
 
     pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
         self.get_current_selected().and_then(|selected| {
-            if let Item::File { name, .. } = selected {
+            if let ObjectItem::File { name, .. } = selected {
                 let bucket = &self.current_bucket();
                 let prefix = &self.current_object_prefix();
                 let key = &self.object_detail_map_key(bucket, prefix, name);
@@ -233,7 +233,7 @@ impl App {
 
     pub fn get_current_file_versions(&self) -> Option<&Vec<FileVersion>> {
         self.get_current_selected().and_then(|selected| {
-            if let Item::File { name, .. } = selected {
+            if let ObjectItem::File { name, .. } = selected {
                 let bucket = &self.current_bucket();
                 let prefix = &self.current_object_prefix();
                 let key = &self.object_detail_map_key(bucket, prefix, name);
@@ -320,7 +320,7 @@ impl App {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 if let Some(selected) = self.get_current_selected() {
-                    if let Item::File { .. } = selected {
+                    if let ObjectItem::File { .. } = selected {
                         if self.exists_current_object_detail() {
                             self.app_view_state.view_state =
                                 ViewState::Detail(DetailViewState::Detail);
@@ -408,7 +408,8 @@ impl App {
     pub fn complete_load_objects(&mut self, result: Result<CompleteLoadObjectsResult>) {
         match result {
             Ok(CompleteLoadObjectsResult { items }) => {
-                self.app_objects.set_items(self.current_keys.clone(), items);
+                self.app_objects
+                    .set_object_items(self.current_keys.clone(), items);
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -418,7 +419,7 @@ impl App {
     }
 
     pub fn load_object(&self) {
-        if let Some(Item::File {
+        if let Some(ObjectItem::File {
             name, size_byte, ..
         }) = self.get_current_selected()
         {
@@ -511,7 +512,7 @@ impl App {
     }
 
     pub fn download_object(&self) {
-        if let Some(Item::File { name, .. }) = self.get_current_selected() {
+        if let Some(ObjectItem::File { name, .. }) = self.get_current_selected() {
             let bucket = self.current_bucket();
             let prefix = self.current_object_prefix();
             let key = format!("{}{}", prefix, name);
@@ -572,7 +573,7 @@ impl App {
                 None => Err(AppError::msg("Failed to get current bucket")),
             },
             ViewState::Detail(_) => {
-                if let Some(Item::File { name, .. }) = self.get_current_selected() {
+                if let Some(ObjectItem::File { name, .. }) = self.get_current_selected() {
                     let prefix = self.current_object_prefix();
                     client.open_management_console_object(bucket.unwrap(), &prefix, name)
                 } else {

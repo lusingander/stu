@@ -18,7 +18,7 @@ use std::{io::Result, sync::mpsc};
 use crate::{
     app::{App, DetailViewState, Notification, ViewState},
     event::AppEventType,
-    item::{FileDetail, FileVersion, Item},
+    item::{FileDetail, FileVersion, ObjectItem},
     key_code, key_code_char,
 };
 
@@ -304,7 +304,7 @@ fn build_header(app: &App) -> Paragraph {
 }
 
 fn build_list(
-    current_items: &[Item],
+    current_items: &[ObjectItem],
     current_selected: usize,
     current_offset: usize,
     area: Rect,
@@ -349,7 +349,7 @@ fn build_list(
 
 #[allow(clippy::too_many_arguments)] // fixme
 fn build_list_item(
-    item: &Item,
+    item: &ObjectItem,
     idx: usize,
     current_selected: usize,
     current_offset: usize,
@@ -359,17 +359,17 @@ fn build_list_item(
     show_file_detail: bool,
 ) -> ListItem {
     let content = match item {
-        Item::Bucket { name, .. } => {
+        ObjectItem::Bucket { name, .. } => {
             let content = format_bucket_item(name, width);
             let style = Style::default();
             Span::styled(content, style)
         }
-        Item::Dir { name, .. } => {
+        ObjectItem::Dir { name, .. } => {
             let content = format_dir_item(name, width);
             let style = Style::default().add_modifier(Modifier::BOLD);
             Span::styled(content, style)
         }
-        Item::File {
+        ObjectItem::File {
             name,
             size_byte,
             last_modified,
@@ -426,7 +426,7 @@ fn format_file_item(
     }
 }
 
-fn format_list_count(current_items: &[Item], current_selected: usize) -> String {
+fn format_list_count(current_items: &[ObjectItem], current_selected: usize) -> String {
     let total = current_items.len();
     if total == 0 {
         String::new()

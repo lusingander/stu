@@ -4,7 +4,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    item::{FileDetail, FileVersion, Item},
+    item::{FileDetail, FileVersion, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
@@ -46,17 +46,17 @@ impl Client {
         Client { client, region }
     }
 
-    pub async fn load_all_buckets(&self) -> Result<Vec<Item>> {
+    pub async fn load_all_buckets(&self) -> Result<Vec<ObjectItem>> {
         let result = self.client.list_buckets().send().await;
         let output = result.map_err(|e| AppError::new("Failed to load bucket", e))?;
 
-        let buckets: Vec<Item> = output
+        let buckets: Vec<ObjectItem> = output
             .buckets()
             .unwrap_or_default()
             .iter()
             .map(|bucket| {
                 let name = bucket.name().unwrap().to_string();
-                Item::Bucket { name }
+                ObjectItem::Bucket { name }
             })
             .collect();
 
@@ -67,9 +67,9 @@ impl Client {
         }
     }
 
-    pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Result<Vec<Item>> {
-        let mut dirs_vec: Vec<Vec<Item>> = Vec::new();
-        let mut files_vec: Vec<Vec<Item>> = Vec::new();
+    pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Result<Vec<ObjectItem>> {
+        let mut dirs_vec: Vec<Vec<ObjectItem>> = Vec::new();
+        let mut files_vec: Vec<Vec<ObjectItem>> = Vec::new();
 
         let mut token: Option<String> = None;
         loop {
@@ -214,7 +214,7 @@ impl Client {
     }
 }
 
-fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<Item> {
+fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
     let objects = output.common_prefixes().unwrap_or_default();
     objects
         .iter()
@@ -222,12 +222,12 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<Item> {
             let path = dir.prefix().unwrap();
             let paths = parse_path(path, true);
             let name = paths.last().unwrap().to_owned();
-            Item::Dir { name, paths }
+            ObjectItem::Dir { name, paths }
         })
         .collect()
 }
 
-fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<Item> {
+fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
     let objects = output.contents().unwrap_or_default();
     objects
         .iter()
@@ -237,7 +237,7 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<Item> {
             let name = paths.last().unwrap().to_owned();
             let size_byte = file.size();
             let last_modified = convert_datetime(file.last_modified().unwrap());
-            Item::File {
+            ObjectItem::File {
                 name,
                 paths,
                 size_byte,
