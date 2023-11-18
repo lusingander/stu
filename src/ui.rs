@@ -18,7 +18,7 @@ use std::{io::Result, sync::mpsc};
 use crate::{
     app::{App, DetailViewState, Notification, ViewState},
     event::AppEventType,
-    item::{FileDetail, FileVersion, ObjectItem},
+    item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     key_code, key_code_char,
 };
 
@@ -159,7 +159,8 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
 fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     match &app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, area, app),
-        ViewState::BucketList | ViewState::ObjectList => render_list_view(f, area, app),
+        ViewState::BucketList => render_bucket_list_view(f, area, app),
+        ViewState::ObjectList => render_object_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, before),
     }
@@ -178,7 +179,7 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App)
     f.render_widget(content, chunks[1]);
 }
 
-fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+fn render_bucket_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
@@ -187,18 +188,18 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
-    let current_items = app.current_items();
+    let current_items = app.bucket_items();
     let current_selected = app.app_view_state.list_state.selected;
     let current_offset = app.app_view_state.list_state.offset;
-    let list = build_list(
+    let list_items = build_list_items_from_bucket_items(
         &current_items,
         current_selected,
         current_offset,
         chunks[1],
         SELECTED_COLOR,
         SELECTED_ITEM_TEXT_COLOR,
-        true,
     );
+    let list = build_list(list_items, current_items.len(), current_selected);
     f.render_widget(list, chunks[1]);
 
     // fixme:
@@ -235,6 +236,52 @@ fn render_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     // }
 }
 
+fn render_object_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(area);
+
+    let header = build_header(app);
+    f.render_widget(header, chunks[0]);
+
+    let current_items = app.current_object_items();
+    let current_selected = app.app_view_state.list_state.selected;
+    let current_offset = app.app_view_state.list_state.offset;
+    let list_items = build_list_items_from_object_items(
+        &current_items,
+        current_selected,
+        current_offset,
+        chunks[1],
+        SELECTED_COLOR,
+        SELECTED_ITEM_TEXT_COLOR,
+        true,
+    );
+    let list = build_list(list_items, current_items.len(), current_selected);
+    f.render_widget(list, chunks[1]);
+
+    // fixme:
+    let scrollbar_area = chunks[1].inner(&Margin {
+        horizontal: 1,
+        vertical: 1,
+    });
+    let current_items_len = current_items.len() as u16;
+    if current_items_len > scrollbar_area.height {
+        let mut scrollbar_state = ScrollbarState::default()
+            .content_length(current_items_len)
+            .viewport_content_length(scrollbar_area.height)
+            .position(current_selected as u16);
+        let scrollbar = Scrollbar::default()
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(Some(VERTICAL.track))
+            .track_style(Style::default().fg(Color::DarkGray))
+            .thumb_symbol(VERTICAL.thumb)
+            .thumb_style(Style::default().fg(Color::DarkGray));
+        f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state)
+    }
+}
+
 fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &DetailViewState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -249,10 +296,10 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
         .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
         .split(chunks[1]);
 
-    let current_items = app.current_items();
+    let current_items = app.current_object_items();
     let current_selected = app.app_view_state.list_state.selected;
     let current_offset = app.app_view_state.list_state.offset;
-    let list = build_list(
+    let list_items = build_list_items_from_object_items(
         &current_items,
         current_selected,
         current_offset,
@@ -261,6 +308,7 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
         SELECTED_ITEM_TEXT_COLOR,
         false,
     );
+    let list = build_list(list_items, current_items.len(), current_selected);
     f.render_widget(list, chunks[0]);
 
     let block = build_file_detail_block();
@@ -295,7 +343,7 @@ fn render_help_view<B: Backend>(f: &mut Frame<B>, area: Rect, before: &ViewState
 }
 
 fn build_header(app: &App) -> Paragraph {
-    let current_key = app.current_key_string();
+    let current_key = app.object_key_breadcrumb_string();
     Paragraph::new(Span::styled(current_key, Style::default())).block(
         Block::default()
             .title(Span::styled(APP_NAME, Style::default()))
@@ -303,36 +351,8 @@ fn build_header(app: &App) -> Paragraph {
     )
 }
 
-fn build_list(
-    current_items: &[ObjectItem],
-    current_selected: usize,
-    current_offset: usize,
-    area: Rect,
-    selected_bg_color: Color,
-    selected_fg_color: Color,
-    show_file_detail: bool,
-) -> List {
-    let show_item_count = (area.height as usize) - 2 /* border */;
-    let list_items: Vec<ListItem> = current_items
-        .iter()
-        .skip(current_offset)
-        .take(show_item_count)
-        .enumerate()
-        .map(|(idx, item)| {
-            build_list_item(
-                item,
-                idx,
-                current_selected,
-                current_offset,
-                area.width,
-                selected_bg_color,
-                selected_fg_color,
-                show_file_detail,
-            )
-        })
-        .collect();
-
-    let title = format_list_count(current_items, current_selected);
+fn build_list(list_items: Vec<ListItem>, total_count: usize, current_selected: usize) -> List {
+    let title = format_list_count(total_count, current_selected);
     List::new(list_items).block(
         Block::default()
             .borders(Borders::all())
@@ -347,44 +367,81 @@ fn build_list(
     )
 }
 
-#[allow(clippy::too_many_arguments)] // fixme
-fn build_list_item(
-    item: &ObjectItem,
-    idx: usize,
+fn build_list_items_from_bucket_items(
+    current_items: &[BucketItem],
     current_selected: usize,
     current_offset: usize,
-    width: u16,
+    area: Rect,
+    selected_bg_color: Color,
+    selected_fg_color: Color,
+) -> Vec<ListItem> {
+    let show_item_count = (area.height as usize) - 2 /* border */;
+    current_items
+        .iter()
+        .skip(current_offset)
+        .take(show_item_count)
+        .enumerate()
+        .map(|(idx, item)| {
+            let content = format_bucket_item(&item.name, area.width);
+            let style = Style::default();
+            let span = Span::styled(content, style);
+            if idx + current_offset == current_selected {
+                ListItem::new(span)
+                    .style(Style::default().bg(selected_bg_color).fg(selected_fg_color))
+            } else {
+                ListItem::new(span)
+            }
+        })
+        .collect()
+}
+
+fn build_list_items_from_object_items(
+    current_items: &[ObjectItem],
+    current_selected: usize,
+    current_offset: usize,
+    area: Rect,
     selected_bg_color: Color,
     selected_fg_color: Color,
     show_file_detail: bool,
-) -> ListItem {
-    let content = match item {
-        ObjectItem::Bucket { name, .. } => {
-            let content = format_bucket_item(name, width);
-            let style = Style::default();
-            Span::styled(content, style)
-        }
-        ObjectItem::Dir { name, .. } => {
-            let content = format_dir_item(name, width);
-            let style = Style::default().add_modifier(Modifier::BOLD);
-            Span::styled(content, style)
-        }
-        ObjectItem::File {
-            name,
-            size_byte,
-            last_modified,
-            ..
-        } => {
-            let content = format_file_item(name, size_byte, last_modified, width, show_file_detail);
-            let style = Style::default();
-            Span::styled(content, style)
-        }
-    };
-    if idx + current_offset == current_selected {
-        ListItem::new(content).style(Style::default().bg(selected_bg_color).fg(selected_fg_color))
-    } else {
-        ListItem::new(content)
-    }
+) -> Vec<ListItem> {
+    let show_item_count = (area.height as usize) - 2 /* border */;
+    current_items
+        .iter()
+        .skip(current_offset)
+        .take(show_item_count)
+        .enumerate()
+        .map(|(idx, item)| {
+            let content = match item {
+                ObjectItem::Dir { name, .. } => {
+                    let content = format_dir_item(name, area.width);
+                    let style = Style::default().add_modifier(Modifier::BOLD);
+                    Span::styled(content, style)
+                }
+                ObjectItem::File {
+                    name,
+                    size_byte,
+                    last_modified,
+                    ..
+                } => {
+                    let content = format_file_item(
+                        name,
+                        size_byte,
+                        last_modified,
+                        area.width,
+                        show_file_detail,
+                    );
+                    let style = Style::default();
+                    Span::styled(content, style)
+                }
+            };
+            if idx + current_offset == current_selected {
+                ListItem::new(content)
+                    .style(Style::default().bg(selected_bg_color).fg(selected_fg_color))
+            } else {
+                ListItem::new(content)
+            }
+        })
+        .collect()
 }
 
 fn format_bucket_item(name: &String, width: u16) -> String {
@@ -426,12 +483,11 @@ fn format_file_item(
     }
 }
 
-fn format_list_count(current_items: &[ObjectItem], current_selected: usize) -> String {
-    let total = current_items.len();
-    if total == 0 {
+fn format_list_count(total_count: usize, current_selected: usize) -> String {
+    if total_count == 0 {
         String::new()
     } else {
-        format_count(current_selected + 1, total)
+        format_count(current_selected + 1, total_count)
     }
 }
 

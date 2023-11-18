@@ -4,7 +4,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    item::{FileDetail, FileVersion, ObjectItem},
+    item::{BucketItem, FileDetail, FileVersion, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
@@ -46,17 +46,17 @@ impl Client {
         Client { client, region }
     }
 
-    pub async fn load_all_buckets(&self) -> Result<Vec<ObjectItem>> {
+    pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
         let result = self.client.list_buckets().send().await;
         let output = result.map_err(|e| AppError::new("Failed to load bucket", e))?;
 
-        let buckets: Vec<ObjectItem> = output
+        let buckets: Vec<BucketItem> = output
             .buckets()
             .unwrap_or_default()
             .iter()
             .map(|bucket| {
                 let name = bucket.name().unwrap().to_string();
-                ObjectItem::Bucket { name }
+                BucketItem { name }
             })
             .collect();
 

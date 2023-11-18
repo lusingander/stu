@@ -3,10 +3,12 @@ use std::collections::HashMap;
 use chrono::{DateTime, Local};
 
 #[derive(Clone, Debug)]
+pub struct BucketItem {
+    pub name: String,
+}
+
+#[derive(Clone, Debug)]
 pub enum ObjectItem {
-    Bucket {
-        name: String,
-    },
     Dir {
         name: String,
         paths: Vec<String>,
@@ -22,7 +24,6 @@ pub enum ObjectItem {
 impl ObjectItem {
     pub fn name(&self) -> &String {
         match self {
-            ObjectItem::Bucket { name } => name,
             ObjectItem::Dir { name, .. } => name,
             ObjectItem::File { name, .. } => name,
         }
@@ -44,65 +45,90 @@ pub struct FileVersion {
     pub is_latest: bool,
 }
 
+// fixme: data structure
 pub struct AppObjects {
-    object_items_map: HashMap<Vec<String>, Vec<ObjectItem>>,
-    detail_map: HashMap<String, FileDetail>,
-    versions_map: HashMap<String, Vec<FileVersion>>,
+    bucket_items: Vec<BucketItem>,
+    object_items_map: HashMap<ObjectKey, Vec<ObjectItem>>,
+    detail_map: HashMap<ObjectKey, FileDetail>,
+    versions_map: HashMap<ObjectKey, Vec<FileVersion>>,
 }
 
 impl AppObjects {
     pub fn new() -> AppObjects {
         AppObjects {
+            bucket_items: Vec::new(),
             object_items_map: HashMap::new(),
             detail_map: HashMap::new(),
             versions_map: HashMap::new(),
         }
     }
 
-    pub fn get_items(&self, keys: &[String]) -> Vec<ObjectItem> {
+    pub fn get_bucket_items(&self) -> Vec<BucketItem> {
+        self.bucket_items.to_vec()
+    }
+
+    pub fn get_bucket_items_len(&self) -> usize {
+        self.bucket_items.len()
+    }
+
+    pub fn get_items(&self, key: &ObjectKey) -> Vec<ObjectItem> {
         self.object_items_map
-            .get(keys)
+            .get(key)
             .unwrap_or(&Vec::new())
             .to_vec()
     }
 
-    pub fn get_items_len(&self, keys: &[String]) -> usize {
-        self.object_items_map.get(keys).unwrap_or(&Vec::new()).len()
+    pub fn get_items_len(&self, key: &ObjectKey) -> usize {
+        self.object_items_map.get(key).unwrap_or(&Vec::new()).len()
     }
 
-    pub fn get_item(&self, keys: &[String], idx: usize) -> Option<&ObjectItem> {
+    pub fn get_bucket_item(&self, idx: usize) -> Option<&BucketItem> {
+        self.bucket_items.get(idx)
+    }
+
+    pub fn get_object_item(&self, key: &ObjectKey, idx: usize) -> Option<&ObjectItem> {
         self.object_items_map
-            .get(keys)
+            .get(key)
             .and_then(|items| items.get(idx))
     }
 
-    pub fn set_object_items(&mut self, keys: Vec<String>, items: Vec<ObjectItem>) {
-        self.object_items_map.insert(keys, items);
+    pub fn set_bucket_items(&mut self, items: Vec<BucketItem>) {
+        self.bucket_items = items;
     }
 
-    pub fn exists_item(&self, keys: &[String]) -> bool {
-        self.object_items_map.contains_key(keys)
+    pub fn set_object_items(&mut self, key: ObjectKey, items: Vec<ObjectItem>) {
+        self.object_items_map.insert(key, items);
     }
 
-    pub fn get_object_detail(&self, key: &str) -> Option<&FileDetail> {
+    pub fn exists_item(&self, key: &ObjectKey) -> bool {
+        self.object_items_map.contains_key(key)
+    }
+
+    pub fn get_object_detail(&self, key: &ObjectKey) -> Option<&FileDetail> {
         self.detail_map.get(key)
     }
 
-    pub fn get_object_versions(&self, key: &str) -> Option<&Vec<FileVersion>> {
+    pub fn get_object_versions(&self, key: &ObjectKey) -> Option<&Vec<FileVersion>> {
         self.versions_map.get(key)
     }
 
     pub fn set_object_details(
         &mut self,
-        key: &str,
+        key: ObjectKey,
         detail: FileDetail,
         versions: Vec<FileVersion>,
     ) {
-        self.detail_map.insert(key.to_string(), detail);
-        self.versions_map.insert(key.to_string(), versions);
+        self.detail_map.insert(key.to_owned(), detail);
+        self.versions_map.insert(key.to_owned(), versions);
     }
 
-    pub fn exists_object_details(&self, key: &str) -> bool {
+    pub fn exists_object_details(&self, key: &ObjectKey) -> bool {
         self.detail_map.contains_key(key) && self.versions_map.contains_key(key)
     }
+}
+
+#[derive(Clone, PartialEq, Eq, Hash)]
+pub struct ObjectKey {
+    pub bucket_name: String,
+    pub object_path: Vec<String>,
 }

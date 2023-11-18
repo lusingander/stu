@@ -10,7 +10,7 @@ use crate::{
         CompleteLoadObjectResult, CompleteLoadObjectsResult,
     },
     file::{save_binary, save_error_log},
-    item::{AppObjects, FileDetail, FileVersion, ObjectItem},
+    item::{AppObjects, BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey},
 };
 
 pub struct AppListState {
@@ -135,7 +135,8 @@ impl AppViewState {
 pub struct App {
     pub app_view_state: AppViewState,
     app_objects: AppObjects,
-    current_keys: Vec<String>,
+    current_bucket: Option<BucketItem>,
+    current_path: Vec<String>,
     client: Option<Arc<Client>>,
     config: Option<Config>,
     tx: mpsc::Sender<AppEventType>,
@@ -146,7 +147,8 @@ impl App {
         App {
             app_view_state: AppViewState::new(height),
             app_objects: AppObjects::new(),
-            current_keys: Vec::new(),
+            current_bucket: None,
+            current_path: Vec::new(),
             client: None,
             config: None,
             tx,
@@ -169,7 +171,7 @@ impl App {
     pub fn complete_initialize(&mut self, result: Result<CompleteInitializeResult>) {
         match result {
             Ok(CompleteInitializeResult { buckets }) => {
-                self.app_objects.set_object_items(Vec::new(), buckets);
+                self.app_objects.set_bucket_items(buckets);
                 self.app_view_state.view_state = ViewState::BucketList;
             }
             Err(e) => {
@@ -184,70 +186,112 @@ impl App {
         // todo: adjust
     }
 
-    pub fn current_key_string(&self) -> String {
-        format!(" {} ", self.current_keys.join(" / "))
+    pub fn object_key_breadcrumb_string(&self) -> String {
+        match &self.current_bucket {
+            Some(b) => {
+                if self.current_path.is_empty() {
+                    format!(" {}", b.name)
+                } else {
+                    format!(" {} / {} ", b.name, self.current_path.join(" / "))
+                }
+            }
+            None => "".to_string(),
+        }
     }
 
     fn current_bucket(&self) -> String {
-        self.current_keys[0].clone()
-    }
-
-    fn current_bucket_opt(&self) -> Option<&String> {
-        self.current_keys.get(0)
+        self.current_bucket.as_ref().unwrap().name.to_owned()
     }
 
     fn current_object_prefix(&self) -> String {
         let mut prefix = String::new();
-        for key in &self.current_keys[1..] {
+        for key in &self.current_path {
             prefix.push_str(key);
             prefix.push('/');
         }
         prefix
     }
 
-    pub fn current_items(&self) -> Vec<ObjectItem> {
-        self.app_objects.get_items(&self.current_keys)
+    fn current_object_key(&self) -> ObjectKey {
+        ObjectKey {
+            bucket_name: self.current_bucket(),
+            object_path: self.current_path.to_vec(),
+        }
+    }
+
+    fn current_object_key_with_name(&self, name: String) -> ObjectKey {
+        let mut object_path = self.current_path.to_vec();
+        object_path.push(name);
+        ObjectKey {
+            bucket_name: self.current_bucket(),
+            object_path,
+        }
+    }
+
+    pub fn bucket_items(&self) -> Vec<BucketItem> {
+        self.app_objects.get_bucket_items()
+    }
+
+    fn bucket_items_len(&self) -> usize {
+        self.app_objects.get_bucket_items_len()
+    }
+
+    pub fn current_object_items(&self) -> Vec<ObjectItem> {
+        self.app_objects.get_items(&self.current_object_key())
     }
 
     fn current_items_len(&self) -> usize {
-        self.app_objects.get_items_len(&self.current_keys)
+        self.app_objects.get_items_len(&self.current_object_key())
     }
 
-    fn get_current_selected(&self) -> Option<&ObjectItem> {
+    fn get_current_selected_bucket_item(&self) -> Option<&BucketItem> {
         let i = self.app_view_state.list_state.selected;
-        self.app_objects.get_item(&self.current_keys, i)
+        self.app_objects.get_bucket_item(i)
+    }
+
+    fn get_current_selected_object_item(&self) -> Option<&ObjectItem> {
+        let i = self.app_view_state.list_state.selected;
+        self.app_objects
+            .get_object_item(&self.current_object_key(), i)
     }
 
     pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
-        self.get_current_selected().and_then(|selected| {
-            if let ObjectItem::File { name, .. } = selected {
-                let bucket = &self.current_bucket();
-                let prefix = &self.current_object_prefix();
-                let key = &self.object_detail_map_key(bucket, prefix, name);
-                self.app_objects.get_object_detail(key)
-            } else {
-                None
-            }
-        })
+        self.get_current_selected_object_item()
+            .and_then(|selected| {
+                if let ObjectItem::File { name, .. } = selected {
+                    let key = &self.current_object_key_with_name(name.to_string());
+                    self.app_objects.get_object_detail(key)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn get_current_file_versions(&self) -> Option<&Vec<FileVersion>> {
-        self.get_current_selected().and_then(|selected| {
-            if let ObjectItem::File { name, .. } = selected {
-                let bucket = &self.current_bucket();
-                let prefix = &self.current_object_prefix();
-                let key = &self.object_detail_map_key(bucket, prefix, name);
-                self.app_objects.get_object_versions(key)
-            } else {
-                None
-            }
-        })
+        self.get_current_selected_object_item()
+            .and_then(|selected| {
+                if let ObjectItem::File { name, .. } = selected {
+                    let key = &self.current_object_key_with_name(name.to_string());
+                    self.app_objects.get_object_versions(key)
+                } else {
+                    None
+                }
+            })
     }
 
     pub fn select_next(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::BucketList => {
+                let current_selected = self.app_view_state.list_state.selected;
+                let len = self.bucket_items_len();
+                if len == 0 || current_selected >= len - 1 {
+                    self.app_view_state.list_state.select_first();
+                } else {
+                    self.app_view_state.list_state.select_next();
+                };
+            }
+            ViewState::ObjectList => {
                 let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
                 if len == 0 || current_selected >= len - 1 {
@@ -262,7 +306,18 @@ impl App {
     pub fn select_prev(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::BucketList => {
+                let current_selected = self.app_view_state.list_state.selected;
+                let len = self.bucket_items_len();
+                if len == 0 {
+                    self.app_view_state.list_state.select_first();
+                } else if current_selected == 0 {
+                    self.app_view_state.list_state.select_last(len);
+                } else {
+                    self.app_view_state.list_state.select_prev();
+                };
+            }
+            ViewState::ObjectList => {
                 let current_selected = self.app_view_state.list_state.selected;
                 let len = self.current_items_len();
                 if len == 0 {
@@ -279,7 +334,11 @@ impl App {
     pub fn select_next_page(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::BucketList => {
+                let len = self.bucket_items_len();
+                self.app_view_state.list_state.select_next_page(len)
+            }
+            ViewState::ObjectList => {
                 let len = self.current_items_len();
                 self.app_view_state.list_state.select_next_page(len)
             }
@@ -289,7 +348,11 @@ impl App {
     pub fn select_prev_page(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::BucketList => {
+                let len = self.bucket_items_len();
+                self.app_view_state.list_state.select_prev_page(len)
+            }
+            ViewState::ObjectList => {
                 let len = self.current_items_len();
                 self.app_view_state.list_state.select_prev_page(len)
             }
@@ -308,7 +371,11 @@ impl App {
     pub fn select_last(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
+            ViewState::BucketList => {
+                let len = self.bucket_items_len();
+                self.app_view_state.list_state.select_last(len);
+            }
+            ViewState::ObjectList => {
                 let len = self.current_items_len();
                 self.app_view_state.list_state.select_last(len);
             }
@@ -318,8 +385,20 @@ impl App {
     pub fn move_down(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
-                if let Some(selected) = self.get_current_selected() {
+            ViewState::BucketList => {
+                if let Some(selected) = self.get_current_selected_bucket_item() {
+                    self.current_bucket = Some(selected.to_owned());
+                    self.app_view_state.list_state.select_first();
+                    self.app_view_state.view_state = ViewState::ObjectList;
+
+                    if !self.exists_current_objects() {
+                        self.tx.send(AppEventType::LoadObjects).unwrap();
+                        self.app_view_state.is_loading = true;
+                    }
+                }
+            }
+            ViewState::ObjectList => {
+                if let Some(selected) = self.get_current_selected_object_item() {
                     if let ObjectItem::File { .. } = selected {
                         if self.exists_current_object_detail() {
                             self.app_view_state.view_state =
@@ -329,9 +408,8 @@ impl App {
                             self.app_view_state.is_loading = true;
                         }
                     } else {
-                        self.current_keys.push(selected.name().to_owned());
+                        self.current_path.push(selected.name().to_owned());
                         self.app_view_state.list_state.select_first();
-                        self.app_view_state.view_state = ViewState::ObjectList;
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -344,32 +422,29 @@ impl App {
     }
 
     fn exists_current_object_detail(&self) -> bool {
-        let bucket = &self.current_bucket();
-        let prefix = &self.current_object_prefix();
-        match self.get_current_selected() {
+        match self.get_current_selected_object_item() {
             Some(selected) => {
-                let map_key = &self.object_detail_map_key(bucket, prefix, selected.name());
-                self.app_objects.exists_object_details(map_key)
+                let key = &self.current_object_key_with_name(selected.name().to_string());
+                self.app_objects.exists_object_details(key)
             }
             None => false,
         }
     }
 
     fn exists_current_objects(&self) -> bool {
-        self.app_objects.exists_item(&self.current_keys)
+        self.app_objects.exists_item(&self.current_object_key())
     }
 
     pub fn move_up(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::BucketList => {}
             ViewState::ObjectList => {
-                let key = self.current_keys.pop();
-                if key.is_some() {
-                    self.app_view_state.list_state.select_first();
-                }
-                if self.current_keys.is_empty() {
+                let key = self.current_path.pop();
+                if key.is_none() {
                     self.app_view_state.view_state = ViewState::BucketList;
+                    self.current_bucket = None;
                 }
+                self.app_view_state.list_state.select_first();
             }
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::ObjectList;
@@ -388,7 +463,8 @@ impl App {
             | ViewState::Help(_) => {}
             ViewState::ObjectList => {
                 self.app_view_state.view_state = ViewState::BucketList;
-                self.current_keys.clear();
+                self.current_bucket = None;
+                self.current_path.clear();
             }
         }
     }
@@ -409,7 +485,7 @@ impl App {
         match result {
             Ok(CompleteLoadObjectsResult { items }) => {
                 self.app_objects
-                    .set_object_items(self.current_keys.clone(), items);
+                    .set_object_items(self.current_object_key().to_owned(), items);
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -421,7 +497,7 @@ impl App {
     pub fn load_object(&self) {
         if let Some(ObjectItem::File {
             name, size_byte, ..
-        }) = self.get_current_selected()
+        }) = self.get_current_selected_object_item()
         {
             let name = name.clone();
             let size_byte = *size_byte;
@@ -430,7 +506,7 @@ impl App {
             let prefix = self.current_object_prefix();
             let key = format!("{}{}", prefix, name);
 
-            let map_key = self.object_detail_map_key(&bucket, &prefix, &name);
+            let map_key = self.current_object_key_with_name(name.to_string());
 
             let client = self.client.as_ref().unwrap().clone();
             let tx = self.tx.clone();
@@ -454,7 +530,7 @@ impl App {
                 map_key,
             }) => {
                 self.app_objects
-                    .set_object_details(&map_key, detail, versions);
+                    .set_object_details(map_key, detail, versions);
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
             Err(e) => {
@@ -462,10 +538,6 @@ impl App {
             }
         }
         self.app_view_state.is_loading = false;
-    }
-
-    fn object_detail_map_key(&self, bucket: &String, prefix: &String, name: &String) -> String {
-        format!("{}/{}{}", bucket, prefix, name)
     }
 
     pub fn select_tabs(&mut self) {
@@ -512,7 +584,7 @@ impl App {
     }
 
     pub fn download_object(&self) {
-        if let Some(ObjectItem::File { name, .. }) = self.get_current_selected() {
+        if let Some(ObjectItem::File { name, .. }) = self.get_current_selected_object_item() {
             let bucket = self.current_bucket();
             let prefix = self.current_object_prefix();
             let key = format!("{}{}", prefix, name);
@@ -560,22 +632,20 @@ impl App {
 
     pub fn open_management_console(&self) {
         let client = self.client.as_ref().unwrap();
-        let bucket = self.current_bucket_opt();
 
         let result = match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Help(_) => Ok(()),
             ViewState::BucketList => client.open_management_console_buckets(),
-            ViewState::ObjectList => match bucket {
-                Some(bucket) => {
-                    let prefix = self.current_object_prefix();
-                    client.open_management_console_list(bucket, &prefix)
-                }
-                None => Err(AppError::msg("Failed to get current bucket")),
-            },
+            ViewState::ObjectList => {
+                let bucket = &self.current_bucket();
+                let prefix = self.current_object_prefix();
+                client.open_management_console_list(bucket, &prefix)
+            }
             ViewState::Detail(_) => {
-                if let Some(ObjectItem::File { name, .. }) = self.get_current_selected() {
+                if let Some(ObjectItem::File { name, .. }) = self.get_current_selected_object_item()
+                {
                     let prefix = self.current_object_prefix();
-                    client.open_management_console_object(bucket.unwrap(), &prefix, name)
+                    client.open_management_console_object(&self.current_bucket(), &prefix, name)
                 } else {
                     Err(AppError::msg("Failed to get current selected item"))
                 }

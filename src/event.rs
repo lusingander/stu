@@ -6,7 +6,7 @@ use crate::{
     client::Client,
     config::Config,
     error::{AppError, Result},
-    item::{FileDetail, FileVersion, ObjectItem},
+    item::{BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey},
 };
 
 pub enum AppEventType {
@@ -25,11 +25,11 @@ pub enum AppEventType {
 }
 
 pub struct CompleteInitializeResult {
-    pub buckets: Vec<ObjectItem>,
+    pub buckets: Vec<BucketItem>,
 }
 
 impl CompleteInitializeResult {
-    pub fn new(buckets: Result<Vec<ObjectItem>>) -> Result<CompleteInitializeResult> {
+    pub fn new(buckets: Result<Vec<BucketItem>>) -> Result<CompleteInitializeResult> {
         let buckets = buckets?;
         Ok(CompleteInitializeResult { buckets })
     }
@@ -49,14 +49,14 @@ impl CompleteLoadObjectsResult {
 pub struct CompleteLoadObjectResult {
     pub detail: FileDetail,
     pub versions: Vec<FileVersion>,
-    pub map_key: String,
+    pub map_key: ObjectKey,
 }
 
 impl CompleteLoadObjectResult {
     pub fn new(
         detail: Result<FileDetail>,
         versions: Result<Vec<FileVersion>>,
-        map_key: String,
+        map_key: ObjectKey,
     ) -> Result<CompleteLoadObjectResult> {
         let detail = detail?;
         let versions = versions?;
