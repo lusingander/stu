@@ -159,8 +159,7 @@ impl App {
         self.config = Some(config);
         self.client = Some(Arc::new(client));
 
-        let client = self.client.as_ref().unwrap().clone();
-        let tx = self.tx.clone();
+        let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
             let buckets = client.load_all_buckets().await;
             let result = CompleteInitializeResult::new(buckets);
@@ -474,8 +473,7 @@ impl App {
     pub fn load_objects(&self) {
         let bucket = self.current_bucket();
         let prefix = self.current_object_prefix();
-        let client = self.client.as_ref().unwrap().clone();
-        let tx = self.tx.clone();
+        let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
             let result = CompleteLoadObjectsResult::new(items);
@@ -510,9 +508,7 @@ impl App {
 
             let map_key = self.current_object_key_with_name(name.to_string());
 
-            let client = self.client.as_ref().unwrap().clone();
-            let tx = self.tx.clone();
-
+            let (client, tx) = self.unwrap_client_tx();
             spawn(async move {
                 let detail = client
                     .load_object_detail(&bucket, &key, &name, size_byte)
@@ -594,9 +590,7 @@ impl App {
             let config = self.config.as_ref().unwrap();
             let path = config.download_file_path(name);
 
-            let client = self.client.as_ref().unwrap().clone();
-            let tx = self.tx.clone();
-
+            let (client, tx) = self.unwrap_client_tx();
             spawn(async move {
                 let bytes = client.download_object(&bucket, &key).await;
                 let result = CompleteDownloadObjectResult::new(bytes, path);
@@ -633,7 +627,7 @@ impl App {
     }
 
     pub fn open_management_console(&self) {
-        let client = self.client.as_ref().unwrap();
+        let (client, _) = self.unwrap_client_tx();
 
         let result = match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Help(_) => Ok(()),
@@ -656,5 +650,9 @@ impl App {
         if let Err(e) = result {
             self.tx.send(AppEventType::Error(e)).unwrap();
         }
+    }
+
+    fn unwrap_client_tx(&self) -> (Arc<Client>, mpsc::Sender<AppEventType>) {
+        (self.client.as_ref().unwrap().clone(), self.tx.clone())
     }
 }
