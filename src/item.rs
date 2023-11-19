@@ -67,19 +67,11 @@ impl AppObjects {
         self.bucket_items.to_vec()
     }
 
-    pub fn get_bucket_items_len(&self) -> usize {
-        self.bucket_items.len()
-    }
-
-    pub fn get_items(&self, key: &ObjectKey) -> Vec<ObjectItem> {
+    pub fn get_object_items(&self, key: &ObjectKey) -> Vec<ObjectItem> {
         self.object_items_map
             .get(key)
             .unwrap_or(&Vec::new())
             .to_vec()
-    }
-
-    pub fn get_items_len(&self, key: &ObjectKey) -> usize {
-        self.object_items_map.get(key).unwrap_or(&Vec::new()).len()
     }
 
     pub fn get_bucket_item(&self, idx: usize) -> Option<&BucketItem> {
@@ -100,7 +92,7 @@ impl AppObjects {
         self.object_items_map.insert(key, items);
     }
 
-    pub fn exists_item(&self, key: &ObjectKey) -> bool {
+    pub fn exists_object_item(&self, key: &ObjectKey) -> bool {
         self.object_items_map.contains_key(key)
     }
 

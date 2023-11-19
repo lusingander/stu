@@ -233,15 +233,16 @@ impl App {
     }
 
     fn bucket_items_len(&self) -> usize {
-        self.app_objects.get_bucket_items_len()
+        self.bucket_items().len()
     }
 
     pub fn current_object_items(&self) -> Vec<ObjectItem> {
-        self.app_objects.get_items(&self.current_object_key())
+        self.app_objects
+            .get_object_items(&self.current_object_key())
     }
 
-    fn current_items_len(&self) -> usize {
-        self.app_objects.get_items_len(&self.current_object_key())
+    fn current_object_items_len(&self) -> usize {
+        self.current_object_items().len()
     }
 
     fn get_current_selected_bucket_item(&self) -> Option<&BucketItem> {
@@ -293,7 +294,7 @@ impl App {
             }
             ViewState::ObjectList => {
                 let current_selected = self.app_view_state.list_state.selected;
-                let len = self.current_items_len();
+                let len = self.current_object_items_len();
                 if len == 0 || current_selected >= len - 1 {
                     self.app_view_state.list_state.select_first();
                 } else {
@@ -319,7 +320,7 @@ impl App {
             }
             ViewState::ObjectList => {
                 let current_selected = self.app_view_state.list_state.selected;
-                let len = self.current_items_len();
+                let len = self.current_object_items_len();
                 if len == 0 {
                     self.app_view_state.list_state.select_first();
                 } else if current_selected == 0 {
@@ -339,7 +340,7 @@ impl App {
                 self.app_view_state.list_state.select_next_page(len)
             }
             ViewState::ObjectList => {
-                let len = self.current_items_len();
+                let len = self.current_object_items_len();
                 self.app_view_state.list_state.select_next_page(len)
             }
         }
@@ -353,7 +354,7 @@ impl App {
                 self.app_view_state.list_state.select_prev_page(len)
             }
             ViewState::ObjectList => {
-                let len = self.current_items_len();
+                let len = self.current_object_items_len();
                 self.app_view_state.list_state.select_prev_page(len)
             }
         }
@@ -376,7 +377,7 @@ impl App {
                 self.app_view_state.list_state.select_last(len);
             }
             ViewState::ObjectList => {
-                let len = self.current_items_len();
+                let len = self.current_object_items_len();
                 self.app_view_state.list_state.select_last(len);
             }
         }
@@ -432,7 +433,8 @@ impl App {
     }
 
     fn exists_current_objects(&self) -> bool {
-        self.app_objects.exists_item(&self.current_object_key())
+        self.app_objects
+            .exists_object_item(&self.current_object_key())
     }
 
     pub fn move_up(&mut self) {
