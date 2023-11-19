@@ -20,6 +20,7 @@ use ratatui::{
 };
 use std::{
     io::{stdout, Result, Stdout},
+    panic,
     sync::mpsc::Sender,
 };
 use tokio::spawn;
@@ -49,21 +50,21 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let mut stdout = stdout();
-    let mut terminal = setup(&mut stdout)?;
+    initialize_panic_handler();
 
+    let mut terminal = setup()?;
     let ret = run(&mut terminal, args).await;
 
-    shutdown(&mut terminal)?;
+    shutdown()?;
 
     ret
 }
 
-fn setup(stdout: &mut Stdout) -> std::io::Result<Terminal<CrosstermBackend<&mut Stdout>>> {
+fn setup() -> std::io::Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout(), EnterAlternateScreen)?;
 
-    let backend = CrosstermBackend::new(stdout);
+    let backend = CrosstermBackend::new(stdout());
     let terminal = Terminal::new(backend)?;
 
     Ok(terminal)
@@ -110,13 +111,16 @@ async fn load_config(
     };
 }
 
-fn shutdown<W: std::io::Write>(
-    terminal: &mut Terminal<CrosstermBackend<W>>,
-) -> std::io::Result<()> {
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+fn shutdown() -> std::io::Result<()> {
+    execute!(stdout(), LeaveAlternateScreen)?;
     disable_raw_mode()?;
-
-    terminal.show_cursor()?;
-
     Ok(())
+}
+
+fn initialize_panic_handler() {
+    let original_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |panic_info| {
+        shutdown().unwrap();
+        original_hook(panic_info);
+    }));
 }
