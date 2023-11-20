@@ -227,21 +227,21 @@ impl App {
         }
     }
 
-    pub fn bucket_items(&self) -> Vec<BucketItem> {
-        self.app_objects.get_bucket_items()
+    fn current_items_len(&self) -> usize {
+        match self.app_view_state.view_state {
+            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => 0,
+            ViewState::BucketList => self.bucket_items().len(),
+            ViewState::ObjectList => self.current_object_items().len(),
+        }
     }
 
-    fn bucket_items_len(&self) -> usize {
-        self.bucket_items().len()
+    pub fn bucket_items(&self) -> Vec<BucketItem> {
+        self.app_objects.get_bucket_items()
     }
 
     pub fn current_object_items(&self) -> Vec<ObjectItem> {
         self.app_objects
             .get_object_items(&self.current_object_key())
-    }
-
-    fn current_object_items_len(&self) -> usize {
-        self.current_object_items().len()
     }
 
     fn get_current_selected_bucket_item(&self) -> Option<&BucketItem> {
@@ -282,18 +282,9 @@ impl App {
     pub fn select_next(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList => {
+            ViewState::BucketList | ViewState::ObjectList => {
                 let current_selected = self.app_view_state.list_state.selected;
-                let len = self.bucket_items_len();
-                if len == 0 || current_selected >= len - 1 {
-                    self.app_view_state.list_state.select_first();
-                } else {
-                    self.app_view_state.list_state.select_next();
-                };
-            }
-            ViewState::ObjectList => {
-                let current_selected = self.app_view_state.list_state.selected;
-                let len = self.current_object_items_len();
+                let len = self.current_items_len();
                 if len == 0 || current_selected >= len - 1 {
                     self.app_view_state.list_state.select_first();
                 } else {
@@ -306,20 +297,9 @@ impl App {
     pub fn select_prev(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList => {
+            ViewState::BucketList | ViewState::ObjectList => {
                 let current_selected = self.app_view_state.list_state.selected;
-                let len = self.bucket_items_len();
-                if len == 0 {
-                    self.app_view_state.list_state.select_first();
-                } else if current_selected == 0 {
-                    self.app_view_state.list_state.select_last(len);
-                } else {
-                    self.app_view_state.list_state.select_prev();
-                };
-            }
-            ViewState::ObjectList => {
-                let current_selected = self.app_view_state.list_state.selected;
-                let len = self.current_object_items_len();
+                let len = self.current_items_len();
                 if len == 0 {
                     self.app_view_state.list_state.select_first();
                 } else if current_selected == 0 {
@@ -334,12 +314,8 @@ impl App {
     pub fn select_next_page(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList => {
-                let len = self.bucket_items_len();
-                self.app_view_state.list_state.select_next_page(len)
-            }
-            ViewState::ObjectList => {
-                let len = self.current_object_items_len();
+            ViewState::BucketList | ViewState::ObjectList => {
+                let len = self.current_items_len();
                 self.app_view_state.list_state.select_next_page(len)
             }
         }
@@ -348,12 +324,8 @@ impl App {
     pub fn select_prev_page(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList => {
-                let len = self.bucket_items_len();
-                self.app_view_state.list_state.select_prev_page(len)
-            }
-            ViewState::ObjectList => {
-                let len = self.current_object_items_len();
+            ViewState::BucketList | ViewState::ObjectList => {
+                let len = self.current_items_len();
                 self.app_view_state.list_state.select_prev_page(len)
             }
         }
@@ -371,12 +343,8 @@ impl App {
     pub fn select_last(&mut self) {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
-            ViewState::BucketList => {
-                let len = self.bucket_items_len();
-                self.app_view_state.list_state.select_last(len);
-            }
-            ViewState::ObjectList => {
-                let len = self.current_object_items_len();
+            ViewState::BucketList | ViewState::ObjectList => {
+                let len = self.current_items_len();
                 self.app_view_state.list_state.select_last(len);
             }
         }
