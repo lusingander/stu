@@ -204,38 +204,7 @@ fn render_bucket_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) 
     let list = build_list(list_items, current_items.len(), list_state.current_selected);
     f.render_widget(list, chunks[1]);
 
-    // fixme:
-    let scrollbar_area = chunks[1].inner(&Margin {
-        horizontal: 1,
-        vertical: 1,
-    });
-    let current_items_len = current_items.len() as u16;
-    if current_items_len > scrollbar_area.height {
-        let mut scrollbar_state = ScrollbarState::default()
-            .content_length(current_items_len)
-            .viewport_content_length(scrollbar_area.height)
-            .position(list_state.current_selected as u16);
-        let scrollbar = Scrollbar::default()
-            .begin_symbol(None)
-            .end_symbol(None)
-            .track_symbol(Some(VERTICAL.track))
-            .track_style(Style::default().fg(Color::DarkGray))
-            .thumb_symbol(VERTICAL.thumb)
-            .thumb_style(Style::default().fg(Color::DarkGray));
-        f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state)
-    }
-    // fixme:
-    //  It seems to be better to calculate based on offset position
-    //  Scrolling with f/b has been implemented by extending the list independently,
-    //  but this does not seem to be suitable for standard scrolling behavior
-    //
-    // if current_items.len() as u16 > (scrollbar_area.height - 1) {
-    //     let scrollbar_content_length = (current_items.len() as u16) - (scrollbar_area.height - 1);
-    //     let mut scrollbar_state = ScrollbarState::default()
-    //         .content_length(scrollbar_content_length)
-    //         .viewport_content_length(scrollbar_area.height - 1)
-    //         .position(current_offset as u16);
-    // }
+    render_list_scroll_bar(f, chunks[1], list_state, current_items.len());
 }
 
 fn render_object_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
@@ -261,17 +230,31 @@ fn render_object_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) 
     let list = build_list(list_items, current_items.len(), list_state.current_selected);
     f.render_widget(list, chunks[1]);
 
+    render_list_scroll_bar(f, chunks[1], list_state, current_items.len());
+}
+
+fn render_list_scroll_bar<B: Backend>(
+    f: &mut Frame<B>,
+    area: Rect,
+    list_state: ListViewState,
+    current_items_len: usize,
+) {
     // fixme:
-    let scrollbar_area = chunks[1].inner(&Margin {
+    //  It seems to be better to calculate based on offset position
+    //  Scrolling with f/b has been implemented by extending the list independently,
+    //  but this does not seem to be suitable for standard scrolling behavior
+
+    let current_items_len = current_items_len as u16;
+    let current_selected = list_state.current_selected as u16;
+    let scrollbar_area = area.inner(&Margin {
         horizontal: 1,
         vertical: 1,
     });
-    let current_items_len = current_items.len() as u16;
     if current_items_len > scrollbar_area.height {
         let mut scrollbar_state = ScrollbarState::default()
             .content_length(current_items_len)
             .viewport_content_length(scrollbar_area.height)
-            .position(list_state.current_selected as u16);
+            .position(current_selected);
         let scrollbar = Scrollbar::default()
             .begin_symbol(None)
             .end_symbol(None)
