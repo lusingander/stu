@@ -493,11 +493,11 @@ fn format_file_item(
     if show_file_detail {
         let size = format_size_byte(*size_byte);
         let date = format_datetime(last_modified);
-        let date_w: usize = 17;
+        let date_w: usize = 19;
         let size_w: usize = 10;
-        let name_w: usize = (width as usize) - date_w - size_w - 12 /* spaces */ - 2 /* border */;
+        let name_w: usize = (width as usize) - date_w - size_w - 10 /* spaces */ - 4 /* border + space */;
         format!(
-            " {:<name_w$}    {:<date_w$}    {:<size_w$} ",
+            " {:<name_w$}    {:<date_w$}    {:>size_w$} ",
             name,
             date,
             size,
@@ -506,7 +506,7 @@ fn format_file_item(
             size_w = size_w
         )
     } else {
-        let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
+        let name_w: usize = (width as usize) - 2 /* spaces */ - 4 /* border */;
         format!(" {:<name_w$} ", name, name_w = name_w)
     }
 }
@@ -602,7 +602,7 @@ fn format_size_byte(size_byte: i64) -> String {
 }
 
 fn format_datetime(datetime: &DateTime<Local>) -> String {
-    datetime.format("%y/%m/%d %H:%M:%S").to_string()
+    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
 }
 
 fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
