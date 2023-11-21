@@ -27,6 +27,12 @@ const APP_NAME: &str = "STU";
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
+const DIVIDER_COLOR: Color = Color::DarkGray;
+const SCROLLBAR_COLOR: Color = Color::DarkGray;
+const LINK_TEXT_COLOR: Color = Color::Blue;
+const SHORT_HELP_COLOR: Color = Color::DarkGray;
+const INFO_STATUS_COLOR: Color = Color::Green;
+const ERROR_STATUS_COLOR: Color = Color::Red;
 
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
 const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
@@ -259,9 +265,9 @@ fn render_list_scroll_bar<B: Backend>(
             .begin_symbol(None)
             .end_symbol(None)
             .track_symbol(Some(VERTICAL.track))
-            .track_style(Style::default().fg(Color::DarkGray))
+            .track_style(Style::default().fg(SCROLLBAR_COLOR))
             .thumb_symbol(VERTICAL.thumb)
-            .thumb_style(Style::default().fg(Color::DarkGray));
+            .thumb_style(Style::default().fg(SCROLLBAR_COLOR));
         f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state)
     }
 }
@@ -612,7 +618,7 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
                 ]),
                 Line::from(Span::styled(
                     "-".repeat(width as usize),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(DIVIDER_COLOR),
                 )),
             ];
             ListItem::new(content)
@@ -640,12 +646,12 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
         Line::from(""),
         Line::from(Span::styled(
             format!("  {}", APP_HOMEPAGE),
-            Style::default().fg(Color::Blue),
+            Style::default().fg(LINK_TEXT_COLOR),
         )),
         Line::from(""),
         Line::from(Span::styled(
             format!(" {}", "-".repeat(w)),
-            Style::default().fg(Color::DarkGray),
+            Style::default().fg(DIVIDER_COLOR),
         )),
         Line::from(""),
     ]
@@ -736,7 +742,7 @@ fn build_short_help(app: &App) -> Paragraph {
         }
         ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
     };
-    Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray)))
+    Paragraph::new(Span::styled(help, Style::default().fg(SHORT_HELP_COLOR)))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
@@ -745,7 +751,7 @@ fn build_info_status(msg: &String) -> Paragraph {
         msg,
         Style::default()
             .add_modifier(Modifier::BOLD)
-            .fg(Color::Green),
+            .fg(INFO_STATUS_COLOR),
     ))
     .block(Block::default().padding(Padding::horizontal(2)))
 }
@@ -754,7 +760,9 @@ fn build_error_status(err: &String) -> Paragraph {
     let err = format!("ERROR: {}", err);
     Paragraph::new(Span::styled(
         err,
-        Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
+        Style::default()
+            .add_modifier(Modifier::BOLD)
+            .fg(ERROR_STATUS_COLOR),
     ))
     .block(Block::default().padding(Padding::horizontal(2)))
 }
