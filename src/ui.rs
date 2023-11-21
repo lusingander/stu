@@ -330,6 +330,7 @@ fn build_header(app: &App) -> Paragraph {
     Paragraph::new(Span::styled(current_key, Style::default())).block(
         Block::default()
             .title(Span::styled(APP_NAME, Style::default()))
+            .padding(Padding::horizontal(1))
             .borders(Borders::all()),
     )
 }
@@ -338,15 +339,10 @@ fn build_list(list_items: Vec<ListItem>, total_count: usize, current_selected: u
     let title = format_list_count(total_count, current_selected);
     List::new(list_items).block(
         Block::default()
-            .borders(Borders::all())
             .title(title)
             .title_alignment(Alignment::Right)
-            .padding(Padding {
-                left: 1,
-                right: 1,
-                top: 0,
-                bottom: 0,
-            }),
+            .padding(Padding::horizontal(1))
+            .borders(Borders::all()),
     )
 }
 
@@ -740,28 +736,27 @@ fn build_short_help(app: &App) -> Paragraph {
         }
         ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
     };
-    let help = format!("  {}", help);
-    Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray))).block(Block::default())
+    Paragraph::new(Span::styled(help, Style::default().fg(Color::DarkGray)))
+        .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn build_info_status(msg: &String) -> Paragraph {
-    let msg = format!("  {}", msg);
     Paragraph::new(Span::styled(
         msg,
         Style::default()
             .add_modifier(Modifier::BOLD)
             .fg(Color::Green),
     ))
-    .block(Block::default())
+    .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn build_error_status(err: &String) -> Paragraph {
-    let err = format!("  ERROR: {}", err);
+    let err = format!("ERROR: {}", err);
     Paragraph::new(Span::styled(
         err,
         Style::default().add_modifier(Modifier::BOLD).fg(Color::Red),
     ))
-    .block(Block::default())
+    .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn render_footer<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {

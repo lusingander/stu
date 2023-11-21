@@ -188,11 +188,9 @@ impl App {
     pub fn object_key_breadcrumb_string(&self) -> String {
         match &self.current_bucket {
             Some(b) => {
-                if self.current_path.is_empty() {
-                    format!(" {}", b.name)
-                } else {
-                    format!(" {} / {} ", b.name, self.current_path.join(" / "))
-                }
+                let mut current_path = self.current_path.to_vec();
+                current_path.insert(0, b.name.to_string());
+                current_path.join(" / ")
             }
             None => "".to_string(),
         }
