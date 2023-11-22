@@ -1,4 +1,4 @@
-use aws_config::meta::region::RegionProviderChain;
+use aws_config::{meta::region::RegionProviderChain, BehaviorVersion};
 use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output};
 use chrono::TimeZone;
 
@@ -25,7 +25,8 @@ impl Client {
             .or_default_provider()
             .or_else(DEFAULT_REGION);
 
-        let mut config_loader = aws_config::from_env().region(region_provider);
+        let mut config_loader =
+            aws_config::defaults(BehaviorVersion::latest()).region(region_provider);
         if let Some(url) = &endpoint_url {
             config_loader = config_loader.endpoint_url(url);
         }
@@ -52,7 +53,6 @@ impl Client {
 
         let buckets: Vec<BucketItem> = output
             .buckets()
-            .unwrap_or_default()
             .iter()
             .map(|bucket| {
                 let name = bucket.name().unwrap().to_string();
@@ -146,13 +146,12 @@ impl Client {
 
         let versions = output
             .versions()
-            .unwrap_or_default()
             .iter()
             .map(|v| {
                 let version_id = v.version_id().unwrap().to_string(); // returns "null" if empty...
-                let size_byte = v.size();
+                let size_byte = v.size().unwrap();
                 let last_modified = convert_datetime(v.last_modified().unwrap());
-                let is_latest = v.is_latest();
+                let is_latest = v.is_latest().unwrap();
                 FileVersion {
                     version_id,
                     size_byte,
@@ -215,7 +214,7 @@ impl Client {
 }
 
 fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
-    let objects = output.common_prefixes().unwrap_or_default();
+    let objects = output.common_prefixes();
     objects
         .iter()
         .map(|dir| {
@@ -228,14 +227,14 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
 }
 
 fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
-    let objects = output.contents().unwrap_or_default();
+    let objects = output.contents();
     objects
         .iter()
         .map(|file| {
             let path = file.key().unwrap();
             let paths = parse_path(path, false);
             let name = paths.last().unwrap().to_owned();
-            let size_byte = file.size();
+            let size_byte = file.size().unwrap();
             let last_modified = convert_datetime(file.last_modified().unwrap());
             ObjectItem::File {
                 name,
