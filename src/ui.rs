@@ -4,7 +4,7 @@ use ratatui::{
     backend::Backend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     prelude::Margin,
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     symbols::scrollbar::VERTICAL,
     text::{Line, Span},
     widgets::{
@@ -518,10 +518,7 @@ fn build_file_detail_block() -> Block<'static> {
 }
 
 fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
-    let tabs = vec![
-        Line::from(Span::styled("Detail", Style::default())),
-        Line::from(Span::styled("Version", Style::default())),
-    ];
+    let tabs = vec![Line::from("Detail"), Line::from("Version")];
     Tabs::new(tabs)
         .select(*selected as usize)
         .highlight_style(
@@ -534,50 +531,20 @@ fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
 
 fn build_file_detail(detail: &FileDetail) -> Paragraph {
     let text = vec![
-        Line::from(Span::styled(
-            " Name:",
-            Style::default().add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            format!("  {}", &detail.name),
-            Style::default(),
-        )),
+        Line::from(" Name:".add_modifier(Modifier::BOLD)),
+        Line::from(format!("  {}", &detail.name)),
         Line::from(""),
-        Line::from(Span::styled(
-            " Size:",
-            Style::default().add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            format!("  {}", format_size_byte(detail.size_byte)),
-            Style::default(),
-        )),
+        Line::from(" Size:".add_modifier(Modifier::BOLD)),
+        Line::from(format!("  {}", format_size_byte(detail.size_byte))),
         Line::from(""),
-        Line::from(Span::styled(
-            " Last Modified:",
-            Style::default().add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            format!("  {}", format_datetime(&detail.last_modified)),
-            Style::default(),
-        )),
+        Line::from(" Last Modified:".add_modifier(Modifier::BOLD)),
+        Line::from(format!("  {}", format_datetime(&detail.last_modified))),
         Line::from(""),
-        Line::from(Span::styled(
-            " ETag:",
-            Style::default().add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            format!("  {}", &detail.e_tag),
-            Style::default(),
-        )),
+        Line::from(" ETag:".add_modifier(Modifier::BOLD)),
+        Line::from(format!("  {}", &detail.e_tag)),
         Line::from(""),
-        Line::from(Span::styled(
-            " Content-Type:",
-            Style::default().add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            format!("  {}", &detail.content_type),
-            Style::default(),
-        )),
+        Line::from(" Content-Type:".add_modifier(Modifier::BOLD)),
+        Line::from(format!("  {}", &detail.content_type)),
     ];
     Paragraph::new(text).block(Block::default())
 }
@@ -596,30 +563,18 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .map(|v| {
             let content = vec![
                 Line::from(vec![
-                    Span::styled(
-                        "    Version ID: ",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(&v.version_id, Style::default()),
+                    "    Version ID: ".add_modifier(Modifier::BOLD),
+                    Span::raw(&v.version_id),
                 ]),
                 Line::from(vec![
-                    Span::styled(
-                        " Last Modified: ",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(format_datetime(&v.last_modified), Style::default()),
+                    " Last Modified: ".add_modifier(Modifier::BOLD),
+                    Span::raw(format_datetime(&v.last_modified)),
                 ]),
                 Line::from(vec![
-                    Span::styled(
-                        "          Size: ",
-                        Style::default().add_modifier(Modifier::BOLD),
-                    ),
-                    Span::styled(format_size_byte(v.size_byte), Style::default()),
+                    "          Size: ".add_modifier(Modifier::BOLD),
+                    Span::raw(format_size_byte(v.size_byte)),
                 ]),
-                Line::from(Span::styled(
-                    "-".repeat(width as usize),
-                    Style::default().fg(DIVIDER_COLOR),
-                )),
+                Line::from("-".repeat(width as usize).fg(DIVIDER_COLOR)),
             ];
             ListItem::new(content)
         })
@@ -634,25 +589,13 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
 
     let app_detail = vec![
         Line::from(""),
-        Line::from(Span::styled(
-            format!("  {} - {}", APP_NAME, APP_DESCRIPTION),
-            Style::default(),
-        )),
+        Line::from(format!("  {} - {}", APP_NAME, APP_DESCRIPTION)),
         Line::from(""),
-        Line::from(Span::styled(
-            format!("  Version: {}", APP_VERSION),
-            Style::default(),
-        )),
+        Line::from(format!("  Version: {}", APP_VERSION)),
         Line::from(""),
-        Line::from(Span::styled(
-            format!("  {}", APP_HOMEPAGE),
-            Style::default().fg(LINK_TEXT_COLOR),
-        )),
+        Line::from(format!("  {}", APP_HOMEPAGE).fg(LINK_TEXT_COLOR)),
         Line::from(""),
-        Line::from(Span::styled(
-            format!(" {}", "-".repeat(w)),
-            Style::default().fg(DIVIDER_COLOR),
-        )),
+        Line::from(format!(" {}", "-".repeat(w)).fg(DIVIDER_COLOR)),
         Line::from(""),
     ]
     .into_iter();
@@ -661,66 +604,55 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
             ViewState::Initializing | ViewState::Help(_) => vec![],
             ViewState::BucketList => {
                 vec![
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <f>: Scroll page forward,  <b>: Scroll page backward",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <Enter>: Open bucket",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <x>: Open management console in browser",
-                        Style::default(),
-                    )),
+                    ),
                 ]
             }
             ViewState::ObjectList => {
                 vec![
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <f>: Scroll page forward,  <b>: Scroll page backward",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <~>: Go back to bucket list",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <x>: Open management console in browser",
-                        Style::default(),
-                    )),
+                    ),
                 ]
             }
             ViewState::Detail(_) => {
                 vec![
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
-                        Style::default(),
-                    )),
+                    ),
                     Line::from(""),
-                    Line::from(Span::styled(
+                    Line::from(
                         "  <s>: Download object,  <x>: Open management console in browser",
-                        Style::default(),
-                    )),
+                    ),
                 ]
             }
         }
@@ -742,29 +674,19 @@ fn build_short_help(app: &App) -> Paragraph {
         }
         ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
     };
-    Paragraph::new(Span::styled(help, Style::default().fg(SHORT_HELP_COLOR)))
+    Paragraph::new(help.fg(SHORT_HELP_COLOR))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_info_status(msg: &String) -> Paragraph {
-    Paragraph::new(Span::styled(
-        msg,
-        Style::default()
-            .add_modifier(Modifier::BOLD)
-            .fg(INFO_STATUS_COLOR),
-    ))
-    .block(Block::default().padding(Padding::horizontal(2)))
+fn build_info_status(msg: &str) -> Paragraph {
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(INFO_STATUS_COLOR))
+        .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_error_status(err: &String) -> Paragraph {
+fn build_error_status(err: &str) -> Paragraph {
     let err = format!("ERROR: {}", err);
-    Paragraph::new(Span::styled(
-        err,
-        Style::default()
-            .add_modifier(Modifier::BOLD)
-            .fg(ERROR_STATUS_COLOR),
-    ))
-    .block(Block::default().padding(Padding::horizontal(2)))
+    Paragraph::new(err.add_modifier(Modifier::BOLD).fg(ERROR_STATUS_COLOR))
+        .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
@@ -785,13 +707,7 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn build_loading_dialog(msg: &str) -> Paragraph {
-    let text = vec![
-        Line::from(""),
-        Line::from(Span::styled(
-            msg,
-            Style::default().add_modifier(Modifier::BOLD),
-        )),
-    ];
+    let text = vec![Line::from(""), Line::from(msg.add_modifier(Modifier::BOLD))];
     Paragraph::new(text).alignment(Alignment::Center).block(
         Block::default()
             .borders(Borders::all())
