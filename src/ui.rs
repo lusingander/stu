@@ -153,7 +153,7 @@ pub async fn run<B: Backend>(
     }
 }
 
-fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
+fn render(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Min(0), Constraint::Length(2)].as_ref())
@@ -164,7 +164,7 @@ fn render<B: Backend>(f: &mut Frame<B>, app: &App) {
     render_loading_dialog(f, app);
 }
 
-fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+fn render_content(f: &mut Frame, area: Rect, app: &App) {
     match &app.app_view_state.view_state {
         ViewState::Initializing => render_initializing_view(f, area, app),
         ViewState::BucketList => render_bucket_list_view(f, area, app),
@@ -174,7 +174,7 @@ fn render_content<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
     }
 }
 
-fn render_initializing_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
@@ -187,7 +187,7 @@ fn render_initializing_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App)
     f.render_widget(content, chunks[1]);
 }
 
-fn render_bucket_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
@@ -213,7 +213,7 @@ fn render_bucket_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) 
     render_list_scroll_bar(f, chunks[1], list_state, current_items.len());
 }
 
-fn render_object_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+fn render_object_list_view(f: &mut Frame, area: Rect, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
@@ -239,8 +239,8 @@ fn render_object_list_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) 
     render_list_scroll_bar(f, chunks[1], list_state, current_items.len());
 }
 
-fn render_list_scroll_bar<B: Backend>(
-    f: &mut Frame<B>,
+fn render_list_scroll_bar(
+    f: &mut Frame,
     area: Rect,
     list_state: ListViewState,
     current_items_len: usize,
@@ -250,16 +250,16 @@ fn render_list_scroll_bar<B: Backend>(
     //  Scrolling with f/b has been implemented by extending the list independently,
     //  but this does not seem to be suitable for standard scrolling behavior
 
-    let current_items_len = current_items_len as u16;
-    let current_selected = list_state.current_selected as u16;
+    let current_selected = list_state.current_selected;
     let scrollbar_area = area.inner(&Margin {
         horizontal: 1,
         vertical: 1,
     });
-    if current_items_len > scrollbar_area.height {
+    let scrollbar_area_height = scrollbar_area.height as usize;
+    if current_items_len > scrollbar_area_height {
         let mut scrollbar_state = ScrollbarState::default()
             .content_length(current_items_len)
-            .viewport_content_length(scrollbar_area.height)
+            .viewport_content_length(scrollbar_area_height)
             .position(current_selected);
         let scrollbar = Scrollbar::default()
             .begin_symbol(None)
@@ -272,7 +272,7 @@ fn render_list_scroll_bar<B: Backend>(
     }
 }
 
-fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &DetailViewState) {
+fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
@@ -326,7 +326,7 @@ fn render_detail_view<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App, vs: &
     }
 }
 
-fn render_help_view<B: Backend>(f: &mut Frame<B>, area: Rect, before: &ViewState) {
+fn render_help_view(f: &mut Frame, area: Rect, before: &ViewState) {
     let content = build_help(before, f.size().width);
     f.render_widget(content, area);
 }
@@ -767,7 +767,7 @@ fn build_error_status(err: &String) -> Paragraph {
     .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn render_footer<B: Backend>(f: &mut Frame<B>, area: Rect, app: &App) {
+fn render_footer(f: &mut Frame, area: Rect, app: &App) {
     match &app.app_view_state.notification {
         Notification::Info(msg) => {
             let msg = build_info_status(msg);
@@ -825,7 +825,7 @@ fn calc_loading_dialog_rect(r: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
-fn render_loading_dialog<B: Backend>(f: &mut Frame<B>, app: &App) {
+fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...");
         let area = calc_loading_dialog_rect(f.size());
