@@ -1,5 +1,6 @@
 mod app;
 mod client;
+mod component;
 mod config;
 mod error;
 mod event;

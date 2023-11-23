@@ -3,6 +3,7 @@ use tokio::spawn;
 
 use crate::{
     client::Client,
+    component::AppListState,
     config::Config,
     error::{AppError, Result},
     event::{
@@ -12,86 +13,6 @@ use crate::{
     file::{save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey},
 };
-
-pub struct AppListState {
-    pub selected: usize,
-    pub offset: usize,
-    height: usize,
-}
-
-impl AppListState {
-    fn new(height: usize) -> AppListState {
-        AppListState {
-            selected: 0,
-            offset: 0,
-            height: AppListState::calc_list_height(height),
-        }
-    }
-
-    fn select_next(&mut self) {
-        if self.selected - self.offset == self.height - 1 {
-            self.offset += 1;
-        }
-        self.selected += 1;
-    }
-
-    fn select_prev(&mut self) {
-        if self.selected - self.offset == 0 {
-            self.offset -= 1;
-        }
-        self.selected -= 1;
-    }
-
-    fn select_next_page(&mut self, total: usize) {
-        if total < self.height {
-            self.selected = total - 1;
-            self.offset = 0;
-        } else if self.selected + self.height < total - 1 {
-            self.selected += self.height;
-            if self.selected + self.height > total - 1 {
-                self.offset = total - self.height;
-            } else {
-                self.offset = self.selected;
-            }
-        } else {
-            self.selected = total - 1;
-            self.offset = total - self.height;
-        }
-    }
-
-    fn select_prev_page(&mut self, total: usize) {
-        if total < self.height {
-            self.selected = 0;
-            self.offset = 0;
-        } else if self.selected > self.height {
-            self.selected -= self.height;
-            if self.selected < self.height {
-                self.offset = 0;
-            } else {
-                self.offset = self.selected - self.height + 1;
-            }
-        } else {
-            self.selected = 0;
-            self.offset = 0;
-        }
-    }
-
-    fn select_first(&mut self) {
-        self.selected = 0;
-        self.offset = 0;
-    }
-
-    fn select_last(&mut self, total: usize) {
-        self.selected = total - 1;
-        if self.height < total {
-            self.offset = total - self.height;
-        }
-    }
-
-    fn calc_list_height(height: usize) -> usize {
-        height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
-    }
-}
 
 #[derive(PartialEq, Eq, Clone)]
 pub enum ViewState {
