@@ -19,7 +19,7 @@ use crate::{
     app::{App, DetailViewState, Notification, ViewState},
     event::AppEventType,
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
-    key_code, key_code_char,
+    key_code, key_code_char, lines_with_empty_line,
 };
 
 const APP_NAME: &str = "STU";
@@ -601,61 +601,31 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     .into_iter();
 
     let help = match before {
-            ViewState::Initializing | ViewState::Help(_) => vec![],
-            ViewState::BucketList => {
-                vec![
-                    Line::from(
-                        "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <f>: Scroll page forward,  <b>: Scroll page backward",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <Enter>: Open bucket",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <x>: Open management console in browser",
-                    ),
-                ]
-            }
-            ViewState::ObjectList => {
-                vec![
-                    Line::from(
-                        "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <f>: Scroll page forward,  <b>: Scroll page backward",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <~>: Go back to bucket list",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <x>: Open management console in browser",
-                    ),
-                ]
-            }
-            ViewState::Detail(_) => {
-                vec![
-                    Line::from(
-                        "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
-                    ),
-                    Line::from(""),
-                    Line::from(
-                        "  <s>: Download object,  <x>: Open management console in browser",
-                    ),
-                ]
-            }
+        ViewState::Initializing | ViewState::Help(_) => vec![],
+        ViewState::BucketList => {
+            lines_with_empty_line![
+                "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
+                "  <f>: Scroll page forward,  <b>: Scroll page backward",
+                "  <Enter>: Open bucket",
+                "  <x>: Open management console in browser",
+            ]
         }
+        ViewState::ObjectList => {
+            lines_with_empty_line![
+                "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
+                "  <f>: Scroll page forward,  <b>: Scroll page backward",
+                "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
+                "  <~>: Go back to bucket list",
+                "  <x>: Open management console in browser",
+            ]
+        }
+        ViewState::Detail(_) => {
+            lines_with_empty_line![
+                "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
+                "  <s>: Download object,  <x>: Open management console in browser",
+            ]
+        }
+    }
     .into_iter();
 
     let content: Vec<Line> = app_detail.chain(help).collect();
