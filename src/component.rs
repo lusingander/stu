@@ -73,3 +73,42 @@ impl AppListState {
         }
     }
 }
+
+pub struct AppListStates {
+    states: Vec<AppListState>,
+}
+
+impl AppListStates {
+    pub fn new(height: usize) -> AppListStates {
+        AppListStates {
+            states: vec![AppListState::new(height)],
+        }
+    }
+
+    pub fn push_new(&mut self) {
+        let s = self.current();
+        self.states.push(AppListState::new(s.height))
+    }
+
+    pub fn pop_current(&mut self) -> AppListState {
+        self.states.pop().unwrap()
+    }
+
+    pub fn clear(&mut self) {
+        self.states.truncate(1);
+    }
+
+    pub fn current(&self) -> &AppListState {
+        self.states.last().unwrap()
+    }
+
+    pub fn current_mut(&mut self) -> &mut AppListState {
+        self.states.last_mut().unwrap()
+    }
+
+    pub fn reset_height(&mut self, height: usize) {
+        self.states.iter_mut().for_each(|s| {
+            s.height = height;
+        })
+    }
+}

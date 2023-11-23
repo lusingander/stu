@@ -3,7 +3,7 @@ use tokio::spawn;
 
 use crate::{
     client::Client,
-    component::AppListState,
+    component::{AppListState, AppListStates},
     config::Config,
     error::{AppError, Result},
     event::{
@@ -36,7 +36,7 @@ pub enum Notification {
 }
 
 pub struct AppViewState {
-    list_states: Vec<AppListState>,
+    list_states: AppListStates,
     pub view_state: ViewState,
     pub notification: Notification,
     pub is_loading: bool,
@@ -44,9 +44,8 @@ pub struct AppViewState {
 
 impl AppViewState {
     fn new(height: usize) -> AppViewState {
-        let initial_list_state = AppListState::new(list_area_height(height));
         AppViewState {
-            list_states: vec![initial_list_state],
+            list_states: AppListStates::new(list_area_height(height)),
             view_state: ViewState::Initializing,
             notification: Notification::None,
             is_loading: true,
@@ -54,30 +53,27 @@ impl AppViewState {
     }
 
     pub fn push_new_list_state(&mut self) {
-        let s = self.current_list_state();
-        self.list_states.push(AppListState::new(s.height))
+        self.list_states.push_new();
     }
 
-    pub fn pop_current_list_state(&mut self) -> AppListState {
-        self.list_states.pop().unwrap()
+    pub fn pop_current_list_state(&mut self) {
+        self.list_states.pop_current();
     }
 
     pub fn clear_list_state(&mut self) {
-        self.list_states.truncate(1);
+        self.list_states.clear();
     }
 
     pub fn current_list_state(&self) -> &AppListState {
-        self.list_states.last().unwrap()
+        self.list_states.current()
     }
 
     pub fn current_list_state_mut(&mut self) -> &mut AppListState {
-        self.list_states.last_mut().unwrap()
+        self.list_states.current_mut()
     }
 
     pub fn reset_height(&mut self, height: usize) {
-        self.list_states.iter_mut().for_each(|s| {
-            s.height = height;
-        })
+        self.list_states.reset_height(height)
     }
 }
 
