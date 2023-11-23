@@ -44,8 +44,9 @@ pub struct AppViewState {
 
 impl AppViewState {
     fn new(height: usize) -> AppViewState {
+        let initial_list_state = AppListState::new(list_area_height(height));
         AppViewState {
-            list_states: vec![AppListState::new(height)],
+            list_states: vec![initial_list_state],
             view_state: ViewState::Initializing,
             notification: Notification::None,
             is_loading: true,
@@ -54,11 +55,7 @@ impl AppViewState {
 
     pub fn push_new_list_state(&mut self) {
         let s = self.current_list_state();
-        self.list_states.push(AppListState {
-            selected: 0,
-            offset: 0,
-            height: s.height,
-        })
+        self.list_states.push(AppListState::new(s.height))
     }
 
     pub fn pop_current_list_state(&mut self) -> AppListState {
@@ -133,7 +130,7 @@ impl App {
     }
 
     pub fn resize(&mut self, height: usize) {
-        let h = AppListState::calc_list_height(height);
+        let h = list_area_height(height);
         self.app_view_state.reset_height(h);
         // todo: adjust
     }
@@ -583,4 +580,8 @@ impl App {
     fn unwrap_client_tx(&self) -> (Arc<Client>, mpsc::Sender<AppEventType>) {
         (self.client.as_ref().unwrap().clone(), self.tx.clone())
     }
+}
+
+fn list_area_height(height: usize) -> usize {
+    height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
 }

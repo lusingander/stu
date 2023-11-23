@@ -9,7 +9,7 @@ impl AppListState {
         AppListState {
             selected: 0,
             offset: 0,
-            height: AppListState::calc_list_height(height),
+            height,
         }
     }
 
@@ -71,9 +71,5 @@ impl AppListState {
         if self.height < total {
             self.offset = total - self.height;
         }
-    }
-
-    pub fn calc_list_height(height: usize) -> usize {
-        height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
     }
 }
