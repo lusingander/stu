@@ -36,7 +36,7 @@ pub enum Notification {
 }
 
 pub struct AppViewState {
-    pub list_state: AppListState,
+    list_states: Vec<AppListState>,
     pub view_state: ViewState,
     pub notification: Notification,
     pub is_loading: bool,
@@ -45,11 +45,42 @@ pub struct AppViewState {
 impl AppViewState {
     fn new(height: usize) -> AppViewState {
         AppViewState {
-            list_state: AppListState::new(height),
+            list_states: vec![AppListState::new(height)],
             view_state: ViewState::Initializing,
             notification: Notification::None,
             is_loading: true,
         }
+    }
+
+    pub fn push_new_list_state(&mut self) {
+        let s = self.current_list_state();
+        self.list_states.push(AppListState {
+            selected: 0,
+            offset: 0,
+            height: s.height,
+        })
+    }
+
+    pub fn pop_current_list_state(&mut self) -> AppListState {
+        self.list_states.pop().unwrap()
+    }
+
+    pub fn clear_list_state(&mut self) {
+        self.list_states.truncate(1);
+    }
+
+    pub fn current_list_state(&self) -> &AppListState {
+        self.list_states.last().unwrap()
+    }
+
+    pub fn current_list_state_mut(&mut self) -> &mut AppListState {
+        self.list_states.last_mut().unwrap()
+    }
+
+    pub fn reset_height(&mut self, height: usize) {
+        self.list_states.iter_mut().for_each(|s| {
+            s.height = height;
+        })
     }
 }
 
@@ -102,7 +133,8 @@ impl App {
     }
 
     pub fn resize(&mut self, height: usize) {
-        self.app_view_state.list_state.height = AppListState::calc_list_height(height);
+        let h = AppListState::calc_list_height(height);
+        self.app_view_state.reset_height(h);
         // todo: adjust
     }
 
@@ -164,12 +196,12 @@ impl App {
     }
 
     fn get_current_selected_bucket_item(&self) -> Option<&BucketItem> {
-        let i = self.app_view_state.list_state.selected;
+        let i = self.app_view_state.current_list_state().selected;
         self.app_objects.get_bucket_item(i)
     }
 
     fn get_current_selected_object_item(&self) -> Option<&ObjectItem> {
-        let i = self.app_view_state.list_state.selected;
+        let i = self.app_view_state.current_list_state().selected;
         self.app_objects
             .get_object_item(&self.current_object_key(), i)
     }
@@ -202,12 +234,12 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
-                let current_selected = self.app_view_state.list_state.selected;
+                let current_selected = self.app_view_state.current_list_state().selected;
                 let len = self.current_items_len();
                 if len == 0 || current_selected >= len - 1 {
-                    self.app_view_state.list_state.select_first();
+                    self.app_view_state.current_list_state_mut().select_first();
                 } else {
-                    self.app_view_state.list_state.select_next();
+                    self.app_view_state.current_list_state_mut().select_next();
                 };
             }
         }
@@ -217,14 +249,16 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
-                let current_selected = self.app_view_state.list_state.selected;
+                let current_selected = self.app_view_state.current_list_state().selected;
                 let len = self.current_items_len();
                 if len == 0 {
-                    self.app_view_state.list_state.select_first();
+                    self.app_view_state.current_list_state_mut().select_first();
                 } else if current_selected == 0 {
-                    self.app_view_state.list_state.select_last(len);
+                    self.app_view_state
+                        .current_list_state_mut()
+                        .select_last(len);
                 } else {
-                    self.app_view_state.list_state.select_prev();
+                    self.app_view_state.current_list_state_mut().select_prev();
                 };
             }
         }
@@ -235,7 +269,9 @@ impl App {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let len = self.current_items_len();
-                self.app_view_state.list_state.select_next_page(len)
+                self.app_view_state
+                    .current_list_state_mut()
+                    .select_next_page(len)
             }
         }
     }
@@ -245,7 +281,9 @@ impl App {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let len = self.current_items_len();
-                self.app_view_state.list_state.select_prev_page(len)
+                self.app_view_state
+                    .current_list_state_mut()
+                    .select_prev_page(len)
             }
         }
     }
@@ -254,7 +292,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
-                self.app_view_state.list_state.select_first();
+                self.app_view_state.current_list_state_mut().select_first();
             }
         }
     }
@@ -264,7 +302,9 @@ impl App {
             ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let len = self.current_items_len();
-                self.app_view_state.list_state.select_last(len);
+                self.app_view_state
+                    .current_list_state_mut()
+                    .select_last(len);
             }
         }
     }
@@ -275,7 +315,7 @@ impl App {
             ViewState::BucketList => {
                 if let Some(selected) = self.get_current_selected_bucket_item() {
                     self.current_bucket = Some(selected.to_owned());
-                    self.app_view_state.list_state.select_first();
+                    self.app_view_state.push_new_list_state();
                     self.app_view_state.view_state = ViewState::ObjectList;
 
                     if !self.exists_current_objects() {
@@ -296,7 +336,7 @@ impl App {
                         }
                     } else {
                         self.current_path.push(selected.name().to_owned());
-                        self.app_view_state.list_state.select_first();
+                        self.app_view_state.push_new_list_state();
 
                         if !self.exists_current_objects() {
                             self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -332,7 +372,7 @@ impl App {
                     self.app_view_state.view_state = ViewState::BucketList;
                     self.current_bucket = None;
                 }
-                self.app_view_state.list_state.select_first();
+                self.app_view_state.pop_current_list_state();
             }
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::ObjectList;
@@ -353,6 +393,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::BucketList;
                 self.current_bucket = None;
                 self.current_path.clear();
+                self.app_view_state.clear_list_state();
             }
         }
     }

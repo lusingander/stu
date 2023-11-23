@@ -198,8 +198,8 @@ fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
 
     let current_items = app.bucket_items();
     let list_state = ListViewState {
-        current_selected: app.app_view_state.list_state.selected,
-        current_offset: app.app_view_state.list_state.offset,
+        current_selected: app.app_view_state.current_list_state().selected,
+        current_offset: app.app_view_state.current_list_state().offset,
     };
     let styles = ListItemStyles {
         selected_bg_color: SELECTED_COLOR,
@@ -224,8 +224,8 @@ fn render_object_list_view(f: &mut Frame, area: Rect, app: &App) {
 
     let current_items = app.current_object_items();
     let list_state = ListViewState {
-        current_selected: app.app_view_state.list_state.selected,
-        current_offset: app.app_view_state.list_state.offset,
+        current_selected: app.app_view_state.current_list_state().selected,
+        current_offset: app.app_view_state.current_list_state().offset,
     };
     let styles = ListItemStyles {
         selected_bg_color: SELECTED_COLOR,
@@ -288,8 +288,8 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
 
     let current_items = app.current_object_items();
     let list_state = ListViewState {
-        current_selected: app.app_view_state.list_state.selected,
-        current_offset: app.app_view_state.list_state.offset,
+        current_selected: app.app_view_state.current_list_state().selected,
+        current_offset: app.app_view_state.current_list_state().offset,
     };
     let styles = ListItemStyles {
         selected_bg_color: SELECTED_DISABLED_COLOR,
