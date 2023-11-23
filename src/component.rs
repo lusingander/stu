@@ -1,7 +1,7 @@
 pub struct AppListState {
     pub selected: usize,
     pub offset: usize,
-    pub height: usize,
+    height: usize,
 }
 
 impl AppListState {
