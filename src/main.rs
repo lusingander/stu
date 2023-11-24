@@ -7,6 +7,7 @@ mod event;
 mod file;
 mod item;
 mod macros;
+mod run;
 mod ui;
 
 use clap::{arg, Parser};
@@ -87,7 +88,7 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
         load_config(tx, region, endpoint_url, profile).await;
     });
 
-    ui::run(&mut app, terminal, rx).await
+    run::run(&mut app, terminal, rx).await
 }
 
 fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
