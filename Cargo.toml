@@ -12,8 +12,8 @@ categories = ["command-line-utilities"]
 edition = "2021"
 
 [dependencies]
-aws-config = "1.0.0"
-aws-sdk-s3 = "0.39.1"
+aws-config = "1.0.1"
+aws-sdk-s3 = "1.4.0"
 aws-smithy-types = "1.0.1"
 chrono = "0.4.23"
 clap = { version = "4.1.6", features = ["derive"] }
