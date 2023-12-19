@@ -35,10 +35,11 @@ const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
 
 pub fn render(f: &mut Frame, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(0), Constraint::Length(2)].as_ref())
-        .split(f.size());
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Min(0), Constraint::Length(2)],
+    )
+    .split(f.size());
 
     render_content(f, chunks[0], app);
     render_footer(f, chunks[1], app);
@@ -56,10 +57,11 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(area);
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(3), Constraint::Min(0)],
+    )
+    .split(area);
 
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
@@ -69,10 +71,11 @@ fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(area);
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(3), Constraint::Min(0)],
+    )
+    .split(area);
 
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
@@ -95,10 +98,11 @@ fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_object_list_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(area);
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(3), Constraint::Min(0)],
+    )
+    .split(area);
 
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
@@ -154,18 +158,20 @@ fn render_list_scroll_bar(
 }
 
 fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(area);
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(3), Constraint::Min(0)],
+    )
+    .split(area);
 
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
-    let chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .split(chunks[1]);
+    let chunks = Layout::new(
+        Direction::Horizontal,
+        [Constraint::Percentage(50), Constraint::Percentage(50)],
+    )
+    .split(chunks[1]);
 
     let current_items = app.current_object_items();
     let list_state = ListViewState {
@@ -184,11 +190,12 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
     let block = build_file_detail_block();
     f.render_widget(block, chunks[1]);
 
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(2), Constraint::Min(0)].as_ref())
-        .margin(1)
-        .split(chunks[1]);
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(2), Constraint::Min(0)],
+    )
+    .margin(1)
+    .split(chunks[1]);
 
     let tabs = build_file_detail_tabs(vs);
     f.render_widget(tabs, chunks[0]);
@@ -567,29 +574,25 @@ fn build_loading_dialog(msg: &str) -> Paragraph {
 }
 
 fn calc_loading_dialog_rect(r: Rect) -> Rect {
-    let popup_layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Length((r.height - 5) / 2),
-                Constraint::Length(5),
-                Constraint::Length((r.height - 5) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(r);
+    let popup_layout = Layout::new(
+        Direction::Vertical,
+        [
+            Constraint::Length((r.height - 5) / 2),
+            Constraint::Length(5),
+            Constraint::Length((r.height - 5) / 2),
+        ],
+    )
+    .split(r);
 
-    Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Length((r.width - 30) / 2),
-                Constraint::Length(30),
-                Constraint::Length((r.width - 30) / 2),
-            ]
-            .as_ref(),
-        )
-        .split(popup_layout[1])[1]
+    Layout::new(
+        Direction::Horizontal,
+        [
+            Constraint::Length((r.width - 30) / 2),
+            Constraint::Length(30),
+            Constraint::Length((r.width - 30) / 2),
+        ],
+    )
+    .split(popup_layout[1])[1]
 }
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
