@@ -169,7 +169,7 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
 
     let chunks = Layout::new(
         Direction::Horizontal,
-        [Constraint::Percentage(50), Constraint::Percentage(50)],
+        Constraint::from_percentages([50, 50]),
     )
     .split(chunks[1]);
 
@@ -576,21 +576,13 @@ fn build_loading_dialog(msg: &str) -> Paragraph {
 fn calc_loading_dialog_rect(r: Rect) -> Rect {
     let popup_layout = Layout::new(
         Direction::Vertical,
-        [
-            Constraint::Length((r.height - 5) / 2),
-            Constraint::Length(5),
-            Constraint::Length((r.height - 5) / 2),
-        ],
+        Constraint::from_lengths([(r.height - 5) / 2, 5, (r.height - 5) / 2]),
     )
     .split(r);
 
     Layout::new(
         Direction::Horizontal,
-        [
-            Constraint::Length((r.width - 30) / 2),
-            Constraint::Length(30),
-            Constraint::Length((r.width - 30) / 2),
-        ],
+        Constraint::from_lengths([(r.width - 30) / 2, 30, (r.width - 30) / 2]),
     )
     .split(popup_layout[1])[1]
 }
