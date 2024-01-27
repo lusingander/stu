@@ -12,7 +12,17 @@ STU is the TUI application for AWS S3 written in Rust using [ratatui](https://gi
 
 ## Installation
 
-`$ cargo install stu`
+### Cargo
+
+```
+$ cargo install stu
+```
+
+### Homebrew
+
+```
+$ brew install lusingander/tap/stu
+```
 
 ## Usage
 
