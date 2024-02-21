@@ -7,7 +7,7 @@ use crate::error::{AppError, Result};
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";
 const ERROR_LOG_FILE_NAME: &str = "error.log";
-const DONWLOAD_DIR: &str = "donwload";
+const DOWNLOAD_DIR: &str = "download";
 
 #[derive(Serialize, Deserialize)]
 pub struct Config {
@@ -18,7 +18,7 @@ impl Default for Config {
     fn default() -> Self {
         let download_dir = match Config::get_app_base_dir() {
             Ok(dir) => {
-                let path = dir.join(DONWLOAD_DIR);
+                let path = dir.join(DOWNLOAD_DIR);
                 String::from(path.to_string_lossy())
             }
             Err(_) => "".to_string(),
