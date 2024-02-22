@@ -17,7 +17,7 @@ aws-sdk-s3 = "1.4.0"
 aws-smithy-types = "1.0.1"
 chrono = "0.4.23"
 clap = { version = "4.1.6", features = ["derive"] }
-confy = "0.5.1"
+confy = "0.6.0"
 crossterm = "0.27.0"
 dirs = "5.0.1"
 humansize = "2.1.3"
