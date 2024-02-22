@@ -66,7 +66,7 @@ fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
-    let content = Block::default().borders(Borders::all());
+    let content = Block::bordered();
     f.render_widget(content, chunks[1]);
 }
 
@@ -222,21 +222,19 @@ fn render_help_view(f: &mut Frame, area: Rect, before: &ViewState) {
 fn build_header(app: &App) -> Paragraph {
     let current_key = app.object_key_breadcrumb_string();
     Paragraph::new(Span::styled(current_key, Style::default())).block(
-        Block::default()
+        Block::bordered()
             .title(Span::styled(APP_NAME, Style::default()))
-            .padding(Padding::horizontal(1))
-            .borders(Borders::all()),
+            .padding(Padding::horizontal(1)),
     )
 }
 
 fn build_list(list_items: Vec<ListItem>, total_count: usize, current_selected: usize) -> List {
     let title = format_list_count(total_count, current_selected);
     List::new(list_items).block(
-        Block::default()
+        Block::bordered()
             .title(title)
             .title_alignment(Alignment::Right)
-            .padding(Padding::horizontal(1))
-            .borders(Borders::all()),
+            .padding(Padding::horizontal(1)),
     )
 }
 
@@ -402,7 +400,7 @@ fn digits(n: usize) -> usize {
 }
 
 fn build_file_detail_block() -> Block<'static> {
-    Block::default().borders(Borders::all())
+    Block::bordered()
 }
 
 fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
@@ -517,7 +515,7 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     .into_iter();
 
     let content: Vec<Line> = app_detail.chain(help).collect();
-    Paragraph::new(content).block(Block::default().title(APP_NAME).borders(Borders::all()))
+    Paragraph::new(content).block(Block::bordered().title(APP_NAME))
 }
 
 fn build_short_help(app: &App) -> Paragraph {
@@ -566,11 +564,9 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 
 fn build_loading_dialog(msg: &str) -> Paragraph {
     let text = vec![Line::from(""), Line::from(msg.add_modifier(Modifier::BOLD))];
-    Paragraph::new(text).alignment(Alignment::Center).block(
-        Block::default()
-            .borders(Borders::all())
-            .border_type(BorderType::Double),
-    )
+    Paragraph::new(text)
+        .alignment(Alignment::Center)
+        .block(Block::bordered().border_type(BorderType::Double))
 }
 
 fn calc_loading_dialog_rect(r: Rect) -> Rect {
