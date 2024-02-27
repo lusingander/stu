@@ -521,12 +521,12 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
 fn build_short_help(app: &App) -> Paragraph {
     let help = match app.app_view_state.view_state {
         ViewState::Initializing => "",
-        ViewState::BucketList => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <?> Help",
+        ViewState::BucketList => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <?>: Help",
         ViewState::ObjectList => {
-            "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?> Help"
+            "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?>: Help"
         }
         ViewState::Detail(_) => {
-            "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?> Help"
+            "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?>: Help"
         }
         ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
     };
