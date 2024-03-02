@@ -21,7 +21,7 @@ use ratatui::{
     Terminal,
 };
 use std::{
-    io::{stderr, Result, Stderr},
+    io::{stdout, Result, Stdout},
     panic,
     sync::mpsc::Sender,
 };
@@ -62,11 +62,11 @@ async fn main() -> Result<()> {
     ret
 }
 
-fn setup() -> std::io::Result<Terminal<CrosstermBackend<Stderr>>> {
+fn setup() -> std::io::Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode()?;
-    execute!(stderr(), EnterAlternateScreen)?;
+    execute!(stdout(), EnterAlternateScreen)?;
 
-    let backend = CrosstermBackend::new(stderr());
+    let backend = CrosstermBackend::new(stdout());
     let terminal = Terminal::new(backend)?;
 
     Ok(terminal)
@@ -114,7 +114,7 @@ async fn load_config(
 }
 
 fn shutdown() -> std::io::Result<()> {
-    execute!(stderr(), LeaveAlternateScreen)?;
+    execute!(stdout(), LeaveAlternateScreen)?;
     disable_raw_mode()?;
     Ok(())
 }
