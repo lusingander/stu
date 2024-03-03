@@ -56,16 +56,18 @@ func generateGif(tape string) error {
 
 type generateCmd struct {
 	tapefile string
+	outpath  string
 }
 
 func (*generateCmd) Name() string { return "generate" }
 
 func (*generateCmd) Synopsis() string { return "Generate gif" }
 
-func (*generateCmd) Usage() string { return "generate -tape <file>" }
+func (*generateCmd) Usage() string { return "generate -tape <file> -out <dir>\n" }
 
 func (cmd *generateCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&cmd.tapefile, "tape", "", "tape file path")
+	f.StringVar(&cmd.outpath, "out", "", "output directory path")
 }
 
 func (cmd *generateCmd) Execute(_ context.Context, f *flag.FlagSet, args ...any) subcommands.ExitStatus {
@@ -80,11 +82,14 @@ func (cmd *generateCmd) run() error {
 	if cmd.tapefile == "" {
 		return errors.New("tape is not set")
 	}
+	if cmd.outpath == "" {
+		return errors.New("out is not set")
+	}
 	if err := checkVhs(); err != nil {
 		return err
 	}
 	variables := map[string]string{
-		"output_dir": "dist",
+		"output_dir": cmd.outpath,
 	}
 	tape, err := readTape(cmd.tapefile, variables)
 	if err != nil {
@@ -99,6 +104,7 @@ func (cmd *generateCmd) run() error {
 func main() {
 	subcommands.Register(subcommands.HelpCommand(), "")
 	subcommands.Register(subcommands.CommandsCommand(), "")
+	subcommands.Register(subcommands.FlagsCommand(), "")
 	subcommands.Register(&generateCmd{}, "")
 	flag.Parse()
 	ctx := context.Background()

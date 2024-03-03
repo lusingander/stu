@@ -1,3 +1,11 @@
+CMD_DIR=./tool/gifgen
+OUTPUT_DIR=./dist
+
 .PHONY: screenshot
 screenshot:
-	go run tool/gifgen/main.go generate -tape ./tool/gifgen/tape/screenshot.tape
+	go run $(CMD_DIR)/main.go generate -tape $(CMD_DIR)/tape/screenshot.tape -out $(OUTPUT_DIR)
+
+.PHONY: clean
+clean:
+	rm -rf $(OUTPUT_DIR)
+	
