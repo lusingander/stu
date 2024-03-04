@@ -1,4 +1,4 @@
-CMD_DIR=./tool/gifgen
+CMD_DIR=./tool/imggen
 OUTPUT_DIR=./dist
 
 .PHONY: screenshot

@@ -1,4 +1,4 @@
-module github.com/lusingander/tool/gifgen
+module github.com/lusingander/tool/imggen
 
 go 1.21.3
 
