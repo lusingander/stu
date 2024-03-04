@@ -30,7 +30,7 @@ pub async fn run<B: Backend>(
 
                 match app.app_view_state.notification {
                     Notification::Error(_) => {
-                        if app.app_view_state.view_state == ViewState::Initializing {
+                        if matches!(app.app_view_state.view_state, ViewState::Initializing) {
                             return Ok(());
                         }
                         app.app_view_state.notification = Notification::None;

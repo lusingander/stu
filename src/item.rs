@@ -125,7 +125,7 @@ pub struct ObjectKey {
     pub object_path: Vec<String>,
 }
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Clone)]
 pub struct Object {
     pub content_type: String,
     pub bytes: Vec<u8>,

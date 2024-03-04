@@ -18,7 +18,7 @@ use crate::{
     util,
 };
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(Clone)]
 pub enum ViewState {
     Initializing,
     BucketList,
@@ -28,13 +28,13 @@ pub enum ViewState {
     Help(Box<ViewState>),
 }
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub enum DetailViewState {
     Detail = 0,
     Version = 1,
 }
 
-#[derive(PartialEq, Eq, Clone)]
+#[derive(Clone)]
 pub struct PreviewViewState {
     pub preview: String,
     path: String,
