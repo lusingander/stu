@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/docker/go-connections/nat"
 	"github.com/google/subcommands"
 	"github.com/testcontainers/testcontainers-go"
@@ -94,25 +95,20 @@ func setupS3Client(url string) (*s3.Client, error) {
 }
 
 func setupFixtures(s3Client *s3.Client) error {
-	buckets := []string{
-		"test-bucket-1",
-		"test-bucket-2",
-		"test-bucket-3",
-	}
-	objectKeys := []string{
-		"text.txt",
-		"foo/text1.txt",
-		"foo/text2.txt",
-		"foo/text3.txt",
-		"foo/bar/text3.txt",
-	}
-	object := []byte("foo\nbar\nbaz\n")
+	buckets := defaultFixture()
+	objectMap := buildObjectMap()
 	for _, bucket := range buckets {
-		if err := createBucket(s3Client, bucket); err != nil {
+		if err := createBucket(s3Client, bucket.name); err != nil {
 			return err
 		}
-		for _, key := range objectKeys {
-			uploadObject(s3Client, bucket, key, object)
+		for _, obj := range bucket.objs {
+			n := 1
+			if obj.multipleVersion {
+				n = 3
+			}
+			for i := 0; i < n; i++ {
+				uploadObject(s3Client, bucket.name, obj.objectKey, objectMap[obj.objectType])
+			}
 		}
 	}
 	return nil
@@ -123,6 +119,18 @@ func createBucket(s3Client *s3.Client, name string) error {
 		context.TODO(),
 		&s3.CreateBucketInput{
 			Bucket: aws.String(name),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	_, err = s3Client.PutBucketVersioning(
+		context.TODO(),
+		&s3.PutBucketVersioningInput{
+			Bucket: aws.String(name),
+			VersioningConfiguration: &types.VersioningConfiguration{
+				Status: types.BucketVersioningStatusEnabled,
+			},
 		},
 	)
 	return err
@@ -229,7 +237,8 @@ func (cmd *generateCmd) run() error {
 	}
 
 	variables := map[string]string{
-		"output_dir": cmd.outpath,
+		"output_dir":   cmd.outpath,
+		"endpoint_url": url,
 	}
 	tape, err := readTape(cmd.tapefile, variables)
 	if err != nil {
