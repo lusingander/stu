@@ -534,15 +534,21 @@ impl App {
     }
 
     pub fn download(&mut self) {
-        match self.app_view_state.view_state {
+        match &self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::ObjectList
             | ViewState::Help(_) => {}
-            ViewState::Detail(_) | ViewState::Preview(_) => {
-                // todo: no need to re-download in Preview state
+            ViewState::Detail(_) => {
                 self.tx.send(AppEventType::DownloadObject).unwrap();
                 self.app_view_state.is_loading = true;
+            }
+            ViewState::Preview(vs) => {
+                // object has been already downloaded, so send completion event to save file
+                let result = CompleteDownloadObjectResult::new(Ok(vs.obj.clone()), vs.path.clone());
+                self.tx
+                    .send(AppEventType::CompleteDownloadObject(result))
+                    .unwrap();
             }
         }
     }
