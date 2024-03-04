@@ -4,7 +4,7 @@ use ratatui::{
     prelude::Margin,
     style::{Color, Modifier, Style, Stylize},
     symbols::scrollbar::VERTICAL,
-    text::{Line, Span},
+    text::{Line, Span, Text},
     widgets::{
         Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Scrollbar,
         ScrollbarState, Tabs,
@@ -13,7 +13,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{App, DetailViewState, Notification, ViewState},
+    app::{App, DetailViewState, Notification, PreviewViewState, ViewState},
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     lines_with_empty_line,
 };
@@ -52,6 +52,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
         ViewState::BucketList => render_bucket_list_view(f, area, app),
         ViewState::ObjectList => render_object_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
+        ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, before),
     }
 }
@@ -212,6 +213,34 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
             f.render_widget(versions, chunks[1]);
         }
     }
+}
+
+fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewState) {
+    let chunks = Layout::new(
+        Direction::Vertical,
+        [Constraint::Length(3), Constraint::Min(0)],
+    )
+    .split(area);
+
+    let header = build_header(app);
+    f.render_widget(header, chunks[0]);
+
+    // todo: scroll
+    let show_lines_count = (chunks[1].height as usize) - 2 /* border */;
+    let content = vs
+        .preview
+        .lines()
+        .take(show_lines_count)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let current_file_detail = app.get_current_file_detail().unwrap();
+    let title = format!("Preview [{}]", &current_file_detail.name);
+    let content = Paragraph::new(Text::styled(content, Style::default())).block(
+        Block::bordered()
+            .title(title)
+            .padding(Padding::horizontal(1)),
+    );
+    f.render_widget(content, chunks[1]);
 }
 
 fn render_help_view(f: &mut Frame, area: Rect, before: &ViewState) {
@@ -508,7 +537,14 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
         ViewState::Detail(_) => {
             lines_with_empty_line![
                 "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
-                "  <s>: Download object,  <x>: Open management console in browser",
+                "  <s>: Download object, <p>: Preview object",
+                "  <x>: Open management console in browser",
+            ]
+        }
+        ViewState::Preview(_) => {
+            lines_with_empty_line![
+                "  <Esc> <Ctrl-c>: Quit app,  <Backspace>: Close preview",
+                "  <s>: Download object",
             ]
         }
     }
@@ -528,6 +564,7 @@ fn build_short_help(app: &App) -> Paragraph {
         ViewState::Detail(_) => {
             "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?>: Help"
         }
+        ViewState::Preview(_) => "<Esc>: Quit, <s>: Download, <Backspace>: Close, <?>: Help",
         ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
     };
     Paragraph::new(help.fg(SHORT_HELP_COLOR))

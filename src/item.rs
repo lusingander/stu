@@ -124,3 +124,9 @@ pub struct ObjectKey {
     pub bucket_name: String,
     pub object_path: Vec<String>,
 }
+
+#[derive(Clone, PartialEq, Eq)]
+pub struct Object {
+    pub content_type: String,
+    pub bytes: Vec<u8>,
+}

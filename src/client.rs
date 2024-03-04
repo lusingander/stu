@@ -4,7 +4,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    item::{BucketItem, FileDetail, FileVersion, ObjectItem},
+    item::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
@@ -163,7 +163,7 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object(&self, bucket: &String, key: &String) -> Result<Vec<u8>> {
+    pub async fn download_object(&self, bucket: &String, key: &String) -> Result<Object> {
         let result = self
             .client
             .get_object()
@@ -179,8 +179,12 @@ impl Client {
             .collect()
             .await
             .map_err(|e| AppError::new("Failed to collect body", e))?;
+        let content_type = output.content_type.unwrap();
 
-        Ok(data.to_vec())
+        Ok(Object {
+            content_type,
+            bytes: data.to_vec(),
+        })
     }
 
     pub fn open_management_console_buckets(&self) -> Result<()> {

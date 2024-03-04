@@ -76,6 +76,9 @@ pub async fn run<B: Backend>(
                     key_code_char!('s') => {
                         app.download();
                     }
+                    key_code_char!('p') => {
+                        app.preview();
+                    }
                     key_code_char!('x') => {
                         app.open_management_console();
                     }
@@ -111,6 +114,12 @@ pub async fn run<B: Backend>(
             }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
+            }
+            AppEventType::PreviewObject => {
+                app.preview_object();
+            }
+            AppEventType::CompletePreviewObject(result) => {
+                app.complete_preview_object(result);
             }
             AppEventType::Info(msg) => {
                 app.app_view_state.notification = Notification::Info(msg);

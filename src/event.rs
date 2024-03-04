@@ -6,7 +6,7 @@ use crate::{
     client::Client,
     config::Config,
     error::{AppError, Result},
-    item::{BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey},
+    item::{BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
 };
 
 pub enum AppEventType {
@@ -20,6 +20,8 @@ pub enum AppEventType {
     CompleteLoadObject(Result<CompleteLoadObjectResult>),
     DownloadObject,
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
+    PreviewObject,
+    CompletePreviewObject(Result<CompletePreviewObjectResult>),
     Info(String),
     Error(AppError),
 }
@@ -69,14 +71,26 @@ impl CompleteLoadObjectResult {
 }
 
 pub struct CompleteDownloadObjectResult {
-    pub bytes: Vec<u8>,
+    pub obj: Object,
     pub path: String,
 }
 
 impl CompleteDownloadObjectResult {
-    pub fn new(bytes: Result<Vec<u8>>, path: String) -> Result<CompleteDownloadObjectResult> {
-        let bytes = bytes?;
-        Ok(CompleteDownloadObjectResult { bytes, path })
+    pub fn new(obj: Result<Object>, path: String) -> Result<CompleteDownloadObjectResult> {
+        let obj = obj?;
+        Ok(CompleteDownloadObjectResult { obj, path })
+    }
+}
+
+pub struct CompletePreviewObjectResult {
+    pub obj: Object,
+    pub path: String,
+}
+
+impl CompletePreviewObjectResult {
+    pub fn new(obj: Result<Object>, path: String) -> Result<CompletePreviewObjectResult> {
+        let obj = obj?;
+        Ok(CompletePreviewObjectResult { obj, path })
     }
 }
 

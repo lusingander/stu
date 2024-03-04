@@ -1,4 +1,7 @@
-use std::sync::{mpsc, Arc};
+use std::sync::{
+    mpsc::{self, Sender},
+    Arc,
+};
 use tokio::spawn;
 
 use crate::{
@@ -8,10 +11,11 @@ use crate::{
     error::{AppError, Result},
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
-        CompleteLoadObjectResult, CompleteLoadObjectsResult,
+        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult,
     },
     file::{save_binary, save_error_log},
-    item::{AppObjects, BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey},
+    item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
+    util,
 };
 
 #[derive(PartialEq, Eq, Clone)]
@@ -20,6 +24,7 @@ pub enum ViewState {
     BucketList,
     ObjectList,
     Detail(DetailViewState),
+    Preview(Box<PreviewViewState>),
     Help(Box<ViewState>),
 }
 
@@ -27,6 +32,13 @@ pub enum ViewState {
 pub enum DetailViewState {
     Detail = 0,
     Version = 1,
+}
+
+#[derive(PartialEq, Eq, Clone)]
+pub struct PreviewViewState {
+    pub preview: String,
+    path: String,
+    obj: Object,
 }
 
 pub enum Notification {
@@ -173,7 +185,10 @@ impl App {
 
     fn current_items_len(&self) -> usize {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => 0,
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => 0,
             ViewState::BucketList => self.bucket_items().len(),
             ViewState::ObjectList => self.current_object_items().len(),
         }
@@ -225,7 +240,10 @@ impl App {
 
     pub fn select_next(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let current_selected = self.app_view_state.current_list_state().selected;
                 let len = self.current_items_len();
@@ -240,7 +258,10 @@ impl App {
 
     pub fn select_prev(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let current_selected = self.app_view_state.current_list_state().selected;
                 let len = self.current_items_len();
@@ -259,7 +280,10 @@ impl App {
 
     pub fn select_next_page(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let len = self.current_items_len();
                 self.app_view_state
@@ -271,7 +295,10 @@ impl App {
 
     pub fn select_prev_page(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let len = self.current_items_len();
                 self.app_view_state
@@ -283,7 +310,10 @@ impl App {
 
     pub fn select_first(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 self.app_view_state.current_list_state_mut().select_first();
             }
@@ -292,7 +322,10 @@ impl App {
 
     pub fn select_last(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
                 let len = self.current_items_len();
                 self.app_view_state
@@ -304,7 +337,10 @@ impl App {
 
     pub fn move_down(&mut self) {
         match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Detail(_) | ViewState::Help(_) => {}
+            ViewState::Initializing
+            | ViewState::Detail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
             ViewState::BucketList => {
                 if let Some(selected) = self.get_current_selected_bucket_item() {
                     self.current_bucket = Some(selected.to_owned());
@@ -370,6 +406,9 @@ impl App {
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::ObjectList;
             }
+            ViewState::Preview(_) => {
+                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+            }
             ViewState::Help(_) => {
                 self.toggle_help();
             }
@@ -381,6 +420,7 @@ impl App {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::Detail(_)
+            | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::ObjectList => {
                 self.app_view_state.view_state = ViewState::BucketList;
@@ -464,6 +504,7 @@ impl App {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::ObjectList
+            | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::Detail(vs) => match vs {
                 DetailViewState::Detail => {
@@ -482,7 +523,10 @@ impl App {
             ViewState::Help(before) => {
                 self.app_view_state.view_state = *before.clone();
             }
-            ViewState::BucketList | ViewState::ObjectList | ViewState::Detail(_) => {
+            ViewState::BucketList
+            | ViewState::ObjectList
+            | ViewState::Detail(_)
+            | ViewState::Preview(_) => {
                 let before = self.app_view_state.view_state.clone();
                 self.app_view_state.view_state = ViewState::Help(Box::new(before));
             }
@@ -495,36 +539,40 @@ impl App {
             | ViewState::BucketList
             | ViewState::ObjectList
             | ViewState::Help(_) => {}
-            ViewState::Detail(_) => {
+            ViewState::Detail(_) | ViewState::Preview(_) => {
+                // todo: no need to re-download in Preview state
                 self.tx.send(AppEventType::DownloadObject).unwrap();
                 self.app_view_state.is_loading = true;
             }
         }
     }
 
-    pub fn download_object(&self) {
-        if let Some(ObjectItem::File { name, .. }) = self.get_current_selected_object_item() {
-            let bucket = self.current_bucket();
-            let prefix = self.current_object_prefix();
-            let key = format!("{}{}", prefix, name);
-
-            let config = self.config.as_ref().unwrap();
-            let path = config.download_file_path(name);
-
-            let (client, tx) = self.unwrap_client_tx();
-            spawn(async move {
-                let bytes = client.download_object(&bucket, &key).await;
-                let result = CompleteDownloadObjectResult::new(bytes, path);
-                tx.send(AppEventType::CompleteDownloadObject(result))
-                    .unwrap();
-            });
+    pub fn preview(&mut self) {
+        match self.app_view_state.view_state {
+            ViewState::Initializing
+            | ViewState::BucketList
+            | ViewState::ObjectList
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
+            ViewState::Detail(_) => {
+                self.tx.send(AppEventType::PreviewObject).unwrap();
+                self.app_view_state.is_loading = true;
+            }
         }
+    }
+
+    pub fn download_object(&self) {
+        self.download_object_and(|tx, obj, path| {
+            let result = CompleteDownloadObjectResult::new(obj, path);
+            tx.send(AppEventType::CompleteDownloadObject(result))
+                .unwrap();
+        })
     }
 
     pub fn complete_download_object(&mut self, result: Result<CompleteDownloadObjectResult>) {
         let result = match result {
-            Ok(CompleteDownloadObjectResult { path, bytes }) => {
-                save_binary(&path, &bytes).map(|_| path)
+            Ok(CompleteDownloadObjectResult { obj, path }) => {
+                save_binary(&path, &obj.bytes).map(|_| path)
             }
             Err(e) => Err(e),
         };
@@ -540,6 +588,48 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
+    pub fn preview_object(&self) {
+        self.download_object_and(|tx, obj, path| {
+            let result = CompletePreviewObjectResult::new(obj, path);
+            tx.send(AppEventType::CompletePreviewObject(result))
+                .unwrap();
+        })
+    }
+
+    pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
+        match result {
+            Ok(CompletePreviewObjectResult { obj, path }) => {
+                let preview = util::to_preview_string(&obj.bytes, &obj.content_type);
+                let state = PreviewViewState { preview, path, obj };
+                self.app_view_state.view_state = ViewState::Preview(Box::new(state));
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::Error(e)).unwrap();
+            }
+        };
+        self.app_view_state.is_loading = false;
+    }
+
+    fn download_object_and<F>(&self, f: F)
+    where
+        F: Fn(Sender<AppEventType>, Result<Object>, String) + Send + 'static,
+    {
+        if let Some(ObjectItem::File { name, .. }) = self.get_current_selected_object_item() {
+            let bucket = self.current_bucket();
+            let prefix = self.current_object_prefix();
+            let key = format!("{}{}", prefix, name);
+
+            let config = self.config.as_ref().unwrap();
+            let path = config.download_file_path(name);
+
+            let (client, tx) = self.unwrap_client_tx();
+            spawn(async move {
+                let obj = client.download_object(&bucket, &key).await;
+                f(tx, obj, path);
+            });
+        }
+    }
+
     pub fn save_error(&self, e: &AppError) {
         let config = self.config.as_ref().unwrap();
         // cause panic if save errors
@@ -551,7 +641,7 @@ impl App {
         let (client, _) = self.unwrap_client_tx();
 
         let result = match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Help(_) => Ok(()),
+            ViewState::Initializing | ViewState::Preview(_) | ViewState::Help(_) => Ok(()),
             ViewState::BucketList => client.open_management_console_buckets(),
             ViewState::ObjectList => {
                 let bucket = &self.current_bucket();

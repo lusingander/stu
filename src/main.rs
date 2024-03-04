@@ -9,6 +9,7 @@ mod item;
 mod macros;
 mod run;
 mod ui;
+mod util;
 
 use clap::{arg, Parser};
 use crossterm::{
