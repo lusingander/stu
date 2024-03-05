@@ -6,10 +6,7 @@ Set FontSize 15
 Set Width 1000
 Set Height 600
 Set Padding 15
-Set WindowBar Colorful
 Set BorderRadius 20
-
-Hide
 
 Type "export AWS_ACCESS_KEY_ID=dummy"
 Enter
@@ -17,71 +14,76 @@ Type "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
 Type "cargo run -- --endpoint-url ${ENDPOINT_URL}"
 Enter
-Sleep 3s
-
-Show
-
 Sleep 1s
+Screenshot ${OUTPUT_DIR}/initialize.png
+Sleep 2s
+
 Type "j"
-Sleep 300ms
 Type "j"
 Screenshot ${OUTPUT_DIR}/bucket-list.png
-Sleep 300ms
 Type "k"
-Sleep 500ms
+Type "?"
+Screenshot ${OUTPUT_DIR}/bucket-list-help.png
+Type "?"
 
 Enter
-Sleep 1s
-Screenshot ${OUTPUT_DIR}/object-list.png
+Sleep 500ms
+Screenshot ${OUTPUT_DIR}/object-list-simple.png
+Type "?"
+Screenshot ${OUTPUT_DIR}/object-list-help.png
+Type "?"
+
 Type "j"
-Sleep 300ms
 Type "j"
-Sleep 300ms
 Enter
-Sleep 1.5s
+Sleep 500ms
 Screenshot ${OUTPUT_DIR}/object-detail.png
+Type "?"
+Screenshot ${OUTPUT_DIR}/object-detail-help.png
+Type "?"
 Type "l"
-Sleep 1s
 Screenshot ${OUTPUT_DIR}/object-version.png
-Type "h"
-Sleep 1s
 Backspace
-Sleep 700ms
+Type "j"
+Type "j"
+Enter
+Sleep 500ms
+Type "p"
+Sleep 500ms
+Screenshot ${OUTPUT_DIR}/object-preview.png
+Type "?"
+Screenshot ${OUTPUT_DIR}/object-preview-help.png
+Type "?"
+Type "s"
+Sleep 500ms
 Backspace
-Sleep 500ms
-Type "g"
-Sleep 500ms
-
-Enter
-Sleep 1s
-Type "j"
-Sleep 300ms
-Type "j"
-Sleep 300ms
-Enter
-Sleep 1s
-Type "j"
-Sleep 500ms
-Enter
-Sleep 1s
 Backspace
-Sleep 500ms
-Type "j"
-Sleep 500ms
-Enter
-Sleep 1s
-Enter
-Sleep 1s
-Type "j"
-Sleep 300ms
-Type "j"
-Sleep 300ms
-Type "j"
-Sleep 300ms
-Enter
-Sleep 1.5s
 Backspace
-Sleep 1.5s
 
 Type "~"
-Sleep 3s
+Type "g"
+Enter
+Sleep 500ms
+Type "j"
+Type "j"
+Enter
+Sleep 500ms
+Type "j"
+Type "j"
+Enter
+Sleep 500ms
+Enter
+Sleep 500ms
+Enter
+Sleep 500ms
+Screenshot ${OUTPUT_DIR}/object-list-hierarchy.png
+
+Type "~"
+Type "g"
+Type "j"
+Type "j"
+Enter
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/loading-object-list.png
+Sleep 5s
+Screenshot ${OUTPUT_DIR}/object-list-many.png
