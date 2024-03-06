@@ -15,7 +15,7 @@ use ratatui::{
 use crate::{
     app::{App, DetailViewState, Notification, PreviewViewState, ViewState},
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
-    lines_with_empty_line, util,
+    util,
 };
 
 const APP_NAME: &str = "STU";
@@ -515,43 +515,67 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     ]
     .into_iter();
 
-    let help = match before {
-        ViewState::Initializing | ViewState::Help(_) => vec![],
-        ViewState::BucketList => {
-            lines_with_empty_line![
-                "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
-                "  <f>: Scroll page forward,  <b>: Scroll page backward",
-                "  <Enter>: Open bucket",
-                "  <x>: Open management console in browser",
-            ]
-        }
-        ViewState::ObjectList => {
-            lines_with_empty_line![
-                "  <Esc> <Ctrl-c>: Quit app,  <j/k>: Select item,  <g/G>: Go to top/bottom",
-                "  <f>: Scroll page forward,  <b>: Scroll page backward",
-                "  <Enter>: Open file or folder,  <Backspace>: Go back to prev folder",
-                "  <~>: Go back to bucket list",
-                "  <x>: Open management console in browser",
-            ]
-        }
-        ViewState::Detail(_) => {
-            lines_with_empty_line![
-                "  <Esc> <Ctrl-c>: Quit app,  <h/l>: Select tabs,  <Backspace>: Close detail panel",
-                "  <s>: Download object, <p>: Preview object",
-                "  <x>: Open management console in browser",
-            ]
-        }
-        ViewState::Preview(_) => {
-            lines_with_empty_line![
-                "  <Esc> <Ctrl-c>: Quit app,  <Backspace>: Close preview",
-                "  <s>: Download object",
-            ]
-        }
-    }
-    .into_iter();
+    let helps = match before {
+        ViewState::Initializing | ViewState::Help(_) => todo!(),
+        ViewState::BucketList => vec![
+            "<Esc> <Ctrl-c>: Quit app",
+            "<j/k>: Select item",
+            "<g/G>: Go to top/bottom",
+            "<f>: Scroll page forward",
+            "<b>: Scroll page backward",
+            "<Enter>: Open bucket",
+            "<x>: Open management console in browser",
+        ],
+        ViewState::ObjectList => vec![
+            "<Esc> <Ctrl-c>: Quit app",
+            "<j/k>: Select item",
+            "<g/G>: Go to top/bottom",
+            "<f>: Scroll page forward",
+            "<b>: Scroll page backward",
+            "<Enter>: Open file or folder",
+            "<Backspace>: Go back to prev folder",
+            "<~>: Go back to bucket list",
+            "<x>: Open management console in browser",
+        ],
+        ViewState::Detail(_) => vec![
+            "<Esc> <Ctrl-c>: Quit app",
+            "<h/l>: Select tabs",
+            "<Backspace>: Close detail panel",
+            "<s>: Download object",
+            "<p>: Preview object",
+            "<x>: Open management console in browser",
+        ],
+        ViewState::Preview(_) => vec![
+            "<Esc> <Ctrl-c>: Quit app",
+            "<Backspace>: Close preview",
+            "<s>: Download object",
+        ],
+    };
+    let max_help_width: usize = 80;
+    let max_width = max_help_width.min(w) - 2;
+    let help = build_help_lines(helps, max_width);
 
     let content: Vec<Line> = app_detail.chain(help).collect();
     Paragraph::new(content).block(Block::bordered().title(APP_NAME))
+}
+
+fn build_help_lines(helps: Vec<&str>, max_width: usize) -> Vec<Line> {
+    let delimiter = ",  ";
+    let word_groups = util::group_strings_to_fit_width(&helps, max_width, delimiter);
+    let lines: Vec<Line> = word_groups
+        .iter()
+        .map(|ws| Line::from(format!("  {}  ", ws.join(delimiter))))
+        .collect();
+    with_empty_lines(lines)
+}
+
+fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
+    let mut ret: Vec<Line> = Vec::new();
+    for line in lines {
+        ret.push(line);
+        ret.push(Line::from(""));
+    }
+    ret
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
