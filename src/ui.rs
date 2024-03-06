@@ -222,21 +222,7 @@ fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewSta
     let header = build_header(app);
     f.render_widget(header, chunks[0]);
 
-    // todo: scroll
-    let show_lines_count = (chunks[1].height as usize) - 2 /* border */;
-    let content = vs
-        .preview
-        .lines()
-        .take(show_lines_count)
-        .collect::<Vec<_>>()
-        .join("\n");
-    let current_file_detail = app.get_current_file_detail().unwrap();
-    let title = format!("Preview [{}]", &current_file_detail.name);
-    let content = Paragraph::new(Text::styled(content, Style::default())).block(
-        Block::bordered()
-            .title(title)
-            .padding(Padding::horizontal(1)),
-    );
+    let content = build_preview(app, vs, chunks[1]);
     f.render_widget(content, chunks[1]);
 }
 
@@ -494,6 +480,25 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
     List::new(list_items)
         .block(Block::default())
         .highlight_style(Style::default().bg(SELECTED_COLOR))
+}
+
+fn build_preview<'a>(app: &'a App, vs: &'a PreviewViewState, area: Rect) -> Paragraph<'a> {
+    // todo: scroll
+    let area = area.inner(&Margin::new(1, 1)); // border
+    let show_lines_count = area.height as usize;
+    let content = vs
+        .preview
+        .lines()
+        .take(show_lines_count)
+        .collect::<Vec<_>>()
+        .join("\n");
+    let current_file_detail = app.get_current_file_detail().unwrap();
+    let title = format!("Preview [{}]", &current_file_detail.name);
+    Paragraph::new(Text::styled(content, Style::default())).block(
+        Block::bordered()
+            .title(title)
+            .padding(Padding::horizontal(1)),
+    )
 }
 
 fn build_help(before: &ViewState, area: Rect) -> Paragraph {
