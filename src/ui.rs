@@ -137,10 +137,7 @@ fn render_list_scroll_bar(
     //  but this does not seem to be suitable for standard scrolling behavior
 
     let current_selected = list_state.current_selected;
-    let scrollbar_area = area.inner(&Margin {
-        horizontal: 1,
-        vertical: 1,
-    });
+    let scrollbar_area = area.inner(&Margin::new(1, 1));
     let scrollbar_area_height = scrollbar_area.height as usize;
     if current_items_len > scrollbar_area_height {
         let mut scrollbar_state = ScrollbarState::default()
@@ -244,7 +241,7 @@ fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewSta
 }
 
 fn render_help_view(f: &mut Frame, area: Rect, before: &ViewState) {
-    let content = build_help(before, f.size().width);
+    let content = build_help(before, area);
     f.render_widget(content, area);
 }
 
@@ -499,24 +496,20 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .highlight_style(Style::default().bg(SELECTED_COLOR))
 }
 
-fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
-    let w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
+fn build_help(before: &ViewState, area: Rect) -> Paragraph {
+    let area = area.inner(&Margin::new(1, 1)); // border
+    let w: usize = area.width as usize;
 
-    let app_detail = vec![
-        Line::from(""),
-        Line::from(format!("  {} - {}", APP_NAME, APP_DESCRIPTION)),
-        Line::from(""),
-        Line::from(format!("  Version: {}", APP_VERSION)),
-        Line::from(""),
-        Line::from(format!("  {}", APP_HOMEPAGE).fg(LINK_TEXT_COLOR)),
-        Line::from(""),
-        Line::from(format!(" {}", "-".repeat(w)).fg(DIVIDER_COLOR)),
-        Line::from(""),
-    ]
-    .into_iter();
+    let app_details = vec![
+        Line::from(format!(" {} - {}", APP_NAME, APP_DESCRIPTION)),
+        Line::from(format!(" Version: {}", APP_VERSION)),
+        Line::from(format!(" {}", APP_HOMEPAGE).fg(LINK_TEXT_COLOR)),
+        Line::from("-".repeat(w).fg(DIVIDER_COLOR)),
+    ];
+    let app_detail = with_empty_lines(app_details).into_iter();
 
     let helps = match before {
-        ViewState::Initializing | ViewState::Help(_) => todo!(),
+        ViewState::Initializing | ViewState::Help(_) => vec![],
         ViewState::BucketList => vec![
             "<Esc> <Ctrl-c>: Quit app",
             "<j/k>: Select item",
@@ -556,7 +549,11 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     let help = build_help_lines(helps, max_width);
 
     let content: Vec<Line> = app_detail.chain(help).collect();
-    Paragraph::new(content).block(Block::bordered().title(APP_NAME))
+    Paragraph::new(content).block(
+        Block::bordered()
+            .title(APP_NAME)
+            .padding(Padding::uniform(1)),
+    )
 }
 
 fn build_help_lines(helps: Vec<&str>, max_width: usize) -> Vec<Line> {
@@ -564,7 +561,7 @@ fn build_help_lines(helps: Vec<&str>, max_width: usize) -> Vec<Line> {
     let word_groups = util::group_strings_to_fit_width(&helps, max_width, delimiter);
     let lines: Vec<Line> = word_groups
         .iter()
-        .map(|ws| Line::from(format!("  {}  ", ws.join(delimiter))))
+        .map(|ws| Line::from(format!(" {} ", ws.join(delimiter))))
         .collect();
     with_empty_lines(lines)
 }
