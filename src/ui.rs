@@ -15,7 +15,7 @@ use ratatui::{
 use crate::{
     app::{App, DetailViewState, Notification, PreviewViewState, ViewState},
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
-    lines_with_empty_line,
+    lines_with_empty_line, util,
 };
 
 const APP_NAME: &str = "STU";
@@ -554,21 +554,50 @@ fn build_help(before: &ViewState, width: u16) -> Paragraph<'static> {
     Paragraph::new(content).block(Block::bordered().title(APP_NAME))
 }
 
-fn build_short_help(app: &App) -> Paragraph {
-    let help = match app.app_view_state.view_state {
-        ViewState::Initializing => "",
-        ViewState::BucketList => "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <?>: Help",
-        ViewState::ObjectList => {
-            "<Esc>: Quit, <j/k>: Select, <Enter>: Open, <Backspace>: Go back, <?>: Help"
-        }
-        ViewState::Detail(_) => {
-            "<Esc>: Quit, <h/l>: Select tabs, <s>: Download, <Backspace>: Close, <?>: Help"
-        }
-        ViewState::Preview(_) => "<Esc>: Quit, <s>: Download, <Backspace>: Close, <?>: Help",
-        ViewState::Help(_) => "<Esc>: Quit, <?>: Close help",
+fn build_short_help(app: &App, width: u16) -> Paragraph {
+    let helps = match app.app_view_state.view_state {
+        ViewState::Initializing => vec![],
+        ViewState::BucketList => vec![
+            ("<Esc>: Quit", 0),
+            ("<j/k>: Select", 1),
+            ("<g/G>: Top/Bottom", 3),
+            ("<Enter>: Open", 2),
+            ("<?>: Help", 0),
+        ],
+        ViewState::ObjectList => vec![
+            ("<Esc>: Quit", 0),
+            ("<j/k>: Select", 3),
+            ("<g/G>: Top/Bottom", 4),
+            ("<Enter>: Open", 1),
+            ("<Backspace>: Go back", 2),
+            ("<?>: Help", 0),
+        ],
+        ViewState::Detail(_) => vec![
+            ("<Esc>: Quit", 0),
+            ("<h/l>: Select tabs", 3),
+            ("<s>: Download", 1),
+            ("<p>: Preview", 4),
+            ("<Backspace>: Close", 2),
+            ("<?>: Help", 0),
+        ],
+        ViewState::Preview(_) => vec![
+            ("<Esc>: Quit", 0),
+            ("<s>: Download", 2),
+            ("<Backspace>: Close", 1),
+            ("<?>: Help", 0),
+        ],
+        ViewState::Help(_) => vec![("<Esc>: Quit", 0), ("<?>: Close help", 0)],
     };
-    Paragraph::new(help.fg(SHORT_HELP_COLOR))
-        .block(Block::default().padding(Padding::horizontal(2)))
+    let pad = Padding::horizontal(2);
+    let max_width = (width - pad.left - pad.right) as usize;
+    let help = build_short_help_string(&helps, max_width);
+    Paragraph::new(help.fg(SHORT_HELP_COLOR)).block(Block::default().padding(pad))
+}
+
+fn build_short_help_string(helps: &[(&str, usize)], max_width: usize) -> String {
+    let delimiter = ", ";
+    let ss = util::prune_strings_to_fit_width(helps, max_width, delimiter);
+    ss.join(delimiter)
 }
 
 fn build_info_status(msg: &str) -> Paragraph {
@@ -593,7 +622,7 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
             f.render_widget(msg, area);
         }
         Notification::None => {
-            let help = build_short_help(app);
+            let help = build_short_help(app, area.width);
             f.render_widget(help, area);
         }
     }
