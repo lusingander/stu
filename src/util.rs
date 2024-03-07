@@ -63,135 +63,60 @@ pub fn group_strings_to_fit_width(
 
 #[cfg(test)]
 mod tests {
+    use rstest::rstest;
+
     use super::*;
 
-    #[test]
-    fn test_prune_strings_to_fit_width() {
-        fn assert(actual: Vec<String>, expected: &[&str]) {
-            assert_eq!(actual, expected);
-        }
-
-        let words_with_priority = vec![];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 10, "");
-        assert(actual, &[]);
-
-        let words_with_priority = vec![("a", 0), ("b", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 0, "");
-        assert(actual, &[]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 10, "");
-        assert(actual, &["aa", "bbb", "cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 9, "");
-        assert(actual, &["aa", "bbb", "cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 8, "");
-        assert(actual, &["bbb", "cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 5, "");
-        assert(actual, &["cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 3, "");
-        assert(actual, &[]);
-
-        let words_with_priority = vec![("ddd", 0), ("bbb", 0), ("ccc", 0), ("aaa", 0), ("eee", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 10, "");
-        assert(actual, &["ccc", "aaa", "eee"]);
-
-        let words_with_priority = vec![("ddd", 0), ("bbb", 1), ("ccc", 1), ("aaa", 1), ("eee", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 10, "");
-        assert(actual, &["ddd", "aaa", "eee"]);
-
-        let words_with_priority = vec![("ddd", 4), ("bbb", 3), ("ccc", 2), ("aaa", 1), ("eee", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 10, "");
-        assert(actual, &["ccc", "aaa", "eee"]);
-
-        let words_with_priority = vec![("ddd", 0), ("bbb", 1), ("ccc", 2), ("aaa", 3), ("eee", 4)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 10, "");
-        assert(actual, &["ddd", "bbb", "ccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 13, "--");
-        assert(actual, &["aa", "bbb", "cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 12, "--");
-        assert(actual, &["bbb", "cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 9, "--");
-        assert(actual, &["bbb", "cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 8, "--");
-        assert(actual, &["cccc"]);
-
-        let words_with_priority = vec![("aa", 0), ("bbb", 0), ("cccc", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 6, "--");
-        assert(actual, &["cccc"]);
-
-        let words_with_priority = vec![("a", 0), ("b", 0), ("c", 0)];
-        let actual = prune_strings_to_fit_width(&words_with_priority, 7, "     ");
-        assert(actual, &["b", "c"]);
+    #[rstest]
+    #[case(vec![], 10, "", &[])]
+    #[case(vec![("a", 0), ("b", 0)], 0, "", &[])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 10, "", &["aa", "bbb", "cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 9, "", &["aa", "bbb", "cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 8, "", &["bbb", "cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 5, "", &["cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 3, "", &[])]
+    #[case(vec![("ddd", 0), ("bbb", 0), ("ccc", 0), ("aaa", 0), ("eee", 0)], 10, "", &["ccc", "aaa", "eee"])]
+    #[case(vec![("ddd", 0), ("bbb", 1), ("ccc", 1), ("aaa", 1), ("eee", 0)], 10, "", &["ddd", "aaa", "eee"])]
+    #[case(vec![("ddd", 4), ("bbb", 3), ("ccc", 2), ("aaa", 1), ("eee", 0)], 10, "", &["ccc", "aaa", "eee"])]
+    #[case(vec![("ddd", 0), ("bbb", 1), ("ccc", 2), ("aaa", 3), ("eee", 4)], 10, "", &["ddd", "bbb", "ccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 13, "--", &["aa", "bbb", "cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 12, "--", &["bbb", "cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 9, "--", &["bbb", "cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 8, "--", &["cccc"])]
+    #[case(vec![("aa", 0), ("bbb", 0), ("cccc", 0)], 6, "--", &["cccc"])]
+    #[case(vec![("a", 0), ("b", 0), ("c", 0)], 7, "     ", &["b", "c"])]
+    #[trace]
+    fn test_prune_strings_to_fit_width(
+        #[case] words_with_priority: Vec<(&str, usize)>,
+        #[case] max_width: usize,
+        #[case] delimiter: &str,
+        #[case] expected: &[&str],
+    ) {
+        let actual = prune_strings_to_fit_width(&words_with_priority, max_width, delimiter);
+        assert_eq!(actual, expected);
     }
 
-    #[test]
-    fn test_group_strings_to_fit_width() {
-        fn assert(actual: Vec<Vec<String>>, expected: &[&[&str]]) {
-            assert_eq!(actual, expected);
-        }
-
-        let words = vec![];
-        let actual = group_strings_to_fit_width(&words, 10, "");
-        assert(actual, &[&[]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 2, "");
-        assert(actual, &[&["aaa"], &["bbb"], &["ccc"], &["ddd"], &["eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 4, "");
-        assert(actual, &[&["aaa"], &["bbb"], &["ccc"], &["ddd"], &["eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 6, "");
-        assert(actual, &[&["aaa", "bbb"], &["ccc", "ddd"], &["eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 8, "");
-        assert(actual, &[&["aaa", "bbb"], &["ccc", "ddd"], &["eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 9, "");
-        assert(actual, &[&["aaa", "bbb", "ccc"], &["ddd", "eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 15, "");
-        assert(actual, &[&["aaa", "bbb", "ccc", "ddd", "eee"]]);
-
-        let words = vec!["a", "b", "cc", "d", "ee"];
-        let actual = group_strings_to_fit_width(&words, 3, "");
-        assert(actual, &[&["a", "b"], &["cc", "d"], &["ee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 7, "--");
-        assert(actual, &[&["aaa"], &["bbb"], &["ccc"], &["ddd"], &["eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 8, "--");
-        assert(actual, &[&["aaa", "bbb"], &["ccc", "ddd"], &["eee"]]);
-
-        let words = vec!["aaa", "bbb", "ccc", "ddd", "eee"];
-        let actual = group_strings_to_fit_width(&words, 9, "--");
-        assert(actual, &[&["aaa", "bbb"], &["ccc", "ddd"], &["eee"]]);
-
-        let words = vec!["a", "b", "c", "d", "e"];
-        let actual = group_strings_to_fit_width(&words, 7, "     ");
-        assert(actual, &[&["a", "b"], &["c", "d"], &["e"]]);
+    #[rstest]
+    #[case(vec![], 10, "", vec![vec![]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 2, "", vec![vec!["aaa"], vec!["bbb"], vec!["ccc"], vec!["ddd"], vec!["eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 4, "", vec![vec!["aaa"], vec!["bbb"], vec!["ccc"], vec!["ddd"], vec!["eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 6, "", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 8, "", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 9, "", vec![vec!["aaa", "bbb", "ccc"], vec!["ddd", "eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 15, "", vec![vec!["aaa", "bbb", "ccc", "ddd", "eee"]])]
+    #[case(vec!["a", "b", "cc", "d", "ee"], 3, "", vec![vec!["a", "b"], vec!["cc", "d"], vec!["ee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 7, "--", vec![vec!["aaa"], vec!["bbb"], vec!["ccc"], vec!["ddd"], vec!["eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 8, "--", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
+    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 9, "--", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
+    #[case(vec!["a", "b", "c", "d", "e"], 7, "     ", vec![vec!["a", "b"], vec!["c", "d"], vec!["e"]])]
+    #[trace]
+    fn test_group_strings_to_fit_width(
+        #[case] words: Vec<&str>,
+        #[case] max_width: usize,
+        #[case] delimiter: &str,
+        #[case] expected: Vec<Vec<&str>>,
+    ) {
+        let actual = group_strings_to_fit_width(&words, max_width, delimiter);
+        assert_eq!(actual, expected);
     }
 }

@@ -26,3 +26,6 @@ ratatui = { version = "0.26.1", features = ["all-widgets"] }
 serde = "1.0.153"
 serde_derive = "1.0.153"
 tokio = { version = "1", features = ["full"] }
+
+[dev-dependencies]
+rstest = "0.18.2"
