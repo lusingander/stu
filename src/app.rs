@@ -143,14 +143,14 @@ impl App {
         // todo: adjust
     }
 
-    pub fn object_key_breadcrumb_string(&self) -> String {
+    pub fn breadcrumb_strs(&self) -> Vec<String> {
         match &self.current_bucket {
             Some(b) => {
                 let mut current_path = self.current_path.to_vec();
                 current_path.insert(0, b.name.to_string());
-                current_path.join(" / ")
+                current_path
             }
-            None => "".to_string(),
+            None => Vec::new(),
         }
     }
 

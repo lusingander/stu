@@ -64,7 +64,7 @@ fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
     )
     .split(area);
 
-    let header = build_header(app);
+    let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
 
     let content = Block::bordered();
@@ -78,7 +78,7 @@ fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
     )
     .split(area);
 
-    let header = build_header(app);
+    let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
 
     let current_items = app.bucket_items();
@@ -105,7 +105,7 @@ fn render_object_list_view(f: &mut Frame, area: Rect, app: &App) {
     )
     .split(area);
 
-    let header = build_header(app);
+    let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
 
     let current_items = app.current_object_items();
@@ -162,7 +162,7 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
     )
     .split(area);
 
-    let header = build_header(app);
+    let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
 
     let chunks = Layout::new(
@@ -219,7 +219,7 @@ fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewSta
     )
     .split(area);
 
-    let header = build_header(app);
+    let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
 
     let content = build_preview(app, vs, chunks[1]);
@@ -231,12 +231,44 @@ fn render_help_view(f: &mut Frame, area: Rect, before: &ViewState) {
     f.render_widget(content, area);
 }
 
-fn build_header(app: &App) -> Paragraph {
-    let current_key = app.object_key_breadcrumb_string();
+fn build_header(app: &App, area: Rect) -> Paragraph {
+    let area = area.inner(&Margin::new(1, 1));
+    let pad = Padding::horizontal(1);
+
+    let max_width = (area.width - pad.left - pad.right) as usize;
+    let delimiter = " / ";
+    let ellipsis = "...";
+    let breadcrumbs = app.breadcrumb_strs();
+
+    let current_key = if breadcrumbs.is_empty() {
+        "".to_string()
+    } else {
+        let current_key = breadcrumbs.join(delimiter);
+        if current_key.len() <= max_width {
+            current_key
+        } else {
+            //   string: <bucket> / ... / s1 / s2 / s3 / s4 / s5
+            // priority:        1 /   0 /  4 /  3 /  2 /  1 /  0
+            let bl = breadcrumbs.len();
+            let mut bs: Vec<(String, usize)> = breadcrumbs
+                .into_iter()
+                .enumerate()
+                .map(|(i, p)| (p, bl - i - 1))
+                .collect();
+            bs.insert(1, (ellipsis.to_string(), 0));
+            bs.first_mut().unwrap().1 = 1;
+            bs.last_mut().unwrap().1 = 0;
+            let bs: Vec<(&str, usize)> = bs.iter().map(|(s, p)| (s.as_str(), *p)).collect();
+
+            let keys = util::prune_strings_to_fit_width(&bs, max_width, delimiter);
+            keys.join(delimiter)
+        }
+    };
+
     Paragraph::new(Span::styled(current_key, Style::default())).block(
         Block::bordered()
             .title(Span::styled(APP_NAME, Style::default()))
-            .padding(Padding::horizontal(1)),
+            .padding(pad),
     )
 }
 
