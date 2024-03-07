@@ -12,9 +12,9 @@ categories = ["command-line-utilities"]
 edition = "2021"
 
 [dependencies]
-aws-config = "1.0.1"
-aws-sdk-s3 = "1.4.0"
-aws-smithy-types = "1.0.1"
+aws-config = "1.1.7"
+aws-sdk-s3 = "1.17.0"
+aws-smithy-types = "1.1.7"
 chrono = "0.4.35"
 clap = { version = "4.5.2", features = ["derive"] }
 confy = "0.6.1"
