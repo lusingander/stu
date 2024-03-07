@@ -687,24 +687,31 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn build_loading_dialog(msg: &str) -> Paragraph {
-    let text = vec![Line::from(""), Line::from(msg.add_modifier(Modifier::BOLD))];
-    Paragraph::new(text)
-        .alignment(Alignment::Center)
-        .block(Block::bordered().border_type(BorderType::Double))
+    let text = Line::from(msg.add_modifier(Modifier::BOLD));
+    Paragraph::new(text).alignment(Alignment::Center).block(
+        Block::bordered()
+            .border_type(BorderType::Double)
+            .padding(Padding::vertical(1)),
+    )
 }
 
 fn calc_loading_dialog_rect(r: Rect) -> Rect {
-    let popup_layout = Layout::new(
+    let dialog_width: u16 = 30;
+    let dialog_height: u16 = 5;
+
+    let vertical_pad = (r.height - dialog_height) / 2;
+    let vertical_layout = Layout::new(
         Direction::Vertical,
-        Constraint::from_lengths([(r.height - 5) / 2, 5, (r.height - 5) / 2]),
+        Constraint::from_lengths([vertical_pad, dialog_height, vertical_pad]),
     )
     .split(r);
 
+    let horizontal_pad = (r.width - dialog_width) / 2;
     Layout::new(
         Direction::Horizontal,
-        Constraint::from_lengths([(r.width - 30) / 2, 30, (r.width - 30) / 2]),
+        Constraint::from_lengths([horizontal_pad, dialog_width, horizontal_pad]),
     )
-    .split(popup_layout[1])[1]
+    .split(vertical_layout[1])[1]
 }
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
