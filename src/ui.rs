@@ -460,23 +460,24 @@ fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
 }
 
 fn build_file_detail(detail: &FileDetail) -> Paragraph {
-    let text = vec![
-        Line::from(" Name:".add_modifier(Modifier::BOLD)),
-        Line::from(format!("  {}", &detail.name)),
-        Line::from(""),
-        Line::from(" Size:".add_modifier(Modifier::BOLD)),
-        Line::from(format!("  {}", format_size_byte(detail.size_byte))),
-        Line::from(""),
-        Line::from(" Last Modified:".add_modifier(Modifier::BOLD)),
-        Line::from(format!("  {}", format_datetime(&detail.last_modified))),
-        Line::from(""),
-        Line::from(" ETag:".add_modifier(Modifier::BOLD)),
-        Line::from(format!("  {}", &detail.e_tag)),
-        Line::from(""),
-        Line::from(" Content-Type:".add_modifier(Modifier::BOLD)),
-        Line::from(format!("  {}", &detail.content_type)),
-    ];
-    Paragraph::new(text).block(Block::default())
+    let details = [
+        ("Name:", &detail.name),
+        ("Size:", &format_size_byte(detail.size_byte)),
+        ("Last Modified:", &format_datetime(&detail.last_modified)),
+        ("ETag:", &detail.e_tag),
+        ("Content-Type:", &detail.content_type),
+    ]
+    .iter()
+    .map(|(label, value)| {
+        vec![
+            Line::from(label.add_modifier(Modifier::BOLD)),
+            Line::from(format!(" {}", value)),
+        ]
+    })
+    .collect();
+
+    let content = flatten_with_empty_lines(details, false);
+    Paragraph::new(content).block(Block::default().padding(Padding::horizontal(1)))
 }
 
 fn format_size_byte(size_byte: i64) -> String {
@@ -603,15 +604,6 @@ fn build_help_lines(helps: Vec<&str>, max_width: usize) -> Vec<Line> {
     with_empty_lines(lines)
 }
 
-fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
-    let mut ret: Vec<Line> = Vec::new();
-    for line in lines {
-        ret.push(line);
-        ret.push(Line::from(""));
-    }
-    ret
-}
-
 fn build_short_help(app: &App, width: u16) -> Paragraph {
     let helps = match app.app_view_state.view_state {
         ViewState::Initializing => vec![],
@@ -721,4 +713,23 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
         f.render_widget(Clear, area);
         f.render_widget(loading, area);
     }
+}
+
+fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
+    let line_groups = lines.into_iter().map(|l| vec![l]).collect();
+    flatten_with_empty_lines(line_groups, true)
+}
+
+fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Vec<Line> {
+    let n = line_groups.len();
+    let mut ret: Vec<Line> = Vec::new();
+    for (i, lines) in line_groups.into_iter().enumerate() {
+        for line in lines {
+            ret.push(line);
+        }
+        if add_to_end || i != n - 1 {
+            ret.push(Line::from(""));
+        }
+    }
+    ret
 }
