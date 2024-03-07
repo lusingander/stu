@@ -16,7 +16,7 @@ aws-config = "1.0.1"
 aws-sdk-s3 = "1.4.0"
 aws-smithy-types = "1.0.1"
 chrono = "0.4.35"
-clap = { version = "4.1.6", features = ["derive"] }
+clap = { version = "4.5.2", features = ["derive"] }
 confy = "0.6.1"
 crossterm = "0.27.0"
 dirs = "5.0.1"
