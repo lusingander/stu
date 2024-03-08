@@ -49,7 +49,7 @@ impl CompleteLoadObjectsResult {
 }
 
 pub struct CompleteLoadObjectResult {
-    pub detail: FileDetail,
+    pub detail: Box<FileDetail>, // to avoid "warning: large size difference between variants" for AppEventType
     pub versions: Vec<FileVersion>,
     pub map_key: ObjectKey,
 }
@@ -60,7 +60,7 @@ impl CompleteLoadObjectResult {
         versions: Result<Vec<FileVersion>>,
         map_key: ObjectKey,
     ) -> Result<CompleteLoadObjectResult> {
-        let detail = detail?;
+        let detail = Box::new(detail?);
         let versions = versions?;
         Ok(CompleteLoadObjectResult {
             detail,

@@ -489,7 +489,7 @@ impl App {
                 map_key,
             }) => {
                 self.app_objects
-                    .set_object_details(map_key, detail, versions);
+                    .set_object_details(map_key, *detail, versions);
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
             Err(e) => {
