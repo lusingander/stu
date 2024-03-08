@@ -466,13 +466,19 @@ fn build_file_detail(detail: &FileDetail) -> Paragraph {
         ("Last Modified:", &format_datetime(&detail.last_modified)),
         ("ETag:", &detail.e_tag),
         ("Content-Type:", &detail.content_type),
+        ("Storage class:", &detail.storage_class),
     ]
     .iter()
-    .map(|(label, value)| {
-        vec![
-            Line::from(label.add_modifier(Modifier::BOLD)),
-            Line::from(format!(" {}", value)),
-        ]
+    .filter_map(|(label, value)| {
+        if value.is_empty() {
+            None
+        } else {
+            let lines = vec![
+                Line::from(label.add_modifier(Modifier::BOLD)),
+                Line::from(format!(" {}", value)),
+            ];
+            Some(lines)
+        }
     })
     .collect();
 
