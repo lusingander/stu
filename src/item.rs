@@ -22,7 +22,7 @@ pub enum ObjectItem {
 }
 
 impl ObjectItem {
-    pub fn name(&self) -> &String {
+    pub fn name(&self) -> &str {
         match self {
             ObjectItem::Dir { name, .. } => name,
             ObjectItem::File { name, .. } => name,

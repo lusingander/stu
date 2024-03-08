@@ -67,7 +67,7 @@ impl Client {
         }
     }
 
-    pub async fn load_objects(&self, bucket: &String, prefix: &String) -> Result<Vec<ObjectItem>> {
+    pub async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
         let mut dirs_vec: Vec<Vec<ObjectItem>> = Vec::new();
         let mut files_vec: Vec<Vec<ObjectItem>> = Vec::new();
 
@@ -103,9 +103,9 @@ impl Client {
 
     pub async fn load_object_detail(
         &self,
-        bucket: &String,
-        key: &String,
-        name: &String,
+        bucket: &str,
+        key: &str,
+        name: &str,
         size_byte: i64,
     ) -> Result<FileDetail> {
         let result = self
@@ -130,11 +130,7 @@ impl Client {
         })
     }
 
-    pub async fn load_object_versions(
-        &self,
-        bucket: &String,
-        key: &String,
-    ) -> Result<Vec<FileVersion>> {
+    pub async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
         let result = self
             .client
             .list_object_versions()
@@ -163,7 +159,7 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object(&self, bucket: &String, key: &String) -> Result<Object> {
+    pub async fn download_object(&self, bucket: &str, key: &str) -> Result<Object> {
         let result = self
             .client
             .get_object()
@@ -195,7 +191,7 @@ impl Client {
         open::that(path).map_err(AppError::error)
     }
 
-    pub fn open_management_console_list(&self, bucket: &String, prefix: &String) -> Result<()> {
+    pub fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}&prefix={}",
             bucket, self.region, prefix
@@ -205,9 +201,9 @@ impl Client {
 
     pub fn open_management_console_object(
         &self,
-        bucket: &String,
-        prefix: &String,
-        name: &String,
+        bucket: &str,
+        prefix: &str,
+        name: &str,
     ) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}{}",

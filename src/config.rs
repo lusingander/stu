@@ -34,7 +34,7 @@ impl Config {
         confy::load_path(path).map_err(|e| AppError::new("Failed to load config file", e))
     }
 
-    pub fn download_file_path(&self, name: &String) -> String {
+    pub fn download_file_path(&self, name: &str) -> String {
         let dir = PathBuf::from(self.download_dir.clone());
         let path = dir.join(name);
         String::from(path.to_string_lossy())

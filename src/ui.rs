@@ -387,19 +387,19 @@ fn build_list_item_from_object_item(
     }
 }
 
-fn format_bucket_item(name: &String, width: u16) -> String {
+fn format_bucket_item(name: &str, width: u16) -> String {
     let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
-fn format_dir_item(name: &String, width: u16) -> String {
+fn format_dir_item(name: &str, width: u16) -> String {
     let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
     let name = format!("{}/", name);
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
 fn format_file_item(
-    name: &String,
+    name: &str,
     size_byte: &i64,
     last_modified: &DateTime<Local>,
     width: u16,
