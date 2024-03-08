@@ -121,13 +121,41 @@ impl Client {
         let last_modified = convert_datetime(output.last_modified().unwrap());
         let e_tag = output.e_tag().unwrap().trim_matches('"').to_string();
         let content_type = output.content_type().unwrap().to_string();
+        let storage_class = output
+            .storage_class()
+            .map_or("", |s| s.as_str())
+            .to_string();
+        let key = key.to_owned();
+        let s3_uri = self.build_s3_uri(bucket, &key);
+        let arn = self.build_arn(bucket, &key);
+        let object_url = self.build_object_url(bucket, &key);
         Ok(FileDetail {
             name,
             size_byte,
             last_modified,
             e_tag,
             content_type,
+            storage_class,
+            key,
+            s3_uri,
+            arn,
+            object_url,
         })
+    }
+
+    fn build_s3_uri(&self, bucket: &str, key: &str) -> String {
+        format!("s3://{}/{}", bucket, key)
+    }
+
+    fn build_arn(&self, bucket: &str, key: &str) -> String {
+        format!("arn:aws:s3:::{}/{}", bucket, key)
+    }
+
+    fn build_object_url(&self, bucket: &str, key: &str) -> String {
+        format!(
+            "https://{}.s3.{}.amazonaws.com/{}",
+            bucket, self.region, key
+        )
     }
 
     pub async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {

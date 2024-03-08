@@ -36,6 +36,11 @@ pub struct FileDetail {
     pub last_modified: DateTime<Local>,
     pub e_tag: String,
     pub content_type: String,
+    pub storage_class: String,
+    pub key: String,
+    pub s3_uri: String,
+    pub arn: String,
+    pub object_url: String,
 }
 
 pub struct FileVersion {
