@@ -13,7 +13,10 @@ use ratatui::{
 };
 
 use crate::{
-    app::{App, CopyDetailViewState, DetailViewState, Notification, PreviewViewState, ViewState},
+    app::{
+        App, CopyDetailViewItemType, CopyDetailViewState, DetailViewState, Notification,
+        PreviewViewState, ViewState,
+    },
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     util,
 };
@@ -229,17 +232,17 @@ fn render_copy_details_dialog(
 ) {
     let selected = vs.selected as usize;
     let list_items: Vec<ListItem> = [
-        ("Key", &detail.key),
-        ("S3 URI", &detail.s3_uri),
-        ("ARN", &detail.arn),
-        ("Object URL", &detail.object_url),
-        ("ETag", &detail.e_tag),
+        (CopyDetailViewItemType::Key, &detail.key),
+        (CopyDetailViewItemType::S3Uri, &detail.s3_uri),
+        (CopyDetailViewItemType::Arn, &detail.arn),
+        (CopyDetailViewItemType::ObjectUrl, &detail.object_url),
+        (CopyDetailViewItemType::Etag, &detail.e_tag),
     ]
     .iter()
     .enumerate()
-    .map(|(i, (label, value))| {
+    .map(|(i, (tp, value))| {
         let item = ListItem::new(vec![
-            Line::from(format!("{}:", label).add_modifier(Modifier::BOLD)),
+            Line::from(format!("{}:", tp.name()).add_modifier(Modifier::BOLD)),
             Line::from(format!("  {}", value)),
         ]);
         if i == selected {

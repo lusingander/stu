@@ -1,3 +1,4 @@
+use arboard::Clipboard;
 use chrono::Local;
 use std::{
     fs::{File, OpenOptions},
@@ -48,4 +49,10 @@ fn create_dirs(path: &str) -> Result<()> {
             .map_err(|e| AppError::new("Failed to create directories", e)),
         None => Ok(()),
     }
+}
+
+pub fn copy_to_clipboard(value: String) -> Result<()> {
+    Clipboard::new()
+        .and_then(|mut c| c.set_text(value))
+        .map_err(|e| AppError::new("Failed to copy to clipboard", e))
 }

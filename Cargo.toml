@@ -12,6 +12,7 @@ categories = ["command-line-utilities"]
 edition = "2021"
 
 [dependencies]
+arboard = "3.3.2"
 aws-config = "1.1.7"
 aws-sdk-s3 = "1.17.0"
 aws-smithy-types = "1.1.7"

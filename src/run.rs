@@ -124,6 +124,9 @@ pub async fn run<B: Backend>(
             AppEventType::CompletePreviewObject(result) => {
                 app.complete_preview_object(result);
             }
+            AppEventType::CopyToClipboard(name, value) => {
+                app.copy_to_clipboard(name, value);
+            }
             AppEventType::Info(msg) => {
                 app.app_view_state.notification = Notification::Info(msg);
             }

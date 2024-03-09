@@ -22,6 +22,7 @@ pub enum AppEventType {
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     PreviewObject,
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
+    CopyToClipboard(String, String),
     Info(String),
     Error(AppError),
 }

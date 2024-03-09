@@ -13,9 +13,9 @@ use crate::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
         CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult,
     },
-    file::{save_binary, save_error_log},
+    file::{copy_to_clipboard, save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
-    util,
+    util::to_preview_string,
 };
 
 #[derive(Clone)]
@@ -58,6 +58,17 @@ pub enum CopyDetailViewItemType {
 }
 
 impl CopyDetailViewItemType {
+    pub fn name(&self) -> &str {
+        use CopyDetailViewItemType::*;
+        match self {
+            Key => "Key",
+            S3Uri => "S3 URI",
+            Arn => "ARN",
+            ObjectUrl => "Object URL",
+            Etag => "ETag",
+        }
+    }
+
     fn next(self) -> CopyDetailViewItemType {
         use CopyDetailViewItemType::*;
         match self {
@@ -405,8 +416,20 @@ impl App {
             | ViewState::Detail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
-            ViewState::CopyDetail(_) => {
-                todo!()
+            ViewState::CopyDetail(vs) => {
+                if let Some(detail) = self.get_current_file_detail() {
+                    let value = match vs.selected {
+                        CopyDetailViewItemType::Key => &detail.key,
+                        CopyDetailViewItemType::S3Uri => &detail.s3_uri,
+                        CopyDetailViewItemType::Arn => &detail.arn,
+                        CopyDetailViewItemType::ObjectUrl => &detail.object_url,
+                        CopyDetailViewItemType::Etag => &detail.e_tag,
+                    };
+                    let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
+                    self.tx
+                        .send(AppEventType::CopyToClipboard(name, value))
+                        .unwrap();
+                }
             }
             ViewState::BucketList => {
                 if let Some(selected) = self.get_current_selected_bucket_item() {
@@ -700,7 +723,7 @@ impl App {
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
         match result {
             Ok(CompletePreviewObjectResult { obj, path }) => {
-                let preview = util::to_preview_string(&obj.bytes, &obj.content_type);
+                let preview = to_preview_string(&obj.bytes, &obj.content_type);
                 let state = PreviewViewState { preview, path, obj };
                 self.app_view_state.view_state = ViewState::Preview(Box::new(state));
             }
@@ -764,6 +787,18 @@ impl App {
         };
         if let Err(e) = result {
             self.tx.send(AppEventType::Error(e)).unwrap();
+        }
+    }
+
+    pub fn copy_to_clipboard(&self, name: String, value: String) {
+        match copy_to_clipboard(value) {
+            Ok(_) => {
+                let msg = format!("Copied '{}' to clipboard successfully", name);
+                self.tx.send(AppEventType::Info(msg)).unwrap();
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::Error(e)).unwrap();
+            }
         }
     }
 
