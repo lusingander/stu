@@ -24,6 +24,7 @@ pub enum ViewState {
     BucketList,
     ObjectList,
     Detail(DetailViewState),
+    CopyDetail(CopyDetailViewState),
     Preview(Box<PreviewViewState>),
     Help(Box<ViewState>),
 }
@@ -32,6 +33,52 @@ pub enum ViewState {
 pub enum DetailViewState {
     Detail = 0,
     Version = 1,
+}
+
+#[derive(Clone, Copy)]
+pub struct CopyDetailViewState {
+    pub selected: CopyDetailViewItemType,
+}
+
+impl Default for CopyDetailViewState {
+    fn default() -> Self {
+        Self {
+            selected: CopyDetailViewItemType::Key,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum CopyDetailViewItemType {
+    Key,
+    S3Uri,
+    Arn,
+    ObjectUrl,
+    Etag,
+}
+
+impl CopyDetailViewItemType {
+    fn next(self) -> CopyDetailViewItemType {
+        use CopyDetailViewItemType::*;
+        match self {
+            Key => S3Uri,
+            S3Uri => Arn,
+            Arn => ObjectUrl,
+            ObjectUrl => Etag,
+            Etag => Key,
+        }
+    }
+
+    fn prev(self) -> CopyDetailViewItemType {
+        use CopyDetailViewItemType::*;
+        match self {
+            Key => Etag,
+            S3Uri => Key,
+            Arn => S3Uri,
+            ObjectUrl => Arn,
+            Etag => ObjectUrl,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -187,6 +234,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => 0,
             ViewState::BucketList => self.bucket_items().len(),
@@ -244,6 +292,12 @@ impl App {
             | ViewState::Detail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
+            ViewState::CopyDetail(vs) => {
+                let vs = CopyDetailViewState {
+                    selected: vs.selected.next(),
+                };
+                self.app_view_state.view_state = ViewState::CopyDetail(vs);
+            }
             ViewState::BucketList | ViewState::ObjectList => {
                 let current_selected = self.app_view_state.current_list_state().selected;
                 let len = self.current_items_len();
@@ -262,6 +316,12 @@ impl App {
             | ViewState::Detail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
+            ViewState::CopyDetail(vs) => {
+                let vs = CopyDetailViewState {
+                    selected: vs.selected.prev(),
+                };
+                self.app_view_state.view_state = ViewState::CopyDetail(vs);
+            }
             ViewState::BucketList | ViewState::ObjectList => {
                 let current_selected = self.app_view_state.current_list_state().selected;
                 let len = self.current_items_len();
@@ -282,6 +342,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
@@ -297,6 +358,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
@@ -312,6 +374,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
@@ -324,6 +387,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::BucketList | ViewState::ObjectList => {
@@ -341,6 +405,9 @@ impl App {
             | ViewState::Detail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
+            ViewState::CopyDetail(_) => {
+                todo!()
+            }
             ViewState::BucketList => {
                 if let Some(selected) = self.get_current_selected_bucket_item() {
                     self.current_bucket = Some(selected.to_owned());
@@ -406,6 +473,9 @@ impl App {
             ViewState::Detail(_) => {
                 self.app_view_state.view_state = ViewState::ObjectList;
             }
+            ViewState::CopyDetail(_) => {
+                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+            }
             ViewState::Preview(_) => {
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
@@ -420,6 +490,7 @@ impl App {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::ObjectList => {
@@ -504,6 +575,7 @@ impl App {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::ObjectList
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::Detail(vs) => match vs {
@@ -526,6 +598,7 @@ impl App {
             ViewState::BucketList
             | ViewState::ObjectList
             | ViewState::Detail(_)
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_) => {
                 let before = self.app_view_state.view_state.clone();
                 self.app_view_state.view_state = ViewState::Help(Box::new(before));
@@ -538,6 +611,7 @@ impl App {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::ObjectList
+            | ViewState::CopyDetail(_)
             | ViewState::Help(_) => {}
             ViewState::Detail(_) => {
                 self.tx.send(AppEventType::DownloadObject).unwrap();
@@ -558,11 +632,32 @@ impl App {
             ViewState::Initializing
             | ViewState::BucketList
             | ViewState::ObjectList
+            | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
             ViewState::Detail(_) => {
                 self.tx.send(AppEventType::PreviewObject).unwrap();
                 self.app_view_state.is_loading = true;
+            }
+        }
+    }
+
+    pub fn toggle_copy_details(&mut self) {
+        match self.app_view_state.view_state {
+            ViewState::Initializing
+            | ViewState::BucketList
+            | ViewState::ObjectList
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => {}
+            ViewState::Detail(vs) => match vs {
+                DetailViewState::Detail => {
+                    self.app_view_state.view_state =
+                        ViewState::CopyDetail(CopyDetailViewState::default());
+                }
+                DetailViewState::Version => {}
+            },
+            ViewState::CopyDetail(_) => {
+                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
         }
     }
@@ -647,7 +742,10 @@ impl App {
         let (client, _) = self.unwrap_client_tx();
 
         let result = match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::Preview(_) | ViewState::Help(_) => Ok(()),
+            ViewState::Initializing
+            | ViewState::CopyDetail(_)
+            | ViewState::Preview(_)
+            | ViewState::Help(_) => Ok(()),
             ViewState::BucketList => client.open_management_console_buckets(),
             ViewState::ObjectList => {
                 let bucket = &self.current_bucket();

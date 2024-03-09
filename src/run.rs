@@ -79,6 +79,9 @@ pub async fn run<B: Backend>(
                     key_code_char!('p') => {
                         app.preview();
                     }
+                    key_code_char!('r') => {
+                        app.toggle_copy_details();
+                    }
                     key_code_char!('x') => {
                         app.open_management_console();
                     }

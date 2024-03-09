@@ -6,14 +6,14 @@ use ratatui::{
     symbols::scrollbar::VERTICAL,
     text::{Line, Span, Text},
     widgets::{
-        Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Scrollbar,
-        ScrollbarState, Tabs,
+        block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph,
+        Scrollbar, ScrollbarState, Tabs,
     },
     Frame,
 };
 
 use crate::{
-    app::{App, DetailViewState, Notification, PreviewViewState, ViewState},
+    app::{App, CopyDetailViewState, DetailViewState, Notification, PreviewViewState, ViewState},
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     util,
 };
@@ -52,6 +52,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
         ViewState::BucketList => render_bucket_list_view(f, area, app),
         ViewState::ObjectList => render_object_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
+        ViewState::CopyDetail(_) => render_copy_detail_view(f, area, app),
         ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, before),
     }
@@ -203,6 +204,10 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
             let current_file_detail = app.get_current_file_detail().unwrap();
             let detail = build_file_detail(current_file_detail);
             f.render_widget(detail, chunks[1]);
+
+            if let ViewState::CopyDetail(vs) = app.app_view_state.view_state {
+                render_copy_details_dialog(f, area, &vs, current_file_detail);
+            }
         }
         DetailViewState::Version => {
             let current_file_versions = app.get_current_file_versions().unwrap();
@@ -210,6 +215,54 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
             f.render_widget(versions, chunks[1]);
         }
     }
+}
+
+fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App) {
+    render_detail_view(f, area, app, &DetailViewState::Detail);
+}
+
+fn render_copy_details_dialog(
+    f: &mut Frame,
+    area: Rect,
+    vs: &CopyDetailViewState,
+    detail: &FileDetail,
+) {
+    let selected = vs.selected as usize;
+    let list_items: Vec<ListItem> = [
+        ("Key", &detail.key),
+        ("S3 URI", &detail.s3_uri),
+        ("ARN", &detail.arn),
+        ("Object URL", &detail.object_url),
+        ("ETag", &detail.e_tag),
+    ]
+    .iter()
+    .enumerate()
+    .map(|(i, (label, value))| {
+        let item = ListItem::new(vec![
+            Line::from(format!("{}:", label).add_modifier(Modifier::BOLD)),
+            Line::from(format!("  {}", value)),
+        ]);
+        if i == selected {
+            item.fg(SELECTED_COLOR)
+        } else {
+            item
+        }
+    })
+    .collect();
+
+    let dialog_width = (area.width - 4).min(80);
+    let dialog_height = 2 * 5 /* list */ + 2 /* border */;
+    let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+    let title = Title::from("Copy");
+    let list = List::new(list_items).block(
+        Block::bordered()
+            .border_type(BorderType::Double)
+            .title(title)
+            .padding(Padding::horizontal(1)),
+    );
+    f.render_widget(Clear, area);
+    f.render_widget(list, area);
 }
 
 fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewState) {
@@ -578,9 +631,16 @@ fn build_help(before: &ViewState, area: Rect) -> Paragraph {
             "<Esc> <Ctrl-c>: Quit app",
             "<h/l>: Select tabs",
             "<Backspace>: Close detail panel",
+            "<r>: Open copy dialog",
             "<s>: Download object",
             "<p>: Preview object",
             "<x>: Open management console in browser",
+        ],
+        ViewState::CopyDetail(_) => vec![
+            "<Esc> <Ctrl-c>: Quit app",
+            "<j/k>: Select item",
+            "<Enter>: Copy selected value to clipboard",
+            "<Backspace> <r>: Close copy dialog",
         ],
         ViewState::Preview(_) => vec![
             "<Esc> <Ctrl-c>: Quit app",
@@ -633,6 +693,13 @@ fn build_short_help(app: &App, width: u16) -> Paragraph {
             ("<h/l>: Select tabs", 3),
             ("<s>: Download", 1),
             ("<p>: Preview", 4),
+            ("<Backspace>: Close", 2),
+            ("<?>: Help", 0),
+        ],
+        ViewState::CopyDetail(_) => vec![
+            ("<Esc>: Quit", 0),
+            ("<j/k>: Select", 3),
+            ("<Enter>: Copy", 1),
             ("<Backspace>: Close", 2),
             ("<?>: Help", 0),
         ],
@@ -693,10 +760,16 @@ fn build_loading_dialog(msg: &str) -> Paragraph {
     )
 }
 
-fn calc_loading_dialog_rect(r: Rect) -> Rect {
-    let dialog_width: u16 = 30;
-    let dialog_height: u16 = 5;
+fn render_loading_dialog(f: &mut Frame, app: &App) {
+    if app.app_view_state.is_loading {
+        let loading = build_loading_dialog("Loading...");
+        let area = calc_centered_dialog_rect(f.size(), 30, 5);
+        f.render_widget(Clear, area);
+        f.render_widget(loading, area);
+    }
+}
 
+fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
     let vertical_pad = (r.height - dialog_height) / 2;
     let vertical_layout = Layout::new(
         Direction::Vertical,
@@ -710,15 +783,6 @@ fn calc_loading_dialog_rect(r: Rect) -> Rect {
         Constraint::from_lengths([horizontal_pad, dialog_width, horizontal_pad]),
     )
     .split(vertical_layout[1])[1]
-}
-
-fn render_loading_dialog(f: &mut Frame, app: &App) {
-    if app.app_view_state.is_loading {
-        let loading = build_loading_dialog("Loading...");
-        let area = calc_loading_dialog_rect(f.size());
-        f.render_widget(Clear, area);
-        f.render_widget(loading, area);
-    }
 }
 
 fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
