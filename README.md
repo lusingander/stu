@@ -68,6 +68,7 @@ The values that can be set are as follows:
 <img src="./img/object-detail.png" width=500>
 <img src="./img/object-version.png" width=500>
 <img src="./img/object-preview.png" width=500>
+<img src="./img/object-details-copy.png" width=500>
 
 ## License
 

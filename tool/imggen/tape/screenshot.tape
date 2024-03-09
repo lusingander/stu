@@ -47,6 +47,12 @@ Backspace
 Type "j"
 Type "j"
 Enter
+Type "r"
+Screenshot ${OUTPUT_DIR}/object-details-copy.png
+Type "?"
+Screenshot ${OUTPUT_DIR}/object-details-copy-help.png
+Type "?"
+Backspace
 Sleep 500ms
 Type "p"
 Sleep 500ms
