@@ -38,12 +38,14 @@ pub enum DetailViewState {
 #[derive(Clone, Copy)]
 pub struct CopyDetailViewState {
     pub selected: CopyDetailViewItemType,
+    pub before: DetailViewState,
 }
 
-impl Default for CopyDetailViewState {
-    fn default() -> Self {
-        Self {
+impl CopyDetailViewState {
+    fn new(before: DetailViewState) -> CopyDetailViewState {
+        CopyDetailViewState {
             selected: CopyDetailViewItemType::Key,
+            before,
         }
     }
 }
@@ -306,6 +308,7 @@ impl App {
             ViewState::CopyDetail(vs) => {
                 let vs = CopyDetailViewState {
                     selected: vs.selected.next(),
+                    ..vs
                 };
                 self.app_view_state.view_state = ViewState::CopyDetail(vs);
             }
@@ -330,6 +333,7 @@ impl App {
             ViewState::CopyDetail(vs) => {
                 let vs = CopyDetailViewState {
                     selected: vs.selected.prev(),
+                    ..vs
                 };
                 self.app_view_state.view_state = ViewState::CopyDetail(vs);
             }
@@ -672,15 +676,12 @@ impl App {
             | ViewState::ObjectList
             | ViewState::Preview(_)
             | ViewState::Help(_) => {}
-            ViewState::Detail(vs) => match vs {
-                DetailViewState::Detail => {
-                    self.app_view_state.view_state =
-                        ViewState::CopyDetail(CopyDetailViewState::default());
-                }
-                DetailViewState::Version => {}
-            },
-            ViewState::CopyDetail(_) => {
-                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+            ViewState::Detail(vs) => {
+                self.app_view_state.view_state =
+                    ViewState::CopyDetail(CopyDetailViewState::new(vs));
+            }
+            ViewState::CopyDetail(vs) => {
+                self.app_view_state.view_state = ViewState::Detail(vs.before);
             }
         }
     }

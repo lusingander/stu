@@ -55,7 +55,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
         ViewState::BucketList => render_bucket_list_view(f, area, app),
         ViewState::ObjectList => render_object_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
-        ViewState::CopyDetail(_) => render_copy_detail_view(f, area, app),
+        ViewState::CopyDetail(vs) => render_copy_detail_view(f, area, app, vs),
         ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, before),
     }
@@ -207,10 +207,6 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
             let current_file_detail = app.get_current_file_detail().unwrap();
             let detail = build_file_detail(current_file_detail);
             f.render_widget(detail, chunks[1]);
-
-            if let ViewState::CopyDetail(vs) = app.app_view_state.view_state {
-                render_copy_details_dialog(f, area, &vs, current_file_detail);
-            }
         }
         DetailViewState::Version => {
             let current_file_versions = app.get_current_file_versions().unwrap();
@@ -218,10 +214,15 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
             f.render_widget(versions, chunks[1]);
         }
     }
+
+    if let ViewState::CopyDetail(vs) = app.app_view_state.view_state {
+        let current_file_detail = app.get_current_file_detail().unwrap();
+        render_copy_details_dialog(f, area, &vs, current_file_detail);
+    }
 }
 
-fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App) {
-    render_detail_view(f, area, app, &DetailViewState::Detail);
+fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &CopyDetailViewState) {
+    render_detail_view(f, area, app, &vs.before);
 }
 
 fn render_copy_details_dialog(
