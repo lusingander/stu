@@ -4,7 +4,7 @@ pub fn to_preview_string(bytes: &[u8], _content_type: &str) -> String {
 }
 
 pub fn prune_strings_to_fit_width(
-    words_with_priority: &[(&str, usize)],
+    words_with_priority: &[(String, usize)],
     max_width: usize,
     delimiter: &str,
 ) -> Vec<String> {
@@ -15,7 +15,7 @@ pub fn prune_strings_to_fit_width(
     let delimiter_total_length = words_with_priority.len().saturating_sub(1) * delimiter.len();
     let mut total_length = words_total_length + delimiter_total_length;
 
-    let mut words_with_priority_with_index: Vec<(usize, &(&str, usize))> =
+    let mut words_with_priority_with_index: Vec<(usize, &(String, usize))> =
         words_with_priority.iter().enumerate().collect();
 
     words_with_priority_with_index.sort_by(|(_, (_, p1)), (_, (_, p2))| p2.cmp(p1));
@@ -39,7 +39,7 @@ pub fn prune_strings_to_fit_width(
 }
 
 pub fn group_strings_to_fit_width(
-    words: &Vec<String>,
+    words: &[String],
     max_width: usize,
     delimiter: &str,
 ) -> Vec<Vec<String>> {
@@ -92,6 +92,10 @@ mod tests {
         #[case] delimiter: &str,
         #[case] expected: &[&str],
     ) {
+        let words_with_priority: Vec<(String, usize)> = words_with_priority
+            .into_iter()
+            .map(|(s, n)| (s.to_owned(), n))
+            .collect();
         let actual = prune_strings_to_fit_width(&words_with_priority, max_width, delimiter);
         assert_eq!(actual, expected);
     }
@@ -116,7 +120,7 @@ mod tests {
         #[case] delimiter: &str,
         #[case] expected: Vec<Vec<&str>>,
     ) {
-        let words = words.into_iter().map(|s| s.to_owned()).collect();
+        let words: Vec<String> = words.into_iter().map(|s| s.to_owned()).collect();
         let actual = group_strings_to_fit_width(&words, max_width, delimiter);
         assert_eq!(actual, expected);
     }

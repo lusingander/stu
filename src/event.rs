@@ -52,12 +52,14 @@ pub enum AppKeyAction {
 
 pub struct AppKeyActionManager {
     helps: HashMap<ViewStateTag, Vec<String>>,
+    short_helps: HashMap<ViewStateTag, Vec<(String, usize)>>,
 }
 
 impl AppKeyActionManager {
     pub fn new() -> AppKeyActionManager {
         AppKeyActionManager {
             helps: AppKeyActionManager::build_helps(),
+            short_helps: AppKeyActionManager::build_short_helps(),
         }
     }
 
@@ -127,6 +129,71 @@ impl AppKeyActionManager {
         .collect::<HashMap<_, _>>()
     }
 
+    fn build_short_helps() -> HashMap<ViewStateTag, Vec<(String, usize)>> {
+        // fixme
+        vec![
+            (ViewStateTag::Initializing, vec![]),
+            (
+                ViewStateTag::BucketList,
+                vec![
+                    ("<Esc>: Quit", 0),
+                    ("<j/k>: Select", 1),
+                    ("<g/G>: Top/Bottom", 3),
+                    ("<Enter>: Open", 2),
+                    ("<?>: Help", 0),
+                ],
+            ),
+            (
+                ViewStateTag::ObjectList,
+                vec![
+                    ("<Esc>: Quit", 0),
+                    ("<j/k>: Select", 3),
+                    ("<g/G>: Top/Bottom", 4),
+                    ("<Enter>: Open", 1),
+                    ("<Backspace>: Go back", 2),
+                    ("<?>: Help", 0),
+                ],
+            ),
+            (
+                ViewStateTag::Detail,
+                vec![
+                    ("<Esc>: Quit", 0),
+                    ("<h/l>: Select tabs", 3),
+                    ("<s>: Download", 1),
+                    ("<p>: Preview", 4),
+                    ("<Backspace>: Close", 2),
+                    ("<?>: Help", 0),
+                ],
+            ),
+            (
+                ViewStateTag::CopyDetail,
+                vec![
+                    ("<Esc>: Quit", 0),
+                    ("<j/k>: Select", 3),
+                    ("<Enter>: Copy", 1),
+                    ("<Backspace>: Close", 2),
+                    ("<?>: Help", 0),
+                ],
+            ),
+            (
+                ViewStateTag::Preview,
+                vec![
+                    ("<Esc>: Quit", 0),
+                    ("<s>: Download", 2),
+                    ("<Backspace>: Close", 1),
+                    ("<?>: Help", 0),
+                ],
+            ),
+            (
+                ViewStateTag::Help,
+                vec![("<Esc>: Quit", 0), ("<?>: Close help", 0)],
+            ),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k, v.into_iter().map(|(s, n)| (s.to_owned(), n)).collect()))
+        .collect::<HashMap<_, _>>()
+    }
+
     pub fn key_to_action(&self, key: KeyEvent) -> Option<AppKeyAction> {
         // fixme
         match key {
@@ -151,6 +218,10 @@ impl AppKeyActionManager {
 
     pub fn helps(&self, vs: &ViewState) -> &Vec<String> {
         self.helps.get(&vs.tag()).unwrap()
+    }
+
+    pub fn short_helps(&self, vs: &ViewState) -> &Vec<(String, usize)> {
+        self.short_helps.get(&vs.tag()).unwrap()
     }
 }
 

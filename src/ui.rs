@@ -315,7 +315,6 @@ fn build_header(app: &App, area: Rect) -> Paragraph {
             bs.insert(1, (ellipsis.to_string(), 0));
             bs.first_mut().unwrap().1 = 1;
             bs.last_mut().unwrap().1 = 0;
-            let bs: Vec<(&str, usize)> = bs.iter().map(|(s, p)| (s.as_str(), *p)).collect();
 
             let keys = util::prune_strings_to_fit_width(&bs, max_width, delimiter);
             keys.join(delimiter)
@@ -624,7 +623,7 @@ fn build_help<'a>(before: &'a ViewState, area: Rect, app: &'a App) -> Paragraph<
     )
 }
 
-fn build_help_lines(helps: &Vec<String>, max_width: usize) -> Vec<Line> {
+fn build_help_lines(helps: &[String], max_width: usize) -> Vec<Line> {
     let delimiter = ",  ";
     let word_groups = util::group_strings_to_fit_width(helps, max_width, delimiter);
     let lines: Vec<Line> = word_groups
@@ -635,53 +634,16 @@ fn build_help_lines(helps: &Vec<String>, max_width: usize) -> Vec<Line> {
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
-    let helps = match app.app_view_state.view_state {
-        ViewState::Initializing => vec![],
-        ViewState::BucketList => vec![
-            ("<Esc>: Quit", 0),
-            ("<j/k>: Select", 1),
-            ("<g/G>: Top/Bottom", 3),
-            ("<Enter>: Open", 2),
-            ("<?>: Help", 0),
-        ],
-        ViewState::ObjectList => vec![
-            ("<Esc>: Quit", 0),
-            ("<j/k>: Select", 3),
-            ("<g/G>: Top/Bottom", 4),
-            ("<Enter>: Open", 1),
-            ("<Backspace>: Go back", 2),
-            ("<?>: Help", 0),
-        ],
-        ViewState::Detail(_) => vec![
-            ("<Esc>: Quit", 0),
-            ("<h/l>: Select tabs", 3),
-            ("<s>: Download", 1),
-            ("<p>: Preview", 4),
-            ("<Backspace>: Close", 2),
-            ("<?>: Help", 0),
-        ],
-        ViewState::CopyDetail(_) => vec![
-            ("<Esc>: Quit", 0),
-            ("<j/k>: Select", 3),
-            ("<Enter>: Copy", 1),
-            ("<Backspace>: Close", 2),
-            ("<?>: Help", 0),
-        ],
-        ViewState::Preview(_) => vec![
-            ("<Esc>: Quit", 0),
-            ("<s>: Download", 2),
-            ("<Backspace>: Close", 1),
-            ("<?>: Help", 0),
-        ],
-        ViewState::Help(_) => vec![("<Esc>: Quit", 0), ("<?>: Close help", 0)],
-    };
+    let helps = app
+        .action_manager
+        .short_helps(&app.app_view_state.view_state);
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
-    let help = build_short_help_string(&helps, max_width);
+    let help = build_short_help_string(helps, max_width);
     Paragraph::new(help.fg(SHORT_HELP_COLOR)).block(Block::default().padding(pad))
 }
 
-fn build_short_help_string(helps: &[(&str, usize)], max_width: usize) -> String {
+fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> String {
     let delimiter = ", ";
     let ss = util::prune_strings_to_fit_width(helps, max_width, delimiter);
     ss.join(delimiter)
