@@ -17,11 +17,9 @@ pub async fn run<B: Backend>(
         terminal.draw(|f| ui::render(f, app))?;
         match rx.recv().unwrap() {
             AppEventType::Key(key) => {
-                match key {
-                    key_code!(KeyCode::Esc) | key_code_char!('c', Ctrl) => {
-                        return Ok(());
-                    }
-                    _ => {}
+                if matches!(key, key_code!(KeyCode::Esc) | key_code_char!('c', Ctrl)) {
+                    // Exit regardless of status
+                    return Ok(());
                 }
 
                 if app.app_view_state.is_loading {
