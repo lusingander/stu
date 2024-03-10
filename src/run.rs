@@ -4,7 +4,7 @@ use std::{io::Result, sync::mpsc};
 
 use crate::{
     app::{App, Notification, ViewState},
-    event::AppEventType,
+    event::{AppEventType, AppKeyAction},
     key_code, key_code_char, ui,
 };
 
@@ -40,55 +40,57 @@ pub async fn run<B: Backend>(
                     Notification::None => {}
                 }
 
-                match key {
-                    key_code_char!('j') => {
-                        app.select_next();
-                    }
-                    key_code_char!('k') => {
-                        app.select_prev();
-                    }
-                    key_code_char!('g') => {
-                        app.select_first();
-                    }
-                    key_code_char!('G') => {
-                        app.select_last();
-                    }
-                    key_code_char!('f') => {
-                        app.select_next_page();
-                    }
-                    key_code_char!('b') => {
-                        app.select_prev_page();
-                    }
-                    key_code!(KeyCode::Enter) | key_code_char!('m', Ctrl) => {
-                        app.move_down();
-                    }
-                    key_code!(KeyCode::Backspace) | key_code_char!('h', Ctrl) => {
-                        app.move_up();
-                    }
-                    key_code_char!('~') => {
-                        app.back_to_bucket_list();
-                    }
-                    key_code_char!('h') | key_code_char!('l') => {
-                        app.select_tabs();
-                    }
-                    key_code_char!('s') => {
-                        app.download();
-                    }
-                    key_code_char!('p') => {
-                        app.preview();
-                    }
-                    key_code_char!('r') => {
-                        app.toggle_copy_details();
-                    }
-                    key_code_char!('x') => {
-                        app.open_management_console();
-                    }
-                    key_code_char!('?') => {
-                        app.toggle_help();
-                    }
-                    _ => {}
+                if let Some(action) = app.action_manager.key_to_action(key) {
+                    app.send_app_key_action(action);
                 }
             }
+            AppEventType::KeyAction(action) => match action {
+                AppKeyAction::SelectNext => {
+                    app.select_next();
+                }
+                AppKeyAction::SelectPrev => {
+                    app.select_prev();
+                }
+                AppKeyAction::SelectFirst => {
+                    app.select_first();
+                }
+                AppKeyAction::SelectLast => {
+                    app.select_last();
+                }
+                AppKeyAction::SelectNextPage => {
+                    app.select_next_page();
+                }
+                AppKeyAction::SelectPrevPage => {
+                    app.select_prev_page();
+                }
+                AppKeyAction::MoveDown => {
+                    app.move_down();
+                }
+                AppKeyAction::MoveUp => {
+                    app.move_up();
+                }
+                AppKeyAction::BackToBucketList => {
+                    app.back_to_bucket_list();
+                }
+                AppKeyAction::SelectTabs => {
+                    app.select_tabs();
+                }
+                AppKeyAction::Download => {
+                    app.download();
+                }
+                AppKeyAction::Preview => {
+                    app.preview();
+                }
+                AppKeyAction::ToggleCopyDetails => {
+                    app.toggle_copy_details();
+                }
+                AppKeyAction::OpenManagementConsole => {
+                    app.open_management_console();
+                }
+                AppKeyAction::ToggleHelp => {
+                    app.toggle_help();
+                }
+            },
             AppEventType::Resize(_, height) => {
                 app.resize(height as usize);
             }

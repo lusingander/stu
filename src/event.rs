@@ -1,16 +1,18 @@
 use std::{sync::mpsc, thread};
 
-use crossterm::event::KeyEvent;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
     client::Client,
     config::Config,
     error::{AppError, Result},
     item::{BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
+    key_code, key_code_char,
 };
 
 pub enum AppEventType {
     Key(KeyEvent),
+    KeyAction(AppKeyAction),
     Resize(u16, u16),
     Initialize(Config, Client),
     CompleteInitialize(Result<CompleteInitializeResult>),
@@ -25,6 +27,55 @@ pub enum AppEventType {
     CopyToClipboard(String, String),
     Info(String),
     Error(AppError),
+}
+
+// fixme: split into actions for each state
+pub enum AppKeyAction {
+    SelectNext,
+    SelectPrev,
+    SelectFirst,
+    SelectLast,
+    SelectNextPage,
+    SelectPrevPage,
+    MoveDown,
+    MoveUp,
+    BackToBucketList,
+    SelectTabs,
+    Download,
+    Preview,
+    ToggleCopyDetails,
+    OpenManagementConsole,
+    ToggleHelp,
+}
+
+pub struct AppKeyActionManager {}
+
+impl AppKeyActionManager {
+    pub fn new() -> AppKeyActionManager {
+        AppKeyActionManager {}
+    }
+
+    pub fn key_to_action(&self, key: KeyEvent) -> Option<AppKeyAction> {
+        // fixme
+        match key {
+            key_code_char!('j') => Some(AppKeyAction::SelectNext),
+            key_code_char!('k') => Some(AppKeyAction::SelectPrev),
+            key_code_char!('g') => Some(AppKeyAction::SelectFirst),
+            key_code_char!('G') => Some(AppKeyAction::SelectLast),
+            key_code_char!('f') => Some(AppKeyAction::SelectNextPage),
+            key_code_char!('b') => Some(AppKeyAction::SelectPrevPage),
+            key_code!(KeyCode::Enter) | key_code_char!('m', Ctrl) => Some(AppKeyAction::MoveDown),
+            key_code!(KeyCode::Backspace) | key_code_char!('h', Ctrl) => Some(AppKeyAction::MoveUp),
+            key_code_char!('~') => Some(AppKeyAction::BackToBucketList),
+            key_code_char!('h') | key_code_char!('l') => Some(AppKeyAction::SelectTabs),
+            key_code_char!('s') => Some(AppKeyAction::Download),
+            key_code_char!('p') => Some(AppKeyAction::Preview),
+            key_code_char!('r') => Some(AppKeyAction::ToggleCopyDetails),
+            key_code_char!('x') => Some(AppKeyAction::OpenManagementConsole),
+            key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+            _ => None,
+        }
+    }
 }
 
 pub struct CompleteInitializeResult {

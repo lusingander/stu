@@ -10,8 +10,9 @@ use crate::{
     config::Config,
     error::{AppError, Result},
     event::{
-        AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
-        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult,
+        AppEventType, AppKeyAction, AppKeyActionManager, CompleteDownloadObjectResult,
+        CompleteInitializeResult, CompleteLoadObjectResult, CompleteLoadObjectsResult,
+        CompletePreviewObjectResult,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
@@ -150,6 +151,7 @@ impl AppViewState {
 }
 
 pub struct App {
+    pub action_manager: AppKeyActionManager,
     pub app_view_state: AppViewState,
     app_objects: AppObjects,
     current_bucket: Option<BucketItem>,
@@ -162,6 +164,7 @@ pub struct App {
 impl App {
     pub fn new(tx: mpsc::Sender<AppEventType>, height: usize) -> App {
         App {
+            action_manager: AppKeyActionManager::new(),
             app_view_state: AppViewState::new(height),
             app_objects: AppObjects::new(),
             current_bucket: None,
@@ -297,6 +300,10 @@ impl App {
                     None
                 }
             })
+    }
+
+    pub fn send_app_key_action(&self, action: AppKeyAction) {
+        self.tx.send(AppEventType::KeyAction(action)).unwrap();
     }
 
     pub fn select_next(&mut self) {
