@@ -1,8 +1,10 @@
-use std::{sync::mpsc, thread};
+use std::{collections::HashMap, sync::mpsc, thread};
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use enum_tag::EnumTag;
 
 use crate::{
+    app::{ViewState, ViewStateTag},
     client::Client,
     config::Config,
     error::{AppError, Result},
@@ -48,11 +50,81 @@ pub enum AppKeyAction {
     ToggleHelp,
 }
 
-pub struct AppKeyActionManager {}
+pub struct AppKeyActionManager {
+    helps: HashMap<ViewStateTag, Vec<String>>,
+}
 
 impl AppKeyActionManager {
     pub fn new() -> AppKeyActionManager {
-        AppKeyActionManager {}
+        AppKeyActionManager {
+            helps: AppKeyActionManager::build_helps(),
+        }
+    }
+
+    fn build_helps() -> HashMap<ViewStateTag, Vec<String>> {
+        // fixme
+        vec![
+            (ViewStateTag::Initializing, vec![]),
+            (
+                ViewStateTag::BucketList,
+                vec![
+                    "<Esc> <Ctrl-c>: Quit app",
+                    "<j/k>: Select item",
+                    "<g/G>: Go to top/bottom",
+                    "<f>: Scroll page forward",
+                    "<b>: Scroll page backward",
+                    "<Enter>: Open bucket",
+                    "<x>: Open management console in browser",
+                ],
+            ),
+            (
+                ViewStateTag::ObjectList,
+                vec![
+                    "<Esc> <Ctrl-c>: Quit app",
+                    "<j/k>: Select item",
+                    "<g/G>: Go to top/bottom",
+                    "<f>: Scroll page forward",
+                    "<b>: Scroll page backward",
+                    "<Enter>: Open file or folder",
+                    "<Backspace>: Go back to prev folder",
+                    "<~>: Go back to bucket list",
+                    "<x>: Open management console in browser",
+                ],
+            ),
+            (
+                ViewStateTag::Detail,
+                vec![
+                    "<Esc> <Ctrl-c>: Quit app",
+                    "<h/l>: Select tabs",
+                    "<Backspace>: Close detail panel",
+                    "<r>: Open copy dialog",
+                    "<s>: Download object",
+                    "<p>: Preview object",
+                    "<x>: Open management console in browser",
+                ],
+            ),
+            (
+                ViewStateTag::CopyDetail,
+                vec![
+                    "<Esc> <Ctrl-c>: Quit app",
+                    "<j/k>: Select item",
+                    "<Enter>: Copy selected value to clipboard",
+                    "<Backspace> <r>: Close copy dialog",
+                ],
+            ),
+            (
+                ViewStateTag::Preview,
+                vec![
+                    "<Esc> <Ctrl-c>: Quit app",
+                    "<Backspace>: Close preview",
+                    "<s>: Download object",
+                ],
+            ),
+            (ViewStateTag::Help, vec![]),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k, v.into_iter().map(|s| s.to_owned()).collect()))
+        .collect::<HashMap<_, _>>()
     }
 
     pub fn key_to_action(&self, key: KeyEvent) -> Option<AppKeyAction> {
@@ -75,6 +147,10 @@ impl AppKeyActionManager {
             key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
             _ => None,
         }
+    }
+
+    pub fn helps(&self, vs: &ViewState) -> &Vec<String> {
+        self.helps.get(&vs.tag()).unwrap()
     }
 }
 

@@ -1,3 +1,4 @@
+use enum_tag::EnumTag;
 use std::sync::{
     mpsc::{self, Sender},
     Arc,
@@ -19,7 +20,7 @@ use crate::{
     util::to_preview_string,
 };
 
-#[derive(Clone)]
+#[derive(Clone, EnumTag)]
 pub enum ViewState {
     Initializing,
     BucketList,
@@ -29,6 +30,8 @@ pub enum ViewState {
     Preview(Box<PreviewViewState>),
     Help(Box<ViewState>),
 }
+
+pub type ViewStateTag = <ViewState as EnumTag>::Tag;
 
 #[derive(Clone, Copy)]
 pub enum DetailViewState {

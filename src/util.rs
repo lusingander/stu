@@ -39,7 +39,7 @@ pub fn prune_strings_to_fit_width(
 }
 
 pub fn group_strings_to_fit_width(
-    words: &[&str],
+    words: &Vec<String>,
     max_width: usize,
     delimiter: &str,
 ) -> Vec<Vec<String>> {
@@ -116,6 +116,7 @@ mod tests {
         #[case] delimiter: &str,
         #[case] expected: Vec<Vec<&str>>,
     ) {
+        let words = words.into_iter().map(|s| s.to_owned()).collect();
         let actual = group_strings_to_fit_width(&words, max_width, delimiter);
         assert_eq!(actual, expected);
     }

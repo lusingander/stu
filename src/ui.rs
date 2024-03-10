@@ -57,7 +57,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
         ViewState::CopyDetail(vs) => render_copy_detail_view(f, area, app, vs),
         ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
-        ViewState::Help(before) => render_help_view(f, area, before),
+        ViewState::Help(before) => render_help_view(f, area, app, before),
     }
 }
 
@@ -283,8 +283,8 @@ fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewSta
     f.render_widget(content, chunks[1]);
 }
 
-fn render_help_view(f: &mut Frame, area: Rect, before: &ViewState) {
-    let content = build_help(before, area);
+fn render_help_view(f: &mut Frame, area: Rect, app: &App, before: &ViewState) {
+    let content = build_help(before, area, app);
     f.render_widget(content, area);
 }
 
@@ -599,7 +599,7 @@ fn build_preview<'a>(app: &'a App, vs: &'a PreviewViewState, area: Rect) -> Para
     )
 }
 
-fn build_help(before: &ViewState, area: Rect) -> Paragraph {
+fn build_help<'a>(before: &'a ViewState, area: Rect, app: &'a App) -> Paragraph<'a> {
     let area = area.inner(&Margin::new(1, 1)); // border
     let w: usize = area.width as usize;
 
@@ -611,49 +611,7 @@ fn build_help(before: &ViewState, area: Rect) -> Paragraph {
     ];
     let app_detail = with_empty_lines(app_details).into_iter();
 
-    let helps = match before {
-        ViewState::Initializing | ViewState::Help(_) => vec![],
-        ViewState::BucketList => vec![
-            "<Esc> <Ctrl-c>: Quit app",
-            "<j/k>: Select item",
-            "<g/G>: Go to top/bottom",
-            "<f>: Scroll page forward",
-            "<b>: Scroll page backward",
-            "<Enter>: Open bucket",
-            "<x>: Open management console in browser",
-        ],
-        ViewState::ObjectList => vec![
-            "<Esc> <Ctrl-c>: Quit app",
-            "<j/k>: Select item",
-            "<g/G>: Go to top/bottom",
-            "<f>: Scroll page forward",
-            "<b>: Scroll page backward",
-            "<Enter>: Open file or folder",
-            "<Backspace>: Go back to prev folder",
-            "<~>: Go back to bucket list",
-            "<x>: Open management console in browser",
-        ],
-        ViewState::Detail(_) => vec![
-            "<Esc> <Ctrl-c>: Quit app",
-            "<h/l>: Select tabs",
-            "<Backspace>: Close detail panel",
-            "<r>: Open copy dialog",
-            "<s>: Download object",
-            "<p>: Preview object",
-            "<x>: Open management console in browser",
-        ],
-        ViewState::CopyDetail(_) => vec![
-            "<Esc> <Ctrl-c>: Quit app",
-            "<j/k>: Select item",
-            "<Enter>: Copy selected value to clipboard",
-            "<Backspace> <r>: Close copy dialog",
-        ],
-        ViewState::Preview(_) => vec![
-            "<Esc> <Ctrl-c>: Quit app",
-            "<Backspace>: Close preview",
-            "<s>: Download object",
-        ],
-    };
+    let helps = app.action_manager.helps(before);
     let max_help_width: usize = 80;
     let max_width = max_help_width.min(w) - 2;
     let help = build_help_lines(helps, max_width);
@@ -666,9 +624,9 @@ fn build_help(before: &ViewState, area: Rect) -> Paragraph {
     )
 }
 
-fn build_help_lines(helps: Vec<&str>, max_width: usize) -> Vec<Line> {
+fn build_help_lines(helps: &Vec<String>, max_width: usize) -> Vec<Line> {
     let delimiter = ",  ";
-    let word_groups = util::group_strings_to_fit_width(&helps, max_width, delimiter);
+    let word_groups = util::group_strings_to_fit_width(helps, max_width, delimiter);
     let lines: Vec<Line> = word_groups
         .iter()
         .map(|ws| Line::from(format!(" {} ", ws.join(delimiter))))
