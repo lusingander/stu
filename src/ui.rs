@@ -7,7 +7,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{
         block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph,
-        Scrollbar, ScrollbarState, Tabs,
+        Scrollbar, ScrollbarState, Tabs, Wrap,
     },
     Frame,
 };
@@ -540,7 +540,9 @@ fn build_file_detail(detail: &FileDetail) -> Paragraph {
     .collect();
 
     let content = flatten_with_empty_lines(details, false);
-    Paragraph::new(content).block(Block::default().padding(Padding::horizontal(1)))
+    Paragraph::new(content)
+        .block(Block::default().padding(Padding::horizontal(1)))
+        .wrap(Wrap { trim: false })
 }
 
 fn format_size_byte(size_byte: i64) -> String {
