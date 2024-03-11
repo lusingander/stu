@@ -23,21 +23,22 @@ pub async fn run<B: Backend>(
                 }
 
                 if app.app_view_state.is_loading {
+                    // Ignore key inputs while loading (except quit)
                     continue;
                 }
 
-                match app.app_view_state.notification {
-                    Notification::Error(_) => {
-                        if matches!(app.app_view_state.view_state, ViewState::Initializing) {
-                            return Ok(());
-                        }
-                        app.app_view_state.notification = Notification::None;
-                        continue;
+                if matches!(app.app_view_state.notification, Notification::Error(_)) {
+                    if matches!(app.app_view_state.view_state, ViewState::Initializing) {
+                        return Ok(());
                     }
-                    Notification::Info(_) => {
-                        app.app_view_state.notification = Notification::None;
-                    }
-                    Notification::None => {}
+                    // Clear message and cancel key input
+                    app.app_view_state.notification = Notification::None;
+                    continue;
+                }
+
+                if matches!(app.app_view_state.notification, Notification::Info(_)) {
+                    // Clear message and pass key input as is
+                    app.app_view_state.notification = Notification::None;
                 }
 
                 if let Some(action) = app
