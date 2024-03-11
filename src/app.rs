@@ -309,119 +309,145 @@ impl App {
         self.tx.send(AppEventType::KeyAction(action)).unwrap();
     }
 
-    pub fn select_next(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::CopyDetail(vs) => {
-                let vs = CopyDetailViewState {
-                    selected: vs.selected.next(),
-                    ..vs
-                };
-                self.app_view_state.view_state = ViewState::CopyDetail(vs);
-            }
-            ViewState::BucketList | ViewState::ObjectList => {
-                let current_selected = self.app_view_state.current_list_state().selected;
-                let len = self.current_items_len();
-                if len == 0 || current_selected >= len - 1 {
-                    self.app_view_state.current_list_state_mut().select_first();
-                } else {
-                    self.app_view_state.current_list_state_mut().select_next();
-                };
-            }
+    pub fn bucket_list_select_next(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            self.list_select_next();
         }
     }
 
-    pub fn select_prev(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::CopyDetail(vs) => {
-                let vs = CopyDetailViewState {
-                    selected: vs.selected.prev(),
-                    ..vs
-                };
-                self.app_view_state.view_state = ViewState::CopyDetail(vs);
-            }
-            ViewState::BucketList | ViewState::ObjectList => {
-                let current_selected = self.app_view_state.current_list_state().selected;
-                let len = self.current_items_len();
-                if len == 0 {
-                    self.app_view_state.current_list_state_mut().select_first();
-                } else if current_selected == 0 {
-                    self.app_view_state
-                        .current_list_state_mut()
-                        .select_last(len);
-                } else {
-                    self.app_view_state.current_list_state_mut().select_prev();
-                };
-            }
+    pub fn object_list_select_next(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.list_select_next();
         }
     }
 
-    pub fn select_next_page(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
-                let len = self.current_items_len();
-                self.app_view_state
-                    .current_list_state_mut()
-                    .select_next_page(len)
-            }
+    fn list_select_next(&mut self) {
+        let current_selected = self.app_view_state.current_list_state().selected;
+        let len = self.current_items_len();
+        if len == 0 || current_selected >= len - 1 {
+            self.app_view_state.current_list_state_mut().select_first();
+        } else {
+            self.app_view_state.current_list_state_mut().select_next();
+        };
+    }
+
+    pub fn copy_detail_select_next(&mut self) {
+        if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
+            let vs = CopyDetailViewState {
+                selected: vs.selected.next(),
+                ..vs
+            };
+            self.app_view_state.view_state = ViewState::CopyDetail(vs);
         }
     }
 
-    pub fn select_prev_page(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
-                let len = self.current_items_len();
-                self.app_view_state
-                    .current_list_state_mut()
-                    .select_prev_page(len)
-            }
+    pub fn bucket_list_select_prev(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            self.list_select_prev();
         }
     }
 
-    pub fn select_first(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
-                self.app_view_state.current_list_state_mut().select_first();
-            }
+    pub fn object_list_select_prev(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.list_select_prev();
         }
     }
 
-    pub fn select_last(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::BucketList | ViewState::ObjectList => {
-                let len = self.current_items_len();
-                self.app_view_state
-                    .current_list_state_mut()
-                    .select_last(len);
-            }
+    fn list_select_prev(&mut self) {
+        let current_selected = self.app_view_state.current_list_state().selected;
+        let len = self.current_items_len();
+        if len == 0 {
+            self.app_view_state.current_list_state_mut().select_first();
+        } else if current_selected == 0 {
+            self.app_view_state
+                .current_list_state_mut()
+                .select_last(len);
+        } else {
+            self.app_view_state.current_list_state_mut().select_prev();
+        };
+    }
+
+    pub fn copy_detail_select_prev(&mut self) {
+        if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
+            let vs = CopyDetailViewState {
+                selected: vs.selected.prev(),
+                ..vs
+            };
+            self.app_view_state.view_state = ViewState::CopyDetail(vs);
         }
+    }
+
+    pub fn bucket_list_select_next_page(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            self.list_select_next_page();
+        }
+    }
+
+    pub fn object_list_select_next_page(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.list_select_next_page();
+        }
+    }
+
+    fn list_select_next_page(&mut self) {
+        let len = self.current_items_len();
+        self.app_view_state
+            .current_list_state_mut()
+            .select_next_page(len);
+    }
+
+    pub fn bucket_list_select_prev_page(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            self.list_select_prev_page();
+        }
+    }
+
+    pub fn object_list_select_prev_page(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.list_select_prev_page();
+        }
+    }
+
+    fn list_select_prev_page(&mut self) {
+        let len = self.current_items_len();
+        self.app_view_state
+            .current_list_state_mut()
+            .select_prev_page(len);
+    }
+
+    pub fn bucket_list_select_first(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            self.list_select_first();
+        }
+    }
+
+    pub fn object_list_select_first(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.list_select_first();
+        }
+    }
+
+    fn list_select_first(&mut self) {
+        self.app_view_state.current_list_state_mut().select_first();
+    }
+
+    pub fn bucket_list_select_last(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            self.list_select_last();
+        }
+    }
+
+    pub fn object_list_select_last(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.list_select_last();
+        }
+    }
+
+    fn list_select_last(&mut self) {
+        let len = self.current_items_len();
+        self.app_view_state
+            .current_list_state_mut()
+            .select_last(len);
     }
 
     pub fn move_down(&mut self) {

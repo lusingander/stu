@@ -51,22 +51,22 @@ pub async fn run<B: Backend>(
                 // Initializing
                 // BucketList
                 AppKeyAction::BucketListSelectNext => {
-                    app.select_next();
+                    app.bucket_list_select_next();
                 }
                 AppKeyAction::BucketListSelectPrev => {
-                    app.select_prev();
+                    app.bucket_list_select_prev();
                 }
                 AppKeyAction::BucketListSelectFirst => {
-                    app.select_first();
+                    app.bucket_list_select_first();
                 }
                 AppKeyAction::BucketListSelectLast => {
-                    app.select_last();
+                    app.bucket_list_select_last();
                 }
                 AppKeyAction::BucketListSelectNextPage => {
-                    app.select_next_page();
+                    app.bucket_list_select_next_page();
                 }
                 AppKeyAction::BucketListSelectPrevPage => {
-                    app.select_prev_page();
+                    app.bucket_list_select_prev_page();
                 }
                 AppKeyAction::BucketListMoveDown => {
                     app.move_down();
@@ -76,22 +76,22 @@ pub async fn run<B: Backend>(
                 }
                 // ObjectList
                 AppKeyAction::ObjectListSelectNext => {
-                    app.select_next();
+                    app.object_list_select_next();
                 }
                 AppKeyAction::ObjectListSelectPrev => {
-                    app.select_prev();
+                    app.object_list_select_prev();
                 }
                 AppKeyAction::ObjectListSelectFirst => {
-                    app.select_first();
+                    app.object_list_select_first();
                 }
                 AppKeyAction::ObjectListSelectLast => {
-                    app.select_last();
+                    app.object_list_select_last();
                 }
                 AppKeyAction::ObjectListSelectNextPage => {
-                    app.select_next_page();
+                    app.object_list_select_next_page();
                 }
                 AppKeyAction::ObjectListSelectPrevPage => {
-                    app.select_prev_page();
+                    app.object_list_select_prev_page();
                 }
                 AppKeyAction::ObjectListMoveDown => {
                     app.move_down();
@@ -126,10 +126,10 @@ pub async fn run<B: Backend>(
                 }
                 // CopyDetail
                 AppKeyAction::CopyDetailSelectNext => {
-                    app.select_next();
+                    app.copy_detail_select_next();
                 }
                 AppKeyAction::CopyDetailSelectPrev => {
-                    app.select_prev();
+                    app.copy_detail_select_prev();
                 }
                 AppKeyAction::CopyDetailMoveDown => {
                     app.move_down();
