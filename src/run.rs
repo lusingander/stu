@@ -69,7 +69,7 @@ pub async fn run<B: Backend>(
                     app.bucket_list_select_prev_page();
                 }
                 AppKeyAction::BucketListMoveDown => {
-                    app.move_down();
+                    app.bucket_list_move_down();
                 }
                 AppKeyAction::BucketListOpenManagementConsole => {
                     app.open_management_console();
@@ -94,10 +94,10 @@ pub async fn run<B: Backend>(
                     app.object_list_select_prev_page();
                 }
                 AppKeyAction::ObjectListMoveDown => {
-                    app.move_down();
+                    app.object_list_move_down();
                 }
                 AppKeyAction::ObjectListMoveUp => {
-                    app.move_up();
+                    app.object_list_move_up();
                 }
                 AppKeyAction::ObjectListBackToBucketList => {
                     app.back_to_bucket_list();
@@ -106,8 +106,8 @@ pub async fn run<B: Backend>(
                     app.open_management_console();
                 }
                 // Detail
-                AppKeyAction::DetailMoveUp => {
-                    app.move_up();
+                AppKeyAction::DetailClose => {
+                    app.detail_close();
                 }
                 AppKeyAction::DetailSelectTabs => {
                     app.select_tabs();
@@ -131,15 +131,15 @@ pub async fn run<B: Backend>(
                 AppKeyAction::CopyDetailSelectPrev => {
                     app.copy_detail_select_prev();
                 }
-                AppKeyAction::CopyDetailMoveDown => {
-                    app.move_down();
+                AppKeyAction::CopyDetailCopySelectedValue => {
+                    app.copy_detail_copy_selected_value();
                 }
-                AppKeyAction::CopyDetailMoveUp => {
-                    app.move_up();
+                AppKeyAction::CopyDetailClose => {
+                    app.copy_detail_close();
                 }
                 // Preview
-                AppKeyAction::PreviewMoveUp => {
-                    app.move_up();
+                AppKeyAction::PreviewClose => {
+                    app.preview_close();
                 }
                 AppKeyAction::PreviewDownload => {
                     app.download();
@@ -148,8 +148,8 @@ pub async fn run<B: Backend>(
                     app.toggle_copy_details();
                 }
                 // Help
-                AppKeyAction::HelpMoveUp => {
-                    app.move_up();
+                AppKeyAction::HelpClose => {
+                    app.help_close();
                 }
                 // common
                 AppKeyAction::ToggleHelp => {

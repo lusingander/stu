@@ -450,32 +450,34 @@ impl App {
             .select_last(len);
     }
 
-    pub fn move_down(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::CopyDetail(vs) => {
-                if let Some(detail) = self.get_current_file_detail() {
-                    let value = match vs.selected {
-                        CopyDetailViewItemType::Key => &detail.key,
-                        CopyDetailViewItemType::S3Uri => &detail.s3_uri,
-                        CopyDetailViewItemType::Arn => &detail.arn,
-                        CopyDetailViewItemType::ObjectUrl => &detail.object_url,
-                        CopyDetailViewItemType::Etag => &detail.e_tag,
-                    };
-                    let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
-                    self.tx
-                        .send(AppEventType::CopyToClipboard(name, value))
-                        .unwrap();
+    pub fn bucket_list_move_down(&mut self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            if let Some(selected) = self.get_current_selected_bucket_item() {
+                self.current_bucket = Some(selected.to_owned());
+                self.app_view_state.push_new_list_state();
+                self.app_view_state.view_state = ViewState::ObjectList;
+
+                if !self.exists_current_objects() {
+                    self.tx.send(AppEventType::LoadObjects).unwrap();
+                    self.app_view_state.is_loading = true;
                 }
             }
-            ViewState::BucketList => {
-                if let Some(selected) = self.get_current_selected_bucket_item() {
-                    self.current_bucket = Some(selected.to_owned());
+        }
+    }
+
+    pub fn object_list_move_down(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            if let Some(selected) = self.get_current_selected_object_item() {
+                if let ObjectItem::File { .. } = selected {
+                    if self.exists_current_object_detail() {
+                        self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+                    } else {
+                        self.tx.send(AppEventType::LoadObject).unwrap();
+                        self.app_view_state.is_loading = true;
+                    }
+                } else {
+                    self.current_path.push(selected.name().to_owned());
                     self.app_view_state.push_new_list_state();
-                    self.app_view_state.view_state = ViewState::ObjectList;
 
                     if !self.exists_current_objects() {
                         self.tx.send(AppEventType::LoadObjects).unwrap();
@@ -483,26 +485,23 @@ impl App {
                     }
                 }
             }
-            ViewState::ObjectList => {
-                if let Some(selected) = self.get_current_selected_object_item() {
-                    if let ObjectItem::File { .. } = selected {
-                        if self.exists_current_object_detail() {
-                            self.app_view_state.view_state =
-                                ViewState::Detail(DetailViewState::Detail);
-                        } else {
-                            self.tx.send(AppEventType::LoadObject).unwrap();
-                            self.app_view_state.is_loading = true;
-                        }
-                    } else {
-                        self.current_path.push(selected.name().to_owned());
-                        self.app_view_state.push_new_list_state();
+        }
+    }
 
-                        if !self.exists_current_objects() {
-                            self.tx.send(AppEventType::LoadObjects).unwrap();
-                            self.app_view_state.is_loading = true;
-                        }
-                    }
-                }
+    pub fn copy_detail_copy_selected_value(&self) {
+        if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
+            if let Some(detail) = self.get_current_file_detail() {
+                let value = match vs.selected {
+                    CopyDetailViewItemType::Key => &detail.key,
+                    CopyDetailViewItemType::S3Uri => &detail.s3_uri,
+                    CopyDetailViewItemType::Arn => &detail.arn,
+                    CopyDetailViewItemType::ObjectUrl => &detail.object_url,
+                    CopyDetailViewItemType::Etag => &detail.e_tag,
+                };
+                let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
+                self.tx
+                    .send(AppEventType::CopyToClipboard(name, value))
+                    .unwrap();
             }
         }
     }
@@ -522,29 +521,38 @@ impl App {
             .exists_object_item(&self.current_object_key())
     }
 
-    pub fn move_up(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing | ViewState::BucketList => {}
-            ViewState::ObjectList => {
-                let key = self.current_path.pop();
-                if key.is_none() {
-                    self.app_view_state.view_state = ViewState::BucketList;
-                    self.current_bucket = None;
-                }
-                self.app_view_state.pop_current_list_state();
+    pub fn object_list_move_up(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            let key = self.current_path.pop();
+            if key.is_none() {
+                self.app_view_state.view_state = ViewState::BucketList;
+                self.current_bucket = None;
             }
-            ViewState::Detail(_) => {
-                self.app_view_state.view_state = ViewState::ObjectList;
-            }
-            ViewState::CopyDetail(_) => {
-                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
-            }
-            ViewState::Preview(_) => {
-                self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
-            }
-            ViewState::Help(_) => {
-                self.toggle_help();
-            }
+            self.app_view_state.pop_current_list_state();
+        }
+    }
+
+    pub fn detail_close(&mut self) {
+        if let ViewState::Detail(_) = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::ObjectList;
+        }
+    }
+
+    pub fn copy_detail_close(&mut self) {
+        if let ViewState::CopyDetail(_) = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+        }
+    }
+
+    pub fn preview_close(&mut self) {
+        if let ViewState::Preview(_) = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+        }
+    }
+
+    pub fn help_close(&mut self) {
+        if let ViewState::Help(_) = self.app_view_state.view_state {
+            self.toggle_help();
         }
     }
 

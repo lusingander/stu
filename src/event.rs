@@ -54,7 +54,7 @@ pub enum AppKeyAction {
     ObjectListBackToBucketList,
     ObjectListOpenManagementConsole,
     // Detail
-    DetailMoveUp,
+    DetailClose,
     DetailSelectTabs,
     DetailDownload,
     DetailPreview,
@@ -63,14 +63,14 @@ pub enum AppKeyAction {
     // CopyDetail
     CopyDetailSelectNext,
     CopyDetailSelectPrev,
-    CopyDetailMoveDown,
-    CopyDetailMoveUp,
+    CopyDetailCopySelectedValue,
+    CopyDetailClose,
     // Preview
-    PreviewMoveUp,
+    PreviewClose,
     PreviewDownload,
     PreviewToggleCopyDetails,
     // Help
-    HelpMoveUp,
+    HelpClose,
     // common
     ToggleHelp,
 }
@@ -252,8 +252,8 @@ impl AppKeyActionManager {
                 _ => None,
             },
             ViewState::Detail(_) => match key {
-                key_code!(KeyCode::Backspace) => Some(AppKeyAction::DetailMoveUp),
-                key_code_char!('h', Ctrl) => Some(AppKeyAction::DetailMoveUp),
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::DetailClose),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::DetailClose),
                 key_code_char!('h') => Some(AppKeyAction::DetailSelectTabs),
                 key_code_char!('l') => Some(AppKeyAction::DetailSelectTabs),
                 key_code_char!('s') => Some(AppKeyAction::DetailDownload),
@@ -266,24 +266,24 @@ impl AppKeyActionManager {
             ViewState::CopyDetail(_) => match key {
                 key_code_char!('j') => Some(AppKeyAction::CopyDetailSelectNext),
                 key_code_char!('k') => Some(AppKeyAction::CopyDetailSelectPrev),
-                key_code!(KeyCode::Enter) => Some(AppKeyAction::CopyDetailMoveDown),
-                key_code_char!('m', Ctrl) => Some(AppKeyAction::CopyDetailMoveDown),
-                key_code!(KeyCode::Backspace) => Some(AppKeyAction::CopyDetailMoveUp),
-                key_code_char!('h', Ctrl) => Some(AppKeyAction::CopyDetailMoveUp),
+                key_code!(KeyCode::Enter) => Some(AppKeyAction::CopyDetailCopySelectedValue),
+                key_code_char!('m', Ctrl) => Some(AppKeyAction::CopyDetailCopySelectedValue),
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::CopyDetailClose),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::CopyDetailClose),
                 key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
                 _ => None,
             },
             ViewState::Preview(_) => match key {
-                key_code!(KeyCode::Backspace) => Some(AppKeyAction::PreviewMoveUp),
-                key_code_char!('h', Ctrl) => Some(AppKeyAction::PreviewMoveUp),
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::PreviewClose),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::PreviewClose),
                 key_code_char!('s') => Some(AppKeyAction::PreviewDownload),
                 key_code_char!('r') => Some(AppKeyAction::PreviewToggleCopyDetails),
                 key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
                 _ => None,
             },
             ViewState::Help(_) => match key {
-                key_code!(KeyCode::Backspace) => Some(AppKeyAction::HelpMoveUp),
-                key_code_char!('h', Ctrl) => Some(AppKeyAction::HelpMoveUp),
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::HelpClose),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::HelpClose),
                 key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
                 _ => None,
             },
