@@ -539,8 +539,8 @@ impl App {
     }
 
     pub fn copy_detail_close(&mut self) {
-        if let ViewState::CopyDetail(_) = self.app_view_state.view_state {
-            self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+        if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::Detail(vs.before);
         }
     }
 
@@ -556,20 +556,12 @@ impl App {
         }
     }
 
-    pub fn back_to_bucket_list(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::BucketList
-            | ViewState::Detail(_)
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::ObjectList => {
-                self.app_view_state.view_state = ViewState::BucketList;
-                self.current_bucket = None;
-                self.current_path.clear();
-                self.app_view_state.clear_list_state();
-            }
+    pub fn object_list_back_to_bucket_list(&mut self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::BucketList;
+            self.current_bucket = None;
+            self.current_path.clear();
+            self.app_view_state.clear_list_state();
         }
     }
 
@@ -641,22 +633,16 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub fn select_tabs(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::BucketList
-            | ViewState::ObjectList
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::Detail(vs) => match vs {
+    pub fn detail_select_tabs(&mut self) {
+        if let ViewState::Detail(vs) = self.app_view_state.view_state {
+            match vs {
                 DetailViewState::Detail => {
                     self.app_view_state.view_state = ViewState::Detail(DetailViewState::Version);
                 }
                 DetailViewState::Version => {
                     self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
                 }
-            },
+            }
         }
     }
 
@@ -677,56 +663,33 @@ impl App {
         }
     }
 
-    pub fn download(&mut self) {
-        match &self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::BucketList
-            | ViewState::ObjectList
-            | ViewState::CopyDetail(_)
-            | ViewState::Help(_) => {}
-            ViewState::Detail(_) => {
-                self.tx.send(AppEventType::DownloadObject).unwrap();
-                self.app_view_state.is_loading = true;
-            }
-            ViewState::Preview(vs) => {
-                // object has been already downloaded, so send completion event to save file
-                let result = CompleteDownloadObjectResult::new(Ok(vs.obj.clone()), vs.path.clone());
-                self.tx
-                    .send(AppEventType::CompleteDownloadObject(result))
-                    .unwrap();
-            }
+    pub fn detail_download_object(&mut self) {
+        if let ViewState::Detail(_) = self.app_view_state.view_state {
+            self.tx.send(AppEventType::DownloadObject).unwrap();
+            self.app_view_state.is_loading = true;
         }
     }
 
-    pub fn preview(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::BucketList
-            | ViewState::ObjectList
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::Detail(_) => {
-                self.tx.send(AppEventType::PreviewObject).unwrap();
-                self.app_view_state.is_loading = true;
-            }
+    pub fn preview_download_object(&self) {
+        if let ViewState::Preview(vs) = &self.app_view_state.view_state {
+            // object has been already downloaded, so send completion event to save file
+            let result = CompleteDownloadObjectResult::new(Ok(vs.obj.clone()), vs.path.clone());
+            self.tx
+                .send(AppEventType::CompleteDownloadObject(result))
+                .unwrap();
         }
     }
 
-    pub fn toggle_copy_details(&mut self) {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::BucketList
-            | ViewState::ObjectList
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => {}
-            ViewState::Detail(vs) => {
-                self.app_view_state.view_state =
-                    ViewState::CopyDetail(CopyDetailViewState::new(vs));
-            }
-            ViewState::CopyDetail(vs) => {
-                self.app_view_state.view_state = ViewState::Detail(vs.before);
-            }
+    pub fn detail_preview(&mut self) {
+        if let ViewState::Detail(_) = self.app_view_state.view_state {
+            self.tx.send(AppEventType::PreviewObject).unwrap();
+            self.app_view_state.is_loading = true;
+        }
+    }
+
+    pub fn detail_open_copy_details(&mut self) {
+        if let ViewState::Detail(vs) = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::CopyDetail(CopyDetailViewState::new(vs));
         }
     }
 
@@ -806,32 +769,41 @@ impl App {
         save_error_log(&path, e).unwrap();
     }
 
-    pub fn open_management_console(&self) {
-        let (client, _) = self.unwrap_client_tx();
+    pub fn bucket_list_open_management_console(&self) {
+        if let ViewState::BucketList = self.app_view_state.view_state {
+            let (client, _) = self.unwrap_client_tx();
+            let result = client.open_management_console_buckets();
+            if let Err(e) = result {
+                self.tx.send(AppEventType::Error(e)).unwrap();
+            }
+        }
+    }
 
-        let result = match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::Help(_) => Ok(()),
-            ViewState::BucketList => client.open_management_console_buckets(),
-            ViewState::ObjectList => {
-                let bucket = &self.current_bucket();
+    pub fn object_list_open_management_console(&self) {
+        if let ViewState::ObjectList = self.app_view_state.view_state {
+            let (client, _) = self.unwrap_client_tx();
+            let bucket = &self.current_bucket();
+            let prefix = self.current_object_prefix();
+            let result = client.open_management_console_list(bucket, &prefix);
+            if let Err(e) = result {
+                self.tx.send(AppEventType::Error(e)).unwrap();
+            }
+        }
+    }
+
+    pub fn detail_open_management_console(&self) {
+        if let ViewState::Detail(_) = self.app_view_state.view_state {
+            let (client, _) = self.unwrap_client_tx();
+            let current_selected = self.get_current_selected_object_item();
+            let result = if let Some(ObjectItem::File { name, .. }) = current_selected {
                 let prefix = self.current_object_prefix();
-                client.open_management_console_list(bucket, &prefix)
+                client.open_management_console_object(&self.current_bucket(), &prefix, name)
+            } else {
+                Err(AppError::msg("Failed to get current selected item"))
+            };
+            if let Err(e) = result {
+                self.tx.send(AppEventType::Error(e)).unwrap();
             }
-            ViewState::Detail(_) => {
-                if let Some(ObjectItem::File { name, .. }) = self.get_current_selected_object_item()
-                {
-                    let prefix = self.current_object_prefix();
-                    client.open_management_console_object(&self.current_bucket(), &prefix, name)
-                } else {
-                    Err(AppError::msg("Failed to get current selected item"))
-                }
-            }
-        };
-        if let Err(e) = result {
-            self.tx.send(AppEventType::Error(e)).unwrap();
         }
     }
 

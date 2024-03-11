@@ -56,7 +56,7 @@ pub enum AppKeyAction {
     // Detail
     DetailClose,
     DetailSelectTabs,
-    DetailDownload,
+    DetailDownloadObject,
     DetailPreview,
     DetailToggleCopyDetails,
     DetailOpenManagementConsole,
@@ -67,8 +67,7 @@ pub enum AppKeyAction {
     CopyDetailClose,
     // Preview
     PreviewClose,
-    PreviewDownload,
-    PreviewToggleCopyDetails,
+    PreviewDownloadObject,
     // Help
     HelpClose,
     // common
@@ -256,7 +255,7 @@ impl AppKeyActionManager {
                 key_code_char!('h', Ctrl) => Some(AppKeyAction::DetailClose),
                 key_code_char!('h') => Some(AppKeyAction::DetailSelectTabs),
                 key_code_char!('l') => Some(AppKeyAction::DetailSelectTabs),
-                key_code_char!('s') => Some(AppKeyAction::DetailDownload),
+                key_code_char!('s') => Some(AppKeyAction::DetailDownloadObject),
                 key_code_char!('p') => Some(AppKeyAction::DetailPreview),
                 key_code_char!('r') => Some(AppKeyAction::DetailToggleCopyDetails),
                 key_code_char!('x') => Some(AppKeyAction::DetailOpenManagementConsole),
@@ -268,6 +267,7 @@ impl AppKeyActionManager {
                 key_code_char!('k') => Some(AppKeyAction::CopyDetailSelectPrev),
                 key_code!(KeyCode::Enter) => Some(AppKeyAction::CopyDetailCopySelectedValue),
                 key_code_char!('m', Ctrl) => Some(AppKeyAction::CopyDetailCopySelectedValue),
+                key_code_char!('r') => Some(AppKeyAction::CopyDetailClose),
                 key_code!(KeyCode::Backspace) => Some(AppKeyAction::CopyDetailClose),
                 key_code_char!('h', Ctrl) => Some(AppKeyAction::CopyDetailClose),
                 key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
@@ -276,8 +276,7 @@ impl AppKeyActionManager {
             ViewState::Preview(_) => match key {
                 key_code!(KeyCode::Backspace) => Some(AppKeyAction::PreviewClose),
                 key_code_char!('h', Ctrl) => Some(AppKeyAction::PreviewClose),
-                key_code_char!('s') => Some(AppKeyAction::PreviewDownload),
-                key_code_char!('r') => Some(AppKeyAction::PreviewToggleCopyDetails),
+                key_code_char!('s') => Some(AppKeyAction::PreviewDownloadObject),
                 key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
                 _ => None,
             },

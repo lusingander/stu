@@ -72,7 +72,7 @@ pub async fn run<B: Backend>(
                     app.bucket_list_move_down();
                 }
                 AppKeyAction::BucketListOpenManagementConsole => {
-                    app.open_management_console();
+                    app.bucket_list_open_management_console();
                 }
                 // ObjectList
                 AppKeyAction::ObjectListSelectNext => {
@@ -100,29 +100,29 @@ pub async fn run<B: Backend>(
                     app.object_list_move_up();
                 }
                 AppKeyAction::ObjectListBackToBucketList => {
-                    app.back_to_bucket_list();
+                    app.object_list_back_to_bucket_list();
                 }
                 AppKeyAction::ObjectListOpenManagementConsole => {
-                    app.open_management_console();
+                    app.object_list_open_management_console();
                 }
                 // Detail
                 AppKeyAction::DetailClose => {
                     app.detail_close();
                 }
                 AppKeyAction::DetailSelectTabs => {
-                    app.select_tabs();
+                    app.detail_select_tabs();
                 }
-                AppKeyAction::DetailDownload => {
-                    app.download();
+                AppKeyAction::DetailDownloadObject => {
+                    app.detail_download_object();
                 }
                 AppKeyAction::DetailPreview => {
-                    app.preview();
+                    app.detail_preview();
                 }
                 AppKeyAction::DetailToggleCopyDetails => {
-                    app.toggle_copy_details();
+                    app.detail_open_copy_details();
                 }
                 AppKeyAction::DetailOpenManagementConsole => {
-                    app.open_management_console();
+                    app.detail_open_management_console();
                 }
                 // CopyDetail
                 AppKeyAction::CopyDetailSelectNext => {
@@ -141,11 +141,8 @@ pub async fn run<B: Backend>(
                 AppKeyAction::PreviewClose => {
                     app.preview_close();
                 }
-                AppKeyAction::PreviewDownload => {
-                    app.download();
-                }
-                AppKeyAction::PreviewToggleCopyDetails => {
-                    app.toggle_copy_details();
+                AppKeyAction::PreviewDownloadObject => {
+                    app.preview_download_object();
                 }
                 // Help
                 AppKeyAction::HelpClose => {
