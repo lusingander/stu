@@ -31,22 +31,47 @@ pub enum AppEventType {
     Error(AppError),
 }
 
-// fixme: split into actions for each state
 pub enum AppKeyAction {
-    SelectNext,
-    SelectPrev,
-    SelectFirst,
-    SelectLast,
-    SelectNextPage,
-    SelectPrevPage,
-    MoveDown,
-    MoveUp,
-    BackToBucketList,
-    SelectTabs,
-    Download,
-    Preview,
-    ToggleCopyDetails,
-    OpenManagementConsole,
+    // Initializing
+    // BucketList
+    BucketListSelectNext,
+    BucketListSelectPrev,
+    BucketListSelectFirst,
+    BucketListSelectLast,
+    BucketListSelectNextPage,
+    BucketListSelectPrevPage,
+    BucketListMoveDown,
+    BucketListOpenManagementConsole,
+    // ObjectList
+    ObjectListSelectNext,
+    ObjectListSelectPrev,
+    ObjectListSelectFirst,
+    ObjectListSelectLast,
+    ObjectListSelectNextPage,
+    ObjectListSelectPrevPage,
+    ObjectListMoveDown,
+    ObjectListMoveUp,
+    ObjectListBackToBucketList,
+    ObjectListOpenManagementConsole,
+    // Detail
+    DetailMoveUp,
+    DetailSelectTabs,
+    DetailDownload,
+    DetailPreview,
+    DetailToggleCopyDetails,
+    DetailOpenManagementConsole,
+    // CopyDetail
+    CopyDetailSelectNext,
+    CopyDetailSelectPrev,
+    CopyDetailMoveDown,
+    CopyDetailMoveUp,
+    // Preview
+    PreviewMoveUp,
+    PreviewDownload,
+    PreviewToggleCopyDetails,
+    // Help
+    HelpMoveUp,
+    // common
     ToggleHelp,
 }
 
@@ -194,25 +219,74 @@ impl AppKeyActionManager {
         .collect::<HashMap<_, _>>()
     }
 
-    pub fn key_to_action(&self, key: KeyEvent) -> Option<AppKeyAction> {
-        // fixme
-        match key {
-            key_code_char!('j') => Some(AppKeyAction::SelectNext),
-            key_code_char!('k') => Some(AppKeyAction::SelectPrev),
-            key_code_char!('g') => Some(AppKeyAction::SelectFirst),
-            key_code_char!('G') => Some(AppKeyAction::SelectLast),
-            key_code_char!('f') => Some(AppKeyAction::SelectNextPage),
-            key_code_char!('b') => Some(AppKeyAction::SelectPrevPage),
-            key_code!(KeyCode::Enter) | key_code_char!('m', Ctrl) => Some(AppKeyAction::MoveDown),
-            key_code!(KeyCode::Backspace) | key_code_char!('h', Ctrl) => Some(AppKeyAction::MoveUp),
-            key_code_char!('~') => Some(AppKeyAction::BackToBucketList),
-            key_code_char!('h') | key_code_char!('l') => Some(AppKeyAction::SelectTabs),
-            key_code_char!('s') => Some(AppKeyAction::Download),
-            key_code_char!('p') => Some(AppKeyAction::Preview),
-            key_code_char!('r') => Some(AppKeyAction::ToggleCopyDetails),
-            key_code_char!('x') => Some(AppKeyAction::OpenManagementConsole),
-            key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
-            _ => None,
+    pub fn key_to_action(&self, key: KeyEvent, vs: &ViewState) -> Option<AppKeyAction> {
+        match vs {
+            ViewState::Initializing => None,
+            ViewState::BucketList => match key {
+                key_code_char!('j') => Some(AppKeyAction::BucketListSelectNext),
+                key_code_char!('k') => Some(AppKeyAction::BucketListSelectPrev),
+                key_code_char!('g') => Some(AppKeyAction::BucketListSelectFirst),
+                key_code_char!('G') => Some(AppKeyAction::BucketListSelectLast),
+                key_code_char!('f') => Some(AppKeyAction::BucketListSelectNextPage),
+                key_code_char!('b') => Some(AppKeyAction::BucketListSelectPrevPage),
+                key_code!(KeyCode::Enter) => Some(AppKeyAction::BucketListMoveDown),
+                key_code_char!('m', Ctrl) => Some(AppKeyAction::BucketListMoveDown),
+                key_code_char!('x') => Some(AppKeyAction::BucketListOpenManagementConsole),
+                key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+                _ => None,
+            },
+            ViewState::ObjectList => match key {
+                key_code_char!('j') => Some(AppKeyAction::ObjectListSelectNext),
+                key_code_char!('k') => Some(AppKeyAction::ObjectListSelectPrev),
+                key_code_char!('g') => Some(AppKeyAction::ObjectListSelectFirst),
+                key_code_char!('G') => Some(AppKeyAction::ObjectListSelectLast),
+                key_code_char!('f') => Some(AppKeyAction::ObjectListSelectNextPage),
+                key_code_char!('b') => Some(AppKeyAction::ObjectListSelectPrevPage),
+                key_code!(KeyCode::Enter) => Some(AppKeyAction::ObjectListMoveDown),
+                key_code_char!('m', Ctrl) => Some(AppKeyAction::ObjectListMoveDown),
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::ObjectListMoveUp),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::ObjectListMoveUp),
+                key_code_char!('~') => Some(AppKeyAction::ObjectListBackToBucketList),
+                key_code_char!('x') => Some(AppKeyAction::ObjectListOpenManagementConsole),
+                key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+                _ => None,
+            },
+            ViewState::Detail(_) => match key {
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::DetailMoveUp),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::DetailMoveUp),
+                key_code_char!('h') => Some(AppKeyAction::DetailSelectTabs),
+                key_code_char!('l') => Some(AppKeyAction::DetailSelectTabs),
+                key_code_char!('s') => Some(AppKeyAction::DetailDownload),
+                key_code_char!('p') => Some(AppKeyAction::DetailPreview),
+                key_code_char!('r') => Some(AppKeyAction::DetailToggleCopyDetails),
+                key_code_char!('x') => Some(AppKeyAction::DetailOpenManagementConsole),
+                key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+                _ => None,
+            },
+            ViewState::CopyDetail(_) => match key {
+                key_code_char!('j') => Some(AppKeyAction::CopyDetailSelectNext),
+                key_code_char!('k') => Some(AppKeyAction::CopyDetailSelectPrev),
+                key_code!(KeyCode::Enter) => Some(AppKeyAction::CopyDetailMoveDown),
+                key_code_char!('m', Ctrl) => Some(AppKeyAction::CopyDetailMoveDown),
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::CopyDetailMoveUp),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::CopyDetailMoveUp),
+                key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+                _ => None,
+            },
+            ViewState::Preview(_) => match key {
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::PreviewMoveUp),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::PreviewMoveUp),
+                key_code_char!('s') => Some(AppKeyAction::PreviewDownload),
+                key_code_char!('r') => Some(AppKeyAction::PreviewToggleCopyDetails),
+                key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+                _ => None,
+            },
+            ViewState::Help(_) => match key {
+                key_code!(KeyCode::Backspace) => Some(AppKeyAction::HelpMoveUp),
+                key_code_char!('h', Ctrl) => Some(AppKeyAction::HelpMoveUp),
+                key_code_char!('?') => Some(AppKeyAction::ToggleHelp),
+                _ => None,
+            },
         }
     }
 

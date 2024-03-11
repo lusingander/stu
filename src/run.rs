@@ -40,53 +40,118 @@ pub async fn run<B: Backend>(
                     Notification::None => {}
                 }
 
-                if let Some(action) = app.action_manager.key_to_action(key) {
+                if let Some(action) = app
+                    .action_manager
+                    .key_to_action(key, &app.app_view_state.view_state)
+                {
                     app.send_app_key_action(action);
                 }
             }
             AppEventType::KeyAction(action) => match action {
-                AppKeyAction::SelectNext => {
+                // Initializing
+                // BucketList
+                AppKeyAction::BucketListSelectNext => {
                     app.select_next();
                 }
-                AppKeyAction::SelectPrev => {
+                AppKeyAction::BucketListSelectPrev => {
                     app.select_prev();
                 }
-                AppKeyAction::SelectFirst => {
+                AppKeyAction::BucketListSelectFirst => {
                     app.select_first();
                 }
-                AppKeyAction::SelectLast => {
+                AppKeyAction::BucketListSelectLast => {
                     app.select_last();
                 }
-                AppKeyAction::SelectNextPage => {
+                AppKeyAction::BucketListSelectNextPage => {
                     app.select_next_page();
                 }
-                AppKeyAction::SelectPrevPage => {
+                AppKeyAction::BucketListSelectPrevPage => {
                     app.select_prev_page();
                 }
-                AppKeyAction::MoveDown => {
+                AppKeyAction::BucketListMoveDown => {
                     app.move_down();
                 }
-                AppKeyAction::MoveUp => {
-                    app.move_up();
-                }
-                AppKeyAction::BackToBucketList => {
-                    app.back_to_bucket_list();
-                }
-                AppKeyAction::SelectTabs => {
-                    app.select_tabs();
-                }
-                AppKeyAction::Download => {
-                    app.download();
-                }
-                AppKeyAction::Preview => {
-                    app.preview();
-                }
-                AppKeyAction::ToggleCopyDetails => {
-                    app.toggle_copy_details();
-                }
-                AppKeyAction::OpenManagementConsole => {
+                AppKeyAction::BucketListOpenManagementConsole => {
                     app.open_management_console();
                 }
+                // ObjectList
+                AppKeyAction::ObjectListSelectNext => {
+                    app.select_next();
+                }
+                AppKeyAction::ObjectListSelectPrev => {
+                    app.select_prev();
+                }
+                AppKeyAction::ObjectListSelectFirst => {
+                    app.select_first();
+                }
+                AppKeyAction::ObjectListSelectLast => {
+                    app.select_last();
+                }
+                AppKeyAction::ObjectListSelectNextPage => {
+                    app.select_next_page();
+                }
+                AppKeyAction::ObjectListSelectPrevPage => {
+                    app.select_prev_page();
+                }
+                AppKeyAction::ObjectListMoveDown => {
+                    app.move_down();
+                }
+                AppKeyAction::ObjectListMoveUp => {
+                    app.move_up();
+                }
+                AppKeyAction::ObjectListBackToBucketList => {
+                    app.back_to_bucket_list();
+                }
+                AppKeyAction::ObjectListOpenManagementConsole => {
+                    app.open_management_console();
+                }
+                // Detail
+                AppKeyAction::DetailMoveUp => {
+                    app.move_up();
+                }
+                AppKeyAction::DetailSelectTabs => {
+                    app.select_tabs();
+                }
+                AppKeyAction::DetailDownload => {
+                    app.download();
+                }
+                AppKeyAction::DetailPreview => {
+                    app.preview();
+                }
+                AppKeyAction::DetailToggleCopyDetails => {
+                    app.toggle_copy_details();
+                }
+                AppKeyAction::DetailOpenManagementConsole => {
+                    app.open_management_console();
+                }
+                // CopyDetail
+                AppKeyAction::CopyDetailSelectNext => {
+                    app.select_next();
+                }
+                AppKeyAction::CopyDetailSelectPrev => {
+                    app.select_prev();
+                }
+                AppKeyAction::CopyDetailMoveDown => {
+                    app.move_down();
+                }
+                AppKeyAction::CopyDetailMoveUp => {
+                    app.move_up();
+                }
+                // Preview
+                AppKeyAction::PreviewMoveUp => {
+                    app.move_up();
+                }
+                AppKeyAction::PreviewDownload => {
+                    app.download();
+                }
+                AppKeyAction::PreviewToggleCopyDetails => {
+                    app.toggle_copy_details();
+                }
+                // Help
+                AppKeyAction::HelpMoveUp => {
+                    app.move_up();
+                }
+                // common
                 AppKeyAction::ToggleHelp => {
                     app.toggle_help();
                 }
