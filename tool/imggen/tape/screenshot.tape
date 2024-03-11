@@ -8,13 +8,13 @@ Set Height 600
 Set Padding 15
 Set BorderRadius 20
 
-Type "export AWS_ACCESS_KEY_ID=dummy"
+Type@10ms "export AWS_ACCESS_KEY_ID=dummy"
 Enter
-Type "export AWS_SECRET_ACCESS_KEY=dummy"
+Type@10ms "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
-Type "cargo run -- --endpoint-url ${ENDPOINT_URL}"
+Type@10ms "./target/debug/stu --endpoint-url ${ENDPOINT_URL}"
 Enter
-Sleep 1s
+Sleep 500ms
 Screenshot ${OUTPUT_DIR}/initialize.png
 Sleep 2s
 

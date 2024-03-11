@@ -15,7 +15,7 @@ Type "export AWS_ACCESS_KEY_ID=dummy"
 Enter
 Type "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
-Type "cargo run -- --endpoint-url ${ENDPOINT_URL}"
+Type "./target/debug/stu --endpoint-url ${ENDPOINT_URL}"
 Enter
 Sleep 3s
 
