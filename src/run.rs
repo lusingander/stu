@@ -119,7 +119,7 @@ pub async fn run<B: Backend>(
                 AppKeyAction::DetailPreview => {
                     app.detail_preview();
                 }
-                AppKeyAction::DetailToggleCopyDetails => {
+                AppKeyAction::DetailOpenCopyDetails => {
                     app.detail_open_copy_details();
                 }
                 AppKeyAction::DetailOpenManagementConsole => {

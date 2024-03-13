@@ -30,7 +30,7 @@ pub enum AppEventType {
     Error(AppError),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub enum AppKeyAction {
     // Initializing
     // BucketList
@@ -55,10 +55,10 @@ pub enum AppKeyAction {
     ObjectListOpenManagementConsole,
     // Detail
     DetailClose,
-    DetailSelectTabs,
+    DetailSelectTabs, // fixme
     DetailDownloadObject,
     DetailPreview,
-    DetailToggleCopyDetails,
+    DetailOpenCopyDetails,
     DetailOpenManagementConsole,
     // CopyDetail
     CopyDetailSelectNext,
@@ -87,8 +87,8 @@ impl AppKeyActionManager {
         let key_maps = key_maps();
         AppKeyActionManager {
             key_action_map: AppKeyActionManager::build_key_action_map(&key_maps),
-            helps: AppKeyActionManager::build_helps(),
-            short_helps: AppKeyActionManager::build_short_helps(),
+            helps: AppKeyActionManager::build_helps(&key_maps),
+            short_helps: AppKeyActionManager::build_short_helps(&key_maps),
         }
     }
 
@@ -108,135 +108,264 @@ impl AppKeyActionManager {
             .collect()
     }
 
-    fn build_helps() -> HashMap<ViewStateTag, Vec<String>> {
-        // fixme
+    #[rustfmt::skip]
+    fn build_helps(
+        key_maps: &[(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)],
+    ) -> HashMap<ViewStateTag, Vec<String>> {
+        use AppKeyAction::*;
         vec![
-            (ViewStateTag::Initializing, vec![]),
+            (
+                ViewStateTag::Initializing,
+                vec![],
+            ),
             (
                 ViewStateTag::BucketList,
-                vec![
-                    "<Esc> <Ctrl-c>: Quit app",
-                    "<j/k>: Select item",
-                    "<g/G>: Go to top/bottom",
-                    "<f>: Scroll page forward",
-                    "<b>: Scroll page backward",
-                    "<Enter>: Open bucket",
-                    "<x>: Open management console in browser",
-                ],
+                AppKeyActionManager::build_help_vec(
+                    key_maps,
+                    ViewStateTag::BucketList,
+                    &[
+                        ("Select item", true, &[BucketListSelectNext, BucketListSelectPrev]),
+                        ("Go to top/bottom", true, &[BucketListSelectFirst, BucketListSelectLast]),
+                        ("Scroll page forward", false, &[BucketListSelectNextPage]),
+                        ("Scroll page backward", false, &[BucketListSelectPrevPage]),
+                        ("Open bucket", false, &[BucketListMoveDown]),
+                        ("Open management console in browser", false, &[BucketListOpenManagementConsole]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::ObjectList,
-                vec![
-                    "<Esc> <Ctrl-c>: Quit app",
-                    "<j/k>: Select item",
-                    "<g/G>: Go to top/bottom",
-                    "<f>: Scroll page forward",
-                    "<b>: Scroll page backward",
-                    "<Enter>: Open file or folder",
-                    "<Backspace>: Go back to prev folder",
-                    "<~>: Go back to bucket list",
-                    "<x>: Open management console in browser",
-                ],
+                AppKeyActionManager::build_help_vec(
+                    key_maps,
+                    ViewStateTag::ObjectList,
+                    &[
+                        ("Select item", true, &[ObjectListSelectNext, ObjectListSelectPrev]),
+                        ("Go to top/bottom", true, &[ObjectListSelectFirst, ObjectListSelectLast]),
+                        ("Scroll page forward", false, &[ObjectListSelectNextPage]),
+                        ("Scroll page backward", false, &[ObjectListSelectPrevPage]),
+                        ("Open file or folder", false, &[ObjectListMoveDown]),
+                        ("Go back to prev folder", false, &[ObjectListMoveUp]),
+                        ("Go back to bucket list", false, &[ObjectListBackToBucketList]),
+                        ("Open management console in browser", false, &[ObjectListOpenManagementConsole]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::Detail,
-                vec![
-                    "<Esc> <Ctrl-c>: Quit app",
-                    "<h/l>: Select tabs",
-                    "<Backspace>: Close detail panel",
-                    "<r>: Open copy dialog",
-                    "<s>: Download object",
-                    "<p>: Preview object",
-                    "<x>: Open management console in browser",
-                ],
+                AppKeyActionManager::build_help_vec(
+                    key_maps,
+                    ViewStateTag::Detail,
+                    &[
+                        ("Select tabs", true, &[DetailSelectTabs]),
+                        ("Close detail panel", false, &[DetailClose]),
+                        ("Open copy dialog", false, &[DetailOpenCopyDetails]),
+                        ("Download object", false, &[DetailDownloadObject]),
+                        ("Preview object", false, &[DetailPreview]),
+                        ("Open management console in browser", false, &[DetailOpenManagementConsole]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::CopyDetail,
-                vec![
-                    "<Esc> <Ctrl-c>: Quit app",
-                    "<j/k>: Select item",
-                    "<Enter>: Copy selected value to clipboard",
-                    "<Backspace> <r>: Close copy dialog",
-                ],
+                AppKeyActionManager::build_help_vec(
+                    key_maps,
+                    ViewStateTag::CopyDetail,
+                    &[
+                        ("Select item", true, &[CopyDetailSelectNext, CopyDetailSelectPrev]),
+                        ("Copy selected value to clipboard", false, &[CopyDetailCopySelectedValue]),
+                        ("Close copy dialog", false, &[CopyDetailClose]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::Preview,
-                vec![
-                    "<Esc> <Ctrl-c>: Quit app",
-                    "<Backspace>: Close preview",
-                    "<s>: Download object",
-                ],
+                AppKeyActionManager::build_help_vec(
+                    key_maps,
+                    ViewStateTag::Preview,
+                    &[
+                        ("Close preview", false, &[PreviewClose]),
+                        ("Download object", false, &[PreviewDownloadObject]),
+                    ],
+                ),
             ),
-            (ViewStateTag::Help, vec![]),
+            (
+                ViewStateTag::Help,
+                vec![],
+            ),
         ]
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().map(|s| s.to_owned()).collect()))
         .collect::<HashMap<_, _>>()
     }
 
-    fn build_short_helps() -> HashMap<ViewStateTag, Vec<(String, usize)>> {
-        // fixme
+    #[rustfmt::skip]
+    fn build_short_helps(
+        key_maps: &[(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)],
+    ) -> HashMap<ViewStateTag, Vec<(String, usize)>> {
+        use AppKeyAction::*;
         vec![
-            (ViewStateTag::Initializing, vec![]),
+            (
+                ViewStateTag::Initializing,
+                vec![],
+            ),
             (
                 ViewStateTag::BucketList,
-                vec![
-                    ("<Esc>: Quit", 0),
-                    ("<j/k>: Select", 1),
-                    ("<g/G>: Top/Bottom", 3),
-                    ("<Enter>: Open", 2),
-                    ("<?>: Help", 0),
-                ],
+                AppKeyActionManager::build_short_help_with_priority_vec(
+                    key_maps,
+                    ViewStateTag::BucketList,
+                    &[
+                        ("Select", 1, true, &[BucketListSelectNext, BucketListSelectPrev]),
+                        ("Top/Bottom", 3, true, &[BucketListSelectFirst, BucketListSelectLast]),
+                        ("Open", 2, false, &[BucketListMoveDown]),
+                        ("Help", 0, false, &[ToggleHelp]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::ObjectList,
-                vec![
-                    ("<Esc>: Quit", 0),
-                    ("<j/k>: Select", 3),
-                    ("<g/G>: Top/Bottom", 4),
-                    ("<Enter>: Open", 1),
-                    ("<Backspace>: Go back", 2),
-                    ("<?>: Help", 0),
-                ],
+                AppKeyActionManager::build_short_help_with_priority_vec(
+                    key_maps,
+                    ViewStateTag::ObjectList,
+                    &[
+                        ("Select", 3, true, &[ObjectListSelectNext, ObjectListSelectPrev]),
+                        ("Top/Bottom", 4, true, &[ObjectListSelectFirst, ObjectListSelectLast]),
+                        ("Open", 1, false, &[ObjectListMoveDown]),
+                        ("Go back", 2, false, &[ObjectListMoveUp]),
+                        ("Help", 0, false, &[ToggleHelp]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::Detail,
-                vec![
-                    ("<Esc>: Quit", 0),
-                    ("<h/l>: Select tabs", 3),
-                    ("<s>: Download", 1),
-                    ("<p>: Preview", 4),
-                    ("<Backspace>: Close", 2),
-                    ("<?>: Help", 0),
-                ],
+                AppKeyActionManager::build_short_help_with_priority_vec(
+                    key_maps,
+                    ViewStateTag::Detail,
+                    &[
+                        ("Select tabs", 3, true, &[DetailSelectTabs]),
+                        ("Download", 1, false, &[DetailDownloadObject]),
+                        ("Preview", 4, false, &[DetailPreview]),
+                        ("Close", 2, false, &[DetailClose]),
+                        ("Help", 0, false, &[ToggleHelp]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::CopyDetail,
-                vec![
-                    ("<Esc>: Quit", 0),
-                    ("<j/k>: Select", 3),
-                    ("<Enter>: Copy", 1),
-                    ("<Backspace>: Close", 2),
-                    ("<?>: Help", 0),
-                ],
+                AppKeyActionManager::build_short_help_with_priority_vec(
+                    key_maps,
+                    ViewStateTag::CopyDetail,
+                    &[
+                        ("Select", 3, true, &[CopyDetailSelectNext, CopyDetailSelectPrev]),
+                        ("Copy", 1, false, &[CopyDetailCopySelectedValue]),
+                        ("Close", 2, false, &[CopyDetailClose]),
+                        ("Help", 0, false, &[ToggleHelp]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::Preview,
-                vec![
-                    ("<Esc>: Quit", 0),
-                    ("<s>: Download", 2),
-                    ("<Backspace>: Close", 1),
-                    ("<?>: Help", 0),
-                ],
+                AppKeyActionManager::build_short_help_with_priority_vec(
+                    key_maps,
+                    ViewStateTag::Preview,
+                    &[
+                        ("Download", 2, true, &[PreviewDownloadObject]),
+                        ("Close", 1, false, &[PreviewClose]),
+                        ("Help", 0, false, &[ToggleHelp]),
+                    ],
+                ),
             ),
             (
                 ViewStateTag::Help,
-                vec![("<Esc>: Quit", 0), ("<?>: Close help", 0)],
+                AppKeyActionManager::build_short_help_with_priority_vec(
+                    key_maps,
+                    ViewStateTag::Help,
+                    &[
+                        ("Help", 0, false, &[ToggleHelp]),
+                    ],
+                ),
             ),
         ]
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().map(|(s, n)| (s.to_owned(), n)).collect()))
         .collect::<HashMap<_, _>>()
+    }
+
+    fn build_help_vec(
+        key_maps: &[(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)],
+        target_vs: ViewStateTag,
+        xs: &[(&str, bool, &[AppKeyAction])],
+    ) -> Vec<String> {
+        let mut vec = Vec::new();
+        vec.push(String::from("<Esc> <Ctrl-c>: Quit app"));
+        for (desc, with_slash, actions) in xs {
+            let maps = AppKeyActionManager::find_key_maps(key_maps, target_vs, actions);
+            let keys = if *with_slash {
+                let keys = maps
+                    .into_iter()
+                    .map(|(_, code, modifier, _)| to_key_input_str(code, modifier))
+                    .collect::<Vec<String>>()
+                    .join("/");
+                format!("<{}>", keys)
+            } else {
+                maps.into_iter()
+                    .map(|(_, code, modifier, _)| to_key_input_str(code, modifier))
+                    .map(|key| format!("<{}>", key))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            };
+            let s = format!("{}: {}", keys, desc);
+            vec.push(s);
+        }
+        vec
+    }
+
+    fn build_short_help_with_priority_vec(
+        key_maps: &[(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)],
+        target_vs: ViewStateTag,
+        xs: &[(&str, usize, bool, &[AppKeyAction])],
+    ) -> Vec<(String, usize)> {
+        let mut vec = Vec::new();
+        vec.push((String::from("<Esc>: Quit"), 0));
+        for (desc, priority, with_slash, actions) in xs {
+            let maps = AppKeyActionManager::find_key_maps(key_maps, target_vs, actions);
+            let keys = if *with_slash {
+                let maps = maps.into_iter().fold(
+                    Vec::<(AppKeyAction, KeyCode, KeyModifiers)>::new(),
+                    |mut acc, (_, c, m, a)| {
+                        if !acc.iter().any(|(aa, _, _)| a == *aa) {
+                            acc.push((a, c, m));
+                        }
+                        acc
+                    },
+                );
+                let keys = maps
+                    .into_iter()
+                    .map(|(_, code, modifier)| to_key_input_str(code, modifier))
+                    .collect::<Vec<String>>()
+                    .join("/");
+                format!("<{}>", keys)
+            } else {
+                let (_, code, modifier, _) = maps.first().unwrap();
+                let key = to_key_input_str(*code, *modifier);
+                format!("<{}>", key)
+            };
+            let s = format!("{}: {}", keys, desc);
+            vec.push((s, *priority));
+        }
+        vec
+    }
+
+    fn find_key_maps(
+        key_maps: &[(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)],
+        target_vs: ViewStateTag,
+        target_actions: &[AppKeyAction],
+    ) -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
+        key_maps
+            .iter()
+            .filter(|(vs, _, _, _)| target_vs == *vs)
+            .filter(|(_, _, _, action)| target_actions.contains(action))
+            .copied()
+            .collect()
     }
 
     pub fn key_to_action(&self, key: KeyEvent, vs: &ViewState) -> Option<AppKeyAction> {
@@ -252,6 +381,18 @@ impl AppKeyActionManager {
 
     pub fn short_helps(&self, vs: &ViewState) -> &Vec<(String, usize)> {
         self.short_helps.get(&vs.tag()).unwrap()
+    }
+}
+
+fn to_key_input_str(code: KeyCode, modifier: KeyModifiers) -> String {
+    let s = match code {
+        KeyCode::F(n) => format!("F{}", n),
+        KeyCode::Char(c) => format!("{}", c),
+        _ => format!("{:?}", code),
+    };
+    match modifier {
+        KeyModifiers::CONTROL => format!("Ctrl-{}", s),
+        _ => s,
     }
 }
 
@@ -297,12 +438,6 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
             ViewStateTag::BucketList,
             KeyCode::Enter,
             KeyModifiers::NONE,
-            AppKeyAction::BucketListMoveDown,
-        ),
-        (
-            ViewStateTag::BucketList,
-            KeyCode::Char('m'),
-            KeyModifiers::CONTROL,
             AppKeyAction::BucketListMoveDown,
         ),
         (
@@ -361,20 +496,8 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
         ),
         (
             ViewStateTag::ObjectList,
-            KeyCode::Char('m'),
-            KeyModifiers::CONTROL,
-            AppKeyAction::ObjectListMoveDown,
-        ),
-        (
-            ViewStateTag::ObjectList,
             KeyCode::Backspace,
             KeyModifiers::NONE,
-            AppKeyAction::ObjectListMoveUp,
-        ),
-        (
-            ViewStateTag::ObjectList,
-            KeyCode::Char('h'),
-            KeyModifiers::CONTROL,
             AppKeyAction::ObjectListMoveUp,
         ),
         (
@@ -399,12 +522,6 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
             ViewStateTag::Detail,
             KeyCode::Backspace,
             KeyModifiers::NONE,
-            AppKeyAction::DetailClose,
-        ),
-        (
-            ViewStateTag::Detail,
-            KeyCode::Char('h'),
-            KeyModifiers::CONTROL,
             AppKeyAction::DetailClose,
         ),
         (
@@ -435,7 +552,7 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
             ViewStateTag::Detail,
             KeyCode::Char('r'),
             KeyModifiers::NONE,
-            AppKeyAction::DetailToggleCopyDetails,
+            AppKeyAction::DetailOpenCopyDetails,
         ),
         (
             ViewStateTag::Detail,
@@ -469,26 +586,14 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
         ),
         (
             ViewStateTag::CopyDetail,
-            KeyCode::Char('m'),
-            KeyModifiers::CONTROL,
-            AppKeyAction::CopyDetailCopySelectedValue,
-        ),
-        (
-            ViewStateTag::CopyDetail,
-            KeyCode::Char('r'),
-            KeyModifiers::NONE,
-            AppKeyAction::CopyDetailClose,
-        ),
-        (
-            ViewStateTag::CopyDetail,
             KeyCode::Backspace,
             KeyModifiers::NONE,
             AppKeyAction::CopyDetailClose,
         ),
         (
             ViewStateTag::CopyDetail,
-            KeyCode::Char('h'),
-            KeyModifiers::CONTROL,
+            KeyCode::Char('r'),
+            KeyModifiers::NONE,
             AppKeyAction::CopyDetailClose,
         ),
         (
@@ -501,12 +606,6 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
             ViewStateTag::Preview,
             KeyCode::Backspace,
             KeyModifiers::NONE,
-            AppKeyAction::PreviewClose,
-        ),
-        (
-            ViewStateTag::Preview,
-            KeyCode::Char('h'),
-            KeyModifiers::CONTROL,
             AppKeyAction::PreviewClose,
         ),
         (
@@ -525,12 +624,6 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
             ViewStateTag::Help,
             KeyCode::Backspace,
             KeyModifiers::NONE,
-            AppKeyAction::HelpClose,
-        ),
-        (
-            ViewStateTag::Help,
-            KeyCode::Char('h'),
-            KeyModifiers::CONTROL,
             AppKeyAction::HelpClose,
         ),
         (
