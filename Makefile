@@ -1,10 +1,11 @@
 STU_BIN=./target/debug/stu
+RUST_SRC=./src/*.rs
 CMD_DIR=./tool
 IMGGEN_DIR=$(CMD_DIR)/imggen
 IMGDIFF_DIR=$(CMD_DIR)/imgdiff
 OUTPUT_DIR=./dist
 
-$(STU_BIN):
+$(STU_BIN): $(RUST_SRC)
 	cargo build
 
 .PHONY: demo
