@@ -11,12 +11,12 @@ use crate::{
     config::Config,
     error::{AppError, Result},
     event::{
-        AppEventType, AppKeyAction, AppKeyActionManager, CompleteDownloadObjectResult,
-        CompleteInitializeResult, CompleteLoadObjectResult, CompleteLoadObjectsResult,
-        CompletePreviewObjectResult,
+        AppEventType, AppKeyAction, CompleteDownloadObjectResult, CompleteInitializeResult,
+        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
+    keys::AppKeyActionManager,
     util::to_preview_string,
 };
 

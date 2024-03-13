@@ -6,6 +6,7 @@ mod error;
 mod event;
 mod file;
 mod item;
+mod keys;
 mod macros;
 mod run;
 mod ui;

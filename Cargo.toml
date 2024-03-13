@@ -30,4 +30,5 @@ serde_derive = "1.0.153"
 tokio = { version = "1", features = ["full"] }
 
 [dev-dependencies]
+maplit = "1.0.2"
 rstest = "0.18.2"
