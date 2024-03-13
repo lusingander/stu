@@ -179,7 +179,7 @@ impl AppKeyActionManager {
             (
                 ViewStateTag::Help,
                 vec![
-                    ("Help", 0, false, &[ToggleHelp]),
+                    ("Close help", 0, false, &[ToggleHelp]),
                 ],
             ),
         ];
