@@ -110,7 +110,10 @@ pub async fn run<B: Backend>(
                 AppKeyAction::DetailClose => {
                     app.detail_close();
                 }
-                AppKeyAction::DetailSelectTabs => {
+                AppKeyAction::DetailSelectNext => {
+                    app.detail_select_tabs();
+                }
+                AppKeyAction::DetailSelectPrev => {
                     app.detail_select_tabs();
                 }
                 AppKeyAction::DetailDownloadObject => {

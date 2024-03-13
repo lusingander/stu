@@ -55,7 +55,8 @@ pub enum AppKeyAction {
     ObjectListOpenManagementConsole,
     // Detail
     DetailClose,
-    DetailSelectTabs, // fixme
+    DetailSelectNext,
+    DetailSelectPrev,
     DetailDownloadObject,
     DetailPreview,
     DetailOpenCopyDetails,
@@ -156,7 +157,7 @@ impl AppKeyActionManager {
                     key_maps,
                     ViewStateTag::Detail,
                     &[
-                        ("Select tabs", true, &[DetailSelectTabs]),
+                        ("Select tabs", true, &[DetailSelectNext, DetailSelectPrev]),
                         ("Close detail panel", false, &[DetailClose]),
                         ("Open copy dialog", false, &[DetailOpenCopyDetails]),
                         ("Download object", false, &[DetailDownloadObject]),
@@ -241,7 +242,7 @@ impl AppKeyActionManager {
                     key_maps,
                     ViewStateTag::Detail,
                     &[
-                        ("Select tabs", 3, true, &[DetailSelectTabs]),
+                        ("Select tabs", 3, true, &[DetailSelectNext, DetailSelectPrev]),
                         ("Download", 1, false, &[DetailDownloadObject]),
                         ("Preview", 4, false, &[DetailPreview]),
                         ("Close", 2, false, &[DetailClose]),
@@ -528,13 +529,13 @@ fn key_maps() -> Vec<(ViewStateTag, KeyCode, KeyModifiers, AppKeyAction)> {
             ViewStateTag::Detail,
             KeyCode::Char('h'),
             KeyModifiers::NONE,
-            AppKeyAction::DetailSelectTabs,
+            AppKeyAction::DetailSelectPrev,
         ),
         (
             ViewStateTag::Detail,
             KeyCode::Char('l'),
             KeyModifiers::NONE,
-            AppKeyAction::DetailSelectTabs,
+            AppKeyAction::DetailSelectNext,
         ),
         (
             ViewStateTag::Detail,
