@@ -288,7 +288,7 @@ fn to_key_input_str(code: KeyCode, modifier: KeyModifiers) -> String {
 #[rustfmt::skip]
 fn default_key_maps() -> Vec<KeyMapEntry> {
     use AppKeyAction::*;
-    vec![
+    let v = vec![
         (ViewStateTag::BucketList, KeyCode::Char('j'), KeyModifiers::NONE,  BucketListSelectNext),
         (ViewStateTag::BucketList, KeyCode::Char('k'), KeyModifiers::NONE,  BucketListSelectPrev),
         (ViewStateTag::BucketList, KeyCode::Char('g'), KeyModifiers::NONE,  BucketListSelectFirst),
@@ -321,14 +321,16 @@ fn default_key_maps() -> Vec<KeyMapEntry> {
         (ViewStateTag::CopyDetail, KeyCode::Char('k'), KeyModifiers::NONE,  CopyDetailSelectPrev),
         (ViewStateTag::CopyDetail, KeyCode::Enter,     KeyModifiers::NONE,  CopyDetailCopySelectedValue),
         (ViewStateTag::CopyDetail, KeyCode::Backspace, KeyModifiers::NONE,  CopyDetailClose),
-        (ViewStateTag::CopyDetail, KeyCode::Char('r'), KeyModifiers::NONE,  CopyDetailClose),
         (ViewStateTag::CopyDetail, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
         (ViewStateTag::Preview,    KeyCode::Backspace, KeyModifiers::NONE,  PreviewClose),
         (ViewStateTag::Preview,    KeyCode::Char('s'), KeyModifiers::NONE,  PreviewDownloadObject),
         (ViewStateTag::Preview,    KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
         (ViewStateTag::Help,       KeyCode::Backspace, KeyModifiers::NONE,  HelpClose),
         (ViewStateTag::Help,       KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-    ]
+    ];
+    // (ViewStateTag, AppKeyAction) must not be duplicated
+    debug_assert!(group_map(&v, |t| (t.0, t.3), |t| (t.0, t.3)).iter().all(|(_, v)| v.len() == 1));
+    v
 }
 
 #[cfg(test)]
