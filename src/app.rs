@@ -26,6 +26,7 @@ pub enum ViewState {
     BucketList,
     ObjectList,
     Detail(DetailViewState),
+    DetailSave(DetailSaveViewState),
     CopyDetail(CopyDetailViewState),
     Preview(Box<PreviewViewState>),
     Help(Box<ViewState>),
@@ -37,6 +38,21 @@ pub type ViewStateTag = <ViewState as EnumTag>::Tag;
 pub enum DetailViewState {
     Detail = 0,
     Version = 1,
+}
+
+#[derive(Clone)]
+pub struct DetailSaveViewState {
+    pub input: String,
+    pub before: DetailViewState,
+}
+
+impl DetailSaveViewState {
+    pub fn new(before: DetailViewState) -> DetailSaveViewState {
+        DetailSaveViewState {
+            input: String::new(),
+            before,
+        }
+    }
 }
 
 #[derive(Clone, Copy)]
@@ -253,6 +269,7 @@ impl App {
         match self.app_view_state.view_state {
             ViewState::Initializing
             | ViewState::Detail(_)
+            | ViewState::DetailSave(_)
             | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
             | ViewState::Help(_) => 0,
@@ -655,6 +672,7 @@ impl App {
             ViewState::BucketList
             | ViewState::ObjectList
             | ViewState::Detail(_)
+            | ViewState::DetailSave(_)
             | ViewState::CopyDetail(_)
             | ViewState::Preview(_) => {
                 let before = self.app_view_state.view_state.clone();
@@ -667,6 +685,12 @@ impl App {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
             self.tx.send(AppEventType::DownloadObject).unwrap();
             self.app_view_state.is_loading = true;
+        }
+    }
+
+    pub fn detail_open_download_object_as(&mut self) {
+        if let ViewState::Detail(vs) = self.app_view_state.view_state {
+            self.app_view_state.view_state = ViewState::DetailSave(DetailSaveViewState::new(vs))
         }
     }
 
@@ -805,6 +829,10 @@ impl App {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
+    }
+
+    pub fn detail_save_download_object_as(&self) {
+        todo!()
     }
 
     pub fn copy_to_clipboard(&self, name: String, value: String) {

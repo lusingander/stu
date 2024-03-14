@@ -57,8 +57,11 @@ pub enum AppKeyAction {
     DetailSelectPrev,
     DetailDownloadObject,
     DetailPreview,
+    DetailOpenDownloadObjectAs,
     DetailOpenCopyDetails,
     DetailOpenManagementConsole,
+    // DetailSave
+    DetailSaveDownloadObjectAs,
     // CopyDetail
     CopyDetailSelectNext,
     CopyDetailSelectPrev,

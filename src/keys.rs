@@ -86,8 +86,15 @@ impl AppKeyActionManager {
                     ("Close detail panel", false, &[DetailClose]),
                     ("Open copy dialog", false, &[DetailOpenCopyDetails]),
                     ("Download object", false, &[DetailDownloadObject]),
+                    ("Download object as", false, &[DetailOpenDownloadObjectAs]),
                     ("Preview object", false, &[DetailPreview]),
                     ("Open management console in browser", false, &[DetailOpenManagementConsole]),
+                ],
+            ),
+            (
+                ViewStateTag::DetailSave,
+                vec![
+                    ("Download object", false, &[DetailSaveDownloadObjectAs]),
                 ],
             ),
             (
@@ -147,6 +154,13 @@ impl AppKeyActionManager {
                     ("Download", 1, false, &[DetailDownloadObject]),
                     ("Preview", 4, false, &[DetailPreview]),
                     ("Close", 2, false, &[DetailClose]),
+                    ("Help", 0, false, &[ToggleHelp]),
+                ],
+            ),
+            (
+                ViewStateTag::DetailSave,
+                vec![
+                    ("Download", 1, false, &[DetailSaveDownloadObjectAs]),
                     ("Help", 0, false, &[ToggleHelp]),
                 ],
             ),
@@ -313,10 +327,13 @@ fn default_key_maps() -> Vec<KeyMapEntry> {
         (ViewStateTag::Detail,     KeyCode::Char('h'), KeyModifiers::NONE,  DetailSelectPrev),
         (ViewStateTag::Detail,     KeyCode::Char('l'), KeyModifiers::NONE,  DetailSelectNext),
         (ViewStateTag::Detail,     KeyCode::Char('s'), KeyModifiers::NONE,  DetailDownloadObject),
+        (ViewStateTag::Detail,     KeyCode::Char('S'), KeyModifiers::SHIFT, DetailOpenDownloadObjectAs),
         (ViewStateTag::Detail,     KeyCode::Char('p'), KeyModifiers::NONE,  DetailPreview),
         (ViewStateTag::Detail,     KeyCode::Char('r'), KeyModifiers::NONE,  DetailOpenCopyDetails),
         (ViewStateTag::Detail,     KeyCode::Char('x'), KeyModifiers::NONE,  DetailOpenManagementConsole),
         (ViewStateTag::Detail,     KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::DetailSave, KeyCode::Enter,     KeyModifiers::NONE,  DetailSaveDownloadObjectAs),
+        (ViewStateTag::DetailSave, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
         (ViewStateTag::CopyDetail, KeyCode::Char('j'), KeyModifiers::NONE,  CopyDetailSelectNext),
         (ViewStateTag::CopyDetail, KeyCode::Char('k'), KeyModifiers::NONE,  CopyDetailSelectPrev),
         (ViewStateTag::CopyDetail, KeyCode::Enter,     KeyModifiers::NONE,  CopyDetailCopySelectedValue),

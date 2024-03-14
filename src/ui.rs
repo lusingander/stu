@@ -14,8 +14,8 @@ use ratatui::{
 
 use crate::{
     app::{
-        App, CopyDetailViewItemType, CopyDetailViewState, DetailViewState, Notification,
-        PreviewViewState, ViewState,
+        App, CopyDetailViewItemType, CopyDetailViewState, DetailSaveViewState, DetailViewState,
+        Notification, PreviewViewState, ViewState,
     },
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     util,
@@ -55,6 +55,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
         ViewState::BucketList => render_bucket_list_view(f, area, app),
         ViewState::ObjectList => render_object_list_view(f, area, app),
         ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
+        ViewState::DetailSave(vs) => render_detail_save_view(f, area, app, vs),
         ViewState::CopyDetail(vs) => render_copy_detail_view(f, area, app, vs),
         ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, app, before),
@@ -214,15 +215,35 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
             f.render_widget(versions, chunks[1]);
         }
     }
+}
 
-    if let ViewState::CopyDetail(vs) = app.app_view_state.view_state {
-        let current_file_detail = app.get_current_file_detail().unwrap();
-        render_copy_details_dialog(f, area, &vs, current_file_detail);
-    }
+fn render_detail_save_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailSaveViewState) {
+    render_detail_view(f, area, app, &vs.before);
+
+    render_save_object_as_dialog(f, area, vs);
+}
+
+fn render_save_object_as_dialog(f: &mut Frame, area: Rect, vs: &DetailSaveViewState) {
+    let dialog_width = (area.width - 4).min(40);
+    let dialog_height = 1 + 2 /* border */;
+    let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+    let title = Title::from("Save As");
+    let dialog = Paragraph::new(vs.input.clone()).block(
+        Block::bordered()
+            .border_type(BorderType::Double)
+            .title(title)
+            .padding(Padding::horizontal(1)),
+    );
+    f.render_widget(Clear, area);
+    f.render_widget(dialog, area);
 }
 
 fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &CopyDetailViewState) {
     render_detail_view(f, area, app, &vs.before);
+
+    let current_file_detail = app.get_current_file_detail().unwrap();
+    render_copy_details_dialog(f, area, vs, current_file_detail);
 }
 
 fn render_copy_details_dialog(

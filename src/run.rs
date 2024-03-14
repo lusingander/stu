@@ -119,6 +119,9 @@ pub async fn run<B: Backend>(
                 AppKeyAction::DetailDownloadObject => {
                     app.detail_download_object();
                 }
+                AppKeyAction::DetailOpenDownloadObjectAs => {
+                    app.detail_open_download_object_as();
+                }
                 AppKeyAction::DetailPreview => {
                     app.detail_preview();
                 }
@@ -127,6 +130,10 @@ pub async fn run<B: Backend>(
                 }
                 AppKeyAction::DetailOpenManagementConsole => {
                     app.detail_open_management_console();
+                }
+                // DetailSave
+                AppKeyAction::DetailSaveDownloadObjectAs => {
+                    app.detail_save_download_object_as();
                 }
                 // CopyDetail
                 AppKeyAction::CopyDetailSelectNext => {
