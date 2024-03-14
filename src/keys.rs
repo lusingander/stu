@@ -6,6 +6,7 @@ use enum_tag::EnumTag;
 use crate::{
     app::{ViewState, ViewStateTag},
     event::AppKeyAction,
+    util::{group_map, to_map},
 };
 
 const QUIT_HELP_STR: &str = "<Esc> <Ctrl-c>: Quit app";
@@ -37,16 +38,10 @@ impl AppKeyActionManager {
     fn build_key_action_map(
         key_maps: &[KeyMapEntry],
     ) -> HashMap<ViewStateTag, HashMap<AppKeyInput, AppKeyAction>> {
-        let grouped = key_maps.iter().fold(
-            HashMap::<ViewStateTag, Vec<(KeyCode, KeyModifiers, AppKeyAction)>>::new(),
-            |mut acc, (s, c, m, a)| {
-                acc.entry(*s).or_default().push((*c, *m, *a));
-                acc
-            },
-        );
+        let grouped = group_map(key_maps, |(s, _, _, _)| *s, |(_, c, m, a)| (*c, *m, *a));
         grouped
             .into_iter()
-            .map(|(k, vec)| (k, vec.into_iter().map(|(c, m, a)| ((c, m), a)).collect()))
+            .map(|(k, vec)| (k, to_map(vec, |(c, m, a)| ((c, m), a))))
             .collect()
     }
 
@@ -115,11 +110,7 @@ impl AppKeyActionManager {
                 vec![],
             ),
         ];
-        v.into_iter()
-            .map(|(k, v)| {
-                (k, AppKeyActionManager::build_help_vec(key_maps, k, &v))
-            })
-            .collect::<HashMap<_, _>>()
+        to_map(v, |(k, v)| { (k, AppKeyActionManager::build_help_vec(key_maps, k, &v)) })
     }
 
     #[rustfmt::skip]
@@ -183,11 +174,9 @@ impl AppKeyActionManager {
                 ],
             ),
         ];
-        v.into_iter()
-            .map(|(k, v)| {
-                (k, AppKeyActionManager::build_short_help_with_priority_vec(key_maps, k, &v))
-            })
-            .collect::<HashMap<_, _>>()
+        to_map(v, |(k, v)| {
+            (k, AppKeyActionManager::build_short_help_with_priority_vec(key_maps, k, &v))
+        })
     }
 
     fn build_help_vec(

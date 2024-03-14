@@ -1,3 +1,5 @@
+use std::{collections::HashMap, hash::Hash};
+
 pub fn to_preview_string(bytes: &[u8], _content_type: &str) -> String {
     // fixme: consider content_type
     String::from_utf8_lossy(bytes).into()
@@ -61,8 +63,31 @@ pub fn group_strings_to_fit_width(
     groups
 }
 
+pub fn group_map<F, G, A, B, C>(vec: &[A], key_f: F, value_f: G) -> HashMap<B, Vec<C>>
+where
+    B: PartialEq + Eq + Hash,
+    F: Fn(&A) -> B,
+    G: Fn(&A) -> C,
+{
+    vec.iter().fold(HashMap::<B, Vec<C>>::new(), |mut acc, a| {
+        let key = key_f(a);
+        let value = value_f(a);
+        acc.entry(key).or_default().push(value);
+        acc
+    })
+}
+
+pub fn to_map<F, A, B, C>(vec: Vec<A>, f: F) -> HashMap<B, C>
+where
+    B: PartialEq + Eq + Hash,
+    F: Fn(A) -> (B, C),
+{
+    vec.into_iter().map(f).collect()
+}
+
 #[cfg(test)]
 mod tests {
+    use maplit::hashmap;
     use rstest::rstest;
 
     use super::*;
@@ -122,6 +147,30 @@ mod tests {
     ) {
         let words: Vec<String> = words.into_iter().map(|s| s.to_owned()).collect();
         let actual = group_strings_to_fit_width(&words, max_width, delimiter);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_group_map() {
+        let vec = vec![(0, "foo"), (1, "bar"), (0, "baz"), (2, "qux")];
+        let actual = group_map(&vec, |(n, _)| *n, |(_, s)| format!("{}!", s));
+        let expected = hashmap! {
+            0 => vec!["foo!".to_string(), "baz!".to_string()],
+            1 => vec!["bar!".to_string()],
+            2 => vec!["qux!".to_string()],
+        };
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_to_map() {
+        let vec = vec![(0, "foo"), (1, "bar"), (2, "baz")];
+        let actual = to_map(vec, |(n, s)| (n, format!("{}.", s)));
+        let expected = hashmap! {
+            0 => "foo.".to_string(),
+            1 => "bar.".to_string(),
+            2 => "baz.".to_string(),
+        };
         assert_eq!(actual, expected);
     }
 }
