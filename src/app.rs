@@ -786,13 +786,6 @@ impl App {
         }
     }
 
-    pub fn save_error(&self, e: &AppError) {
-        let config = self.config.as_ref().unwrap();
-        // cause panic if save errors
-        let path = config.error_log_path().unwrap();
-        save_error_log(&path, e).unwrap();
-    }
-
     pub fn bucket_list_open_management_console(&self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
             let (client, _) = self.unwrap_client_tx();
@@ -845,6 +838,26 @@ impl App {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
+    }
+
+    pub fn clear_notification(&mut self) {
+        self.app_view_state.notification = Notification::None;
+    }
+
+    pub fn info_notification(&mut self, msg: String) {
+        self.app_view_state.notification = Notification::Info(msg);
+    }
+
+    pub fn error_notification(&mut self, e: AppError) {
+        self.save_error(&e);
+        self.app_view_state.notification = Notification::Error(e.msg);
+    }
+
+    fn save_error(&self, e: &AppError) {
+        let config = self.config.as_ref().unwrap();
+        // cause panic if save errors
+        let path = config.error_log_path().unwrap();
+        save_error_log(&path, e).unwrap();
     }
 
     fn unwrap_client_tx(&self) -> (Arc<Client>, mpsc::Sender<AppEventType>) {

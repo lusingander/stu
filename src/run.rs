@@ -32,13 +32,13 @@ pub async fn run<B: Backend>(
                         return Ok(());
                     }
                     // Clear message and cancel key input
-                    app.app_view_state.notification = Notification::None;
+                    app.clear_notification();
                     continue;
                 }
 
                 if matches!(app.app_view_state.notification, Notification::Info(_)) {
                     // Clear message and pass key input as is
-                    app.app_view_state.notification = Notification::None;
+                    app.clear_notification();
                 }
 
                 if let Some(action) = app
@@ -201,11 +201,10 @@ pub async fn run<B: Backend>(
                 app.copy_to_clipboard(name, value);
             }
             AppEventType::Info(msg) => {
-                app.app_view_state.notification = Notification::Info(msg);
+                app.info_notification(msg);
             }
             AppEventType::Error(e) => {
-                app.save_error(&e);
-                app.app_view_state.notification = Notification::Error(e.msg);
+                app.error_notification(e);
             }
         }
     }
