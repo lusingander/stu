@@ -228,8 +228,12 @@ fn render_save_object_as_dialog(f: &mut Frame, area: Rect, vs: &DetailSaveViewSt
     let dialog_height = 1 + 2 /* border */;
     let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
 
+    let max_width = dialog_width - 2 /* border */- 2/* pad */;
+    let input_width = vs.input.len().saturating_sub(max_width as usize);
+    let input_view: &str = &vs.input[input_width..];
+
     let title = Title::from("Save As");
-    let dialog = Paragraph::new(vs.input.clone()).block(
+    let dialog = Paragraph::new(input_view).block(
         Block::bordered()
             .border_type(BorderType::Double)
             .title(title)
@@ -237,10 +241,10 @@ fn render_save_object_as_dialog(f: &mut Frame, area: Rect, vs: &DetailSaveViewSt
     );
     f.render_widget(Clear, area);
     f.render_widget(dialog, area);
-    f.set_cursor(
-        area.x + vs.cursor + 1 /* border */ + 1, /* pad */
-        area.y + 1,
-    );
+
+    let cursor_x = area.x + vs.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
+    let cursor_y = area.y + 1;
+    f.set_cursor(cursor_x, cursor_y);
 }
 
 fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &CopyDetailViewState) {
