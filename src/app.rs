@@ -44,6 +44,7 @@ pub enum DetailViewState {
 #[derive(Clone)]
 pub struct DetailSaveViewState {
     pub input: String,
+    pub cursor: u16,
     pub before: DetailViewState,
 }
 
@@ -51,6 +52,7 @@ impl DetailSaveViewState {
     pub fn new(before: DetailViewState) -> DetailSaveViewState {
         DetailSaveViewState {
             input: String::new(),
+            cursor: 0,
             before,
         }
     }
@@ -723,7 +725,15 @@ impl App {
     }
 
     pub fn download_object(&self) {
-        self.download_object_and(|tx, obj, path| {
+        self.download_object_and(None, |tx, obj, path| {
+            let result = CompleteDownloadObjectResult::new(obj, path);
+            tx.send(AppEventType::CompleteDownloadObject(result))
+                .unwrap();
+        })
+    }
+
+    pub fn download_object_as(&self, input: String) {
+        self.download_object_and(Some(&input), |tx, obj, path| {
             let result = CompleteDownloadObjectResult::new(obj, path);
             tx.send(AppEventType::CompleteDownloadObject(result))
                 .unwrap();
@@ -750,7 +760,7 @@ impl App {
     }
 
     pub fn preview_object(&self) {
-        self.download_object_and(|tx, obj, path| {
+        self.download_object_and(None, |tx, obj, path| {
             let result = CompletePreviewObjectResult::new(obj, path);
             tx.send(AppEventType::CompletePreviewObject(result))
                 .unwrap();
@@ -771,7 +781,7 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    fn download_object_and<F>(&self, f: F)
+    fn download_object_and<F>(&self, save_file_name: Option<&str>, f: F)
     where
         F: Fn(Sender<AppEventType>, Result<Object>, String) + Send + 'static,
     {
@@ -781,7 +791,7 @@ impl App {
             let key = format!("{}{}", prefix, name);
 
             let config = self.config.as_ref().unwrap();
-            let path = config.download_file_path(name);
+            let path = config.download_file_path(save_file_name.unwrap_or(name));
 
             let (client, tx) = self.unwrap_client_tx();
             spawn(async move {
@@ -829,8 +839,15 @@ impl App {
         }
     }
 
-    pub fn detail_save_download_object_as(&self) {
-        todo!()
+    pub fn detail_save_download_object_as(&mut self) {
+        if let ViewState::DetailSave(vs) = &self.app_view_state.view_state {
+            let input = vs.input.trim().to_string();
+            if !input.is_empty() {
+                self.tx.send(AppEventType::DownloadObjectAs(input)).unwrap();
+                self.app_view_state.is_loading = true;
+            }
+            self.app_view_state.view_state = ViewState::Detail(vs.before);
+        }
     }
 
     pub fn copy_to_clipboard(&self, name: String, value: String) {
@@ -849,10 +866,15 @@ impl App {
         if let ViewState::DetailSave(ref mut vs) = self.app_view_state.view_state {
             match input {
                 AppKeyInput::Char(c) => {
+                    if c == '?' {
+                        return;
+                    }
                     vs.input.push(c);
+                    vs.cursor = vs.cursor.saturating_add(1);
                 }
                 AppKeyInput::Backspace => {
                     vs.input.pop();
+                    vs.cursor = vs.cursor.saturating_sub(1);
                 }
             }
         }

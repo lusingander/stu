@@ -237,6 +237,10 @@ fn render_save_object_as_dialog(f: &mut Frame, area: Rect, vs: &DetailSaveViewSt
     );
     f.render_widget(Clear, area);
     f.render_widget(dialog, area);
+    f.set_cursor(
+        area.x + vs.cursor + 1 /* border */ + 1, /* pad */
+        area.y + 1,
+    );
 }
 
 fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &CopyDetailViewState) {

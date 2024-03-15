@@ -189,6 +189,9 @@ pub async fn run<B: Backend>(
             AppEventType::DownloadObject => {
                 app.download_object();
             }
+            AppEventType::DownloadObjectAs(input) => {
+                app.download_object_as(input);
+            }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
             }

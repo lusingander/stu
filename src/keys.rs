@@ -152,7 +152,7 @@ impl AppKeyActionManager {
                 ViewStateTag::Detail,
                 vec![
                     ("Select tabs", 3, true, &[DetailSelectNext, DetailSelectPrev]),
-                    ("Download", 1, false, &[DetailDownloadObject]),
+                    ("Download", 1, true, &[DetailDownloadObject, DetailOpenDownloadObjectAs]),
                     ("Preview", 4, false, &[DetailPreview]),
                     ("Close", 2, false, &[DetailClose]),
                     ("Help", 0, false, &[ToggleHelp]),

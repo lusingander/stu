@@ -20,6 +20,7 @@ pub enum AppEventType {
     LoadObject,
     CompleteLoadObject(Result<CompleteLoadObjectResult>),
     DownloadObject,
+    DownloadObjectAs(String),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     PreviewObject,
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
