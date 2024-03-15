@@ -30,6 +30,7 @@ pub enum ViewState {
     DetailSave(DetailSaveViewState),
     CopyDetail(CopyDetailViewState),
     Preview(Box<PreviewViewState>),
+    PreviewSave(PreviewSaveViewState),
     Help(Box<ViewState>),
 }
 
@@ -51,6 +52,23 @@ pub struct DetailSaveViewState {
 impl DetailSaveViewState {
     pub fn new(before: DetailViewState) -> DetailSaveViewState {
         DetailSaveViewState {
+            input: String::new(),
+            cursor: 0,
+            before,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct PreviewSaveViewState {
+    pub input: String,
+    pub cursor: u16,
+    pub before: PreviewViewState,
+}
+
+impl PreviewSaveViewState {
+    pub fn new(before: PreviewViewState) -> PreviewSaveViewState {
+        PreviewSaveViewState {
             input: String::new(),
             cursor: 0,
             before,
@@ -117,7 +135,7 @@ impl CopyDetailViewItemType {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone)] // fixme: object size can be large...
 pub struct PreviewViewState {
     pub preview: String,
     path: String,
@@ -275,6 +293,7 @@ impl App {
             | ViewState::DetailSave(_)
             | ViewState::CopyDetail(_)
             | ViewState::Preview(_)
+            | ViewState::PreviewSave(_)
             | ViewState::Help(_) => 0,
             ViewState::BucketList => self.bucket_items().len(),
             ViewState::ObjectList => self.current_object_items().len(),
@@ -681,7 +700,8 @@ impl App {
             | ViewState::Detail(_)
             | ViewState::DetailSave(_)
             | ViewState::CopyDetail(_)
-            | ViewState::Preview(_) => {
+            | ViewState::Preview(_)
+            | ViewState::PreviewSave(_) => {
                 let before = self.app_view_state.view_state.clone();
                 self.app_view_state.view_state = ViewState::Help(Box::new(before));
             }
@@ -708,6 +728,13 @@ impl App {
             self.tx
                 .send(AppEventType::CompleteDownloadObject(result))
                 .unwrap();
+        }
+    }
+
+    pub fn preview_open_download_object_as(&mut self) {
+        if let ViewState::Preview(vs) = &self.app_view_state.view_state {
+            self.app_view_state.view_state =
+                ViewState::PreviewSave(PreviewSaveViewState::new(*vs.clone()))
         }
     }
 
@@ -850,6 +877,17 @@ impl App {
         }
     }
 
+    pub fn preview_save_download_object_as(&mut self) {
+        if let ViewState::PreviewSave(vs) = &self.app_view_state.view_state {
+            let input = vs.input.trim().to_string();
+            if !input.is_empty() {
+                self.tx.send(AppEventType::DownloadObjectAs(input)).unwrap();
+                self.app_view_state.is_loading = true;
+            }
+            self.app_view_state.view_state = ViewState::Preview(Box::new(vs.before.clone()));
+        }
+    }
+
     pub fn copy_to_clipboard(&self, name: String, value: String) {
         match copy_to_clipboard(value) {
             Ok(_) => {
@@ -863,20 +901,25 @@ impl App {
     }
 
     pub fn key_input(&mut self, input: AppKeyInput) {
-        if let ViewState::DetailSave(ref mut vs) = self.app_view_state.view_state {
-            match input {
+        fn update(app_key_input: AppKeyInput, input: &mut String, cursor: &mut u16) {
+            match app_key_input {
                 AppKeyInput::Char(c) => {
                     if c == '?' {
                         return;
                     }
-                    vs.input.push(c);
-                    vs.cursor = vs.cursor.saturating_add(1);
+                    input.push(c);
+                    *cursor = cursor.saturating_add(1);
                 }
                 AppKeyInput::Backspace => {
-                    vs.input.pop();
-                    vs.cursor = vs.cursor.saturating_sub(1);
+                    input.pop();
+                    *cursor = cursor.saturating_sub(1);
                 }
             }
+        }
+        match self.app_view_state.view_state {
+            ViewState::DetailSave(ref mut vs) => update(input, &mut vs.input, &mut vs.cursor),
+            ViewState::PreviewSave(ref mut vs) => update(input, &mut vs.input, &mut vs.cursor),
+            _ => {}
         }
     }
 

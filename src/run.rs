@@ -156,6 +156,13 @@ pub async fn run<B: Backend>(
                 AppKeyAction::PreviewDownloadObject => {
                     app.preview_download_object();
                 }
+                AppKeyAction::PreviewOpenDownloadObjectAs => {
+                    app.preview_open_download_object_as();
+                }
+                // PreviewSave
+                AppKeyAction::PreviewSaveDownloadObjectAs => {
+                    app.preview_save_download_object_as();
+                }
                 // Help
                 AppKeyAction::HelpClose => {
                     app.help_close();

@@ -111,6 +111,13 @@ impl AppKeyActionManager {
                 vec![
                     ("Close preview", false, &[PreviewClose]),
                     ("Download object", false, &[PreviewDownloadObject]),
+                    ("Download object as", false, &[PreviewOpenDownloadObjectAs]),
+                ],
+            ),
+            (
+                ViewStateTag::PreviewSave,
+                vec![
+                    ("Download object", false, &[PreviewSaveDownloadObjectAs]),
                 ],
             ),
             (
@@ -177,8 +184,15 @@ impl AppKeyActionManager {
             (
                 ViewStateTag::Preview,
                 vec![
-                    ("Download", 2, true, &[PreviewDownloadObject]),
+                    ("Download", 2, true, &[PreviewDownloadObject, PreviewOpenDownloadObjectAs]),
                     ("Close", 1, false, &[PreviewClose]),
+                    ("Help", 0, false, &[ToggleHelp]),
+                ],
+            ),
+            (
+                ViewStateTag::PreviewSave,
+                vec![
+                    ("Download", 1, false, &[PreviewSaveDownloadObjectAs]),
                     ("Help", 0, false, &[ToggleHelp]),
                 ],
             ),
@@ -280,14 +294,13 @@ impl AppKeyActionManager {
     }
 
     pub fn key_to_input(&self, key: KeyEvent, vs: &ViewState) -> Option<AppKeyInput> {
-        if let ViewState::DetailSave(_) = vs {
-            match key {
+        match vs {
+            ViewState::DetailSave(_) | ViewState::PreviewSave(_) => match key {
                 key_code_char!(c) => Some(AppKeyInput::Char(c)),
                 key_code!(KeyCode::Backspace) => Some(AppKeyInput::Backspace),
                 _ => None,
-            }
-        } else {
-            None
+            },
+            _ => None,
         }
     }
 
@@ -316,47 +329,50 @@ fn to_key_input_str(code: KeyCode, modifier: KeyModifiers) -> String {
 fn default_key_maps() -> Vec<KeyMapEntry> {
     use AppKeyAction::*;
     let v = vec![
-        (ViewStateTag::BucketList, KeyCode::Char('j'), KeyModifiers::NONE,  BucketListSelectNext),
-        (ViewStateTag::BucketList, KeyCode::Char('k'), KeyModifiers::NONE,  BucketListSelectPrev),
-        (ViewStateTag::BucketList, KeyCode::Char('g'), KeyModifiers::NONE,  BucketListSelectFirst),
-        (ViewStateTag::BucketList, KeyCode::Char('G'), KeyModifiers::SHIFT, BucketListSelectLast),
-        (ViewStateTag::BucketList, KeyCode::Char('f'), KeyModifiers::NONE,  BucketListSelectNextPage),
-        (ViewStateTag::BucketList, KeyCode::Char('b'), KeyModifiers::NONE,  BucketListSelectPrevPage),
-        (ViewStateTag::BucketList, KeyCode::Enter,     KeyModifiers::NONE,  BucketListMoveDown),
-        (ViewStateTag::BucketList, KeyCode::Char('x'), KeyModifiers::NONE,  BucketListOpenManagementConsole),
-        (ViewStateTag::BucketList, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-        (ViewStateTag::ObjectList, KeyCode::Char('j'), KeyModifiers::NONE,  ObjectListSelectNext),
-        (ViewStateTag::ObjectList, KeyCode::Char('k'), KeyModifiers::NONE,  ObjectListSelectPrev),
-        (ViewStateTag::ObjectList, KeyCode::Char('g'), KeyModifiers::NONE,  ObjectListSelectFirst),
-        (ViewStateTag::ObjectList, KeyCode::Char('G'), KeyModifiers::SHIFT, ObjectListSelectLast),
-        (ViewStateTag::ObjectList, KeyCode::Char('f'), KeyModifiers::NONE,  ObjectListSelectNextPage),
-        (ViewStateTag::ObjectList, KeyCode::Char('b'), KeyModifiers::NONE,  ObjectListSelectPrevPage),
-        (ViewStateTag::ObjectList, KeyCode::Enter,     KeyModifiers::NONE,  ObjectListMoveDown),
-        (ViewStateTag::ObjectList, KeyCode::Backspace, KeyModifiers::NONE,  ObjectListMoveUp),
-        (ViewStateTag::ObjectList, KeyCode::Char('~'), KeyModifiers::NONE,  ObjectListBackToBucketList),
-        (ViewStateTag::ObjectList, KeyCode::Char('x'), KeyModifiers::NONE,  ObjectListOpenManagementConsole),
-        (ViewStateTag::ObjectList, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-        (ViewStateTag::Detail,     KeyCode::Backspace, KeyModifiers::NONE,  DetailClose),
-        (ViewStateTag::Detail,     KeyCode::Char('h'), KeyModifiers::NONE,  DetailSelectPrev),
-        (ViewStateTag::Detail,     KeyCode::Char('l'), KeyModifiers::NONE,  DetailSelectNext),
-        (ViewStateTag::Detail,     KeyCode::Char('s'), KeyModifiers::NONE,  DetailDownloadObject),
-        (ViewStateTag::Detail,     KeyCode::Char('S'), KeyModifiers::SHIFT, DetailOpenDownloadObjectAs),
-        (ViewStateTag::Detail,     KeyCode::Char('p'), KeyModifiers::NONE,  DetailPreview),
-        (ViewStateTag::Detail,     KeyCode::Char('r'), KeyModifiers::NONE,  DetailOpenCopyDetails),
-        (ViewStateTag::Detail,     KeyCode::Char('x'), KeyModifiers::NONE,  DetailOpenManagementConsole),
-        (ViewStateTag::Detail,     KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-        (ViewStateTag::DetailSave, KeyCode::Enter,     KeyModifiers::NONE,  DetailSaveDownloadObjectAs),
-        (ViewStateTag::DetailSave, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-        (ViewStateTag::CopyDetail, KeyCode::Char('j'), KeyModifiers::NONE,  CopyDetailSelectNext),
-        (ViewStateTag::CopyDetail, KeyCode::Char('k'), KeyModifiers::NONE,  CopyDetailSelectPrev),
-        (ViewStateTag::CopyDetail, KeyCode::Enter,     KeyModifiers::NONE,  CopyDetailCopySelectedValue),
-        (ViewStateTag::CopyDetail, KeyCode::Backspace, KeyModifiers::NONE,  CopyDetailClose),
-        (ViewStateTag::CopyDetail, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-        (ViewStateTag::Preview,    KeyCode::Backspace, KeyModifiers::NONE,  PreviewClose),
-        (ViewStateTag::Preview,    KeyCode::Char('s'), KeyModifiers::NONE,  PreviewDownloadObject),
-        (ViewStateTag::Preview,    KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
-        (ViewStateTag::Help,       KeyCode::Backspace, KeyModifiers::NONE,  HelpClose),
-        (ViewStateTag::Help,       KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::BucketList,  KeyCode::Char('j'), KeyModifiers::NONE,  BucketListSelectNext),
+        (ViewStateTag::BucketList,  KeyCode::Char('k'), KeyModifiers::NONE,  BucketListSelectPrev),
+        (ViewStateTag::BucketList,  KeyCode::Char('g'), KeyModifiers::NONE,  BucketListSelectFirst),
+        (ViewStateTag::BucketList,  KeyCode::Char('G'), KeyModifiers::SHIFT, BucketListSelectLast),
+        (ViewStateTag::BucketList,  KeyCode::Char('f'), KeyModifiers::NONE,  BucketListSelectNextPage),
+        (ViewStateTag::BucketList,  KeyCode::Char('b'), KeyModifiers::NONE,  BucketListSelectPrevPage),
+        (ViewStateTag::BucketList,  KeyCode::Enter,     KeyModifiers::NONE,  BucketListMoveDown),
+        (ViewStateTag::BucketList,  KeyCode::Char('x'), KeyModifiers::NONE,  BucketListOpenManagementConsole),
+        (ViewStateTag::BucketList,  KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::ObjectList,  KeyCode::Char('j'), KeyModifiers::NONE,  ObjectListSelectNext),
+        (ViewStateTag::ObjectList,  KeyCode::Char('k'), KeyModifiers::NONE,  ObjectListSelectPrev),
+        (ViewStateTag::ObjectList,  KeyCode::Char('g'), KeyModifiers::NONE,  ObjectListSelectFirst),
+        (ViewStateTag::ObjectList,  KeyCode::Char('G'), KeyModifiers::SHIFT, ObjectListSelectLast),
+        (ViewStateTag::ObjectList,  KeyCode::Char('f'), KeyModifiers::NONE,  ObjectListSelectNextPage),
+        (ViewStateTag::ObjectList,  KeyCode::Char('b'), KeyModifiers::NONE,  ObjectListSelectPrevPage),
+        (ViewStateTag::ObjectList,  KeyCode::Enter,     KeyModifiers::NONE,  ObjectListMoveDown),
+        (ViewStateTag::ObjectList,  KeyCode::Backspace, KeyModifiers::NONE,  ObjectListMoveUp),
+        (ViewStateTag::ObjectList,  KeyCode::Char('~'), KeyModifiers::NONE,  ObjectListBackToBucketList),
+        (ViewStateTag::ObjectList,  KeyCode::Char('x'), KeyModifiers::NONE,  ObjectListOpenManagementConsole),
+        (ViewStateTag::ObjectList,  KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::Detail,      KeyCode::Backspace, KeyModifiers::NONE,  DetailClose),
+        (ViewStateTag::Detail,      KeyCode::Char('h'), KeyModifiers::NONE,  DetailSelectPrev),
+        (ViewStateTag::Detail,      KeyCode::Char('l'), KeyModifiers::NONE,  DetailSelectNext),
+        (ViewStateTag::Detail,      KeyCode::Char('s'), KeyModifiers::NONE,  DetailDownloadObject),
+        (ViewStateTag::Detail,      KeyCode::Char('S'), KeyModifiers::SHIFT, DetailOpenDownloadObjectAs),
+        (ViewStateTag::Detail,      KeyCode::Char('p'), KeyModifiers::NONE,  DetailPreview),
+        (ViewStateTag::Detail,      KeyCode::Char('r'), KeyModifiers::NONE,  DetailOpenCopyDetails),
+        (ViewStateTag::Detail,      KeyCode::Char('x'), KeyModifiers::NONE,  DetailOpenManagementConsole),
+        (ViewStateTag::Detail,      KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::DetailSave,  KeyCode::Enter,     KeyModifiers::NONE,  DetailSaveDownloadObjectAs),
+        (ViewStateTag::DetailSave,  KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::CopyDetail,  KeyCode::Char('j'), KeyModifiers::NONE,  CopyDetailSelectNext),
+        (ViewStateTag::CopyDetail,  KeyCode::Char('k'), KeyModifiers::NONE,  CopyDetailSelectPrev),
+        (ViewStateTag::CopyDetail,  KeyCode::Enter,     KeyModifiers::NONE,  CopyDetailCopySelectedValue),
+        (ViewStateTag::CopyDetail,  KeyCode::Backspace, KeyModifiers::NONE,  CopyDetailClose),
+        (ViewStateTag::CopyDetail,  KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::Preview,     KeyCode::Backspace, KeyModifiers::NONE,  PreviewClose),
+        (ViewStateTag::Preview,     KeyCode::Char('s'), KeyModifiers::NONE,  PreviewDownloadObject),
+        (ViewStateTag::Preview,     KeyCode::Char('S'), KeyModifiers::SHIFT, PreviewOpenDownloadObjectAs),
+        (ViewStateTag::Preview,     KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::PreviewSave, KeyCode::Enter,     KeyModifiers::NONE,  PreviewSaveDownloadObjectAs),
+        (ViewStateTag::PreviewSave, KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::Help,        KeyCode::Backspace, KeyModifiers::NONE,  HelpClose),
+        (ViewStateTag::Help,        KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
     ];
     // (ViewStateTag, AppKeyAction) must not be duplicated
     debug_assert!(group_map(&v, |t| (t.0, t.3), |t| (t.0, t.3)).iter().all(|(_, v)| v.len() == 1));

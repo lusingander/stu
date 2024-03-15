@@ -78,6 +78,9 @@ pub enum AppKeyAction {
     // Preview
     PreviewClose,
     PreviewDownloadObject,
+    PreviewOpenDownloadObjectAs,
+    // PreviewSave
+    PreviewSaveDownloadObjectAs,
     // Help
     HelpClose,
     // common

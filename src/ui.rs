@@ -15,7 +15,7 @@ use ratatui::{
 use crate::{
     app::{
         App, CopyDetailViewItemType, CopyDetailViewState, DetailSaveViewState, DetailViewState,
-        Notification, PreviewViewState, ViewState,
+        Notification, PreviewSaveViewState, PreviewViewState, ViewState,
     },
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     util,
@@ -58,6 +58,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
         ViewState::DetailSave(vs) => render_detail_save_view(f, area, app, vs),
         ViewState::CopyDetail(vs) => render_copy_detail_view(f, area, app, vs),
         ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
+        ViewState::PreviewSave(vs) => render_preview_save_view(f, area, app, vs),
         ViewState::Help(before) => render_help_view(f, area, app, before),
     }
 }
@@ -219,32 +220,7 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
 
 fn render_detail_save_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailSaveViewState) {
     render_detail_view(f, area, app, &vs.before);
-
-    render_save_object_as_dialog(f, area, vs);
-}
-
-fn render_save_object_as_dialog(f: &mut Frame, area: Rect, vs: &DetailSaveViewState) {
-    let dialog_width = (area.width - 4).min(40);
-    let dialog_height = 1 + 2 /* border */;
-    let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
-
-    let max_width = dialog_width - 2 /* border */- 2/* pad */;
-    let input_width = vs.input.len().saturating_sub(max_width as usize);
-    let input_view: &str = &vs.input[input_width..];
-
-    let title = Title::from("Save As");
-    let dialog = Paragraph::new(input_view).block(
-        Block::bordered()
-            .border_type(BorderType::Double)
-            .title(title)
-            .padding(Padding::horizontal(1)),
-    );
-    f.render_widget(Clear, area);
-    f.render_widget(dialog, area);
-
-    let cursor_x = area.x + vs.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
-    let cursor_y = area.y + 1;
-    f.set_cursor(cursor_x, cursor_y);
+    render_save_object_as_dialog(f, area, &vs.input, vs.cursor);
 }
 
 fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &CopyDetailViewState) {
@@ -312,9 +288,38 @@ fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewSta
     f.render_widget(content, chunks[1]);
 }
 
+fn render_preview_save_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewSaveViewState) {
+    render_preview_view(f, area, app, &vs.before);
+    render_save_object_as_dialog(f, area, &vs.input, vs.cursor);
+}
+
 fn render_help_view(f: &mut Frame, area: Rect, app: &App, before: &ViewState) {
     let content = build_help(before, area, app);
     f.render_widget(content, area);
+}
+
+fn render_save_object_as_dialog(f: &mut Frame, area: Rect, input: &str, cursor: u16) {
+    let dialog_width = (area.width - 4).min(40);
+    let dialog_height = 1 + 2 /* border */;
+    let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+    let max_width = dialog_width - 2 /* border */- 2/* pad */;
+    let input_width = input.len().saturating_sub(max_width as usize);
+    let input_view: &str = &input[input_width..];
+
+    let title = Title::from("Save As");
+    let dialog = Paragraph::new(input_view).block(
+        Block::bordered()
+            .border_type(BorderType::Double)
+            .title(title)
+            .padding(Padding::horizontal(1)),
+    );
+    f.render_widget(Clear, area);
+    f.render_widget(dialog, area);
+
+    let cursor_x = area.x + cursor.min(max_width) + 1 /* border */ + 1/* pad */;
+    let cursor_y = area.y + 1;
+    f.set_cursor(cursor_x, cursor_y);
 }
 
 fn build_header(app: &App, area: Rect) -> Paragraph {
