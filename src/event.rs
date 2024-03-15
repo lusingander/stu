@@ -24,8 +24,15 @@ pub enum AppEventType {
     PreviewObject,
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     CopyToClipboard(String, String),
+    KeyInput(AppKeyInput),
     Info(String),
     Error(AppError),
+}
+
+#[derive(Clone, Copy)]
+pub enum AppKeyInput {
+    Char(char),
+    Backspace,
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]

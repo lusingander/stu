@@ -11,8 +11,9 @@ use crate::{
     config::Config,
     error::{AppError, Result},
     event::{
-        AppEventType, AppKeyAction, CompleteDownloadObjectResult, CompleteInitializeResult,
-        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult,
+        AppEventType, AppKeyAction, AppKeyInput, CompleteDownloadObjectResult,
+        CompleteInitializeResult, CompleteLoadObjectResult, CompleteLoadObjectsResult,
+        CompletePreviewObjectResult,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
@@ -324,6 +325,10 @@ impl App {
 
     pub fn send_app_key_action(&self, action: AppKeyAction) {
         self.tx.send(AppEventType::KeyAction(action)).unwrap();
+    }
+
+    pub fn send_app_key_input(&self, input: AppKeyInput) {
+        self.tx.send(AppEventType::KeyInput(input)).unwrap();
     }
 
     pub fn bucket_list_select_next(&mut self) {
@@ -836,6 +841,19 @@ impl App {
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
+            }
+        }
+    }
+
+    pub fn key_input(&mut self, input: AppKeyInput) {
+        if let ViewState::DetailSave(ref mut vs) = self.app_view_state.view_state {
+            match input {
+                AppKeyInput::Char(c) => {
+                    vs.input.push(c);
+                }
+                AppKeyInput::Backspace => {
+                    vs.input.pop();
+                }
             }
         }
     }

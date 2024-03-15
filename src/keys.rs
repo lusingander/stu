@@ -5,7 +5,8 @@ use enum_tag::EnumTag;
 
 use crate::{
     app::{ViewState, ViewStateTag},
-    event::AppKeyAction,
+    event::{AppKeyAction, AppKeyInput},
+    key_code, key_code_char,
     util::{group_map, to_map},
 };
 
@@ -13,12 +14,12 @@ const QUIT_HELP_STR: &str = "<Esc> <Ctrl-c>: Quit app";
 const QUIT_SHORT_HELP_STR: &str = "<Esc>: Quit";
 
 pub struct AppKeyActionManager {
-    key_action_map: HashMap<ViewStateTag, HashMap<AppKeyInput, AppKeyAction>>,
+    key_action_map: HashMap<ViewStateTag, HashMap<KeyCodeModifiers, AppKeyAction>>,
     helps: HashMap<ViewStateTag, Vec<String>>,
     short_helps: HashMap<ViewStateTag, Vec<(String, usize)>>,
 }
 
-type AppKeyInput = (KeyCode, KeyModifiers);
+type KeyCodeModifiers = (KeyCode, KeyModifiers);
 
 type KeyMapEntry = (ViewStateTag, KeyCode, KeyModifiers, AppKeyAction);
 
@@ -37,7 +38,7 @@ impl AppKeyActionManager {
 
     fn build_key_action_map(
         key_maps: &[KeyMapEntry],
-    ) -> HashMap<ViewStateTag, HashMap<AppKeyInput, AppKeyAction>> {
+    ) -> HashMap<ViewStateTag, HashMap<KeyCodeModifiers, AppKeyAction>> {
         let grouped = group_map(key_maps, |(s, _, _, _)| *s, |(_, c, m, a)| (*c, *m, *a));
         grouped
             .into_iter()
@@ -276,6 +277,18 @@ impl AppKeyActionManager {
             .get(&vs.tag())
             .and_then(|m| m.get(&(key.code, key.modifiers)))
             .copied()
+    }
+
+    pub fn key_to_input(&self, key: KeyEvent, vs: &ViewState) -> Option<AppKeyInput> {
+        if let ViewState::DetailSave(_) = vs {
+            match key {
+                key_code_char!(c) => Some(AppKeyInput::Char(c)),
+                key_code!(KeyCode::Backspace) => Some(AppKeyInput::Backspace),
+                _ => None,
+            }
+        } else {
+            None
+        }
     }
 
     pub fn helps(&self, vs: &ViewState) -> &Vec<String> {

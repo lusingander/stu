@@ -7,6 +7,12 @@ macro_rules! key_code {
 
 #[macro_export]
 macro_rules! key_code_char {
+    ( $c:ident ) => {
+        KeyEvent {
+            code: KeyCode::Char($c),
+            ..
+        }
+    };
     ( $c:expr ) => {
         KeyEvent {
             code: KeyCode::Char($c),

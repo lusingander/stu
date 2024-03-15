@@ -41,10 +41,11 @@ pub async fn run<B: Backend>(
                     app.clear_notification();
                 }
 
-                if let Some(action) = app
-                    .action_manager
-                    .key_to_action(key, &app.app_view_state.view_state)
-                {
+                let vs = &app.app_view_state.view_state;
+                if let Some(input) = app.action_manager.key_to_input(key, vs) {
+                    app.send_app_key_input(input)
+                }
+                if let Some(action) = app.action_manager.key_to_action(key, vs) {
                     app.send_app_key_action(action);
                 }
             }
@@ -199,6 +200,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::CopyToClipboard(name, value) => {
                 app.copy_to_clipboard(name, value);
+            }
+            AppEventType::KeyInput(input) => {
+                app.key_input(input);
             }
             AppEventType::Info(msg) => {
                 app.info_notification(msg);
