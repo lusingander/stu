@@ -147,10 +147,13 @@ pub struct PreviewViewState {
 
 impl PreviewViewState {
     fn new(obj: Object, path: String) -> PreviewViewState {
-        let preview: Vec<String> = to_preview_string(&obj.bytes, &obj.content_type)
-            .split('\n')
-            .map(|s| s.to_string())
-            .collect();
+        let s = to_preview_string(&obj.bytes, &obj.content_type);
+        let s = if s.ends_with('\n') {
+            s.trim_end()
+        } else {
+            s.as_str()
+        };
+        let preview: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
         let preview_len = preview.len();
         let preview_max_digits = digits(preview_len);
         PreviewViewState {
