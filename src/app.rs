@@ -18,7 +18,7 @@ use crate::{
     file::{copy_to_clipboard, save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
     keys::AppKeyActionManager,
-    util::to_preview_string,
+    util::{digits, to_preview_string},
 };
 
 #[derive(Clone, EnumTag)]
@@ -137,9 +137,31 @@ impl CopyDetailViewItemType {
 
 #[derive(Clone)] // fixme: object size can be large...
 pub struct PreviewViewState {
-    pub preview: String,
+    pub preview: Vec<String>,
+    pub preview_len: usize,
+    pub preview_max_digits: usize,
+    pub offset: usize,
     path: String,
     obj: Object,
+}
+
+impl PreviewViewState {
+    fn new(obj: Object, path: String) -> PreviewViewState {
+        let preview: Vec<String> = to_preview_string(&obj.bytes, &obj.content_type)
+            .split('\n')
+            .map(|s| s.to_string())
+            .collect();
+        let preview_len = preview.len();
+        let preview_max_digits = digits(preview_len);
+        PreviewViewState {
+            preview,
+            preview_len,
+            preview_max_digits,
+            offset: 0,
+            path,
+            obj,
+        }
+    }
 }
 
 pub enum Notification {
@@ -797,9 +819,8 @@ impl App {
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
         match result {
             Ok(CompletePreviewObjectResult { obj, path }) => {
-                let preview = to_preview_string(&obj.bytes, &obj.content_type);
-                let state = PreviewViewState { preview, path, obj };
-                self.app_view_state.view_state = ViewState::Preview(Box::new(state));
+                self.app_view_state.view_state =
+                    ViewState::Preview(Box::new(PreviewViewState::new(obj, path)));
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();

@@ -4,7 +4,7 @@ use ratatui::{
     prelude::Margin,
     style::{Color, Modifier, Style, Stylize},
     symbols::scrollbar::VERTICAL,
-    text::{Line, Span, Text},
+    text::{Line, Span},
     widgets::{
         block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph,
         Scrollbar, ScrollbarState, Tabs, Wrap,
@@ -18,7 +18,7 @@ use crate::{
         Notification, PreviewSaveViewState, PreviewViewState, ViewState,
     },
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
-    util,
+    util::{self, digits},
 };
 
 const APP_NAME: &str = "STU";
@@ -29,6 +29,7 @@ const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 const DIVIDER_COLOR: Color = Color::DarkGray;
 const SCROLLBAR_COLOR: Color = Color::DarkGray;
 const LINK_TEXT_COLOR: Color = Color::Blue;
+const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 const SHORT_HELP_COLOR: Color = Color::DarkGray;
 const INFO_STATUS_COLOR: Color = Color::Green;
 const ERROR_STATUS_COLOR: Color = Color::Red;
@@ -529,10 +530,6 @@ fn format_count(selected: usize, total: usize) -> String {
     format!(" {:>digits$} / {} ", selected, total)
 }
 
-fn digits(n: usize) -> usize {
-    n.to_string().len()
-}
-
 fn build_file_detail_block() -> Block<'static> {
     Block::bordered()
 }
@@ -616,16 +613,35 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
 fn build_preview<'a>(app: &'a App, vs: &'a PreviewViewState, area: Rect) -> Paragraph<'a> {
     // todo: scroll
     let area = area.inner(&Margin::new(1, 1)); // border
+
+    let preview_max_digits = vs.preview_max_digits;
     let show_lines_count = area.height as usize;
-    let content = vs
-        .preview
-        .lines()
+    let content_max_width = (area.width as usize) - preview_max_digits - 3 /* pad */;
+
+    let content: Vec<Line> = ((vs.offset + 1)..)
+        .zip(vs.preview.iter().skip(vs.offset))
+        .flat_map(|(n, s)| {
+            let ss = textwrap::wrap(s, content_max_width);
+            ss.into_iter().enumerate().map(move |(i, s)| {
+                let line_number = if i == 0 {
+                    format!("{:>preview_max_digits$}", n)
+                } else {
+                    " ".repeat(preview_max_digits)
+                };
+                Line::from(vec![
+                    line_number.fg(PREVIEW_LINE_NUMBER_COLOR),
+                    " ".into(),
+                    s.into(),
+                ])
+            })
+        })
         .take(show_lines_count)
-        .collect::<Vec<_>>()
-        .join("\n");
+        .collect();
+
     let current_file_detail = app.get_current_file_detail().unwrap();
     let title = format!("Preview [{}]", &current_file_detail.name);
-    Paragraph::new(Text::styled(content, Style::default())).block(
+
+    Paragraph::new(content).block(
         Block::bordered()
             .title(title)
             .padding(Padding::horizontal(1)),

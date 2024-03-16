@@ -85,6 +85,19 @@ where
     vec.into_iter().map(f).collect()
 }
 
+pub fn digits(n: usize) -> usize {
+    if n == 0 {
+        return 1;
+    }
+    let mut n = n;
+    let mut c = 0;
+    while n > 0 {
+        n /= 10;
+        c += 1;
+    }
+    c
+}
+
 #[cfg(test)]
 mod tests {
     use maplit::hashmap;
@@ -172,5 +185,15 @@ mod tests {
             2 => "baz.".to_string(),
         };
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_digits() {
+        assert_eq!(digits(0), 1);
+        assert_eq!(digits(1), 1);
+        assert_eq!(digits(30), 2);
+        assert_eq!(digits(123), 3);
+        assert_eq!(digits(9999), 4);
+        assert_eq!(digits(10000), 5);
     }
 }
