@@ -109,6 +109,8 @@ impl AppKeyActionManager {
             (
                 ViewStateTag::Preview,
                 vec![
+                    ("Scroll forward/backward", true, &[PreviewScrollForward, PreviewScrollBackward]),
+                    ("Scroll to top/end", true, &[PreviewScrollToTop, PreviewScrollToEnd]),
                     ("Close preview", false, &[PreviewClose]),
                     ("Download object", false, &[PreviewDownloadObject]),
                     ("Download object as", false, &[PreviewOpenDownloadObjectAs]),
@@ -184,7 +186,9 @@ impl AppKeyActionManager {
             (
                 ViewStateTag::Preview,
                 vec![
-                    ("Download", 2, true, &[PreviewDownloadObject, PreviewOpenDownloadObjectAs]),
+                    ("Scroll", 2, true, &[PreviewScrollForward, PreviewScrollBackward]),
+                    ("Top/End", 4, true, &[PreviewScrollToTop, PreviewScrollToEnd]),
+                    ("Download", 3, true, &[PreviewDownloadObject, PreviewOpenDownloadObjectAs]),
                     ("Close", 1, false, &[PreviewClose]),
                     ("Help", 0, false, &[ToggleHelp]),
                 ],
@@ -365,6 +369,10 @@ fn default_key_maps() -> Vec<KeyMapEntry> {
         (ViewStateTag::CopyDetail,  KeyCode::Enter,     KeyModifiers::NONE,  CopyDetailCopySelectedValue),
         (ViewStateTag::CopyDetail,  KeyCode::Backspace, KeyModifiers::NONE,  CopyDetailClose),
         (ViewStateTag::CopyDetail,  KeyCode::Char('?'), KeyModifiers::NONE,  ToggleHelp),
+        (ViewStateTag::Preview,     KeyCode::Char('j'), KeyModifiers::NONE,  PreviewScrollForward),
+        (ViewStateTag::Preview,     KeyCode::Char('k'), KeyModifiers::NONE,  PreviewScrollBackward),
+        (ViewStateTag::Preview,     KeyCode::Char('g'), KeyModifiers::NONE,  PreviewScrollToTop),
+        (ViewStateTag::Preview,     KeyCode::Char('G'), KeyModifiers::SHIFT, PreviewScrollToEnd),
         (ViewStateTag::Preview,     KeyCode::Backspace, KeyModifiers::NONE,  PreviewClose),
         (ViewStateTag::Preview,     KeyCode::Char('s'), KeyModifiers::NONE,  PreviewDownloadObject),
         (ViewStateTag::Preview,     KeyCode::Char('S'), KeyModifiers::SHIFT, PreviewOpenDownloadObjectAs),

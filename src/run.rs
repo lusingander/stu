@@ -150,6 +150,18 @@ pub async fn run<B: Backend>(
                     app.copy_detail_close();
                 }
                 // Preview
+                AppKeyAction::PreviewScrollForward => {
+                    app.preview_scroll_forward();
+                }
+                AppKeyAction::PreviewScrollBackward => {
+                    app.preview_scroll_backward();
+                }
+                AppKeyAction::PreviewScrollToTop => {
+                    app.preview_scroll_to_top();
+                }
+                AppKeyAction::PreviewScrollToEnd => {
+                    app.preview_scroll_to_end();
+                }
                 AppKeyAction::PreviewClose => {
                     app.preview_close();
                 }

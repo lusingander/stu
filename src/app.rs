@@ -609,6 +609,34 @@ impl App {
         }
     }
 
+    pub fn preview_scroll_forward(&mut self) {
+        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
+            if vs.offset < vs.preview_len - 1 {
+                vs.offset = vs.offset.saturating_add(1);
+            }
+        }
+    }
+
+    pub fn preview_scroll_backward(&mut self) {
+        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
+            if vs.offset > 0 {
+                vs.offset = vs.offset.saturating_sub(1);
+            }
+        }
+    }
+
+    pub fn preview_scroll_to_top(&mut self) {
+        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
+            vs.offset = 0;
+        }
+    }
+
+    pub fn preview_scroll_to_end(&mut self) {
+        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
+            vs.offset = vs.preview_len - 1;
+        }
+    }
+
     pub fn preview_close(&mut self) {
         if let ViewState::Preview(_) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);

@@ -76,6 +76,10 @@ pub enum AppKeyAction {
     CopyDetailCopySelectedValue,
     CopyDetailClose,
     // Preview
+    PreviewScrollForward,
+    PreviewScrollBackward,
+    PreviewScrollToTop,
+    PreviewScrollToEnd,
     PreviewClose,
     PreviewDownloadObject,
     PreviewOpenDownloadObjectAs,
