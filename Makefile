@@ -3,7 +3,7 @@ RUST_SRC=./src/*.rs
 CMD_DIR=./tool
 IMGGEN_DIR=$(CMD_DIR)/imggen
 IMGDIFF_DIR=$(CMD_DIR)/imgdiff
-OUTPUT_DIR=./dist
+OUTPUT_DIR=./out
 
 $(STU_BIN): $(RUST_SRC)
 	cargo build
