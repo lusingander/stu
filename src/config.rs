@@ -1,8 +1,10 @@
-use std::path::PathBuf;
+use std::{env, path::PathBuf};
 
 use serde_derive::{Deserialize, Serialize};
 
 use crate::error::{AppError, Result};
+
+const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";
@@ -47,8 +49,14 @@ impl Config {
     }
 
     fn get_app_base_dir() -> Result<PathBuf> {
-        dirs::home_dir()
-            .map(|home| home.join(APP_BASE_DIR))
-            .ok_or_else(|| AppError::msg("Failed to load home directory"))
+        match env::var(STU_ROOT_DIR_ENV_VAR) {
+            Ok(dir) => Ok(PathBuf::from(dir)),
+            Err(_) => {
+                // default
+                dirs::home_dir()
+                    .map(|home| home.join(APP_BASE_DIR))
+                    .ok_or_else(|| AppError::msg("Failed to load home directory"))
+            }
+        }
     }
 }

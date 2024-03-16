@@ -45,11 +45,14 @@ Or refer to the `***-help.png` screenshots in the [./img directory](./img).
 
 ### Config
 
-Config is loaded from `~/.stu/config.toml`. If the file does not exist, it will be created automatically at startup.
+Config is loaded from `$STU_ROOT_DIR/config.toml`.
+
+- If `STU_ROOT_DIR` environment variable is not set, `~/.stu` is used by default.
+- If the file does not exist, it will be created automatically at startup.
 
 The values that can be set are as follows:
 
-- `download_dir`: _string_ - Directory to save when downloading objects (_default_: `~/.stu/download`)
+- `download_dir`: _string_ - Directory to save when downloading objects (_default_: `$STU_ROOT_DIR/download`)
 
 ## Screenshots
 
