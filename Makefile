@@ -6,7 +6,7 @@ IMGDIFF_DIR=$(CMD_DIR)/imgdiff
 OUTPUT_DIR=./out
 
 $(STU_BIN): $(RUST_SRC)
-	cargo build
+	cargo build --features imggen
 
 .PHONY: demo
 demo: $(STU_BIN)

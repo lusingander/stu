@@ -579,8 +579,24 @@ fn format_size_byte(size_byte: i64) -> String {
     humansize::format_size_i(size_byte, humansize::BINARY)
 }
 
+#[cfg(not(feature = "imggen"))]
 fn format_datetime(datetime: &DateTime<Local>) -> String {
     datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+}
+
+#[cfg(feature = "imggen")]
+fn format_datetime(_datetime: &DateTime<Local>) -> String {
+    String::from("2024-01-02 13:04:05")
+}
+
+#[cfg(not(feature = "imggen"))]
+fn format_version(version: &str) -> &str {
+    version
+}
+
+#[cfg(feature = "imggen")]
+fn format_version(_version: &str) -> &str {
+    "GeJeVLwoQlknMCcSa"
 }
 
 fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
@@ -590,7 +606,7 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
             let content = vec![
                 Line::from(vec![
                     "    Version ID: ".add_modifier(Modifier::BOLD),
-                    Span::raw(&v.version_id),
+                    Span::raw(format_version(&v.version_id)),
                 ]),
                 Line::from(vec![
                     " Last Modified: ".add_modifier(Modifier::BOLD),
