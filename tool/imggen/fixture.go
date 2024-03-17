@@ -31,6 +31,7 @@ type fixtureObjectMap map[fixtureObjectType][]byte
 
 const (
 	smallText fixtureObjectType = iota
+	mediumText
 	largeText
 	smallHtml
 	imagePng
@@ -40,17 +41,82 @@ const (
 
 func buildObjectMap() fixtureObjectMap {
 	return fixtureObjectMap{
-		smallText: smallTextObject(),
-		largeText: largeTextObject(),
-		smallHtml: smallHtmlObject(),
-		imagePng:  imagePngObject(),
-		imageJpg:  imageJpgObject(),
-		empty:     emptyObject(),
+		smallText:  smallTextObject(),
+		mediumText: mediumTextObject(),
+		largeText:  largeTextObject(),
+		smallHtml:  smallHtmlObject(),
+		imagePng:   imagePngObject(),
+		imageJpg:   imageJpgObject(),
+		empty:      emptyObject(),
 	}
 }
 
 func smallTextObject() []byte {
 	return []byte("test")
+}
+
+func mediumTextObject() []byte {
+	return []byte(`Lasciatemi morire,
+Lasciatemi morire;
+E che volete voi che mi conforte
+In così dura sorte,
+In così gran martire?
+Lasciatemi morire.
+
+O Teseo, o Teseo mio,
+sì, che mio ti vo dir che mio pur sei
+benche t'involi, hai crudo! a gl'occhi miei.
+Volgiti, Teseo mio, volgiti, Teseo, o Dio,
+volgiti in dietro a rimirar colei
+che lasciato per te la patria e'l regno
+e'n quest' arene ancora
+cibo di fere dispietate e crude,
+lasciera l'ossa ignude.
+O Teseo, o Teseo mio,
+se tu sapessi, oh Dio!
+se tu sapessi, ohime!
+come s'affanna
+la povera Ariana,
+forse, forse pentito
+rivolgeresti ancor la prora lito.
+Ma con l'aure serene
+tu te ne vai felice
+ed io qui piango:
+A te prepara Attene
+liete pompe superbe,
+ed io rimango
+cibo di fere in solitarie arene.
+Tu l'un el'altro tuo vecchio parente
+Stringerai lieto ed io
+più non vedrovi o madre o padre mio.
+
+Dove è la fede
+che tanto mi giuravi?
+Così ne'l alta sede
+tu mi ripon de gl'avi?
+Son queste le corone
+onde m'adorni il crine?
+Questi li scetri sono?
+Queste le gemme e gl'ori?
+Lasciarmi in abandono
+a fere che mi stracci e mi divori?
+Ah Teseo, ah Teseo mio,
+lascierai tu morire in van piangendo, in van gridando aita
+la misera Ariana ch'a te fidossi e ti die' gloria e vita?
+
+Ahi, che non pur risponde!
+Ahi, che piu d'aspe è sord' a miei lamenti!
+O nembi, o turbi, o venti
+sommergetelo voi dentro a quell' onde!
+Correte, orchi e balene,
+e de le membra immonde
+empiete le voragini profonde!
+Che parlo, ahi, che vaneggio?
+Misera, ohime! che chieggio?
+O Teseo, o Teseo mio,
+non son quell' io
+che i feri detti sciolse, parlò l'affanno mio, parlò il dolore,
+parlò la lingua, sì, ma non gia il core.`)
 }
 
 func largeTextObject() []byte {
@@ -181,11 +247,11 @@ func hierarchicalObjects() []object {
 		},
 		{
 			objectKey:  "foo/quux/fred/file_1.txt",
-			objectType: smallText,
+			objectType: mediumText,
 		},
 		{
 			objectKey:  "foo/quux/fred/file_2.txt",
-			objectType: smallText,
+			objectType: mediumText,
 		},
 		{
 			objectKey:  "foo/quux/fred/plugh/file_1.txt",
@@ -231,6 +297,10 @@ func variousContentTypeObjects() []object {
 		{
 			objectKey:  "small.txt",
 			objectType: smallText,
+		},
+		{
+			objectKey:  "medium.txt",
+			objectType: mediumText,
 		},
 		{
 			objectKey:  "large.txt",

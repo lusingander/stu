@@ -12,6 +12,8 @@ Type@10ms "export AWS_ACCESS_KEY_ID=dummy"
 Enter
 Type@10ms "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
+Type@10ms "export STU_ROOT_DIR=./tool/imggen"
+Enter
 Type@10ms "./target/debug/stu --endpoint-url ${ENDPOINT_URL}"
 Enter
 Sleep 500ms
@@ -51,6 +53,7 @@ Screenshot ${OUTPUT_DIR}/object-version.png
 Backspace
 Type "j"
 Type "j"
+Type "j"
 Enter
 Type "r"
 Sleep 100ms
@@ -61,8 +64,25 @@ Screenshot ${OUTPUT_DIR}/object-details-copy-help.png
 Type "?"
 Backspace
 Sleep 500ms
+
+Type "S"
+Sleep 100ms
+Type@10ms "download_file.txt"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-download.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-download-help.png
+Type "?"
+Enter
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-download-success.png
+Enter
+Sleep 100ms
+
 Type "p"
 Sleep 500ms
+Type@10ms "jjjjjjj"
 Screenshot ${OUTPUT_DIR}/object-preview.png
 Type "?"
 Sleep 100ms
