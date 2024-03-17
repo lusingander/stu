@@ -15,6 +15,7 @@ import (
 	"github.com/google/subcommands"
 	"github.com/logrusorgru/aurora/v4"
 	"github.com/n7olkachev/imgdiff/pkg/imgdiff"
+	"golang.org/x/exp/slices"
 )
 
 type testCmd struct {
@@ -57,22 +58,37 @@ func (cmd *testCmd) run() error {
 		return err
 	}
 
+	files := make(map[string]struct{})
 	for _, baseFile := range baseFiles {
-		if !strings.HasSuffix(baseFile.Name(), ".png") {
+		name := baseFile.Name()
+		if strings.HasSuffix(name, ".png") {
+			files[name] = struct{}{}
+		}
+	}
+	for _, targetFile := range targetFiles {
+		name := targetFile.Name()
+		if strings.HasSuffix(name, ".png") {
+			files[name] = struct{}{}
+		}
+	}
+
+	results := make([]result, 0)
+
+	for file := range files {
+		if !existFile(file, baseFiles) {
+			results = append(results, result{resultNew, file})
+			continue
+		}
+		if !existFile(file, targetFiles) {
+			results = append(results, result{resultDeleted, file})
 			continue
 		}
 
-		targetFile := findByName(baseFile, targetFiles)
-		if targetFile == nil {
-			fmt.Printf("%s: %s\n", baseFile.Name(), aurora.Blue("Not found"))
-			continue
-		}
-
-		baseImage, err := openImage(cmd.baseDirPath, targetFile.Name())
+		baseImage, err := openImage(cmd.baseDirPath, file)
 		if err != nil {
 			return err
 		}
-		targetImage, err := openImage(cmd.targetDirPath, targetFile.Name())
+		targetImage, err := openImage(cmd.targetDirPath, file)
 		if err != nil {
 			return err
 		}
@@ -81,30 +97,75 @@ func (cmd *testCmd) run() error {
 			Threshold: 0.1,
 			DiffImage: true,
 		}
-		result := imgdiff.Diff(baseImage, targetImage, opts)
-		if result.Equal {
-			fmt.Printf("%s: %s\n", baseFile.Name(), aurora.Green("Success"))
+		diff := imgdiff.Diff(baseImage, targetImage, opts)
+		if diff.Equal {
+			results = append(results, result{resultSuccess, file})
 		} else {
-			fmt.Printf("%s: %s\n", baseFile.Name(), aurora.Red("Failure"))
+			results = append(results, result{resultFailure, file})
 			if err := createOutputDir(cmd.outputDirPath); err != nil {
 				return err
 			}
-			if err := outputImage(cmd.outputDirPath, baseFile.Name(), result.Image); err != nil {
+			if err := outputImage(cmd.outputDirPath, file, diff.Image); err != nil {
 				return err
 			}
+		}
+	}
+
+	slices.SortFunc(results, func(r1, r2 result) bool {
+		if r1.tp == r2.tp {
+			return r1.file < r2.file
+		}
+		return resultTpOrder(r1.tp) < resultTpOrder(r2.tp)
+	})
+	for _, r := range results {
+		switch r.tp {
+		case resultNew:
+			fmt.Printf("%s: %s\n", r.file, aurora.Blue(resultNew))
+		case resultDeleted:
+			fmt.Printf("%s: %s\n", r.file, aurora.Yellow(resultDeleted))
+		case resultSuccess:
+			fmt.Printf("%s: %s\n", r.file, aurora.Green(resultSuccess))
+		case resultFailure:
+			fmt.Printf("%s: %s\n", r.file, aurora.Red(resultFailure))
 		}
 	}
 
 	return nil
 }
 
-func findByName(target fs.DirEntry, es []fs.DirEntry) fs.DirEntry {
+const (
+	resultNew     = "New"
+	resultDeleted = "Deleted"
+	resultSuccess = "Success"
+	resultFailure = "Failure"
+)
+
+func resultTpOrder(tp string) int {
+	switch tp {
+	case resultNew:
+		return 0
+	case resultDeleted:
+		return 1
+	case resultSuccess:
+		return 2
+	case resultFailure:
+		return 3
+	}
+	return 0
+}
+
+type result struct {
+	tp   string
+	file string
+}
+
+func existFile(target string, es []fs.DirEntry) bool {
 	for _, e := range es {
-		if target.Name() == e.Name() {
-			return e
+		if target == e.Name() {
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
 func cleanOutputDir(dir string) error {
