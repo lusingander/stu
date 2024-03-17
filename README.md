@@ -18,7 +18,7 @@ STU is the TUI application for AWS S3 written in Rust using [ratatui](https://gi
 $ cargo install stu
 ```
 
-### Homebrew
+### Homebrew (macOS)
 
 ```
 $ brew install lusingander/tap/stu
@@ -54,13 +54,17 @@ The values that can be set are as follows:
 
 - `download_dir`: _string_ - Directory to save when downloading objects (_default_: `$STU_ROOT_DIR/download`)
 
-## Screenshots
+## Features / Screenshots
 
 ### Bucket list
+
+- Show list of buckets
 
 <img src="./img/bucket-list.png" width=500>
 
 ### Object list
+
+- Show list of objects in a hierarchy
 
 <img src="./img/object-list-simple.png" width=500>
 <img src="./img/object-list-hierarchy.png" width=500>
@@ -68,8 +72,14 @@ The values that can be set are as follows:
 
 ### Object detail
 
+- Show object details
+- Download object
+- Preview object (text file only)
+- Copy resource name to clipboard
+
 <img src="./img/object-detail.png" width=500>
 <img src="./img/object-version.png" width=500>
+<img src="./img/object-download.png" width=500>
 <img src="./img/object-preview.png" width=500>
 <img src="./img/object-details-copy.png" width=500>
 
