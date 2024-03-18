@@ -12,6 +12,10 @@ $(STU_BIN): $(RUST_SRC)
 demo: $(STU_BIN)
 	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/demo.tape -out $(OUTPUT_DIR)/demo
 
+.PHONY: social-preview-demo
+social-preview-demo: $(STU_BIN)
+	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/social-preview-demo.tape -out $(OUTPUT_DIR)/social-preview-demo
+
 .PHONY: screenshot
 screenshot: $(STU_BIN)
 	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/screenshot.tape -out $(OUTPUT_DIR)/screenshot
