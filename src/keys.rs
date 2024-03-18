@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use enum_tag::EnumTag;
+use itertools::Itertools;
 
 use crate::{
     app::{ViewState, ViewStateTag},
@@ -251,18 +252,10 @@ impl AppKeyActionManager {
         for (desc, priority, with_slash, actions) in xs {
             let maps = AppKeyActionManager::find_key_maps(key_maps, target_vs, actions);
             let keys = if *with_slash {
-                let maps = maps.into_iter().fold(
-                    Vec::<(AppKeyAction, KeyCode, KeyModifiers)>::new(),
-                    |mut acc, (_, c, m, a)| {
-                        if !acc.iter().any(|(aa, _, _)| a == *aa) {
-                            acc.push((a, c, m));
-                        }
-                        acc
-                    },
-                );
                 let keys = maps
                     .into_iter()
-                    .map(|(_, code, modifier)| to_key_input_str(code, modifier))
+                    .unique_by(|(_, _, _, action)| *action)
+                    .map(|(_, code, modifier, _)| to_key_input_str(code, modifier))
                     .collect::<Vec<String>>()
                     .join("/");
                 format!("<{}>", keys)
