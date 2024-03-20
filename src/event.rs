@@ -13,7 +13,7 @@ pub enum AppEventType {
     Key(KeyEvent),
     KeyAction(AppKeyAction),
     Resize(u16, u16),
-    Initialize(Config, Client),
+    Initialize(Config, Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),

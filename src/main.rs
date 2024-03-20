@@ -48,6 +48,10 @@ struct Args {
     /// AWS profile name
     #[arg(short, long, value_name = "NAME")]
     profile: Option<String>,
+
+    /// Target bucket name
+    #[arg(short, long, value_name = "NAME")]
+    bucket: Option<String>,
 }
 
 #[tokio::main]
@@ -79,7 +83,7 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
         region,
         endpoint_url,
         profile,
-        ..
+        bucket,
     } = args;
 
     let (tx, rx) = event::new();
@@ -87,7 +91,7 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
     let mut app = App::new(tx.clone(), height);
 
     spawn(async move {
-        load_config(tx, region, endpoint_url, profile).await;
+        initialize(tx, region, endpoint_url, profile, bucket).await;
     });
 
     run::run(&mut app, terminal, rx).await
@@ -98,16 +102,18 @@ fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
     (size.width as usize, size.height as usize)
 }
 
-async fn load_config(
+async fn initialize(
     tx: Sender<AppEventType>,
     region: Option<String>,
     endpoint_url: Option<String>,
     profile: Option<String>,
+    bucket: Option<String>,
 ) {
     match Config::load() {
         Ok(config) => {
             let client = Client::new(region, endpoint_url, profile).await;
-            tx.send(AppEventType::Initialize(config, client)).unwrap();
+            tx.send(AppEventType::Initialize(config, client, bucket))
+                .unwrap();
         }
         Err(e) => {
             tx.send(AppEventType::Error(e)).unwrap();

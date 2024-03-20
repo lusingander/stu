@@ -240,13 +240,16 @@ impl App {
         }
     }
 
-    pub fn initialize(&mut self, config: Config, client: Client) {
+    pub fn initialize(&mut self, config: Config, client: Client, bucket: Option<String>) {
         self.config = Some(config);
         self.client = Some(Arc::new(client));
 
         let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
-            let buckets = client.load_all_buckets().await;
+            let buckets = match bucket {
+                Some(name) => client.load_bucket(&name).await.map(|b| vec![b]),
+                None => client.load_all_buckets().await,
+            };
             let result = CompleteInitializeResult::new(buckets);
             tx.send(AppEventType::CompleteInitialize(result)).unwrap();
         });
@@ -262,7 +265,14 @@ impl App {
                 self.tx.send(AppEventType::Error(e)).unwrap();
             }
         }
-        self.app_view_state.is_loading = false;
+
+        if self.bucket_items().len() == 1 {
+            // bucket name is specified, or if there is only one bucket, open it.
+            // since continues to load object, is_loading is not reset.
+            self.bucket_list_move_down();
+        } else {
+            self.app_view_state.is_loading = false;
+        }
     }
 
     pub fn resize(&mut self, height: usize) {
@@ -593,6 +603,9 @@ impl App {
         if let ViewState::ObjectList = self.app_view_state.view_state {
             let key = self.current_path.pop();
             if key.is_none() {
+                if self.bucket_items().len() == 1 {
+                    return;
+                }
                 self.app_view_state.view_state = ViewState::BucketList;
                 self.current_bucket = None;
             }
@@ -654,6 +667,9 @@ impl App {
 
     pub fn object_list_back_to_bucket_list(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
+            if self.bucket_items().len() == 1 {
+                return;
+            }
             self.app_view_state.view_state = ViewState::BucketList;
             self.current_bucket = None;
             self.current_path.clear();

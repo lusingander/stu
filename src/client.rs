@@ -49,7 +49,7 @@ impl Client {
 
     pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
         let result = self.client.list_buckets().send().await;
-        let output = result.map_err(|e| AppError::new("Failed to load bucket", e))?;
+        let output = result.map_err(|e| AppError::new("Failed to load buckets", e))?;
 
         let buckets: Vec<BucketItem> = output
             .buckets()
@@ -65,6 +65,17 @@ impl Client {
         } else {
             Ok(buckets)
         }
+    }
+
+    pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
+        let result = self.client.head_bucket().bucket(name).send().await;
+        // Check only existence and accessibility
+        result.map_err(|e| AppError::new(format!("Failed to load bucket '{}'", name), e))?;
+
+        let bucket = BucketItem {
+            name: name.to_string(),
+        };
+        Ok(bucket)
     }
 
     pub async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
