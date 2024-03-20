@@ -3,11 +3,10 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     prelude::Margin,
     style::{Color, Modifier, Style, Stylize},
-    symbols::scrollbar::VERTICAL,
     text::{Line, Span},
     widgets::{
-        block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph,
-        Scrollbar, ScrollbarState, Tabs, Wrap,
+        block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Tabs,
+        Wrap,
     },
     Frame,
 };
@@ -27,7 +26,6 @@ const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 const DIVIDER_COLOR: Color = Color::DarkGray;
-const SCROLLBAR_COLOR: Color = Color::DarkGray;
 const LINK_TEXT_COLOR: Color = Color::Blue;
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 const SHORT_HELP_COLOR: Color = Color::DarkGray;
@@ -138,28 +136,40 @@ fn render_list_scroll_bar(
     list_state: ListViewState,
     current_items_len: usize,
 ) {
-    // fixme:
-    //  It seems to be better to calculate based on offset position
-    //  Scrolling with f/b has been implemented by extending the list independently,
-    //  but this does not seem to be suitable for standard scrolling behavior
+    // implemented independently to calculate based on offset position
+    let area = area.inner(&Margin::new(2, 1));
+    let scrollbar_area = Rect::new(area.right(), area.top(), 1, area.height);
+    let scrollbar_area_h = scrollbar_area.height;
+    let items_len = current_items_len as u16;
+    let offset = list_state.current_offset as u16;
 
-    let current_selected = list_state.current_selected;
-    let scrollbar_area = area.inner(&Margin::new(1, 1));
-    let scrollbar_area_height = scrollbar_area.height as usize;
-    if current_items_len > scrollbar_area_height {
-        let mut scrollbar_state = ScrollbarState::default()
-            .content_length(current_items_len)
-            .viewport_content_length(scrollbar_area_height)
-            .position(current_selected);
-        let scrollbar = Scrollbar::default()
-            .begin_symbol(None)
-            .end_symbol(None)
-            .track_symbol(Some(VERTICAL.track))
-            .track_style(Style::default().fg(SCROLLBAR_COLOR))
-            .thumb_symbol(VERTICAL.thumb)
-            .thumb_style(Style::default().fg(SCROLLBAR_COLOR));
-        f.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state)
+    if items_len > scrollbar_area_h {
+        let scrollbar_h = calc_scrollbar_height(scrollbar_area_h, items_len);
+        let scrollbar_t = calc_scrollbar_top(scrollbar_area_h, scrollbar_h, offset, items_len);
+
+        let buf = f.buffer_mut();
+        let x = scrollbar_area.x;
+        for h in 0..scrollbar_h {
+            let y = scrollbar_area.y + scrollbar_t + h;
+            buf.get_mut(x, y).set_char('│'); // use '┃' or '║' instead...?
+        }
     }
+}
+
+fn calc_scrollbar_height(scrollbar_area_h: u16, items_len: u16) -> u16 {
+    let sah = scrollbar_area_h as f64;
+    let il = items_len as f64;
+    let h = sah * (sah / il);
+    (h as u16).max(1)
+}
+
+fn calc_scrollbar_top(scrollbar_area_h: u16, scrollbar_h: u16, offset: u16, items_len: u16) -> u16 {
+    let sah = scrollbar_area_h as f64;
+    let sh = scrollbar_h as f64;
+    let o = offset as f64;
+    let il = items_len as f64;
+    let t = ((sah - sh) * o) / (il - sah);
+    t as u16
 }
 
 fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState) {
