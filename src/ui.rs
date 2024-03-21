@@ -6,7 +6,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Tabs,
-        Wrap,
+        Widget, Wrap,
     },
     Frame,
 };
@@ -277,12 +277,11 @@ fn render_copy_details_dialog(
     let title = Title::from("Copy");
     let list = List::new(list_items).block(
         Block::bordered()
-            .border_type(BorderType::Double)
+            .border_type(BorderType::Rounded)
             .title(title)
             .padding(Padding::horizontal(1)),
     );
-    f.render_widget(Clear, area);
-    f.render_widget(list, area);
+    render_dialog(f, list, area);
 }
 
 fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewState) {
@@ -321,12 +320,11 @@ fn render_save_object_as_dialog(f: &mut Frame, area: Rect, input: &str, cursor: 
     let title = Title::from("Save As");
     let dialog = Paragraph::new(input_view).block(
         Block::bordered()
-            .border_type(BorderType::Double)
+            .border_type(BorderType::Rounded)
             .title(title)
             .padding(Padding::horizontal(1)),
     );
-    f.render_widget(Clear, area);
-    f.render_widget(dialog, area);
+    render_dialog(f, dialog, area);
 
     let cursor_x = area.x + cursor.min(max_width) + 1 /* border */ + 1/* pad */;
     let cursor_y = area.y + 1;
@@ -756,7 +754,7 @@ fn build_loading_dialog(msg: &str) -> Paragraph {
     let text = Line::from(msg.add_modifier(Modifier::BOLD));
     Paragraph::new(text).alignment(Alignment::Center).block(
         Block::bordered()
-            .border_type(BorderType::Double)
+            .border_type(BorderType::Rounded)
             .padding(Padding::vertical(1)),
     )
 }
@@ -765,8 +763,7 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...");
         let area = calc_centered_dialog_rect(f.size(), 30, 5);
-        f.render_widget(Clear, area);
-        f.render_widget(loading, area);
+        render_dialog(f, loading, area);
     }
 }
 
@@ -784,6 +781,22 @@ fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> 
         Constraint::from_lengths([horizontal_pad, dialog_width, horizontal_pad]),
     )
     .split(vertical_layout[1])[1]
+}
+
+fn render_dialog<W: Widget>(f: &mut Frame, dialog: W, area: Rect) {
+    f.render_widget(Clear, outer_rect(area, &Margin::new(1, 0)));
+    f.render_widget(dialog, area);
+}
+
+fn outer_rect(r: Rect, margin: &Margin) -> Rect {
+    let doubled_margin_horizontal = margin.horizontal.saturating_mul(2);
+    let doubled_margin_vertical = margin.vertical.saturating_mul(2);
+    Rect {
+        x: r.x.saturating_sub(margin.horizontal),
+        y: r.y.saturating_sub(margin.vertical),
+        width: r.width.saturating_add(doubled_margin_horizontal),
+        height: r.height.saturating_add(doubled_margin_vertical),
+    }
 }
 
 fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
