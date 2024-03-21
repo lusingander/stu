@@ -637,7 +637,6 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
 }
 
 fn build_preview<'a>(app: &'a App, vs: &'a PreviewViewState, area: Rect) -> Paragraph<'a> {
-    // todo: scroll
     let area = area.inner(&Margin::new(1, 1)); // border
 
     let preview_max_digits = vs.preview_max_digits;
