@@ -35,6 +35,7 @@ Options:
   -r, --region <REGION>     AWS region
   -e, --endpoint-url <URL>  AWS endpoint url
   -p, --profile <NAME>      AWS profile name
+  -b, --bucket <NAME>       Target bucket name
   -h, --help                Print help
   -V, --version             Print version
 ```
