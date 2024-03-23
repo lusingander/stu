@@ -27,6 +27,7 @@ pub enum AppEventType {
     CopyToClipboard(String, String),
     KeyInput(AppKeyInput),
     Info(String),
+    Success(String),
     Error(AppError),
 }
 

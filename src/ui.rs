@@ -29,7 +29,8 @@ const DIVIDER_COLOR: Color = Color::DarkGray;
 const LINK_TEXT_COLOR: Color = Color::Blue;
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 const SHORT_HELP_COLOR: Color = Color::DarkGray;
-const INFO_STATUS_COLOR: Color = Color::Green;
+const INFO_STATUS_COLOR: Color = Color::Blue;
+const SUCCESS_STATUS_COLOR: Color = Color::Green;
 const ERROR_STATUS_COLOR: Color = Color::Red;
 
 const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -723,7 +724,12 @@ fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> Strin
 }
 
 fn build_info_status(msg: &str) -> Paragraph {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(INFO_STATUS_COLOR))
+    Paragraph::new(msg.fg(INFO_STATUS_COLOR))
+        .block(Block::default().padding(Padding::horizontal(2)))
+}
+
+fn build_success_status(msg: &str) -> Paragraph {
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(SUCCESS_STATUS_COLOR))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
@@ -737,6 +743,10 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
     match &app.app_view_state.notification {
         Notification::Info(msg) => {
             let msg = build_info_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::Success(msg) => {
+            let msg = build_success_status(msg);
             f.render_widget(msg, area);
         }
         Notification::Error(msg) => {

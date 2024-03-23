@@ -170,6 +170,7 @@ impl PreviewViewState {
 pub enum Notification {
     None,
     Info(String),
+    Success(String),
     Error(String),
 }
 
@@ -846,7 +847,7 @@ impl App {
         match result {
             Ok(path) => {
                 let msg = format!("Download completed successfully: {}", path);
-                self.tx.send(AppEventType::Info(msg)).unwrap();
+                self.tx.send(AppEventType::Success(msg)).unwrap();
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -960,7 +961,7 @@ impl App {
         match copy_to_clipboard(value) {
             Ok(_) => {
                 let msg = format!("Copied '{}' to clipboard successfully", name);
-                self.tx.send(AppEventType::Info(msg)).unwrap();
+                self.tx.send(AppEventType::Success(msg)).unwrap();
             }
             Err(e) => {
                 self.tx.send(AppEventType::Error(e)).unwrap();
@@ -997,6 +998,10 @@ impl App {
 
     pub fn info_notification(&mut self, msg: String) {
         self.app_view_state.notification = Notification::Info(msg);
+    }
+
+    pub fn success_notification(&mut self, msg: String) {
+        self.app_view_state.notification = Notification::Success(msg);
     }
 
     pub fn error_notification(&mut self, e: AppError) {

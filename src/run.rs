@@ -36,7 +36,10 @@ pub async fn run<B: Backend>(
                     continue;
                 }
 
-                if matches!(app.app_view_state.notification, Notification::Info(_)) {
+                if matches!(
+                    app.app_view_state.notification,
+                    Notification::Info(_) | Notification::Success(_)
+                ) {
                     // Clear message and pass key input as is
                     app.clear_notification();
                 }
@@ -228,6 +231,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::Info(msg) => {
                 app.info_notification(msg);
+            }
+            AppEventType::Success(msg) => {
+                app.success_notification(msg);
             }
             AppEventType::Error(e) => {
                 app.error_notification(e);
