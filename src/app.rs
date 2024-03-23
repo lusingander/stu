@@ -263,7 +263,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::BucketList;
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
 
@@ -696,7 +696,7 @@ impl App {
                     .set_object_items(self.current_object_key().to_owned(), items);
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -740,7 +740,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -847,10 +847,10 @@ impl App {
         match result {
             Ok(path) => {
                 let msg = format!("Download completed successfully: {}", path);
-                self.tx.send(AppEventType::Success(msg)).unwrap();
+                self.tx.send(AppEventType::NotifySuccess(msg)).unwrap();
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
         self.app_view_state.is_loading = false;
@@ -871,7 +871,7 @@ impl App {
                     ViewState::Preview(Box::new(PreviewViewState::new(obj, path)));
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         };
         self.app_view_state.is_loading = false;
@@ -902,7 +902,7 @@ impl App {
             let (client, _) = self.unwrap_client_tx();
             let result = client.open_management_console_buckets();
             if let Err(e) = result {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
     }
@@ -914,7 +914,7 @@ impl App {
             let prefix = self.current_object_prefix();
             let result = client.open_management_console_list(bucket, &prefix);
             if let Err(e) = result {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
     }
@@ -930,7 +930,7 @@ impl App {
                 Err(AppError::msg("Failed to get current selected item"))
             };
             if let Err(e) = result {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
     }
@@ -961,10 +961,10 @@ impl App {
         match copy_to_clipboard(value) {
             Ok(_) => {
                 let msg = format!("Copied '{}' to clipboard successfully", name);
-                self.tx.send(AppEventType::Success(msg)).unwrap();
+                self.tx.send(AppEventType::NotifySuccess(msg)).unwrap();
             }
             Err(e) => {
-                self.tx.send(AppEventType::Error(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
     }

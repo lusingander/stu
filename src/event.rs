@@ -26,9 +26,9 @@ pub enum AppEventType {
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     CopyToClipboard(String, String),
     KeyInput(AppKeyInput),
-    Info(String),
-    Success(String),
-    Error(AppError),
+    NotifyInfo(String),
+    NotifySuccess(String),
+    NotifyError(AppError),
 }
 
 #[derive(Clone, Copy)]
@@ -177,7 +177,7 @@ pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
             },
             Err(e) => {
                 let e = AppError::new("Failed to read event", e);
-                event_tx.send(AppEventType::Error(e)).unwrap();
+                event_tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         }
     });

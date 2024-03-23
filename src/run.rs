@@ -229,13 +229,13 @@ pub async fn run<B: Backend>(
             AppEventType::KeyInput(input) => {
                 app.key_input(input);
             }
-            AppEventType::Info(msg) => {
+            AppEventType::NotifyInfo(msg) => {
                 app.info_notification(msg);
             }
-            AppEventType::Success(msg) => {
+            AppEventType::NotifySuccess(msg) => {
                 app.success_notification(msg);
             }
-            AppEventType::Error(e) => {
+            AppEventType::NotifyError(e) => {
                 app.error_notification(e);
             }
         }

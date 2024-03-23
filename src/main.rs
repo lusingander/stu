@@ -116,7 +116,7 @@ async fn initialize(
                 .unwrap();
         }
         Err(e) => {
-            tx.send(AppEventType::Error(e)).unwrap();
+            tx.send(AppEventType::NotifyError(e)).unwrap();
         }
     };
 }
