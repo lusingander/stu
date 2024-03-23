@@ -874,6 +874,7 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e)).unwrap();
             }
         };
+        self.clear_notification();
         self.app_view_state.is_loading = false;
     }
 
@@ -881,7 +882,10 @@ impl App {
     where
         F: Fn(Sender<AppEventType>, Result<Object>, String) + Send + 'static,
     {
-        if let Some(ObjectItem::File { name, .. }) = self.get_current_selected_object_item() {
+        if let Some(ObjectItem::File {
+            name, size_byte, ..
+        }) = self.get_current_selected_object_item()
+        {
             let bucket = self.current_bucket();
             let prefix = self.current_object_prefix();
             let key = format!("{}{}", prefix, name);
@@ -890,11 +894,34 @@ impl App {
             let path = config.download_file_path(save_file_name.unwrap_or(name));
 
             let (client, tx) = self.unwrap_client_tx();
+            let loading = self.handle_loading_size(*size_byte, tx.clone());
             spawn(async move {
-                let obj = client.download_object(&bucket, &key).await;
+                let obj = client.download_object(&bucket, &key, loading).await;
                 f(tx, obj, path);
             });
         }
+    }
+
+    fn handle_loading_size(
+        &self,
+        total_size: i64,
+        tx: mpsc::Sender<AppEventType>,
+    ) -> Box<dyn Fn(usize) + Send> {
+        if total_size < 10_000_000 {
+            return Box::new(|_| {});
+        }
+        let total = total_size as usize;
+        let decimal_places = if total_size > 1_000_000_000 { 1 } else { 0 };
+        let opt =
+            humansize::FormatSizeOptions::from(humansize::DECIMAL).decimal_places(decimal_places);
+        let total_s = humansize::format_size_i(total_size, opt);
+        let f = move |current| {
+            let percent = (current * 100) / total;
+            let cur_s = humansize::format_size_i(current, opt);
+            let msg = format!("{:3}% downloaded ({} out of {})", percent, cur_s, total_s);
+            tx.send(AppEventType::NotifyInfo(msg)).unwrap();
+        };
+        Box::new(f)
     }
 
     pub fn bucket_list_open_management_console(&self) {

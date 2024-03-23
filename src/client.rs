@@ -198,7 +198,10 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object(&self, bucket: &str, key: &str) -> Result<Object> {
+    pub async fn download_object<F>(&self, bucket: &str, key: &str, f: F) -> Result<Object>
+    where
+        F: Fn(usize),
+    {
         let result = self
             .client
             .get_object()
@@ -208,17 +211,22 @@ impl Client {
             .await;
         let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
 
-        // todo: stream
-        let data = output
-            .body
-            .collect()
+        let mut bytes: Vec<u8> = Vec::new(); // fixme: capacity
+        let mut stream = output.body;
+        while let Some(buf) = stream // buf: 32 KiB
+            .try_next()
             .await
-            .map_err(|e| AppError::new("Failed to collect body", e))?;
+            .map_err(|e| AppError::new("Failed to collect body", e))?
+        {
+            bytes.extend(buf.to_vec());
+            f(bytes.len())
+        }
+
         let content_type = output.content_type.unwrap();
 
         Ok(Object {
             content_type,
-            bytes: data.to_vec(),
+            bytes,
         })
     }
 
