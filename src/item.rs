@@ -16,7 +16,7 @@ pub enum ObjectItem {
     File {
         name: String,
         paths: Vec<String>,
-        size_byte: i64,
+        size_byte: usize,
         last_modified: DateTime<Local>,
     },
 }
@@ -32,7 +32,7 @@ impl ObjectItem {
 
 pub struct FileDetail {
     pub name: String,
-    pub size_byte: i64,
+    pub size_byte: usize,
     pub last_modified: DateTime<Local>,
     pub e_tag: String,
     pub content_type: String,
@@ -45,7 +45,7 @@ pub struct FileDetail {
 
 pub struct FileVersion {
     pub version_id: String,
-    pub size_byte: i64,
+    pub size_byte: usize,
     pub last_modified: DateTime<Local>,
     pub is_latest: bool,
 }

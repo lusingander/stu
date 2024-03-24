@@ -470,8 +470,13 @@ fn build_list_item_from_object_item(
             last_modified,
             ..
         } => {
-            let content =
-                format_file_item(name, size_byte, last_modified, area.width, show_file_detail);
+            let content = format_file_item(
+                name,
+                *size_byte,
+                last_modified,
+                area.width,
+                show_file_detail,
+            );
             let style = Style::default();
             Span::styled(content, style)
         }
@@ -500,13 +505,13 @@ fn format_dir_item(name: &str, width: u16) -> String {
 
 fn format_file_item(
     name: &str,
-    size_byte: &i64,
+    size_byte: usize,
     last_modified: &DateTime<Local>,
     width: u16,
     show_file_detail: bool,
 ) -> String {
     if show_file_detail {
-        let size = format_size_byte(*size_byte);
+        let size = format_size_byte(size_byte);
         let date = format_datetime(last_modified);
         let date_w: usize = 19;
         let size_w: usize = 10;
@@ -584,7 +589,7 @@ fn build_file_detail(detail: &FileDetail) -> Paragraph {
         .wrap(Wrap { trim: false })
 }
 
-fn format_size_byte(size_byte: i64) -> String {
+fn format_size_byte(size_byte: usize) -> String {
     humansize::format_size_i(size_byte, humansize::BINARY)
 }
 

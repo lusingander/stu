@@ -894,9 +894,12 @@ impl App {
             let path = config.download_file_path(save_file_name.unwrap_or(name));
 
             let (client, tx) = self.unwrap_client_tx();
-            let loading = self.handle_loading_size(*size_byte, tx.clone());
+            let size_byte = *size_byte;
+            let loading = self.handle_loading_size(size_byte, tx.clone());
             spawn(async move {
-                let obj = client.download_object(&bucket, &key, loading).await;
+                let obj = client
+                    .download_object(&bucket, &key, size_byte, loading)
+                    .await;
                 f(tx, obj, path);
             });
         }
@@ -904,19 +907,18 @@ impl App {
 
     fn handle_loading_size(
         &self,
-        total_size: i64,
+        total_size: usize,
         tx: mpsc::Sender<AppEventType>,
     ) -> Box<dyn Fn(usize) + Send> {
         if total_size < 10_000_000 {
             return Box::new(|_| {});
         }
-        let total = total_size as usize;
         let decimal_places = if total_size > 1_000_000_000 { 1 } else { 0 };
         let opt =
             humansize::FormatSizeOptions::from(humansize::DECIMAL).decimal_places(decimal_places);
         let total_s = humansize::format_size_i(total_size, opt);
         let f = move |current| {
-            let percent = (current * 100) / total;
+            let percent = (current * 100) / total_size;
             let cur_s = humansize::format_size_i(current, opt);
             let msg = format!("{:3}% downloaded ({} out of {})", percent, cur_s, total_s);
             tx.send(AppEventType::NotifyInfo(msg)).unwrap();

@@ -117,7 +117,7 @@ impl Client {
         bucket: &str,
         key: &str,
         name: &str,
-        size_byte: i64,
+        size_byte: usize,
     ) -> Result<FileDetail> {
         let result = self
             .client
@@ -184,7 +184,7 @@ impl Client {
             .iter()
             .map(|v| {
                 let version_id = v.version_id().unwrap().to_string(); // returns "null" if empty...
-                let size_byte = v.size().unwrap();
+                let size_byte = v.size().unwrap() as usize;
                 let last_modified = convert_datetime(v.last_modified().unwrap());
                 let is_latest = v.is_latest().unwrap();
                 FileVersion {
@@ -198,7 +198,13 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object<F>(&self, bucket: &str, key: &str, f: F) -> Result<Object>
+    pub async fn download_object<F>(
+        &self,
+        bucket: &str,
+        key: &str,
+        size_byte: usize,
+        f: F,
+    ) -> Result<Object>
     where
         F: Fn(usize),
     {
@@ -211,7 +217,7 @@ impl Client {
             .await;
         let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
 
-        let mut bytes: Vec<u8> = Vec::new(); // fixme: capacity
+        let mut bytes: Vec<u8> = Vec::with_capacity(size_byte);
         let mut stream = output.body;
         while let Some(buf) = stream // buf: 32 KiB
             .try_next()
@@ -281,7 +287,7 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let path = file.key().unwrap();
             let paths = parse_path(path, false);
             let name = paths.last().unwrap().to_owned();
-            let size_byte = file.size().unwrap();
+            let size_byte = file.size().unwrap() as usize;
             let last_modified = convert_datetime(file.last_modified().unwrap());
             ObjectItem::File {
                 name,
