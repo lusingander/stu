@@ -24,6 +24,12 @@ $ cargo install stu
 $ brew install lusingander/tap/stu
 ```
 
+### AUR (Arch Linux)
+
+```
+$ paru -S stu
+```
+
 ## Usage
 
 ```
