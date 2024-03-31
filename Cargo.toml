@@ -13,11 +13,11 @@ edition = "2021"
 
 [dependencies]
 arboard = "3.3.2"
-aws-config = "1.1.8"
-aws-sdk-s3 = "1.20.0"
+aws-config = "1.1.9"
+aws-sdk-s3 = "1.21.0"
 aws-smithy-types = "1.1.8"
-chrono = "0.4.35"
-clap = { version = "4.5.3", features = ["derive"] }
+chrono = "0.4.37"
+clap = { version = "4.5.4", features = ["derive"] }
 confy = "0.6.1"
 crossterm = "0.27.0"
 dirs = "5.0.1"
@@ -29,7 +29,7 @@ ratatui = { version = "0.26.1", features = ["all-widgets"] }
 serde = "1.0.197"
 serde_derive = "1.0.197"
 textwrap = "0.16.1"
-tokio = { version = "1.36.0", features = ["full"] }
+tokio = { version = "1.37.0", features = ["full"] }
 
 [dev-dependencies]
 maplit = "1.0.2"
