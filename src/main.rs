@@ -11,6 +11,7 @@ mod macros;
 mod run;
 mod ui;
 mod util;
+mod widget;
 
 use clap::{arg, Parser};
 use crossterm::{
