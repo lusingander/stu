@@ -30,6 +30,10 @@ $ brew install lusingander/tap/stu
 $ paru -S stu
 ```
 
+### Binary
+
+You can download binaries from [releases](https://github.com/lusingander/stu/releases)
+
 ## Usage
 
 ```
@@ -45,6 +49,8 @@ Options:
   -h, --help                Print help
   -V, --version             Print version
 ```
+
+You can also use each environment variable in the same way as [when using the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html).
 
 Detailed operations on each view can be displayed by pressing `?` key.
 
