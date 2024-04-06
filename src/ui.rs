@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local};
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     prelude::Margin,
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
@@ -39,11 +39,7 @@ const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
 const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
 
 pub fn render(f: &mut Frame, app: &App) {
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Min(0), Constraint::Length(2)],
-    )
-    .split(f.size());
+    let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(2)]).split(f.size());
 
     render_content(f, chunks[0], app);
     render_footer(f, chunks[1], app);
@@ -65,11 +61,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(3), Constraint::Min(0)],
-    )
-    .split(area);
+    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
 
     let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
@@ -79,11 +71,7 @@ fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(3), Constraint::Min(0)],
-    )
-    .split(area);
+    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
 
     let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
@@ -106,11 +94,7 @@ fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_object_list_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(3), Constraint::Min(0)],
-    )
-    .split(area);
+    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
 
     let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
@@ -148,20 +132,12 @@ fn render_list_scroll_bar(
 }
 
 fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState) {
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(3), Constraint::Min(0)],
-    )
-    .split(area);
+    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
 
     let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
 
-    let chunks = Layout::new(
-        Direction::Horizontal,
-        Constraint::from_percentages([50, 50]),
-    )
-    .split(chunks[1]);
+    let chunks = Layout::horizontal(Constraint::from_percentages([50, 50])).split(chunks[1]);
 
     let current_items = app.current_object_items();
     let list_state = ListViewState {
@@ -180,12 +156,9 @@ fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState
     let block = build_file_detail_block();
     f.render_widget(block, chunks[1]);
 
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(2), Constraint::Min(0)],
-    )
-    .margin(1)
-    .split(chunks[1]);
+    let chunks = Layout::vertical([Constraint::Length(2), Constraint::Min(0)])
+        .margin(1)
+        .split(chunks[1]);
 
     let tabs = build_file_detail_tabs(vs);
     f.render_widget(tabs, chunks[0]);
@@ -260,11 +233,7 @@ fn render_copy_details_dialog(
 }
 
 fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewState) {
-    let chunks = Layout::new(
-        Direction::Vertical,
-        [Constraint::Length(3), Constraint::Min(0)],
-    )
-    .split(area);
+    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
 
     let header = build_header(app, chunks[0]);
     f.render_widget(header, chunks[0]);
@@ -758,17 +727,19 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
 
 fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
     let vertical_pad = (r.height - dialog_height) / 2;
-    let vertical_layout = Layout::new(
-        Direction::Vertical,
-        Constraint::from_lengths([vertical_pad, dialog_height, vertical_pad]),
-    )
+    let vertical_layout = Layout::vertical(Constraint::from_lengths([
+        vertical_pad,
+        dialog_height,
+        vertical_pad,
+    ]))
     .split(r);
 
     let horizontal_pad = (r.width - dialog_width) / 2;
-    Layout::new(
-        Direction::Horizontal,
-        Constraint::from_lengths([horizontal_pad, dialog_width, horizontal_pad]),
-    )
+    Layout::horizontal(Constraint::from_lengths([
+        horizontal_pad,
+        dialog_width,
+        horizontal_pad,
+    ]))
     .split(vertical_layout[1])[1]
 }
 
