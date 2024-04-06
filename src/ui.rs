@@ -5,8 +5,7 @@ use ratatui::{
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{
-        block::Title, Block, BorderType, Borders, Clear, List, ListItem, Padding, Paragraph, Tabs,
-        Widget, Wrap,
+        block::Title, Block, BorderType, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap,
     },
     Frame,
 };
@@ -18,7 +17,7 @@ use crate::{
     },
     item::{BucketItem, FileDetail, FileVersion, ObjectItem},
     util::{self, digits},
-    widget::scroll::ScrollBar,
+    widget::{Dialog, ScrollBar},
 };
 
 const APP_NAME: &str = "STU";
@@ -229,7 +228,8 @@ fn render_copy_details_dialog(
             .title(title)
             .padding(Padding::horizontal(1)),
     );
-    render_dialog(f, list, area);
+    let dialog = Dialog::new(Box::new(list));
+    f.render_widget_ref(dialog, area);
 }
 
 fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewState) {
@@ -262,13 +262,14 @@ fn render_save_object_as_dialog(f: &mut Frame, area: Rect, input: &str, cursor: 
     let input_view: &str = &input[input_width..];
 
     let title = Title::from("Save As");
-    let dialog = Paragraph::new(input_view).block(
+    let dialog_content = Paragraph::new(input_view).block(
         Block::bordered()
             .border_type(BorderType::Rounded)
             .title(title)
             .padding(Padding::horizontal(1)),
     );
-    render_dialog(f, dialog, area);
+    let dialog = Dialog::new(Box::new(dialog_content));
+    f.render_widget_ref(dialog, area);
 
     let cursor_x = area.x + cursor.min(max_width) + 1 /* border */ + 1/* pad */;
     let cursor_y = area.y + 1;
@@ -721,7 +722,8 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...");
         let area = calc_centered_dialog_rect(f.size(), 30, 5);
-        render_dialog(f, loading, area);
+        let dialog = Dialog::new(Box::new(loading));
+        f.render_widget_ref(dialog, area);
     }
 }
 
@@ -741,22 +743,6 @@ fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> 
         horizontal_pad,
     ]))
     .split(vertical_layout[1])[1]
-}
-
-fn render_dialog<W: Widget>(f: &mut Frame, dialog: W, area: Rect) {
-    f.render_widget(Clear, outer_rect(area, &Margin::new(1, 0)));
-    f.render_widget(dialog, area);
-}
-
-fn outer_rect(r: Rect, margin: &Margin) -> Rect {
-    let doubled_margin_horizontal = margin.horizontal.saturating_mul(2);
-    let doubled_margin_vertical = margin.vertical.saturating_mul(2);
-    Rect {
-        x: r.x.saturating_sub(margin.horizontal),
-        y: r.y.saturating_sub(margin.vertical),
-        width: r.width.saturating_add(doubled_margin_horizontal),
-        height: r.height.saturating_add(doubled_margin_vertical),
-    }
 }
 
 fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
