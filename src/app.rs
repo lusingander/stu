@@ -1,8 +1,5 @@
 use enum_tag::EnumTag;
-use std::sync::{
-    mpsc::{self, Sender},
-    Arc,
-};
+use std::sync::Arc;
 use tokio::spawn;
 
 use crate::{
@@ -13,7 +10,7 @@ use crate::{
     event::{
         AppEventType, AppKeyAction, AppKeyInput, CompleteDownloadObjectResult,
         CompleteInitializeResult, CompleteLoadObjectResult, CompleteLoadObjectsResult,
-        CompletePreviewObjectResult,
+        CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
@@ -231,11 +228,11 @@ pub struct App {
     current_path: Vec<String>,
     client: Option<Arc<Client>>,
     config: Option<Config>,
-    tx: mpsc::Sender<AppEventType>,
+    tx: Sender,
 }
 
 impl App {
-    pub fn new(tx: mpsc::Sender<AppEventType>, width: usize, height: usize) -> App {
+    pub fn new(tx: Sender, width: usize, height: usize) -> App {
         App {
             action_manager: AppKeyActionManager::new(),
             app_view_state: AppViewState::new(width, height),
@@ -259,7 +256,7 @@ impl App {
                 None => client.load_all_buckets().await,
             };
             let result = CompleteInitializeResult::new(buckets);
-            tx.send(AppEventType::CompleteInitialize(result)).unwrap();
+            tx.send(AppEventType::CompleteInitialize(result));
         });
     }
 
@@ -270,7 +267,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::BucketList;
             }
             Err(e) => {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
 
@@ -386,11 +383,11 @@ impl App {
     }
 
     pub fn send_app_key_action(&self, action: AppKeyAction) {
-        self.tx.send(AppEventType::KeyAction(action)).unwrap();
+        self.tx.send(AppEventType::KeyAction(action));
     }
 
     pub fn send_app_key_input(&self, input: AppKeyInput) {
-        self.tx.send(AppEventType::KeyInput(input)).unwrap();
+        self.tx.send(AppEventType::KeyInput(input));
     }
 
     pub fn bucket_list_select_next(&mut self) {
@@ -542,7 +539,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::ObjectList;
 
                 if !self.exists_current_objects() {
-                    self.tx.send(AppEventType::LoadObjects).unwrap();
+                    self.tx.send(AppEventType::LoadObjects);
                     self.app_view_state.is_loading = true;
                 }
             }
@@ -556,7 +553,7 @@ impl App {
                     if self.exists_current_object_detail() {
                         self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
                     } else {
-                        self.tx.send(AppEventType::LoadObject).unwrap();
+                        self.tx.send(AppEventType::LoadObject);
                         self.app_view_state.is_loading = true;
                     }
                 } else {
@@ -564,7 +561,7 @@ impl App {
                     self.app_view_state.push_new_list_state();
 
                     if !self.exists_current_objects() {
-                        self.tx.send(AppEventType::LoadObjects).unwrap();
+                        self.tx.send(AppEventType::LoadObjects);
                         self.app_view_state.is_loading = true;
                     }
                 }
@@ -583,9 +580,7 @@ impl App {
                     CopyDetailViewItemType::Etag => &detail.e_tag,
                 };
                 let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
-                self.tx
-                    .send(AppEventType::CopyToClipboard(name, value))
-                    .unwrap();
+                self.tx.send(AppEventType::CopyToClipboard(name, value));
             }
         }
     }
@@ -690,7 +685,7 @@ impl App {
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
             let result = CompleteLoadObjectsResult::new(items);
-            tx.send(AppEventType::CompleteLoadObjects(result)).unwrap();
+            tx.send(AppEventType::CompleteLoadObjects(result));
         });
     }
 
@@ -701,7 +696,7 @@ impl App {
                     .set_object_items(self.current_object_key().to_owned(), items);
             }
             Err(e) => {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
         self.app_view_state.is_loading = false;
@@ -728,7 +723,7 @@ impl App {
                     .await;
                 let versions = client.load_object_versions(&bucket, &key).await;
                 let result = CompleteLoadObjectResult::new(detail, versions, map_key);
-                tx.send(AppEventType::CompleteLoadObject(result)).unwrap();
+                tx.send(AppEventType::CompleteLoadObject(result));
             });
         }
     }
@@ -745,7 +740,7 @@ impl App {
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
             }
             Err(e) => {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
         self.app_view_state.is_loading = false;
@@ -785,7 +780,7 @@ impl App {
 
     pub fn detail_download_object(&mut self) {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
-            self.tx.send(AppEventType::DownloadObject).unwrap();
+            self.tx.send(AppEventType::DownloadObject);
             self.app_view_state.is_loading = true;
         }
     }
@@ -800,9 +795,7 @@ impl App {
         if let ViewState::Preview(vs) = &self.app_view_state.view_state {
             // object has been already downloaded, so send completion event to save file
             let result = CompleteDownloadObjectResult::new(Ok(vs.obj.clone()), vs.path.clone());
-            self.tx
-                .send(AppEventType::CompleteDownloadObject(result))
-                .unwrap();
+            self.tx.send(AppEventType::CompleteDownloadObject(result));
         }
     }
 
@@ -815,7 +808,7 @@ impl App {
 
     pub fn detail_preview(&mut self) {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
-            self.tx.send(AppEventType::PreviewObject).unwrap();
+            self.tx.send(AppEventType::PreviewObject);
             self.app_view_state.is_loading = true;
         }
     }
@@ -829,16 +822,14 @@ impl App {
     pub fn download_object(&self) {
         self.download_object_and(None, |tx, obj, path| {
             let result = CompleteDownloadObjectResult::new(obj, path);
-            tx.send(AppEventType::CompleteDownloadObject(result))
-                .unwrap();
+            tx.send(AppEventType::CompleteDownloadObject(result));
         })
     }
 
     pub fn download_object_as(&self, input: String) {
         self.download_object_and(Some(&input), |tx, obj, path| {
             let result = CompleteDownloadObjectResult::new(obj, path);
-            tx.send(AppEventType::CompleteDownloadObject(result))
-                .unwrap();
+            tx.send(AppEventType::CompleteDownloadObject(result));
         })
     }
 
@@ -852,10 +843,10 @@ impl App {
         match result {
             Ok(path) => {
                 let msg = format!("Download completed successfully: {}", path);
-                self.tx.send(AppEventType::NotifySuccess(msg)).unwrap();
+                self.tx.send(AppEventType::NotifySuccess(msg));
             }
             Err(e) => {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
         self.app_view_state.is_loading = false;
@@ -864,8 +855,7 @@ impl App {
     pub fn preview_object(&self) {
         self.download_object_and(None, |tx, obj, path| {
             let result = CompletePreviewObjectResult::new(obj, path);
-            tx.send(AppEventType::CompletePreviewObject(result))
-                .unwrap();
+            tx.send(AppEventType::CompletePreviewObject(result));
         })
     }
 
@@ -876,7 +866,7 @@ impl App {
                     ViewState::Preview(Box::new(PreviewViewState::new(obj, path)));
             }
             Err(e) => {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         };
         self.clear_notification();
@@ -885,7 +875,7 @@ impl App {
 
     fn download_object_and<F>(&self, save_file_name: Option<&str>, f: F)
     where
-        F: Fn(Sender<AppEventType>, Result<Object>, String) + Send + 'static,
+        F: Fn(Sender, Result<Object>, String) + Send + 'static,
     {
         if let Some(ObjectItem::File {
             name, size_byte, ..
@@ -910,11 +900,7 @@ impl App {
         }
     }
 
-    fn handle_loading_size(
-        &self,
-        total_size: usize,
-        tx: mpsc::Sender<AppEventType>,
-    ) -> Box<dyn Fn(usize) + Send> {
+    fn handle_loading_size(&self, total_size: usize, tx: Sender) -> Box<dyn Fn(usize) + Send> {
         if total_size < 10_000_000 {
             return Box::new(|_| {});
         }
@@ -926,7 +912,7 @@ impl App {
             let percent = (current * 100) / total_size;
             let cur_s = humansize::format_size_i(current, opt);
             let msg = format!("{:3}% downloaded ({} out of {})", percent, cur_s, total_s);
-            tx.send(AppEventType::NotifyInfo(msg)).unwrap();
+            tx.send(AppEventType::NotifyInfo(msg));
         };
         Box::new(f)
     }
@@ -936,7 +922,7 @@ impl App {
             let (client, _) = self.unwrap_client_tx();
             let result = client.open_management_console_buckets();
             if let Err(e) = result {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
     }
@@ -948,7 +934,7 @@ impl App {
             let prefix = self.current_object_prefix();
             let result = client.open_management_console_list(bucket, &prefix);
             if let Err(e) = result {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
     }
@@ -964,7 +950,7 @@ impl App {
                 Err(AppError::msg("Failed to get current selected item"))
             };
             if let Err(e) = result {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
     }
@@ -973,7 +959,7 @@ impl App {
         if let ViewState::DetailSave(vs) = &self.app_view_state.view_state {
             let input = vs.input.trim().to_string();
             if !input.is_empty() {
-                self.tx.send(AppEventType::DownloadObjectAs(input)).unwrap();
+                self.tx.send(AppEventType::DownloadObjectAs(input));
                 self.app_view_state.is_loading = true;
             }
             self.app_view_state.view_state = ViewState::Detail(vs.before);
@@ -984,7 +970,7 @@ impl App {
         if let ViewState::PreviewSave(vs) = &self.app_view_state.view_state {
             let input = vs.input.trim().to_string();
             if !input.is_empty() {
-                self.tx.send(AppEventType::DownloadObjectAs(input)).unwrap();
+                self.tx.send(AppEventType::DownloadObjectAs(input));
                 self.app_view_state.is_loading = true;
             }
             self.app_view_state.view_state = ViewState::Preview(Box::new(vs.before.clone()));
@@ -995,10 +981,10 @@ impl App {
         match copy_to_clipboard(value) {
             Ok(_) => {
                 let msg = format!("Copied '{}' to clipboard successfully", name);
-                self.tx.send(AppEventType::NotifySuccess(msg)).unwrap();
+                self.tx.send(AppEventType::NotifySuccess(msg));
             }
             Err(e) => {
-                self.tx.send(AppEventType::NotifyError(e)).unwrap();
+                self.tx.send(AppEventType::NotifyError(e));
             }
         }
     }
@@ -1050,7 +1036,7 @@ impl App {
         save_error_log(&path, e).unwrap();
     }
 
-    fn unwrap_client_tx(&self) -> (Arc<Client>, mpsc::Sender<AppEventType>) {
+    fn unwrap_client_tx(&self) -> (Arc<Client>, Sender) {
         (self.client.as_ref().unwrap().clone(), self.tx.clone())
     }
 }

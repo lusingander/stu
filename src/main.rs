@@ -18,7 +18,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use event::AppEventType;
+use event::{AppEventType, Sender};
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -26,7 +26,6 @@ use ratatui::{
 use std::{
     io::{stdout, Result, Stdout},
     panic,
-    sync::mpsc::Sender,
 };
 use tokio::spawn;
 
@@ -104,7 +103,7 @@ fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
 }
 
 async fn initialize(
-    tx: Sender<AppEventType>,
+    tx: Sender,
     region: Option<String>,
     endpoint_url: Option<String>,
     profile: Option<String>,
@@ -113,11 +112,10 @@ async fn initialize(
     match Config::load() {
         Ok(config) => {
             let client = Client::new(region, endpoint_url, profile).await;
-            tx.send(AppEventType::Initialize(config, client, bucket))
-                .unwrap();
+            tx.send(AppEventType::Initialize(config, client, bucket));
         }
         Err(e) => {
-            tx.send(AppEventType::NotifyError(e)).unwrap();
+            tx.send(AppEventType::NotifyError(e));
         }
     };
 }

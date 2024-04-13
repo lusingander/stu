@@ -1,21 +1,21 @@
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::{backend::Backend, Terminal};
-use std::{io::Result, sync::mpsc};
+use std::io::Result;
 
 use crate::{
     app::{App, Notification, ViewState},
-    event::{AppEventType, AppKeyAction},
+    event::{AppEventType, AppKeyAction, Receiver},
     key_code, key_code_char, ui,
 };
 
 pub async fn run<B: Backend>(
     app: &mut App,
     terminal: &mut Terminal<B>,
-    rx: mpsc::Receiver<AppEventType>,
+    rx: Receiver,
 ) -> Result<()> {
     loop {
         terminal.draw(|f| ui::render(f, app))?;
-        match rx.recv().unwrap() {
+        match rx.recv() {
             AppEventType::Key(key) => {
                 if matches!(key, key_code!(KeyCode::Esc) | key_code_char!('c', Ctrl)) {
                     // Exit regardless of status

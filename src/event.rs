@@ -160,26 +160,47 @@ impl CompletePreviewObjectResult {
     }
 }
 
-pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
+#[derive(Clone)]
+pub struct Sender {
+    tx: mpsc::Sender<AppEventType>,
+}
+
+impl Sender {
+    pub fn send(&self, event: AppEventType) {
+        self.tx.send(event).unwrap();
+    }
+}
+
+pub struct Receiver {
+    rx: mpsc::Receiver<AppEventType>,
+}
+
+impl Receiver {
+    pub fn recv(&self) -> AppEventType {
+        self.rx.recv().unwrap()
+    }
+}
+
+pub fn new() -> (Sender, Receiver) {
     let (tx, rx) = mpsc::channel();
+    let tx = Sender { tx };
+    let rx = Receiver { rx };
 
     let event_tx = tx.clone();
     thread::spawn(move || loop {
         match crossterm::event::read() {
             Ok(e) => match e {
                 crossterm::event::Event::Key(key) => {
-                    event_tx.send(AppEventType::Key(key)).unwrap();
+                    event_tx.send(AppEventType::Key(key));
                 }
                 crossterm::event::Event::Resize(w, h) => {
-                    event_tx
-                        .send(AppEventType::Resize(w as usize, h as usize))
-                        .unwrap();
+                    event_tx.send(AppEventType::Resize(w as usize, h as usize));
                 }
                 _ => {}
             },
             Err(e) => {
                 let e = AppError::new("Failed to read event", e);
-                event_tx.send(AppEventType::NotifyError(e)).unwrap();
+                event_tx.send(AppEventType::NotifyError(e));
             }
         }
     });
