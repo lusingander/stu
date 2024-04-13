@@ -88,8 +88,8 @@ async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Res
     } = args;
 
     let (tx, rx) = event::new();
-    let (_, height) = get_frame_size(terminal);
-    let mut app = App::new(tx.clone(), height);
+    let (width, height) = get_frame_size(terminal);
+    let mut app = App::new(tx.clone(), width, height);
 
     spawn(async move {
         initialize(tx, region, endpoint_url, profile, bucket).await;

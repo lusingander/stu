@@ -179,15 +179,20 @@ pub struct AppViewState {
     pub view_state: ViewState,
     pub notification: Notification,
     pub is_loading: bool,
+
+    width: usize,
+    height: usize,
 }
 
 impl AppViewState {
-    fn new(height: usize) -> AppViewState {
+    fn new(width: usize, height: usize) -> AppViewState {
         AppViewState {
             list_states: AppListStates::new(list_area_height(height)),
             view_state: ViewState::Initializing,
             notification: Notification::None,
             is_loading: true,
+            width,
+            height,
         }
     }
 
@@ -211,8 +216,10 @@ impl AppViewState {
         self.list_states.current_mut()
     }
 
-    pub fn reset_height(&mut self, height: usize) {
-        self.list_states.reset_height(height)
+    pub fn reset_size(&mut self, width: usize, height: usize) {
+        self.width = width;
+        self.height = height;
+        self.list_states.reset_height(list_area_height(height))
     }
 }
 
@@ -228,10 +235,10 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(tx: mpsc::Sender<AppEventType>, height: usize) -> App {
+    pub fn new(tx: mpsc::Sender<AppEventType>, width: usize, height: usize) -> App {
         App {
             action_manager: AppKeyActionManager::new(),
-            app_view_state: AppViewState::new(height),
+            app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::new(),
             current_bucket: None,
             current_path: Vec::new(),
@@ -276,10 +283,8 @@ impl App {
         }
     }
 
-    pub fn resize(&mut self, height: usize) {
-        let h = list_area_height(height);
-        self.app_view_state.reset_height(h);
-        // todo: adjust
+    pub fn resize(&mut self, width: usize, height: usize) {
+        self.app_view_state.reset_size(width, height);
     }
 
     pub fn breadcrumb_strs(&self) -> Vec<String> {

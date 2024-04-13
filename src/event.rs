@@ -12,7 +12,7 @@ use crate::{
 pub enum AppEventType {
     Key(KeyEvent),
     KeyAction(AppKeyAction),
-    Resize(u16, u16),
+    Resize(usize, usize),
     Initialize(Config, Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
@@ -171,7 +171,9 @@ pub fn new() -> (mpsc::Sender<AppEventType>, mpsc::Receiver<AppEventType>) {
                     event_tx.send(AppEventType::Key(key)).unwrap();
                 }
                 crossterm::event::Event::Resize(w, h) => {
-                    event_tx.send(AppEventType::Resize(w, h)).unwrap();
+                    event_tx
+                        .send(AppEventType::Resize(w as usize, h as usize))
+                        .unwrap();
                 }
                 _ => {}
             },

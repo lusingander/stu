@@ -187,8 +187,8 @@ pub async fn run<B: Backend>(
                     app.toggle_help();
                 }
             },
-            AppEventType::Resize(_, height) => {
-                app.resize(height as usize);
+            AppEventType::Resize(width, height) => {
+                app.resize(width, height);
             }
             AppEventType::Initialize(config, client, bucket) => {
                 app.initialize(config, client, bucket);
