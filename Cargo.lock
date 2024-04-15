@@ -1552,6 +1552,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
+name = "itsuki"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2345631112523f1fa664a157ad9f83760ba5137d775106bb139116dd36d590a5"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.53",
+]
+
+[[package]]
 name = "jpeg-decoder"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2426,6 +2437,7 @@ dependencies = [
  "enum-tag",
  "humansize",
  "itertools",
+ "itsuki",
  "maplit",
  "open",
  "ratatui",

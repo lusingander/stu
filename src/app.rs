@@ -1,4 +1,5 @@
 use enum_tag::EnumTag;
+use itsuki::zero_indexed_enum;
 use std::sync::Arc;
 use tokio::spawn;
 
@@ -33,10 +34,11 @@ pub enum ViewState {
 
 pub type ViewStateTag = <ViewState as EnumTag>::Tag;
 
-#[derive(Clone, Copy)]
-pub enum DetailViewState {
-    Detail = 0,
-    Version = 1,
+zero_indexed_enum! {
+    DetailViewState => [
+        Detail,
+        Version,
+    ]
 }
 
 #[derive(Clone)]
@@ -88,13 +90,14 @@ impl CopyDetailViewState {
     }
 }
 
-#[derive(Clone, Copy)]
-pub enum CopyDetailViewItemType {
-    Key,
-    S3Uri,
-    Arn,
-    ObjectUrl,
-    Etag,
+zero_indexed_enum! {
+    CopyDetailViewItemType => [
+        Key,
+        S3Uri,
+        Arn,
+        ObjectUrl,
+        Etag,
+    ]
 }
 
 impl CopyDetailViewItemType {
@@ -106,28 +109,6 @@ impl CopyDetailViewItemType {
             Arn => "ARN",
             ObjectUrl => "Object URL",
             Etag => "ETag",
-        }
-    }
-
-    fn next(self) -> CopyDetailViewItemType {
-        use CopyDetailViewItemType::*;
-        match self {
-            Key => S3Uri,
-            S3Uri => Arn,
-            Arn => ObjectUrl,
-            ObjectUrl => Etag,
-            Etag => Key,
-        }
-    }
-
-    fn prev(self) -> CopyDetailViewItemType {
-        use CopyDetailViewItemType::*;
-        match self {
-            Key => Etag,
-            S3Uri => Key,
-            Arn => S3Uri,
-            ObjectUrl => Arn,
-            Etag => ObjectUrl,
         }
     }
 }
