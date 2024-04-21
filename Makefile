@@ -20,8 +20,8 @@ social-preview-demo: $(STU_BIN)
 screenshot: $(STU_BIN)
 	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/screenshot.tape -out $(OUTPUT_DIR)/screenshot
 	
-.PHONY: test
-vrt:
+.PHONY: vrt
+vrt: screenshot
 	go run $(IMGDIFF_DIR)/*.go test -base ./img -target $(OUTPUT_DIR)/screenshot -out $(OUTPUT_DIR)/diff
 
 .PHONY: clean
