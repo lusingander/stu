@@ -1,28 +1,28 @@
 #[macro_export]
 macro_rules! key_code {
     ( $code:path ) => {
-        KeyEvent { code: $code, .. }
+        crossterm::event::KeyEvent { code: $code, .. }
     };
 }
 
 #[macro_export]
 macro_rules! key_code_char {
     ( $c:ident ) => {
-        KeyEvent {
-            code: KeyCode::Char($c),
+        crossterm::event::KeyEvent {
+            code: crossterm::event::KeyCode::Char($c),
             ..
         }
     };
     ( $c:expr ) => {
-        KeyEvent {
-            code: KeyCode::Char($c),
+        crossterm::event::KeyEvent {
+            code: crossterm::event::KeyCode::Char($c),
             ..
         }
     };
     ( $c:expr, Ctrl ) => {
-        KeyEvent {
-            code: KeyCode::Char($c),
-            modifiers: KeyModifiers::CONTROL,
+        crossterm::event::KeyEvent {
+            code: crossterm::event::KeyCode::Char($c),
+            modifiers: crossterm::event::KeyModifiers::CONTROL,
             ..
         }
     };
@@ -33,7 +33,7 @@ macro_rules! lines {
     ( $($s:expr),* $(,)? ) => {
         vec![
         $(
-            Line::from($s),
+            ratatui::widgets::Line::from($s),
         )*
         ]
     }
@@ -45,13 +45,13 @@ macro_rules! lines_with_empty_line {
         vec![
             lines_with_empty_line!($s),
         $(
-            Line::from(""),
+            ratatui::widgets::Line::from(""),
             lines_with_empty_line!($ss),
         )*
         ]
     };
 
     ( $s:expr ) => {
-        Line::from($s)
+        ratatui::widgets::Line::from($s)
     };
 }
