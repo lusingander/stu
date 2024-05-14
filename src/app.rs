@@ -14,8 +14,8 @@ use crate::{
         CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
-    item::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
     keys::AppKeyActionManager,
+    object::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
     util::{digits, to_preview_string},
 };
 

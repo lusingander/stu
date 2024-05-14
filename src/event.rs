@@ -6,7 +6,7 @@ use crate::{
     client::Client,
     config::Config,
     error::{AppError, Result},
-    item::{BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
+    object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
 };
 
 pub enum AppEventType {

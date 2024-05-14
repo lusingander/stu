@@ -50,7 +50,6 @@ pub struct FileVersion {
     pub is_latest: bool,
 }
 
-// fixme: data structure
 pub struct AppObjects {
     bucket_items: Vec<BucketItem>,
     object_items_map: HashMap<ObjectKey, Vec<ObjectItem>>,

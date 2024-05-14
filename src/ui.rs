@@ -15,7 +15,7 @@ use crate::{
         App, CopyDetailViewItemType, CopyDetailViewState, DetailSaveViewState, DetailViewState,
         Notification, PreviewSaveViewState, PreviewViewState, ViewState,
     },
-    item::{BucketItem, FileDetail, FileVersion, ObjectItem},
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
     util::{self, digits},
     widget::{Dialog, ScrollBar},
 };

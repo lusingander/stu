@@ -4,7 +4,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    item::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
+    object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
