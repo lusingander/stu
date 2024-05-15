@@ -8,6 +8,7 @@ mod file;
 mod keys;
 mod macros;
 mod object;
+mod pages;
 mod run;
 mod ui;
 mod util;
