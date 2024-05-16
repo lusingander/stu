@@ -2,6 +2,7 @@ mod app;
 mod client;
 mod component;
 mod config;
+mod constant;
 mod error;
 mod event;
 mod file;

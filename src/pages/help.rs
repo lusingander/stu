@@ -6,16 +6,14 @@ use ratatui::{
     Frame,
 };
 
-use crate::{pages::page::Page, util::group_strings_to_fit_width};
-
-const APP_NAME: &str = "STU";
+use crate::{
+    constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
+    pages::page::Page,
+    util::group_strings_to_fit_width,
+};
 
 const DIVIDER_COLOR: Color = Color::DarkGray;
 const LINK_TEXT_COLOR: Color = Color::Blue;
-
-const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
-const APP_DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
-const APP_HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
 
 pub struct HelpPage {
     helps: Vec<String>,
