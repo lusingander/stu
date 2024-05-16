@@ -3,16 +3,19 @@ use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap},
+    widgets::{
+        block::Title, Block, BorderType, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap,
+    },
     Frame,
 };
 
 use crate::{
-    app::DetailViewState,
+    app::{CopyDetailViewItemType, CopyDetailViewState, DetailSaveViewState, DetailViewState},
     component::AppListState,
     object::{FileDetail, FileVersion, ObjectItem},
     pages::page::Page,
     util::digits,
+    widget::Dialog,
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -26,6 +29,8 @@ pub struct ObjectDetailPage {
     file_versions: Vec<FileVersion>,
 
     vs: DetailViewState,
+    svs: Option<DetailSaveViewState>,
+    cvs: Option<CopyDetailViewState>,
     list_state: AppListState,
 }
 
@@ -35,6 +40,8 @@ impl ObjectDetailPage {
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
         vs: DetailViewState,
+        svs: Option<DetailSaveViewState>,
+        cvs: Option<CopyDetailViewState>,
         height: usize,
     ) -> Self {
         Self {
@@ -42,6 +49,8 @@ impl ObjectDetailPage {
             file_detail,
             file_versions,
             vs,
+            svs,
+            cvs,
             list_state: AppListState::new(height),
         }
     }
@@ -92,6 +101,72 @@ impl Page for ObjectDetailPage {
                 let versions = build_file_versions(&self.file_versions, chunks[1].width);
                 f.render_widget(versions, chunks[1]);
             }
+        }
+
+        if let Some(vs) = &self.svs {
+            let dialog_width = (area.width - 4).min(40);
+            let dialog_height = 1 + 2 /* border */;
+            let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+            let max_width = dialog_width - 2 /* border */- 2/* pad */;
+            let input_width = vs.input.len().saturating_sub(max_width as usize);
+            let input_view: &str = &vs.input[input_width..];
+
+            let title = Title::from("Save As");
+            let dialog_content = Paragraph::new(input_view).block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .title(title)
+                    .padding(Padding::horizontal(1)),
+            );
+            let dialog = Dialog::new(Box::new(dialog_content));
+            f.render_widget_ref(dialog, area);
+
+            let cursor_x = area.x + vs.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
+            let cursor_y = area.y + 1;
+            f.set_cursor(cursor_x, cursor_y);
+        }
+
+        if let Some(vs) = &self.cvs {
+            let selected = vs.selected as usize;
+            let list_items: Vec<ListItem> = [
+                (CopyDetailViewItemType::Key, &self.file_detail.key),
+                (CopyDetailViewItemType::S3Uri, &self.file_detail.s3_uri),
+                (CopyDetailViewItemType::Arn, &self.file_detail.arn),
+                (
+                    CopyDetailViewItemType::ObjectUrl,
+                    &self.file_detail.object_url,
+                ),
+                (CopyDetailViewItemType::Etag, &self.file_detail.e_tag),
+            ]
+            .iter()
+            .enumerate()
+            .map(|(i, (tp, value))| {
+                let item = ListItem::new(vec![
+                    Line::from(format!("{}:", tp.name()).add_modifier(Modifier::BOLD)),
+                    Line::from(format!("  {}", value)),
+                ]);
+                if i == selected {
+                    item.fg(SELECTED_COLOR)
+                } else {
+                    item
+                }
+            })
+            .collect();
+
+            let dialog_width = (area.width - 4).min(80);
+            let dialog_height = 2 * 5 /* list */ + 2 /* border */;
+            let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+            let title = Title::from("Copy");
+            let list = List::new(list_items).block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .title(title)
+                    .padding(Padding::horizontal(1)),
+            );
+            let dialog = Dialog::new(Box::new(list));
+            f.render_widget_ref(dialog, area);
         }
     }
 }
@@ -336,6 +411,24 @@ fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Ve
     ret
 }
 
+fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
+    let vertical_pad = (r.height - dialog_height) / 2;
+    let vertical_layout = Layout::vertical(Constraint::from_lengths([
+        vertical_pad,
+        dialog_height,
+        vertical_pad,
+    ]))
+    .split(r);
+
+    let horizontal_pad = (r.width - dialog_width) / 2;
+    Layout::horizontal(Constraint::from_lengths([
+        horizontal_pad,
+        dialog_width,
+        horizontal_pad,
+    ]))
+    .split(vertical_layout[1])[1]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -352,6 +445,8 @@ mod tests {
                 file_detail,
                 file_versions,
                 DetailViewState::Detail,
+                None,
+                None,
                 20,
             );
             let area = Rect::new(0, 0, 60, 20);
@@ -440,6 +535,8 @@ mod tests {
                 file_detail,
                 file_versions,
                 DetailViewState::Version,
+                None,
+                None,
                 20,
             );
             let area = Rect::new(0, 0, 60, 20);
@@ -509,6 +606,205 @@ mod tests {
             for y in [6, 10].into_iter() {
                 // divider
                 expected.get_mut(x, y).set_fg(Color::DarkGray);
+            }
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let (items, file_detail, file_versions) = fixtures();
+            let mut page = ObjectDetailPage::new(
+                items,
+                file_detail,
+                file_versions,
+                DetailViewState::Detail,
+                Some(DetailSaveViewState {
+                    input: "file1".to_string(),
+                    cursor: 5,
+                    before: DetailViewState::Detail,
+                }),
+                None,
+                20,
+            );
+            let area = Rect::new(0, 0, 60, 20);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
+            "│  file1                     ││ Detail │ Version           │",
+            "│  file2                     ││────────────────────────────│",
+            "│  file3                     ││ Name:                      │",
+            "│                            ││  file1                     │",
+            "│                            ││                            │",
+            "│                            ││ Size:                      │",
+            "│                            ││  1.01 KiB                  │",
+            "│         ╭Save As───────────────────────────────╮         │",
+            "│         │ file1                                │         │",
+            "│         ╰──────────────────────────────────────╯ 2       │",
+            "│                            ││                            │",
+            "│                            ││ ETag:                      │",
+            "│                            ││  bef684de-a260-48a4-8178-8 │",
+            "│                            ││ a535ecccadb                │",
+            "│                            ││                            │",
+            "│                            ││ Content-Type:              │",
+            "│                            ││  text/plain                │",
+            "│                            ││                            │",
+            "└────────────────────────────┘└────────────────────────────┘",
+        ]);
+        for x in 2..28 {
+            // selected item
+            expected.get_mut(x, 1).set_bg(Color::DarkGray);
+            expected.get_mut(x, 1).set_fg(Color::Black);
+        }
+        for x in 32..38 {
+            // "Detail" is selected
+            expected
+                .get_mut(x, 1)
+                .set_fg(Color::Cyan)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 32..37 {
+            // "Name" label
+            expected
+                .get_mut(x, 3)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 32..37 {
+            // "Size" label
+            expected
+                .get_mut(x, 6)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 32..37 {
+            // "ETag" label
+            expected
+                .get_mut(x, 12)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 32..45 {
+            // "Content-Type" label
+            expected
+                .get_mut(x, 16)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let (items, file_detail, file_versions) = fixtures();
+            let mut page = ObjectDetailPage::new(
+                items,
+                file_detail,
+                file_versions,
+                DetailViewState::Detail,
+                None,
+                Some(CopyDetailViewState {
+                    selected: CopyDetailViewItemType::Key,
+                    before: DetailViewState::Detail,
+                }),
+                20,
+            );
+            let area = Rect::new(0, 0, 60, 20);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
+            "│  file1                     ││ Detail │ Version           │",
+            "│  file2                     ││────────────────────────────│",
+            "│  file3                     ││ Name:                      │",
+            "│ ╭Copy──────────────────────────────────────────────────╮ │",
+            "│ │ Key:                                                 │ │",
+            "│ │   file1                                              │ │",
+            "│ │ S3 URI:                                              │ │",
+            "│ │   s3://bucket-1/file1                                │ │",
+            "│ │ ARN:                                                 │ │",
+            "│ │   arn:aws:s3:::bucket-1/file1                        │ │",
+            "│ │ Object URL:                                          │ │",
+            "│ │   https://bucket-1.s3.ap-northeast-1.amazonaws.com/f │ │",
+            "│ │ ETag:                                                │ │",
+            "│ │   bef684de-a260-48a4-8178-8a535ecccadb               │ │",
+            "│ ╰──────────────────────────────────────────────────────╯ │",
+            "│                            ││ Content-Type:              │",
+            "│                            ││  text/plain                │",
+            "│                            ││                            │",
+            "└────────────────────────────┘└────────────────────────────┘",
+        ]);
+        for x in 2..28 {
+            // selected item
+            expected.get_mut(x, 1).set_bg(Color::DarkGray);
+            expected.get_mut(x, 1).set_fg(Color::Black);
+        }
+        for x in 32..38 {
+            // "Detail" is selected
+            expected
+                .get_mut(x, 1)
+                .set_fg(Color::Cyan)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 32..37 {
+            // "Name" label
+            expected
+                .get_mut(x, 3)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 32..45 {
+            // "Content-Type" label
+            expected
+                .get_mut(x, 16)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 4..8 {
+            // "Key" label
+            expected
+                .get_mut(x, 5)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 4..11 {
+            // "S3 URI" label
+            expected
+                .get_mut(x, 7)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 4..8 {
+            // "ARN" label
+            expected
+                .get_mut(x, 9)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 4..15 {
+            // "Object URL" label
+            expected
+                .get_mut(x, 11)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 4..9 {
+            // "ETag" label
+            expected
+                .get_mut(x, 13)
+                .set_style(Style::default().add_modifier(Modifier::BOLD));
+        }
+        for x in 4..56 {
+            for y in [5, 6].into_iter() {
+                // "Key" is selected
+                expected.get_mut(x, y).set_fg(Color::Cyan);
             }
         }
 

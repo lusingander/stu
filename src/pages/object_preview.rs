@@ -1,12 +1,12 @@
 use ratatui::{
-    layout::{Margin, Rect},
+    layout::{Constraint, Layout, Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{Block, Padding, Paragraph},
+    widgets::{block::Title, Block, BorderType, Padding, Paragraph},
     Frame,
 };
 
-use crate::{object::FileDetail, pages::page::Page};
+use crate::{app::PreviewSaveViewState, object::FileDetail, pages::page::Page, widget::Dialog};
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 
@@ -16,15 +16,22 @@ pub struct ObjectPreviewPage {
     preview: Vec<String>,
     preview_max_digits: usize,
 
+    svs: Option<PreviewSaveViewState>,
     offset: usize,
 }
 
 impl ObjectPreviewPage {
-    pub fn new(file_detail: FileDetail, preview: Vec<String>, preview_max_digits: usize) -> Self {
+    pub fn new(
+        file_detail: FileDetail,
+        preview: Vec<String>,
+        preview_max_digits: usize,
+        svs: Option<PreviewSaveViewState>,
+    ) -> Self {
         Self {
             file_detail,
             preview,
             preview_max_digits,
+            svs,
             offset: 0,
         }
     }
@@ -67,11 +74,55 @@ impl Page for ObjectPreviewPage {
         );
 
         f.render_widget(paragraph, area);
+
+        if let Some(vs) = &self.svs {
+            let dialog_width = (area.width - 4).min(40);
+            let dialog_height = 1 + 2 /* border */;
+            let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+            let max_width = dialog_width - 2 /* border */- 2/* pad */;
+            let input_width = vs.input.len().saturating_sub(max_width as usize);
+            let input_view: &str = &vs.input[input_width..];
+
+            let title = Title::from("Save As");
+            let dialog_content = Paragraph::new(input_view).block(
+                Block::bordered()
+                    .border_type(BorderType::Rounded)
+                    .title(title)
+                    .padding(Padding::horizontal(1)),
+            );
+            let dialog = Dialog::new(Box::new(dialog_content));
+            f.render_widget_ref(dialog, area);
+
+            let cursor_x = area.x + vs.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
+            let cursor_y = area.y + 1;
+            f.set_cursor(cursor_x, cursor_y);
+        }
     }
+}
+
+fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
+    let vertical_pad = (r.height - dialog_height) / 2;
+    let vertical_layout = Layout::vertical(Constraint::from_lengths([
+        vertical_pad,
+        dialog_height,
+        vertical_pad,
+    ]))
+    .split(r);
+
+    let horizontal_pad = (r.width - dialog_width) / 2;
+    Layout::horizontal(Constraint::from_lengths([
+        horizontal_pad,
+        dialog_width,
+        horizontal_pad,
+    ]))
+    .split(vertical_layout[1])[1]
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{app::PreviewViewState, object::Object};
+
     use super::*;
     use chrono::{DateTime, Local};
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
@@ -92,7 +143,7 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
             let preview_max_digits = 1;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
+            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits, None);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -127,7 +178,7 @@ mod tests {
             let file_detail = file_detail();
             let preview = vec!["Hello, world!".to_string(); 20];
             let preview_max_digits = 2;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
+            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits, None);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -149,6 +200,64 @@ mod tests {
             for x in 2..4 {
                 expected.get_mut(x, y).set_fg(Color::DarkGray);
             }
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let file_detail = file_detail();
+            let preview = [
+                "Hello, world!",
+                "This is a test file.",
+                "This file is used for testing.",
+                "Thank you!",
+            ]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+            let preview_max_digits = 1;
+            let mut page = ObjectPreviewPage::new(
+                file_detail,
+                preview,
+                preview_max_digits,
+                Some(PreviewSaveViewState {
+                    input: "file.txt".to_string(),
+                    cursor: 7,
+                    before: PreviewViewState::new(
+                        Object {
+                            content_type: "".to_string(),
+                            bytes: vec![],
+                        },
+                        "".to_string(),
+                    ),
+                }),
+            );
+            let area = Rect::new(0, 0, 30, 10);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌Preview [file.txt]──────────┐",
+            "│ 1 Hello, world!            │",
+            "│ 2 This is a test file.     │",
+            "│ ╭Save As─────────────────╮ │",
+            "│ │ file.txt               │ │",
+            "│ ╰────────────────────────╯ │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "└────────────────────────────┘",
+        ]);
+        for y in 1..3 {
+            expected.get_mut(2, y).set_fg(Color::DarkGray);
         }
 
         terminal.backend().assert_buffer(&expected);

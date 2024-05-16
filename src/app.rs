@@ -124,7 +124,7 @@ pub struct PreviewViewState {
 }
 
 impl PreviewViewState {
-    fn new(obj: Object, path: String) -> PreviewViewState {
+    pub fn new(obj: Object, path: String) -> PreviewViewState {
         let s = to_preview_string(&obj.bytes, &obj.content_type);
         let s = if s.ends_with('\n') {
             s.trim_end()
