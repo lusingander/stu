@@ -21,10 +21,10 @@ pub struct ObjectListPage {
 }
 
 impl ObjectListPage {
-    pub fn new(object_items: Vec<ObjectItem>, height: usize) -> Self {
+    pub fn new(object_items: Vec<ObjectItem>, list_state: AppListState) -> Self {
         Self {
             object_items,
-            list_state: AppListState::new(height),
+            list_state,
         }
     }
 }
@@ -243,7 +243,7 @@ mod tests {
                     paths: vec![],
                 },
             ];
-            let mut page = ObjectListPage::new(items, 10);
+            let mut page = ObjectListPage::new(items, AppListState::new(10));
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -294,7 +294,7 @@ mod tests {
                     paths: vec![],
                 })
                 .collect();
-            let mut page = ObjectListPage::new(items, 10);
+            let mut page = ObjectListPage::new(items, AppListState::new(10));
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;

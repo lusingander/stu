@@ -42,7 +42,7 @@ impl ObjectDetailPage {
         vs: DetailViewState,
         svs: Option<DetailSaveViewState>,
         cvs: Option<CopyDetailViewState>,
-        height: usize,
+        list_state: AppListState,
     ) -> Self {
         Self {
             object_items,
@@ -51,7 +51,7 @@ impl ObjectDetailPage {
             vs,
             svs,
             cvs,
-            list_state: AppListState::new(height),
+            list_state,
         }
     }
 }
@@ -447,7 +447,7 @@ mod tests {
                 DetailViewState::Detail,
                 None,
                 None,
-                20,
+                AppListState::new(20),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -537,7 +537,7 @@ mod tests {
                 DetailViewState::Version,
                 None,
                 None,
-                20,
+                AppListState::new(20),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -631,7 +631,7 @@ mod tests {
                     before: DetailViewState::Detail,
                 }),
                 None,
-                20,
+                AppListState::new(20),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -718,7 +718,7 @@ mod tests {
                     selected: CopyDetailViewItemType::Key,
                     before: DetailViewState::Detail,
                 }),
-                20,
+                AppListState::new(20),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);

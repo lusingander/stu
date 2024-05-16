@@ -20,10 +20,10 @@ pub struct BucketPage {
 }
 
 impl BucketPage {
-    pub fn new(bucket_items: Vec<BucketItem>, height: usize) -> Self {
+    pub fn new(bucket_items: Vec<BucketItem>, list_state: AppListState) -> Self {
         Self {
             bucket_items,
-            list_state: AppListState::new(height),
+            list_state,
         }
     }
 }
@@ -159,7 +159,7 @@ mod tests {
                     name: name.to_string(),
                 })
                 .collect();
-            let mut page = BucketPage::new(items, 10);
+            let mut page = BucketPage::new(items, AppListState::new(10));
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -197,7 +197,7 @@ mod tests {
                     name: format!("bucket{}", i + 1),
                 })
                 .collect();
-            let mut page = BucketPage::new(items, 10);
+            let mut page = BucketPage::new(items, AppListState::new(10));
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;

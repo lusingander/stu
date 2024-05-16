@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Copy)]
 pub struct AppListState {
     pub selected: usize,
     pub offset: usize,

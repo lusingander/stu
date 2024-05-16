@@ -25,6 +25,7 @@ impl ObjectPreviewPage {
         file_detail: FileDetail,
         preview: Vec<String>,
         preview_max_digits: usize,
+        offset: usize,
         svs: Option<PreviewSaveViewState>,
     ) -> Self {
         Self {
@@ -32,7 +33,7 @@ impl ObjectPreviewPage {
             preview,
             preview_max_digits,
             svs,
-            offset: 0,
+            offset,
         }
     }
 }
@@ -143,7 +144,8 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
             let preview_max_digits = 1;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits, None);
+            let mut page =
+                ObjectPreviewPage::new(file_detail, preview, preview_max_digits, 0, None);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -178,7 +180,8 @@ mod tests {
             let file_detail = file_detail();
             let preview = vec!["Hello, world!".to_string(); 20];
             let preview_max_digits = 2;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits, None);
+            let mut page =
+                ObjectPreviewPage::new(file_detail, preview, preview_max_digits, 0, None);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -227,6 +230,7 @@ mod tests {
                 file_detail,
                 preview,
                 preview_max_digits,
+                0,
                 Some(PreviewSaveViewState {
                     input: "file.txt".to_string(),
                     cursor: 7,

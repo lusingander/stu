@@ -30,6 +30,7 @@ impl ObjectItem {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct FileDetail {
     pub name: String,
     pub size_byte: usize,
@@ -43,6 +44,7 @@ pub struct FileDetail {
     pub object_url: String,
 }
 
+#[derive(Debug, Clone)]
 pub struct FileVersion {
     pub version_id: String,
     pub size_byte: usize,
