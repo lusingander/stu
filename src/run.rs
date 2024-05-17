@@ -5,7 +5,9 @@ use std::io::Result;
 use crate::{
     app::{App, Notification, ViewState},
     event::{AppEventType, AppKeyAction, Receiver},
-    key_code, key_code_char, ui,
+    key_code, key_code_char,
+    pages::page::Page,
+    ui,
 };
 
 pub async fn run<B: Backend>(
@@ -15,7 +17,8 @@ pub async fn run<B: Backend>(
 ) -> Result<()> {
     loop {
         terminal.draw(|f| ui::render(f, app))?;
-        match rx.recv() {
+        let event = rx.recv();
+        match event {
             AppEventType::Key(key) => {
                 if matches!(key, key_code!(KeyCode::Esc) | key_code_char!('c', Ctrl)) {
                     // Exit regardless of status
@@ -226,9 +229,6 @@ pub async fn run<B: Backend>(
             AppEventType::CopyToClipboard(name, value) => {
                 app.copy_to_clipboard(name, value);
             }
-            AppEventType::KeyInput(input) => {
-                app.key_input(input);
-            }
             AppEventType::NotifyInfo(msg) => {
                 app.info_notification(msg);
             }
@@ -238,6 +238,20 @@ pub async fn run<B: Backend>(
             AppEventType::NotifyError(e) => {
                 app.error_notification(e);
             }
+            _ => {
+                page_handle_event(app, event);
+            }
         }
+    }
+}
+
+fn page_handle_event(app: &mut App, event: AppEventType) {
+    match app.page_stack.current_page_mut() {
+        Page::Initializing(page) => page.handle_event(event),
+        Page::BucketList(page) => page.handle_event(event),
+        Page::ObjectList(page) => page.handle_event(event),
+        Page::ObjectDetail(page) => page.handle_event(event),
+        Page::ObjectPreview(page) => page.handle_event(event),
+        Page::Help(page) => page.handle_event(event),
     }
 }

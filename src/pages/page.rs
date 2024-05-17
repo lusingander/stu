@@ -45,10 +45,6 @@ impl Page {
         )))
     }
 
-    pub fn from_object_detail_page(page: ObjectDetailPage) -> Self {
-        Self::ObjectDetail(Box::new(page))
-    }
-
     pub fn of_object_preview(
         file_detail: FileDetail,
         preview: Vec<String>,
@@ -59,10 +55,6 @@ impl Page {
             preview,
             preview_max_digits,
         )))
-    }
-
-    pub fn from_object_preview_page(page: ObjectPreviewPage) -> Self {
-        Self::ObjectPreview(Box::new(page))
     }
 
     pub fn of_help(helps: Vec<String>) -> Self {
@@ -104,9 +96,9 @@ impl Page {
         }
     }
 
-    pub fn into_mut_object_detail(self) -> ObjectDetailPage {
+    pub fn as_mut_object_detail(&mut self) -> &mut ObjectDetailPage {
         match self {
-            Self::ObjectDetail(page) => *page,
+            Self::ObjectDetail(page) => &mut *page,
             page => panic!("Page is not ObjectDetail: {:?}", page),
         }
     }
@@ -118,9 +110,9 @@ impl Page {
         }
     }
 
-    pub fn into_mut_object_preview(self) -> ObjectPreviewPage {
+    pub fn as_mut_object_preview(&mut self) -> &mut ObjectPreviewPage {
         match self {
-            Self::ObjectPreview(page) => *page,
+            Self::ObjectPreview(page) => &mut *page,
             page => panic!("Page is not ObjectPreview: {:?}", page),
         }
     }

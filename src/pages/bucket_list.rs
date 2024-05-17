@@ -6,7 +6,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::{component::AppListState, object::BucketItem, util::digits, widget::ScrollBar};
+use crate::{
+    component::AppListState, event::AppEventType, object::BucketItem, util::digits,
+    widget::ScrollBar,
+};
 
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
@@ -25,9 +28,9 @@ impl BucketListPage {
             list_state: AppListState::default(),
         }
     }
-}
 
-impl BucketListPage {
+    pub fn handle_event(&mut self, _event: AppEventType) {}
+
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         // todo: reconsider list state management
         self.list_state.height = area.height as usize - 2 /* border */;

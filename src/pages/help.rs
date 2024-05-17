@@ -8,6 +8,7 @@ use ratatui::{
 
 use crate::{
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
+    event::AppEventType,
     util::group_strings_to_fit_width,
 };
 
@@ -23,9 +24,9 @@ impl HelpPage {
     pub fn new(helps: Vec<String>) -> Self {
         Self { helps }
     }
-}
 
-impl HelpPage {
+    pub fn handle_event(&mut self, _event: AppEventType) {}
+
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
         let w: usize = content_area.width as usize;

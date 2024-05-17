@@ -358,6 +358,9 @@ impl App {
                 ..vs
             };
             self.app_view_state.view_state = ViewState::CopyDetail(vs);
+
+            let page = self.page_stack.current_page_mut().as_mut_object_detail();
+            page.select_next_copy_detail_item();
         }
     }
 
@@ -382,6 +385,9 @@ impl App {
                 ..vs
             };
             self.app_view_state.view_state = ViewState::CopyDetail(vs);
+
+            let page = self.page_stack.current_page_mut().as_mut_object_detail();
+            page.select_prev_copy_detail_item();
         }
     }
 
@@ -508,19 +514,12 @@ impl App {
     }
 
     pub fn copy_detail_copy_selected_value(&self) {
-        if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
+        if let ViewState::CopyDetail(_) = self.app_view_state.view_state {
             let object_detail_page = self.page_stack.current_page().as_object_detail();
-            let file_detail = object_detail_page.file_detail();
 
-            let value = match vs.selected {
-                CopyDetailViewItemType::Key => &file_detail.key,
-                CopyDetailViewItemType::S3Uri => &file_detail.s3_uri,
-                CopyDetailViewItemType::Arn => &file_detail.arn,
-                CopyDetailViewItemType::ObjectUrl => &file_detail.object_url,
-                CopyDetailViewItemType::Etag => &file_detail.e_tag,
-            };
-            let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
-            self.tx.send(AppEventType::CopyToClipboard(name, value));
+            if let Some((name, value)) = object_detail_page.copy_detail_dialog_selected() {
+                self.tx.send(AppEventType::CopyToClipboard(name, value));
+            }
         }
     }
 
@@ -560,38 +559,36 @@ impl App {
         if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::Detail(vs.before);
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_detail();
+            let page = self.page_stack.current_page_mut().as_mut_object_detail();
             page.close_copy_detail_dialog();
-            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
     pub fn preview_scroll_forward(&mut self) {
-        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
-            if vs.offset < vs.preview_len - 1 {
-                vs.offset = vs.offset.saturating_add(1);
-            }
+        if let ViewState::Preview(_) = self.app_view_state.view_state {
+            let page = self.page_stack.current_page_mut().as_mut_object_preview();
+            page.scroll_forward();
         }
     }
 
     pub fn preview_scroll_backward(&mut self) {
-        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
-            if vs.offset > 0 {
-                vs.offset = vs.offset.saturating_sub(1);
-            }
+        if let ViewState::Preview(_) = self.app_view_state.view_state {
+            let page = self.page_stack.current_page_mut().as_mut_object_preview();
+            page.scroll_backward();
         }
     }
 
     pub fn preview_scroll_to_top(&mut self) {
-        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
-            vs.offset = 0;
+        if let ViewState::Preview(_) = self.app_view_state.view_state {
+            let page = self.page_stack.current_page_mut().as_mut_object_preview();
+            page.scroll_to_top();
         }
     }
 
     pub fn preview_scroll_to_end(&mut self) {
-        if let ViewState::Preview(ref mut vs) = self.app_view_state.view_state {
-            vs.offset = vs.preview_len - 1;
+        if let ViewState::Preview(_) = self.app_view_state.view_state {
+            let page = self.page_stack.current_page_mut().as_mut_object_preview();
+            page.scroll_to_end();
         }
     }
 
@@ -715,10 +712,8 @@ impl App {
                 }
             }
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_detail();
+            let page = self.page_stack.current_page_mut().as_mut_object_detail();
             page.toggle_tab();
-            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -762,10 +757,8 @@ impl App {
         if let ViewState::Detail(vs) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::DetailSave(DetailSaveViewState::new(vs));
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_detail();
+            let page = self.page_stack.current_page_mut().as_mut_object_detail();
             page.open_save_dialog();
-            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -782,10 +775,8 @@ impl App {
             self.app_view_state.view_state =
                 ViewState::PreviewSave(PreviewSaveViewState::new(*vs.clone()));
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_preview();
+            let page = self.page_stack.current_page_mut().as_mut_object_preview();
             page.open_save_dialog();
-            self.page_stack.push(Page::from_object_preview_page(page));
         }
     }
 
@@ -804,10 +795,8 @@ impl App {
         if let ViewState::Detail(vs) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::CopyDetail(CopyDetailViewState::new(vs));
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_detail();
+            let page = self.page_stack.current_page_mut().as_mut_object_detail();
             page.open_copy_detail_dialog();
-            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -974,18 +963,18 @@ impl App {
             let object_detail_page = self.page_stack.current_page().as_object_detail();
             let file_detail = object_detail_page.file_detail();
 
-            let input = vs.input.trim().to_string();
-            if !input.is_empty() {
-                self.tx
-                    .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
-                self.app_view_state.is_loading = true;
-            }
-            self.app_view_state.view_state = ViewState::Detail(vs.before);
+            if let Some(input) = object_detail_page.save_dialog_key_input() {
+                let input = input.trim().to_string();
+                if !input.is_empty() {
+                    self.tx
+                        .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
+                    self.app_view_state.is_loading = true;
+                }
+                self.app_view_state.view_state = ViewState::Detail(vs.before);
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_detail();
-            page.close_save_dialog();
-            self.page_stack.push(Page::from_object_detail_page(page));
+                let page = self.page_stack.current_page_mut().as_mut_object_detail();
+                page.close_save_dialog();
+            }
         }
     }
 
@@ -994,18 +983,18 @@ impl App {
             let object_preview_page = self.page_stack.current_page().as_object_preview();
             let file_detail = object_preview_page.file_detail();
 
-            let input = vs.input.trim().to_string();
-            if !input.is_empty() {
-                self.tx
-                    .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
-                self.app_view_state.is_loading = true;
-            }
-            self.app_view_state.view_state = ViewState::Preview(Box::new(vs.before.clone()));
+            if let Some(input) = object_preview_page.save_dialog_key_input() {
+                let input = input.trim().to_string();
+                if !input.is_empty() {
+                    self.tx
+                        .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
+                    self.app_view_state.is_loading = true;
+                }
+                self.app_view_state.view_state = ViewState::Preview(Box::new(vs.before.clone()));
 
-            let page = self.page_stack.pop();
-            let mut page = page.into_mut_object_preview();
-            page.close_save_dialog();
-            self.page_stack.push(Page::from_object_preview_page(page));
+                let page = self.page_stack.current_page_mut().as_mut_object_preview();
+                page.close_save_dialog();
+            }
         }
     }
 
@@ -1018,29 +1007,6 @@ impl App {
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
             }
-        }
-    }
-
-    pub fn key_input(&mut self, input: AppKeyInput) {
-        fn update(app_key_input: AppKeyInput, input: &mut String, cursor: &mut u16) {
-            match app_key_input {
-                AppKeyInput::Char(c) => {
-                    if c == '?' {
-                        return;
-                    }
-                    input.push(c);
-                    *cursor = cursor.saturating_add(1);
-                }
-                AppKeyInput::Backspace => {
-                    input.pop();
-                    *cursor = cursor.saturating_sub(1);
-                }
-            }
-        }
-        match self.app_view_state.view_state {
-            ViewState::DetailSave(ref mut vs) => update(input, &mut vs.input, &mut vs.cursor),
-            ViewState::PreviewSave(ref mut vs) => update(input, &mut vs.input, &mut vs.cursor),
-            _ => {}
         }
     }
 

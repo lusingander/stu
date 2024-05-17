@@ -6,7 +6,11 @@ use ratatui::{
     Frame,
 };
 
-use crate::{object::FileDetail, widget::Dialog};
+use crate::{
+    event::{AppEventType, AppKeyInput},
+    object::FileDetail,
+    widget::Dialog,
+};
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 
@@ -38,20 +42,12 @@ impl ObjectPreviewPage {
         }
     }
 
-    pub fn open_save_dialog(&mut self) {
-        self.save_dialog_state = Some(SaveDialogState::default());
+    pub fn handle_event(&mut self, event: AppEventType) {
+        if let AppEventType::KeyInput(input) = event {
+            self.handle_key_input(input);
+        }
     }
 
-    pub fn close_save_dialog(&mut self) {
-        self.save_dialog_state = None;
-    }
-
-    pub fn file_detail(&self) -> &FileDetail {
-        &self.file_detail
-    }
-}
-
-impl ObjectPreviewPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
 
@@ -112,6 +108,60 @@ impl ObjectPreviewPage {
             let cursor_y = area.y + 1;
             f.set_cursor(cursor_x, cursor_y);
         }
+    }
+
+    pub fn open_save_dialog(&mut self) {
+        self.save_dialog_state = Some(SaveDialogState::default());
+    }
+
+    pub fn close_save_dialog(&mut self) {
+        self.save_dialog_state = None;
+    }
+
+    pub fn scroll_forward(&mut self) {
+        if self.offset < self.preview.len() - 1 {
+            self.offset = self.offset.saturating_add(1);
+        }
+    }
+
+    pub fn scroll_backward(&mut self) {
+        if self.offset > 0 {
+            self.offset = self.offset.saturating_sub(1);
+        }
+    }
+
+    pub fn scroll_to_top(&mut self) {
+        self.offset = 0;
+    }
+
+    pub fn scroll_to_end(&mut self) {
+        self.offset = self.preview.len() - 1;
+    }
+
+    fn handle_key_input(&mut self, input: AppKeyInput) {
+        if let Some(ref mut state) = self.save_dialog_state {
+            match input {
+                AppKeyInput::Char(c) => {
+                    if c == '?' {
+                        return;
+                    }
+                    state.input.push(c);
+                    state.cursor = state.cursor.saturating_add(1);
+                }
+                AppKeyInput::Backspace => {
+                    state.input.pop();
+                    state.cursor = state.cursor.saturating_sub(1);
+                }
+            }
+        }
+    }
+
+    pub fn file_detail(&self) -> &FileDetail {
+        &self.file_detail
+    }
+
+    pub fn save_dialog_key_input(&self) -> Option<String> {
+        self.save_dialog_state.as_ref().map(|s| s.input.clone())
     }
 }
 

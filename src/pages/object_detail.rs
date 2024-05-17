@@ -13,6 +13,7 @@ use ratatui::{
 use crate::{
     app::CopyDetailViewItemType,
     component::AppListState,
+    event::{AppEventType, AppKeyInput},
     object::{FileDetail, FileVersion, ObjectItem},
     util::digits,
     widget::Dialog,
@@ -73,39 +74,12 @@ impl ObjectDetailPage {
         }
     }
 
-    pub fn toggle_tab(&mut self) {
-        match self.tab {
-            Tab::Detail => {
-                self.tab = Tab::Version;
-            }
-            Tab::Version => {
-                self.tab = Tab::Detail;
-            }
+    pub fn handle_event(&mut self, event: AppEventType) {
+        if let AppEventType::KeyInput(input) = event {
+            self.handle_key_input(input);
         }
     }
 
-    pub fn open_save_dialog(&mut self) {
-        self.save_dialog_state = Some(SaveDialogState::default());
-    }
-
-    pub fn close_save_dialog(&mut self) {
-        self.save_dialog_state = None;
-    }
-
-    pub fn open_copy_detail_dialog(&mut self) {
-        self.copy_detail_dialog_state = Some(CopyDetailDialogState::default());
-    }
-
-    pub fn close_copy_detail_dialog(&mut self) {
-        self.copy_detail_dialog_state = None;
-    }
-
-    pub fn file_detail(&self) -> &FileDetail {
-        &self.file_detail
-    }
-}
-
-impl ObjectDetailPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let chunks = Layout::horizontal(Constraint::from_percentages([50, 50])).split(area);
 
@@ -220,6 +194,84 @@ impl ObjectDetailPage {
             let dialog = Dialog::new(Box::new(list));
             f.render_widget_ref(dialog, area);
         }
+    }
+
+    pub fn toggle_tab(&mut self) {
+        match self.tab {
+            Tab::Detail => {
+                self.tab = Tab::Version;
+            }
+            Tab::Version => {
+                self.tab = Tab::Detail;
+            }
+        }
+    }
+
+    pub fn open_save_dialog(&mut self) {
+        self.save_dialog_state = Some(SaveDialogState::default());
+    }
+
+    pub fn close_save_dialog(&mut self) {
+        self.save_dialog_state = None;
+    }
+
+    pub fn open_copy_detail_dialog(&mut self) {
+        self.copy_detail_dialog_state = Some(CopyDetailDialogState::default());
+    }
+
+    pub fn close_copy_detail_dialog(&mut self) {
+        self.copy_detail_dialog_state = None;
+    }
+
+    pub fn select_next_copy_detail_item(&mut self) {
+        if let Some(ref mut state) = self.copy_detail_dialog_state {
+            state.selected = state.selected.next();
+        }
+    }
+
+    pub fn select_prev_copy_detail_item(&mut self) {
+        if let Some(ref mut state) = self.copy_detail_dialog_state {
+            state.selected = state.selected.prev();
+        }
+    }
+
+    fn handle_key_input(&mut self, input: AppKeyInput) {
+        if let Some(ref mut state) = self.save_dialog_state {
+            match input {
+                AppKeyInput::Char(c) => {
+                    if c == '?' {
+                        return;
+                    }
+                    state.input.push(c);
+                    state.cursor = state.cursor.saturating_add(1);
+                }
+                AppKeyInput::Backspace => {
+                    state.input.pop();
+                    state.cursor = state.cursor.saturating_sub(1);
+                }
+            }
+        }
+    }
+
+    pub fn file_detail(&self) -> &FileDetail {
+        &self.file_detail
+    }
+
+    pub fn save_dialog_key_input(&self) -> Option<String> {
+        self.save_dialog_state.as_ref().map(|s| s.input.clone())
+    }
+
+    pub fn copy_detail_dialog_selected(&self) -> Option<(String, String)> {
+        self.copy_detail_dialog_state.as_ref().map(|s| {
+            let value = match s.selected {
+                CopyDetailViewItemType::Key => &self.file_detail.key,
+                CopyDetailViewItemType::S3Uri => &self.file_detail.s3_uri,
+                CopyDetailViewItemType::Arn => &self.file_detail.arn,
+                CopyDetailViewItemType::ObjectUrl => &self.file_detail.object_url,
+                CopyDetailViewItemType::Etag => &self.file_detail.e_tag,
+            };
+            (s.selected.name().to_owned(), value.to_owned())
+        })
     }
 }
 

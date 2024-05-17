@@ -1,5 +1,7 @@
 use ratatui::{layout::Rect, widgets::Block, Frame};
 
+use crate::event::AppEventType;
+
 #[derive(Debug)]
 pub struct InitializingPage {}
 
@@ -7,9 +9,9 @@ impl InitializingPage {
     pub fn new() -> Self {
         Self {}
     }
-}
 
-impl InitializingPage {
+    pub fn handle_event(&mut self, _event: AppEventType) {}
+
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content = Block::bordered();
         f.render_widget(content, area);

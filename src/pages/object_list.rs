@@ -7,7 +7,10 @@ use ratatui::{
     Frame,
 };
 
-use crate::{component::AppListState, object::ObjectItem, util::digits, widget::ScrollBar};
+use crate::{
+    component::AppListState, event::AppEventType, object::ObjectItem, util::digits,
+    widget::ScrollBar,
+};
 
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
@@ -26,9 +29,9 @@ impl ObjectListPage {
             list_state: AppListState::default(),
         }
     }
-}
 
-impl ObjectListPage {
+    pub fn handle_event(&mut self, _event: AppEventType) {}
+
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         // todo: reconsider list state management
         self.list_state.height = area.height as usize - 2 /* border */;
