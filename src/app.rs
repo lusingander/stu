@@ -177,14 +177,15 @@ impl App {
             Page::Initializing(_) => ViewStateTag::Initializing,
             Page::BucketList(_) => ViewStateTag::BucketList,
             Page::ObjectList(_) => ViewStateTag::ObjectList,
-            Page::ObjectDetail(_) => {
-                // fixme: consider page status
-                ViewStateTag::Detail
-            }
-            Page::ObjectPreview(_) => {
-                // fixme: consider page status
-                ViewStateTag::Preview
-            }
+            Page::ObjectDetail(p) => match p.status() {
+                (true, false) => ViewStateTag::DetailSave,
+                (false, true) => ViewStateTag::CopyDetail,
+                _ => ViewStateTag::Detail,
+            },
+            Page::ObjectPreview(p) => match p.status() {
+                true => ViewStateTag::PreviewSave,
+                _ => ViewStateTag::Preview,
+            },
             Page::Help(_) => ViewStateTag::Help,
         }
     }

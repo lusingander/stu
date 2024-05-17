@@ -282,6 +282,13 @@ impl ObjectDetailPage {
             (s.selected.name().to_owned(), value.to_owned())
         })
     }
+
+    pub fn status(&self) -> (bool, bool) {
+        (
+            self.save_dialog_state.is_some(),
+            self.copy_detail_dialog_state.is_some(),
+        )
+    }
 }
 
 fn build_list_items_from_object_items(

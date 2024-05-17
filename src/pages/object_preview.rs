@@ -186,6 +186,10 @@ impl ObjectPreviewPage {
     pub fn path(&self) -> &str {
         &self.path
     }
+
+    pub fn status(&self) -> bool {
+        self.save_dialog_state.is_some()
+    }
 }
 
 fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
