@@ -12,6 +12,7 @@ use crate::{component::AppListState, object::ObjectItem, util::digits, widget::S
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 
+#[derive(Debug)]
 pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
 

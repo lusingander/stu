@@ -11,6 +11,7 @@ use crate::{component::AppListState, object::BucketItem, util::digits, widget::S
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 
+#[derive(Debug)]
 pub struct BucketListPage {
     bucket_items: Vec<BucketItem>,
 

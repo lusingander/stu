@@ -16,6 +16,7 @@ use crate::{
     file::{copy_to_clipboard, save_binary, save_error_log},
     keys::AppKeyActionManager,
     object::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
+    pages::page::Page,
     util::{digits, to_preview_string},
 };
 
@@ -41,7 +42,7 @@ zero_indexed_enum! {
     ]
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct DetailSaveViewState {
     pub input: String,
     pub cursor: u16,
@@ -58,7 +59,7 @@ impl DetailSaveViewState {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct PreviewSaveViewState {
     pub input: String,
     pub cursor: u16,
@@ -75,14 +76,14 @@ impl PreviewSaveViewState {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct CopyDetailViewState {
     pub selected: CopyDetailViewItemType,
     pub before: DetailViewState,
 }
 
 impl CopyDetailViewState {
-    fn new(before: DetailViewState) -> CopyDetailViewState {
+    pub fn new(before: DetailViewState) -> CopyDetailViewState {
         CopyDetailViewState {
             selected: CopyDetailViewItemType::Key,
             before,
@@ -113,7 +114,7 @@ impl CopyDetailViewItemType {
     }
 }
 
-#[derive(Clone)] // fixme: object size can be large...
+#[derive(Debug, Clone)] // fixme: object size can be large...
 pub struct PreviewViewState {
     pub preview: Vec<String>,
     pub preview_len: usize,
@@ -201,9 +202,42 @@ impl AppViewState {
     }
 }
 
+pub struct PageStack {
+    stack: Vec<Page>,
+}
+
+impl PageStack {
+    fn new() -> PageStack {
+        PageStack {
+            stack: vec![Page::of_initializing()],
+        }
+    }
+
+    fn push(&mut self, page: Page) {
+        self.stack.push(page);
+    }
+
+    fn pop(&mut self) -> Page {
+        self.stack.pop().unwrap()
+    }
+
+    pub fn clear(&mut self) {
+        self.stack.truncate(1);
+    }
+
+    pub fn current_page(&self) -> &Page {
+        self.stack.last().unwrap()
+    }
+
+    pub fn current_page_mut(&mut self) -> &mut Page {
+        self.stack.last_mut().unwrap()
+    }
+}
+
 pub struct App {
     pub action_manager: AppKeyActionManager,
     pub app_view_state: AppViewState,
+    pub page_stack: PageStack,
     app_objects: AppObjects,
     current_bucket: Option<BucketItem>,
     current_path: Vec<String>,
@@ -220,6 +254,7 @@ impl App {
             app_objects: AppObjects::new(),
             current_bucket: None,
             current_path: Vec::new(),
+            page_stack: PageStack::new(),
             client: None,
             config: None,
             tx,
@@ -246,6 +281,13 @@ impl App {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_bucket_items(buckets);
                 self.app_view_state.view_state = ViewState::BucketList;
+
+                let bucket_list_page = Page::of_bucket_list(
+                    self.bucket_items(),
+                    self.app_view_state.current_list_state().to_owned(),
+                );
+                self.page_stack.pop(); // remove initializing page
+                self.page_stack.push(bucket_list_page);
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -519,7 +561,13 @@ impl App {
                 self.app_view_state.push_new_list_state();
                 self.app_view_state.view_state = ViewState::ObjectList;
 
-                if !self.exists_current_objects() {
+                if self.exists_current_objects() {
+                    let object_list_page = Page::of_object_list(
+                        self.current_object_items(),
+                        self.app_view_state.current_list_state().to_owned(),
+                    );
+                    self.page_stack.push(object_list_page);
+                } else {
                     self.tx.send(AppEventType::LoadObjects);
                     self.app_view_state.is_loading = true;
                 }
@@ -533,6 +581,17 @@ impl App {
                 if let ObjectItem::File { .. } = selected {
                     if self.exists_current_object_detail() {
                         self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+
+                        let detail = self.get_current_file_detail().unwrap();
+                        let versions = self.get_current_file_versions().unwrap();
+                        let object_detail_page = Page::of_object_detail(
+                            self.current_object_items(),
+                            detail.clone(),
+                            versions.clone(),
+                            DetailViewState::Detail,
+                            self.app_view_state.current_list_state().to_owned(),
+                        );
+                        self.page_stack.push(object_detail_page);
                     } else {
                         self.tx.send(AppEventType::LoadObject);
                         self.app_view_state.is_loading = true;
@@ -541,7 +600,13 @@ impl App {
                     self.current_path.push(selected.name().to_owned());
                     self.app_view_state.push_new_list_state();
 
-                    if !self.exists_current_objects() {
+                    if self.exists_current_objects() {
+                        let object_list_page = Page::of_object_list(
+                            self.current_object_items(),
+                            self.app_view_state.current_list_state().to_owned(),
+                        );
+                        self.page_stack.push(object_list_page);
+                    } else {
                         self.tx.send(AppEventType::LoadObjects);
                         self.app_view_state.is_loading = true;
                     }
@@ -592,18 +657,26 @@ impl App {
                 self.current_bucket = None;
             }
             self.app_view_state.pop_current_list_state();
+            self.page_stack.pop();
         }
     }
 
     pub fn detail_close(&mut self) {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::ObjectList;
+
+            self.page_stack.pop(); // remove detail page
         }
     }
 
     pub fn copy_detail_close(&mut self) {
         if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::Detail(vs.before);
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_detail();
+            page.close_copy_detail_dialog();
+            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -638,6 +711,8 @@ impl App {
     pub fn preview_close(&mut self) {
         if let ViewState::Preview(_) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+
+            self.page_stack.pop(); // remove preview page
         }
     }
 
@@ -656,6 +731,7 @@ impl App {
             self.current_bucket = None;
             self.current_path.clear();
             self.app_view_state.clear_list_state();
+            self.page_stack.clear();
         }
     }
 
@@ -675,6 +751,12 @@ impl App {
             Ok(CompleteLoadObjectsResult { items }) => {
                 self.app_objects
                     .set_object_items(self.current_object_key().to_owned(), items);
+
+                let object_list_page = Page::of_object_list(
+                    self.current_object_items(),
+                    self.app_view_state.current_list_state().to_owned(),
+                );
+                self.page_stack.push(object_list_page);
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -717,8 +799,17 @@ impl App {
                 map_key,
             }) => {
                 self.app_objects
-                    .set_object_details(map_key, *detail, versions);
+                    .set_object_details(map_key, *detail.clone(), versions.clone());
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
+
+                let object_detail_page = Page::of_object_detail(
+                    self.current_object_items(),
+                    *detail.clone(),
+                    versions.clone(),
+                    DetailViewState::Detail,
+                    self.app_view_state.current_list_state().to_owned(),
+                );
+                self.page_stack.push(object_detail_page);
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -737,6 +828,11 @@ impl App {
                     self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
                 }
             }
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_detail();
+            page.toggle_tab();
+            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -745,6 +841,8 @@ impl App {
             ViewState::Initializing => {}
             ViewState::Help(before) => {
                 self.app_view_state.view_state = *before.clone();
+
+                self.page_stack.pop(); // remove help page
             }
             ViewState::BucketList
             | ViewState::ObjectList
@@ -754,7 +852,11 @@ impl App {
             | ViewState::Preview(_)
             | ViewState::PreviewSave(_) => {
                 let before = self.app_view_state.view_state.clone();
-                self.app_view_state.view_state = ViewState::Help(Box::new(before));
+                self.app_view_state.view_state = ViewState::Help(Box::new(before.clone()));
+
+                let helps = self.action_manager.helps(&before);
+                let help_page = Page::of_help(helps.clone());
+                self.page_stack.push(help_page);
             }
         }
     }
@@ -768,7 +870,12 @@ impl App {
 
     pub fn detail_open_download_object_as(&mut self) {
         if let ViewState::Detail(vs) = self.app_view_state.view_state {
-            self.app_view_state.view_state = ViewState::DetailSave(DetailSaveViewState::new(vs))
+            self.app_view_state.view_state = ViewState::DetailSave(DetailSaveViewState::new(vs));
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_detail();
+            page.open_save_dialog();
+            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -783,7 +890,12 @@ impl App {
     pub fn preview_open_download_object_as(&mut self) {
         if let ViewState::Preview(vs) = &self.app_view_state.view_state {
             self.app_view_state.view_state =
-                ViewState::PreviewSave(PreviewSaveViewState::new(*vs.clone()))
+                ViewState::PreviewSave(PreviewSaveViewState::new(*vs.clone()));
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_preview();
+            page.open_save_dialog();
+            self.page_stack.push(Page::from_object_preview_page(page));
         }
     }
 
@@ -797,6 +909,11 @@ impl App {
     pub fn detail_open_copy_details(&mut self) {
         if let ViewState::Detail(vs) = self.app_view_state.view_state {
             self.app_view_state.view_state = ViewState::CopyDetail(CopyDetailViewState::new(vs));
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_detail();
+            page.open_copy_detail_dialog();
+            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -843,8 +960,17 @@ impl App {
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
         match result {
             Ok(CompletePreviewObjectResult { obj, path }) => {
+                let preview_view_state = PreviewViewState::new(obj, path);
                 self.app_view_state.view_state =
-                    ViewState::Preview(Box::new(PreviewViewState::new(obj, path)));
+                    ViewState::Preview(Box::new(preview_view_state.clone()));
+
+                let current_file_detail = self.get_current_file_detail().unwrap().clone();
+                let preview_page = Page::of_object_preview(
+                    current_file_detail,
+                    preview_view_state.preview,
+                    preview_view_state.preview_max_digits,
+                );
+                self.page_stack.push(preview_page);
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -944,6 +1070,11 @@ impl App {
                 self.app_view_state.is_loading = true;
             }
             self.app_view_state.view_state = ViewState::Detail(vs.before);
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_detail();
+            page.close_save_dialog();
+            self.page_stack.push(Page::from_object_detail_page(page));
         }
     }
 
@@ -955,6 +1086,11 @@ impl App {
                 self.app_view_state.is_loading = true;
             }
             self.app_view_state.view_state = ViewState::Preview(Box::new(vs.before.clone()));
+
+            let page = self.page_stack.pop();
+            let mut page = page.into_mut_object_preview();
+            page.close_save_dialog();
+            self.page_stack.push(Page::from_object_preview_page(page));
         }
     }
 

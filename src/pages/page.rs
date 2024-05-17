@@ -1,11 +1,15 @@
-use ratatui::{layout::Rect, Frame};
-
-use crate::pages::{
-    bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
-    object_detail::ObjectDetailPage, object_list::ObjectListPage,
-    object_preview::ObjectPreviewPage,
+use crate::{
+    app::DetailViewState,
+    component::AppListState,
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
+    pages::{
+        bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
+        object_detail::ObjectDetailPage, object_list::ObjectListPage,
+        object_preview::ObjectPreviewPage,
+    },
 };
 
+#[derive(Debug)]
 pub enum Page {
     Initializing(Box<InitializingPage>),
     BucketList(Box<BucketListPage>),
@@ -16,14 +20,73 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn render(&mut self, f: &mut Frame, area: Rect) {
+    pub fn of_initializing() -> Self {
+        Self::Initializing(Box::new(InitializingPage::new()))
+    }
+
+    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, list_state: AppListState) -> Self {
+        Self::BucketList(Box::new(BucketListPage::new(bucket_items, list_state)))
+    }
+
+    pub fn of_object_list(object_items: Vec<ObjectItem>, list_state: AppListState) -> Self {
+        Self::ObjectList(Box::new(ObjectListPage::new(object_items, list_state)))
+    }
+
+    pub fn of_object_detail(
+        object_items: Vec<ObjectItem>,
+        file_detail: FileDetail,
+        file_versions: Vec<FileVersion>,
+        vs: DetailViewState,
+        list_state: AppListState,
+    ) -> Self {
+        Self::ObjectDetail(Box::new(ObjectDetailPage::new(
+            object_items,
+            file_detail,
+            file_versions,
+            vs,
+            None,
+            None,
+            list_state,
+        )))
+    }
+
+    pub fn from_object_detail_page(page: ObjectDetailPage) -> Self {
+        Self::ObjectDetail(Box::new(page))
+    }
+
+    pub fn of_object_preview(
+        file_detail: FileDetail,
+        preview: Vec<String>,
+        preview_max_digits: usize,
+    ) -> Self {
+        Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
+            file_detail,
+            preview,
+            preview_max_digits,
+            0,
+            None,
+        )))
+    }
+
+    pub fn from_object_preview_page(page: ObjectPreviewPage) -> Self {
+        Self::ObjectPreview(Box::new(page))
+    }
+
+    pub fn of_help(helps: Vec<String>) -> Self {
+        Self::Help(Box::new(HelpPage::new(helps)))
+    }
+
+    pub fn into_mut_object_detail(self) -> ObjectDetailPage {
         match self {
-            Self::Initializing(page) => page.render(f, area),
-            Self::BucketList(page) => page.render(f, area),
-            Self::ObjectList(page) => page.render(f, area),
-            Self::ObjectDetail(page) => page.render(f, area),
-            Self::ObjectPreview(page) => page.render(f, area),
-            Self::Help(page) => page.render(f, area),
+            Self::ObjectDetail(page) => *page,
+            page => panic!("Page is not ObjectDetail: {:?}", page),
+        }
+    }
+
+    pub fn into_mut_object_preview(self) -> ObjectPreviewPage {
+        match self {
+            Self::ObjectPreview(page) => *page,
+            page => panic!("Page is not ObjectPreview: {:?}", page),
         }
     }
 }

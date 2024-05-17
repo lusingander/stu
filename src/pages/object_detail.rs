@@ -22,6 +22,7 @@ const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 const DIVIDER_COLOR: Color = Color::DarkGray;
 
+#[derive(Debug)]
 pub struct ObjectDetailPage {
     object_items: Vec<ObjectItem>,
     file_detail: FileDetail,
@@ -52,6 +53,33 @@ impl ObjectDetailPage {
             cvs,
             list_state,
         }
+    }
+
+    pub fn toggle_tab(&mut self) {
+        match self.vs {
+            DetailViewState::Detail => {
+                self.vs = DetailViewState::Version;
+            }
+            DetailViewState::Version => {
+                self.vs = DetailViewState::Detail;
+            }
+        }
+    }
+
+    pub fn open_save_dialog(&mut self) {
+        self.svs = Some(DetailSaveViewState::new(self.vs));
+    }
+
+    pub fn close_save_dialog(&mut self) {
+        self.svs = None;
+    }
+
+    pub fn open_copy_detail_dialog(&mut self) {
+        self.cvs = Some(CopyDetailViewState::new(self.vs));
+    }
+
+    pub fn close_copy_detail_dialog(&mut self) {
+        self.cvs = None;
     }
 }
 

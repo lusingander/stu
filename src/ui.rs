@@ -7,15 +7,8 @@ use ratatui::{
 };
 
 use crate::{
-    app::{
-        App, CopyDetailViewState, DetailSaveViewState, DetailViewState, Notification,
-        PreviewSaveViewState, PreviewViewState, ViewState,
-    },
-    pages::{
-        bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
-        object_detail::ObjectDetailPage, object_list::ObjectListPage,
-        object_preview::ObjectPreviewPage,
-    },
+    app::{App, Notification},
+    pages::page::Page,
     util,
     widget::{Dialog, Header},
 };
@@ -25,169 +18,45 @@ const INFO_STATUS_COLOR: Color = Color::Blue;
 const SUCCESS_STATUS_COLOR: Color = Color::Green;
 const ERROR_STATUS_COLOR: Color = Color::Red;
 
-pub fn render(f: &mut Frame, app: &App) {
-    let chunks = Layout::vertical([Constraint::Min(0), Constraint::Length(2)]).split(f.size());
+pub fn render(f: &mut Frame, app: &mut App) {
+    let chunks = Layout::vertical([
+        Constraint::Length(header_height(app)),
+        Constraint::Min(0),
+        Constraint::Length(2),
+    ])
+    .split(f.size());
 
-    render_content(f, chunks[0], app);
-    render_footer(f, chunks[1], app);
+    render_header(f, chunks[0], app);
+    render_content(f, chunks[1], app);
+    render_footer(f, chunks[2], app);
     render_loading_dialog(f, app);
 }
 
-fn render_content(f: &mut Frame, area: Rect, app: &App) {
-    match &app.app_view_state.view_state {
-        ViewState::Initializing => render_initializing_view(f, area, app),
-        ViewState::BucketList => render_bucket_list_view(f, area, app),
-        ViewState::ObjectList => render_object_list_view(f, area, app),
-        ViewState::Detail(vs) => render_detail_view(f, area, app, vs),
-        ViewState::DetailSave(vs) => render_detail_save_view(f, area, app, vs),
-        ViewState::CopyDetail(vs) => render_copy_detail_view(f, area, app, vs),
-        ViewState::Preview(vs) => render_preview_view(f, area, app, vs),
-        ViewState::PreviewSave(vs) => render_preview_save_view(f, area, app, vs),
-        ViewState::Help(before) => render_help_view(f, area, app, before),
+fn header_height(app: &App) -> u16 {
+    match app.page_stack.current_page() {
+        Page::Help(_) => 0, // Hide header
+        _ => 3,
     }
 }
 
-fn render_initializing_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
+fn render_header(f: &mut Frame, area: Rect, app: &App) {
+    if area.is_empty() {
+        return;
+    }
 
     let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let mut page = InitializingPage::new();
-    page.render(f, chunks[1]);
+    f.render_widget(header, area);
 }
 
-fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_items = app.bucket_items();
-
-    let mut page = BucketListPage::new(current_items, *app.app_view_state.current_list_state());
-    page.render(f, chunks[1]);
-}
-
-fn render_object_list_view(f: &mut Frame, area: Rect, app: &App) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_items = app.current_object_items();
-
-    let mut page = ObjectListPage::new(current_items, *app.app_view_state.current_list_state());
-    page.render(f, chunks[1]);
-}
-
-fn render_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailViewState) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_items = app.current_object_items();
-    let current_file_detail = app.get_current_file_detail().unwrap();
-    let current_file_versions = app.get_current_file_versions().unwrap();
-
-    let mut page = ObjectDetailPage::new(
-        current_items,
-        current_file_detail.clone(),
-        current_file_versions.clone(),
-        *vs,
-        None,
-        None,
-        *app.app_view_state.current_list_state(),
-    );
-    page.render(f, chunks[1]);
-}
-
-fn render_detail_save_view(f: &mut Frame, area: Rect, app: &App, vs: &DetailSaveViewState) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_items = app.current_object_items();
-    let current_file_detail = app.get_current_file_detail().unwrap();
-    let current_file_versions = app.get_current_file_versions().unwrap();
-
-    let mut page = ObjectDetailPage::new(
-        current_items,
-        current_file_detail.clone(),
-        current_file_versions.clone(),
-        vs.before,
-        Some(vs.clone()),
-        None,
-        *app.app_view_state.current_list_state(),
-    );
-    page.render(f, chunks[1]);
-}
-
-fn render_copy_detail_view(f: &mut Frame, area: Rect, app: &App, vs: &CopyDetailViewState) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_items = app.current_object_items();
-    let current_file_detail = app.get_current_file_detail().unwrap();
-    let current_file_versions = app.get_current_file_versions().unwrap();
-
-    let mut page = ObjectDetailPage::new(
-        current_items,
-        current_file_detail.clone(),
-        current_file_versions.clone(),
-        vs.before,
-        None,
-        Some(*vs),
-        *app.app_view_state.current_list_state(),
-    );
-    page.render(f, chunks[1]);
-}
-
-fn render_preview_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewViewState) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_file_detail = app.get_current_file_detail().unwrap();
-
-    let mut page = ObjectPreviewPage::new(
-        current_file_detail.clone(),
-        vs.preview.clone(),
-        vs.preview_max_digits,
-        vs.offset,
-        None,
-    );
-    page.render(f, chunks[1]);
-}
-
-fn render_preview_save_view(f: &mut Frame, area: Rect, app: &App, vs: &PreviewSaveViewState) {
-    let chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(0)]).split(area);
-
-    let header = Header::new(app.breadcrumb_strs());
-    f.render_widget(header, chunks[0]);
-
-    let current_file_detail = app.get_current_file_detail().unwrap();
-
-    let mut page = ObjectPreviewPage::new(
-        current_file_detail.clone(),
-        vs.before.preview.clone(),
-        vs.before.preview_max_digits,
-        vs.before.offset,
-        Some(vs.clone()),
-    );
-    page.render(f, chunks[1]);
-}
-
-fn render_help_view(f: &mut Frame, area: Rect, app: &App, before: &ViewState) {
-    let helps = app.action_manager.helps(before);
-
-    let mut page = HelpPage::new(helps.clone());
-    page.render(f, area);
+fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
+    match app.page_stack.current_page_mut() {
+        Page::Initializing(page) => page.render(f, area),
+        Page::BucketList(page) => page.render(f, area),
+        Page::ObjectList(page) => page.render(f, area),
+        Page::ObjectDetail(page) => page.render(f, area),
+        Page::ObjectPreview(page) => page.render(f, area),
+        Page::Help(page) => page.render(f, area),
+    }
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {

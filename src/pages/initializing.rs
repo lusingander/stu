@@ -1,5 +1,6 @@
 use ratatui::{layout::Rect, widgets::Block, Frame};
 
+#[derive(Debug)]
 pub struct InitializingPage {}
 
 impl InitializingPage {

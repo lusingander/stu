@@ -14,6 +14,7 @@ use crate::{
 const DIVIDER_COLOR: Color = Color::DarkGray;
 const LINK_TEXT_COLOR: Color = Color::Blue;
 
+#[derive(Debug)]
 pub struct HelpPage {
     helps: Vec<String>,
 }

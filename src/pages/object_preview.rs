@@ -10,6 +10,7 @@ use crate::{app::PreviewSaveViewState, object::FileDetail, widget::Dialog};
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 
+#[derive(Debug)]
 pub struct ObjectPreviewPage {
     file_detail: FileDetail,
 
@@ -35,6 +36,16 @@ impl ObjectPreviewPage {
             svs,
             offset,
         }
+    }
+
+    pub fn open_save_dialog(&mut self) {
+        // fixme:
+        // self.svs = Some(PreviewSaveViewState::new());
+        unimplemented!()
+    }
+
+    pub fn close_save_dialog(&mut self) {
+        self.svs = None;
     }
 }
 
