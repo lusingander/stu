@@ -1,7 +1,5 @@
 use ratatui::{layout::Rect, widgets::Block, Frame};
 
-use crate::pages::page::Page;
-
 pub struct InitializingPage {}
 
 impl InitializingPage {
@@ -10,8 +8,8 @@ impl InitializingPage {
     }
 }
 
-impl Page for InitializingPage {
-    fn render(&mut self, f: &mut Frame, area: Rect) {
+impl InitializingPage {
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content = Block::bordered();
         f.render_widget(content, area);
     }

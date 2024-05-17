@@ -13,7 +13,6 @@ use crate::{
     app::{CopyDetailViewItemType, CopyDetailViewState, DetailSaveViewState, DetailViewState},
     component::AppListState,
     object::{FileDetail, FileVersion, ObjectItem},
-    pages::page::Page,
     util::digits,
     widget::Dialog,
 };
@@ -56,8 +55,8 @@ impl ObjectDetailPage {
     }
 }
 
-impl Page for ObjectDetailPage {
-    fn render(&mut self, f: &mut Frame, area: Rect) {
+impl ObjectDetailPage {
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let chunks = Layout::horizontal(Constraint::from_percentages([50, 50])).split(area);
 
         let list_state = ListViewState {

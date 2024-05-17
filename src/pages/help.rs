@@ -8,7 +8,6 @@ use ratatui::{
 
 use crate::{
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
-    pages::page::Page,
     util::group_strings_to_fit_width,
 };
 
@@ -25,8 +24,8 @@ impl HelpPage {
     }
 }
 
-impl Page for HelpPage {
-    fn render(&mut self, f: &mut Frame, area: Rect) {
+impl HelpPage {
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
         let w: usize = content_area.width as usize;
 
@@ -50,10 +49,6 @@ impl Page for HelpPage {
         );
 
         f.render_widget(paragraph, area);
-    }
-
-    fn render_header() -> bool {
-        false
     }
 }
 

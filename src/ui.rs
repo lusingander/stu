@@ -12,9 +12,9 @@ use crate::{
         PreviewSaveViewState, PreviewViewState, ViewState,
     },
     pages::{
-        bucket_list::BucketPage, help::HelpPage, initializing::InitializingPage,
+        bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
-        object_preview::ObjectPreviewPage, page::Page,
+        object_preview::ObjectPreviewPage,
     },
     util,
     widget::{Dialog, Header},
@@ -65,7 +65,7 @@ fn render_bucket_list_view(f: &mut Frame, area: Rect, app: &App) {
 
     let current_items = app.bucket_items();
 
-    let mut page = BucketPage::new(current_items, *app.app_view_state.current_list_state());
+    let mut page = BucketListPage::new(current_items, *app.app_view_state.current_list_state());
     page.render(f, chunks[1]);
 }
 

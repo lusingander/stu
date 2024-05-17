@@ -6,20 +6,18 @@ use ratatui::{
     Frame,
 };
 
-use crate::{
-    component::AppListState, object::BucketItem, pages::page::Page, util::digits, widget::ScrollBar,
-};
+use crate::{component::AppListState, object::BucketItem, util::digits, widget::ScrollBar};
 
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 
-pub struct BucketPage {
+pub struct BucketListPage {
     bucket_items: Vec<BucketItem>,
 
     list_state: AppListState,
 }
 
-impl BucketPage {
+impl BucketListPage {
     pub fn new(bucket_items: Vec<BucketItem>, list_state: AppListState) -> Self {
         Self {
             bucket_items,
@@ -28,8 +26,8 @@ impl BucketPage {
     }
 }
 
-impl Page for BucketPage {
-    fn render(&mut self, f: &mut Frame, area: Rect) {
+impl BucketListPage {
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let list_state = ListViewState {
             current_selected: self.list_state.selected,
             current_offset: self.list_state.offset,
@@ -159,7 +157,7 @@ mod tests {
                     name: name.to_string(),
                 })
                 .collect();
-            let mut page = BucketPage::new(items, AppListState::new(10));
+            let mut page = BucketListPage::new(items, AppListState::new(10));
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -197,7 +195,7 @@ mod tests {
                     name: format!("bucket{}", i + 1),
                 })
                 .collect();
-            let mut page = BucketPage::new(items, AppListState::new(10));
+            let mut page = BucketListPage::new(items, AppListState::new(10));
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;

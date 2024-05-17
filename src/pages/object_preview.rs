@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{app::PreviewSaveViewState, object::FileDetail, pages::page::Page, widget::Dialog};
+use crate::{app::PreviewSaveViewState, object::FileDetail, widget::Dialog};
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 
@@ -38,8 +38,8 @@ impl ObjectPreviewPage {
     }
 }
 
-impl Page for ObjectPreviewPage {
-    fn render(&mut self, f: &mut Frame, area: Rect) {
+impl ObjectPreviewPage {
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
 
         let preview_max_digits = self.preview_max_digits;

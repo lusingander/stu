@@ -7,9 +7,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{
-    component::AppListState, object::ObjectItem, pages::page::Page, util::digits, widget::ScrollBar,
-};
+use crate::{component::AppListState, object::ObjectItem, util::digits, widget::ScrollBar};
 
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
@@ -29,8 +27,8 @@ impl ObjectListPage {
     }
 }
 
-impl Page for ObjectListPage {
-    fn render(&mut self, f: &mut Frame, area: Rect) {
+impl ObjectListPage {
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let list_state = ListViewState {
             current_selected: self.list_state.selected,
             current_offset: self.list_state.offset,
