@@ -1,19 +1,11 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub struct AppListState {
     pub selected: usize,
     pub offset: usize,
-    height: usize,
+    pub height: usize,
 }
 
 impl AppListState {
-    pub fn new(height: usize) -> AppListState {
-        AppListState {
-            selected: 0,
-            offset: 0,
-            height,
-        }
-    }
-
     pub fn select_next(&mut self) {
         if self.selected - self.offset == self.height - 1 {
             self.offset += 1;
@@ -72,44 +64,5 @@ impl AppListState {
         if self.height < total {
             self.offset = total - self.height;
         }
-    }
-}
-
-pub struct AppListStates {
-    states: Vec<AppListState>,
-}
-
-impl AppListStates {
-    pub fn new(height: usize) -> AppListStates {
-        AppListStates {
-            states: vec![AppListState::new(height)],
-        }
-    }
-
-    pub fn push_new(&mut self) {
-        let s = self.current();
-        self.states.push(AppListState::new(s.height))
-    }
-
-    pub fn pop_current(&mut self) -> AppListState {
-        self.states.pop().unwrap()
-    }
-
-    pub fn clear(&mut self) {
-        self.states.truncate(1);
-    }
-
-    pub fn current(&self) -> &AppListState {
-        self.states.last().unwrap()
-    }
-
-    pub fn current_mut(&mut self) -> &mut AppListState {
-        self.states.last_mut().unwrap()
-    }
-
-    pub fn reset_height(&mut self, height: usize) {
-        self.states.iter_mut().for_each(|s| {
-            s.height = height;
-        })
     }
 }

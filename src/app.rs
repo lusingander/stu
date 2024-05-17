@@ -5,7 +5,6 @@ use tokio::spawn;
 
 use crate::{
     client::Client,
-    component::{AppListState, AppListStates},
     config::Config,
     error::{AppError, Result},
     event::{
@@ -15,7 +14,7 @@ use crate::{
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     keys::AppKeyActionManager,
-    object::{AppObjects, BucketItem, FileDetail, FileVersion, Object, ObjectItem, ObjectKey},
+    object::{AppObjects, BucketItem, FileDetail, Object, ObjectItem, ObjectKey},
     pages::page::Page,
     util::{digits, to_preview_string},
 };
@@ -154,7 +153,6 @@ pub enum Notification {
 }
 
 pub struct AppViewState {
-    list_states: AppListStates,
     pub view_state: ViewState,
     pub notification: Notification,
     pub is_loading: bool,
@@ -166,7 +164,6 @@ pub struct AppViewState {
 impl AppViewState {
     fn new(width: usize, height: usize) -> AppViewState {
         AppViewState {
-            list_states: AppListStates::new(list_area_height(height)),
             view_state: ViewState::Initializing,
             notification: Notification::None,
             is_loading: true,
@@ -175,30 +172,9 @@ impl AppViewState {
         }
     }
 
-    pub fn push_new_list_state(&mut self) {
-        self.list_states.push_new();
-    }
-
-    pub fn pop_current_list_state(&mut self) {
-        self.list_states.pop_current();
-    }
-
-    pub fn clear_list_state(&mut self) {
-        self.list_states.clear();
-    }
-
-    pub fn current_list_state(&self) -> &AppListState {
-        self.list_states.current()
-    }
-
-    pub fn current_list_state_mut(&mut self) -> &mut AppListState {
-        self.list_states.current_mut()
-    }
-
     pub fn reset_size(&mut self, width: usize, height: usize) {
         self.width = width;
         self.height = height;
-        self.list_states.reset_height(list_area_height(height))
     }
 }
 
@@ -282,10 +258,7 @@ impl App {
                 self.app_objects.set_bucket_items(buckets);
                 self.app_view_state.view_state = ViewState::BucketList;
 
-                let bucket_list_page = Page::of_bucket_list(
-                    self.bucket_items(),
-                    self.app_view_state.current_list_state().to_owned(),
-                );
+                let bucket_list_page = Page::of_bucket_list(self.bucket_items());
                 self.page_stack.pop(); // remove initializing page
                 self.page_stack.push(bucket_list_page);
             }
@@ -347,20 +320,6 @@ impl App {
         }
     }
 
-    fn current_items_len(&self) -> usize {
-        match self.app_view_state.view_state {
-            ViewState::Initializing
-            | ViewState::Detail(_)
-            | ViewState::DetailSave(_)
-            | ViewState::CopyDetail(_)
-            | ViewState::Preview(_)
-            | ViewState::PreviewSave(_)
-            | ViewState::Help(_) => 0,
-            ViewState::BucketList => self.bucket_items().len(),
-            ViewState::ObjectList => self.current_object_items().len(),
-        }
-    }
-
     pub fn bucket_items(&self) -> Vec<BucketItem> {
         self.app_objects.get_bucket_items()
     }
@@ -368,41 +327,6 @@ impl App {
     pub fn current_object_items(&self) -> Vec<ObjectItem> {
         self.app_objects
             .get_object_items(&self.current_object_key())
-    }
-
-    fn get_current_selected_bucket_item(&self) -> Option<&BucketItem> {
-        let i = self.app_view_state.current_list_state().selected;
-        self.app_objects.get_bucket_item(i)
-    }
-
-    fn get_current_selected_object_item(&self) -> Option<&ObjectItem> {
-        let i = self.app_view_state.current_list_state().selected;
-        self.app_objects
-            .get_object_item(&self.current_object_key(), i)
-    }
-
-    pub fn get_current_file_detail(&self) -> Option<&FileDetail> {
-        self.get_current_selected_object_item()
-            .and_then(|selected| {
-                if let ObjectItem::File { name, .. } = selected {
-                    let key = &self.current_object_key_with_name(name.to_string());
-                    self.app_objects.get_object_detail(key)
-                } else {
-                    None
-                }
-            })
-    }
-
-    pub fn get_current_file_versions(&self) -> Option<&Vec<FileVersion>> {
-        self.get_current_selected_object_item()
-            .and_then(|selected| {
-                if let ObjectItem::File { name, .. } = selected {
-                    let key = &self.current_object_key_with_name(name.to_string());
-                    self.app_objects.get_object_versions(key)
-                } else {
-                    None
-                }
-            })
     }
 
     pub fn send_app_key_action(&self, action: AppKeyAction) {
@@ -415,24 +339,16 @@ impl App {
 
     pub fn bucket_list_select_next(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            self.list_select_next();
+            let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+            page.select_next();
         }
     }
 
     pub fn object_list_select_next(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            self.list_select_next();
+            let page = self.page_stack.current_page_mut().as_mut_object_list();
+            page.select_next();
         }
-    }
-
-    fn list_select_next(&mut self) {
-        let current_selected = self.app_view_state.current_list_state().selected;
-        let len = self.current_items_len();
-        if len == 0 || current_selected >= len - 1 {
-            self.app_view_state.current_list_state_mut().select_first();
-        } else {
-            self.app_view_state.current_list_state_mut().select_next();
-        };
     }
 
     pub fn copy_detail_select_next(&mut self) {
@@ -447,28 +363,16 @@ impl App {
 
     pub fn bucket_list_select_prev(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            self.list_select_prev();
+            let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+            page.select_prev();
         }
     }
 
     pub fn object_list_select_prev(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            self.list_select_prev();
+            let page = self.page_stack.current_page_mut().as_mut_object_list();
+            page.select_prev();
         }
-    }
-
-    fn list_select_prev(&mut self) {
-        let current_selected = self.app_view_state.current_list_state().selected;
-        let len = self.current_items_len();
-        if len == 0 {
-            self.app_view_state.current_list_state_mut().select_first();
-        } else if current_selected == 0 {
-            self.app_view_state
-                .current_list_state_mut()
-                .select_last(len);
-        } else {
-            self.app_view_state.current_list_state_mut().select_prev();
-        };
     }
 
     pub fn copy_detail_select_prev(&mut self) {
@@ -483,128 +387,117 @@ impl App {
 
     pub fn bucket_list_select_next_page(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            self.list_select_next_page();
+            let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+            page.select_next_page();
         }
     }
 
     pub fn object_list_select_next_page(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            self.list_select_next_page();
+            let page = self.page_stack.current_page_mut().as_mut_object_list();
+            page.select_next_page();
         }
-    }
-
-    fn list_select_next_page(&mut self) {
-        let len = self.current_items_len();
-        self.app_view_state
-            .current_list_state_mut()
-            .select_next_page(len);
     }
 
     pub fn bucket_list_select_prev_page(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            self.list_select_prev_page();
+            let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+            page.select_prev_page();
         }
     }
 
     pub fn object_list_select_prev_page(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            self.list_select_prev_page();
+            let page = self.page_stack.current_page_mut().as_mut_object_list();
+            page.select_prev_page();
         }
-    }
-
-    fn list_select_prev_page(&mut self) {
-        let len = self.current_items_len();
-        self.app_view_state
-            .current_list_state_mut()
-            .select_prev_page(len);
     }
 
     pub fn bucket_list_select_first(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            self.list_select_first();
+            let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+            page.select_first();
         }
     }
 
     pub fn object_list_select_first(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            self.list_select_first();
+            let page = self.page_stack.current_page_mut().as_mut_object_list();
+            page.select_first();
         }
-    }
-
-    fn list_select_first(&mut self) {
-        self.app_view_state.current_list_state_mut().select_first();
     }
 
     pub fn bucket_list_select_last(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            self.list_select_last();
+            let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+            page.select_last();
         }
     }
 
     pub fn object_list_select_last(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            self.list_select_last();
+            let page = self.page_stack.current_page_mut().as_mut_object_list();
+            page.select_last();
         }
-    }
-
-    fn list_select_last(&mut self) {
-        let len = self.current_items_len();
-        self.app_view_state
-            .current_list_state_mut()
-            .select_last(len);
     }
 
     pub fn bucket_list_move_down(&mut self) {
         if let ViewState::BucketList = self.app_view_state.view_state {
-            if let Some(selected) = self.get_current_selected_bucket_item() {
-                self.current_bucket = Some(selected.to_owned());
-                self.app_view_state.push_new_list_state();
-                self.app_view_state.view_state = ViewState::ObjectList;
+            let bucket_page = self.page_stack.current_page().as_bucket_list();
+            let selected = bucket_page.current_selected_item().to_owned();
 
-                if self.exists_current_objects() {
-                    let object_list_page = Page::of_object_list(
-                        self.current_object_items(),
-                        self.app_view_state.current_list_state().to_owned(),
-                    );
-                    self.page_stack.push(object_list_page);
-                } else {
-                    self.tx.send(AppEventType::LoadObjects);
-                    self.app_view_state.is_loading = true;
-                }
+            self.current_bucket = Some(selected);
+            self.app_view_state.view_state = ViewState::ObjectList;
+
+            if self.exists_current_objects() {
+                let object_list_page = Page::of_object_list(self.current_object_items());
+                self.page_stack.push(object_list_page);
+            } else {
+                self.tx.send(AppEventType::LoadObjects);
+                self.app_view_state.is_loading = true;
             }
         }
     }
 
     pub fn object_list_move_down(&mut self) {
         if let ViewState::ObjectList = self.app_view_state.view_state {
-            if let Some(selected) = self.get_current_selected_object_item() {
-                if let ObjectItem::File { .. } = selected {
-                    if self.exists_current_object_detail() {
+            let object_page = self.page_stack.current_page().as_object_list();
+            let selected = object_page.current_selected_item().to_owned();
+
+            match selected {
+                ObjectItem::File { name, .. } => {
+                    if self.exists_current_object_detail(&name) {
                         self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
 
-                        let detail = self.get_current_file_detail().unwrap();
-                        let versions = self.get_current_file_versions().unwrap();
+                        let current_object_key =
+                            &self.current_object_key_with_name(name.to_string());
+                        let detail = self
+                            .app_objects
+                            .get_object_detail(current_object_key)
+                            .unwrap();
+                        let versions = self
+                            .app_objects
+                            .get_object_versions(current_object_key)
+                            .unwrap();
+
                         let object_detail_page = Page::of_object_detail(
-                            self.current_object_items(),
                             detail.clone(),
                             versions.clone(),
                             DetailViewState::Detail,
-                            self.app_view_state.current_list_state().to_owned(),
+                            object_page.object_list().clone(),
+                            object_page.list_state(),
                         );
                         self.page_stack.push(object_detail_page);
                     } else {
                         self.tx.send(AppEventType::LoadObject);
                         self.app_view_state.is_loading = true;
                     }
-                } else {
+                }
+                ObjectItem::Dir { .. } => {
                     self.current_path.push(selected.name().to_owned());
-                    self.app_view_state.push_new_list_state();
 
                     if self.exists_current_objects() {
-                        let object_list_page = Page::of_object_list(
-                            self.current_object_items(),
-                            self.app_view_state.current_list_state().to_owned(),
-                        );
+                        let object_list_page = Page::of_object_list(self.current_object_items());
                         self.page_stack.push(object_list_page);
                     } else {
                         self.tx.send(AppEventType::LoadObjects);
@@ -617,28 +510,24 @@ impl App {
 
     pub fn copy_detail_copy_selected_value(&self) {
         if let ViewState::CopyDetail(vs) = self.app_view_state.view_state {
-            if let Some(detail) = self.get_current_file_detail() {
-                let value = match vs.selected {
-                    CopyDetailViewItemType::Key => &detail.key,
-                    CopyDetailViewItemType::S3Uri => &detail.s3_uri,
-                    CopyDetailViewItemType::Arn => &detail.arn,
-                    CopyDetailViewItemType::ObjectUrl => &detail.object_url,
-                    CopyDetailViewItemType::Etag => &detail.e_tag,
-                };
-                let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
-                self.tx.send(AppEventType::CopyToClipboard(name, value));
-            }
+            let object_detail_page = self.page_stack.current_page().as_object_detail();
+            let file_detail = object_detail_page.file_detail();
+
+            let value = match vs.selected {
+                CopyDetailViewItemType::Key => &file_detail.key,
+                CopyDetailViewItemType::S3Uri => &file_detail.s3_uri,
+                CopyDetailViewItemType::Arn => &file_detail.arn,
+                CopyDetailViewItemType::ObjectUrl => &file_detail.object_url,
+                CopyDetailViewItemType::Etag => &file_detail.e_tag,
+            };
+            let (name, value) = (vs.selected.name().to_owned(), value.to_owned());
+            self.tx.send(AppEventType::CopyToClipboard(name, value));
         }
     }
 
-    fn exists_current_object_detail(&self) -> bool {
-        match self.get_current_selected_object_item() {
-            Some(selected) => {
-                let key = &self.current_object_key_with_name(selected.name().to_string());
-                self.app_objects.exists_object_details(key)
-            }
-            None => false,
-        }
+    fn exists_current_object_detail(&self, object_name: &str) -> bool {
+        let key = &self.current_object_key_with_name(object_name.to_string());
+        self.app_objects.exists_object_details(key)
     }
 
     fn exists_current_objects(&self) -> bool {
@@ -656,7 +545,6 @@ impl App {
                 self.app_view_state.view_state = ViewState::BucketList;
                 self.current_bucket = None;
             }
-            self.app_view_state.pop_current_list_state();
             self.page_stack.pop();
         }
     }
@@ -730,7 +618,6 @@ impl App {
             self.app_view_state.view_state = ViewState::BucketList;
             self.current_bucket = None;
             self.current_path.clear();
-            self.app_view_state.clear_list_state();
             self.page_stack.clear();
         }
     }
@@ -752,10 +639,7 @@ impl App {
                 self.app_objects
                     .set_object_items(self.current_object_key().to_owned(), items);
 
-                let object_list_page = Page::of_object_list(
-                    self.current_object_items(),
-                    self.app_view_state.current_list_state().to_owned(),
-                );
+                let object_list_page = Page::of_object_list(self.current_object_items());
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {
@@ -766,9 +650,11 @@ impl App {
     }
 
     pub fn load_object(&self) {
-        if let Some(ObjectItem::File {
+        let object_page = self.page_stack.current_page().as_object_list();
+
+        if let ObjectItem::File {
             name, size_byte, ..
-        }) = self.get_current_selected_object_item()
+        } = object_page.current_selected_item()
         {
             let name = name.clone();
             let size_byte = *size_byte;
@@ -802,12 +688,14 @@ impl App {
                     .set_object_details(map_key, *detail.clone(), versions.clone());
                 self.app_view_state.view_state = ViewState::Detail(DetailViewState::Detail);
 
+                let object_page = self.page_stack.current_page().as_object_list();
+
                 let object_detail_page = Page::of_object_detail(
-                    self.current_object_items(),
                     *detail.clone(),
                     versions.clone(),
                     DetailViewState::Detail,
-                    self.app_view_state.current_list_state().to_owned(),
+                    object_page.object_list().clone(),
+                    object_page.list_state(),
                 );
                 self.page_stack.push(object_detail_page);
             }
@@ -863,7 +751,11 @@ impl App {
 
     pub fn detail_download_object(&mut self) {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
-            self.tx.send(AppEventType::DownloadObject);
+            let object_detail_page = self.page_stack.current_page().as_object_detail();
+            let file_detail = object_detail_page.file_detail();
+
+            self.tx
+                .send(AppEventType::DownloadObject(file_detail.clone()));
             self.app_view_state.is_loading = true;
         }
     }
@@ -901,7 +793,11 @@ impl App {
 
     pub fn detail_preview(&mut self) {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
-            self.tx.send(AppEventType::PreviewObject);
+            let object_detail_page = self.page_stack.current_page().as_object_detail();
+            let file_detail = object_detail_page.file_detail();
+
+            self.tx
+                .send(AppEventType::PreviewObject(file_detail.clone()));
             self.app_view_state.is_loading = true;
         }
     }
@@ -917,15 +813,21 @@ impl App {
         }
     }
 
-    pub fn download_object(&self) {
-        self.download_object_and(None, |tx, obj, path| {
+    pub fn download_object(&self, file_detail: FileDetail) {
+        let object_name = file_detail.name;
+        let size_byte = file_detail.size_byte;
+
+        self.download_object_and(&object_name, size_byte, None, |tx, obj, path| {
             let result = CompleteDownloadObjectResult::new(obj, path);
             tx.send(AppEventType::CompleteDownloadObject(result));
         })
     }
 
-    pub fn download_object_as(&self, input: String) {
-        self.download_object_and(Some(&input), |tx, obj, path| {
+    pub fn download_object_as(&self, file_detail: FileDetail, input: String) {
+        let object_name = file_detail.name;
+        let size_byte = file_detail.size_byte;
+
+        self.download_object_and(&object_name, size_byte, Some(&input), |tx, obj, path| {
             let result = CompleteDownloadObjectResult::new(obj, path);
             tx.send(AppEventType::CompleteDownloadObject(result));
         })
@@ -950,27 +852,33 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub fn preview_object(&self) {
-        self.download_object_and(None, |tx, obj, path| {
-            let result = CompletePreviewObjectResult::new(obj, path);
+    pub fn preview_object(&self, file_detail: FileDetail) {
+        let object_name = file_detail.name.clone();
+        let size_byte = file_detail.size_byte;
+
+        self.download_object_and(&object_name, size_byte, None, |tx, obj, path| {
+            let result = CompletePreviewObjectResult::new(obj, file_detail, path);
             tx.send(AppEventType::CompletePreviewObject(result));
         })
     }
 
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
         match result {
-            Ok(CompletePreviewObjectResult { obj, path }) => {
+            Ok(CompletePreviewObjectResult {
+                obj,
+                file_detail,
+                path,
+            }) => {
                 let preview_view_state = PreviewViewState::new(obj, path);
                 self.app_view_state.view_state =
                     ViewState::Preview(Box::new(preview_view_state.clone()));
 
-                let current_file_detail = self.get_current_file_detail().unwrap().clone();
-                let preview_page = Page::of_object_preview(
-                    current_file_detail,
+                let object_preview_page = Page::of_object_preview(
+                    file_detail,
                     preview_view_state.preview,
                     preview_view_state.preview_max_digits,
                 );
-                self.page_stack.push(preview_page);
+                self.page_stack.push(object_preview_page);
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -980,31 +888,30 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    fn download_object_and<F>(&self, save_file_name: Option<&str>, f: F)
-    where
-        F: Fn(Sender, Result<Object>, String) + Send + 'static,
+    fn download_object_and<F>(
+        &self,
+        object_name: &str,
+        size_byte: usize,
+        save_file_name: Option<&str>,
+        f: F,
+    ) where
+        F: FnOnce(Sender, Result<Object>, String) + Send + 'static,
     {
-        if let Some(ObjectItem::File {
-            name, size_byte, ..
-        }) = self.get_current_selected_object_item()
-        {
-            let bucket = self.current_bucket();
-            let prefix = self.current_object_prefix();
-            let key = format!("{}{}", prefix, name);
+        let bucket = self.current_bucket();
+        let prefix = self.current_object_prefix();
+        let key = format!("{}{}", prefix, object_name);
 
-            let config = self.config.as_ref().unwrap();
-            let path = config.download_file_path(save_file_name.unwrap_or(name));
+        let config = self.config.as_ref().unwrap();
+        let path = config.download_file_path(save_file_name.unwrap_or(object_name));
 
-            let (client, tx) = self.unwrap_client_tx();
-            let size_byte = *size_byte;
-            let loading = self.handle_loading_size(size_byte, tx.clone());
-            spawn(async move {
-                let obj = client
-                    .download_object(&bucket, &key, size_byte, loading)
-                    .await;
-                f(tx, obj, path);
-            });
-        }
+        let (client, tx) = self.unwrap_client_tx();
+        let loading = self.handle_loading_size(size_byte, tx.clone());
+        spawn(async move {
+            let obj = client
+                .download_object(&bucket, &key, size_byte, loading)
+                .await;
+            f(tx, obj, path);
+        });
     }
 
     fn handle_loading_size(&self, total_size: usize, tx: Sender) -> Box<dyn Fn(usize) + Send> {
@@ -1048,14 +955,16 @@ impl App {
 
     pub fn detail_open_management_console(&self) {
         if let ViewState::Detail(_) = self.app_view_state.view_state {
+            let object_detail_page = self.page_stack.current_page().as_object_detail();
+
             let (client, _) = self.unwrap_client_tx();
-            let current_selected = self.get_current_selected_object_item();
-            let result = if let Some(ObjectItem::File { name, .. }) = current_selected {
-                let prefix = self.current_object_prefix();
-                client.open_management_console_object(&self.current_bucket(), &prefix, name)
-            } else {
-                Err(AppError::msg("Failed to get current selected item"))
-            };
+            let prefix = self.current_object_prefix();
+
+            let result = client.open_management_console_object(
+                &self.current_bucket(),
+                &prefix,
+                &object_detail_page.file_detail().name,
+            );
             if let Err(e) = result {
                 self.tx.send(AppEventType::NotifyError(e));
             }
@@ -1064,9 +973,13 @@ impl App {
 
     pub fn detail_save_download_object_as(&mut self) {
         if let ViewState::DetailSave(vs) = &self.app_view_state.view_state {
+            let object_detail_page = self.page_stack.current_page().as_object_detail();
+            let file_detail = object_detail_page.file_detail();
+
             let input = vs.input.trim().to_string();
             if !input.is_empty() {
-                self.tx.send(AppEventType::DownloadObjectAs(input));
+                self.tx
+                    .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
                 self.app_view_state.is_loading = true;
             }
             self.app_view_state.view_state = ViewState::Detail(vs.before);
@@ -1080,9 +993,13 @@ impl App {
 
     pub fn preview_save_download_object_as(&mut self) {
         if let ViewState::PreviewSave(vs) = &self.app_view_state.view_state {
+            let object_preview_page = self.page_stack.current_page().as_object_preview();
+            let file_detail = object_preview_page.file_detail();
+
             let input = vs.input.trim().to_string();
             if !input.is_empty() {
-                self.tx.send(AppEventType::DownloadObjectAs(input));
+                self.tx
+                    .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
                 self.app_view_state.is_loading = true;
             }
             self.app_view_state.view_state = ViewState::Preview(Box::new(vs.before.clone()));
@@ -1156,8 +1073,4 @@ impl App {
     fn unwrap_client_tx(&self) -> (Arc<Client>, Sender) {
         (self.client.as_ref().unwrap().clone(), self.tx.clone())
     }
-}
-
-fn list_area_height(height: usize) -> usize {
-    height - 3 /* header */ - 2 /* footer */ - 2 /* list area border */
 }

@@ -24,28 +24,28 @@ impl Page {
         Self::Initializing(Box::new(InitializingPage::new()))
     }
 
-    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, list_state: AppListState) -> Self {
-        Self::BucketList(Box::new(BucketListPage::new(bucket_items, list_state)))
+    pub fn of_bucket_list(bucket_items: Vec<BucketItem>) -> Self {
+        Self::BucketList(Box::new(BucketListPage::new(bucket_items)))
     }
 
-    pub fn of_object_list(object_items: Vec<ObjectItem>, list_state: AppListState) -> Self {
-        Self::ObjectList(Box::new(ObjectListPage::new(object_items, list_state)))
+    pub fn of_object_list(object_items: Vec<ObjectItem>) -> Self {
+        Self::ObjectList(Box::new(ObjectListPage::new(object_items)))
     }
 
     pub fn of_object_detail(
-        object_items: Vec<ObjectItem>,
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
         vs: DetailViewState,
+        object_items: Vec<ObjectItem>,
         list_state: AppListState,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
-            object_items,
             file_detail,
             file_versions,
             vs,
             None,
             None,
+            object_items,
             list_state,
         )))
     }
@@ -76,10 +76,52 @@ impl Page {
         Self::Help(Box::new(HelpPage::new(helps)))
     }
 
+    pub fn as_bucket_list(&self) -> &BucketListPage {
+        match self {
+            Self::BucketList(page) => page,
+            page => panic!("Page is not BucketList: {:?}", page),
+        }
+    }
+
+    pub fn as_mut_bucket_list(&mut self) -> &mut BucketListPage {
+        match self {
+            Self::BucketList(page) => &mut *page,
+            page => panic!("Page is not BucketList: {:?}", page),
+        }
+    }
+
+    pub fn as_object_list(&self) -> &ObjectListPage {
+        match self {
+            Self::ObjectList(page) => page,
+            page => panic!("Page is not ObjectList: {:?}", page),
+        }
+    }
+
+    pub fn as_mut_object_list(&mut self) -> &mut ObjectListPage {
+        match self {
+            Self::ObjectList(page) => &mut *page,
+            page => panic!("Page is not ObjectList: {:?}", page),
+        }
+    }
+
+    pub fn as_object_detail(&self) -> &ObjectDetailPage {
+        match self {
+            Self::ObjectDetail(page) => page,
+            page => panic!("Page is not ObjectDetail: {:?}", page),
+        }
+    }
+
     pub fn into_mut_object_detail(self) -> ObjectDetailPage {
         match self {
             Self::ObjectDetail(page) => *page,
             page => panic!("Page is not ObjectDetail: {:?}", page),
+        }
+    }
+
+    pub fn as_object_preview(&self) -> &ObjectPreviewPage {
+        match self {
+            Self::ObjectPreview(page) => page,
+            page => panic!("Page is not ObjectPreview: {:?}", page),
         }
     }
 

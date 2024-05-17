@@ -20,16 +20,19 @@ pub struct ObjectListPage {
 }
 
 impl ObjectListPage {
-    pub fn new(object_items: Vec<ObjectItem>, list_state: AppListState) -> Self {
+    pub fn new(object_items: Vec<ObjectItem>) -> Self {
         Self {
             object_items,
-            list_state,
+            list_state: AppListState::default(),
         }
     }
 }
 
 impl ObjectListPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
+        // todo: reconsider list state management
+        self.list_state.height = area.height as usize - 2 /* border */;
+
         let list_state = ListViewState {
             current_selected: self.list_state.selected,
             current_offset: self.list_state.offset,
@@ -48,6 +51,58 @@ impl ObjectListPage {
         f.render_widget(list, area);
 
         render_list_scroll_bar(f, area, list_state, self.object_items.len());
+    }
+
+    pub fn select_next(&mut self) {
+        if self.list_state.selected >= self.object_items.len() - 1 {
+            self.list_state.select_first();
+        } else {
+            self.list_state.select_next();
+        };
+    }
+
+    pub fn select_prev(&mut self) {
+        if self.list_state.selected == 0 {
+            self.list_state.select_last(self.object_items.len());
+        } else {
+            self.list_state.select_prev();
+        };
+    }
+
+    pub fn select_first(&mut self) {
+        self.list_state.select_first();
+    }
+
+    pub fn select_last(&mut self) {
+        self.list_state.select_last(self.object_items.len());
+    }
+
+    pub fn select_next_page(&mut self) {
+        self.list_state.select_next_page(self.object_items.len());
+    }
+
+    pub fn select_prev_page(&mut self) {
+        self.list_state.select_prev_page(self.object_items.len());
+    }
+
+    pub fn current_selected_item(&self) -> &ObjectItem {
+        self.object_items
+            .get(self.list_state.selected)
+            .unwrap_or_else(|| {
+                panic!(
+                    "selected index {} is out of range {}",
+                    self.list_state.selected,
+                    self.object_items.len()
+                )
+            })
+    }
+
+    pub fn object_list(&self) -> &Vec<ObjectItem> {
+        &self.object_items
+    }
+
+    pub fn list_state(&self) -> AppListState {
+        self.list_state
     }
 }
 
@@ -242,7 +297,7 @@ mod tests {
                     paths: vec![],
                 },
             ];
-            let mut page = ObjectListPage::new(items, AppListState::new(10));
+            let mut page = ObjectListPage::new(items);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -293,7 +348,7 @@ mod tests {
                     paths: vec![],
                 })
                 .collect();
-            let mut page = ObjectListPage::new(items, AppListState::new(10));
+            let mut page = ObjectListPage::new(items);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;

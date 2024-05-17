@@ -80,16 +80,6 @@ impl AppObjects {
             .to_vec()
     }
 
-    pub fn get_bucket_item(&self, idx: usize) -> Option<&BucketItem> {
-        self.bucket_items.get(idx)
-    }
-
-    pub fn get_object_item(&self, key: &ObjectKey, idx: usize) -> Option<&ObjectItem> {
-        self.object_items_map
-            .get(key)
-            .and_then(|items| items.get(idx))
-    }
-
     pub fn set_bucket_items(&mut self, items: Vec<BucketItem>) {
         self.bucket_items = items;
     }

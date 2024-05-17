@@ -19,10 +19,10 @@ pub enum AppEventType {
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
     LoadObject,
     CompleteLoadObject(Result<CompleteLoadObjectResult>),
-    DownloadObject,
-    DownloadObjectAs(String),
+    DownloadObject(FileDetail),
+    DownloadObjectAs(FileDetail, String),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
-    PreviewObject,
+    PreviewObject(FileDetail),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     CopyToClipboard(String, String),
     KeyInput(AppKeyInput),
@@ -150,13 +150,22 @@ impl CompleteDownloadObjectResult {
 
 pub struct CompletePreviewObjectResult {
     pub obj: Object,
+    pub file_detail: FileDetail,
     pub path: String,
 }
 
 impl CompletePreviewObjectResult {
-    pub fn new(obj: Result<Object>, path: String) -> Result<CompletePreviewObjectResult> {
+    pub fn new(
+        obj: Result<Object>,
+        file_detail: FileDetail,
+        path: String,
+    ) -> Result<CompletePreviewObjectResult> {
         let obj = obj?;
-        Ok(CompletePreviewObjectResult { obj, path })
+        Ok(CompletePreviewObjectResult {
+            obj,
+            file_detail,
+            path,
+        })
     }
 }
 

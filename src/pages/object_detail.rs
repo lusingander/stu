@@ -24,33 +24,34 @@ const DIVIDER_COLOR: Color = Color::DarkGray;
 
 #[derive(Debug)]
 pub struct ObjectDetailPage {
-    object_items: Vec<ObjectItem>,
     file_detail: FileDetail,
     file_versions: Vec<FileVersion>,
 
     vs: DetailViewState,
     svs: Option<DetailSaveViewState>,
     cvs: Option<CopyDetailViewState>,
+
+    object_items: Vec<ObjectItem>,
     list_state: AppListState,
 }
 
 impl ObjectDetailPage {
     pub fn new(
-        object_items: Vec<ObjectItem>,
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
         vs: DetailViewState,
         svs: Option<DetailSaveViewState>,
         cvs: Option<CopyDetailViewState>,
+        object_items: Vec<ObjectItem>,
         list_state: AppListState,
     ) -> Self {
         Self {
-            object_items,
             file_detail,
             file_versions,
             vs,
             svs,
             cvs,
+            object_items,
             list_state,
         }
     }
@@ -81,11 +82,18 @@ impl ObjectDetailPage {
     pub fn close_copy_detail_dialog(&mut self) {
         self.cvs = None;
     }
+
+    pub fn file_detail(&self) -> &FileDetail {
+        &self.file_detail
+    }
 }
 
 impl ObjectDetailPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let chunks = Layout::horizontal(Constraint::from_percentages([50, 50])).split(area);
+
+        // todo: reconsider list state management
+        self.list_state.height = area.height as usize - 2 /* border */;
 
         let list_state = ListViewState {
             current_selected: self.list_state.selected,
@@ -468,13 +476,13 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let mut page = ObjectDetailPage::new(
-                items,
                 file_detail,
                 file_versions,
                 DetailViewState::Detail,
                 None,
                 None,
-                AppListState::new(20),
+                items,
+                AppListState::default(),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -558,13 +566,13 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let mut page = ObjectDetailPage::new(
-                items,
                 file_detail,
                 file_versions,
                 DetailViewState::Version,
                 None,
                 None,
-                AppListState::new(20),
+                items,
+                AppListState::default(),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -648,7 +656,6 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let mut page = ObjectDetailPage::new(
-                items,
                 file_detail,
                 file_versions,
                 DetailViewState::Detail,
@@ -658,7 +665,8 @@ mod tests {
                     before: DetailViewState::Detail,
                 }),
                 None,
-                AppListState::new(20),
+                items,
+                AppListState::default(),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -736,7 +744,6 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let mut page = ObjectDetailPage::new(
-                items,
                 file_detail,
                 file_versions,
                 DetailViewState::Detail,
@@ -745,7 +752,8 @@ mod tests {
                     selected: CopyDetailViewItemType::Key,
                     before: DetailViewState::Detail,
                 }),
-                AppListState::new(20),
+                items,
+                AppListState::default(),
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);

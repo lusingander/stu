@@ -208,17 +208,17 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObject(result) => {
                 app.complete_load_object(result);
             }
-            AppEventType::DownloadObject => {
-                app.download_object();
+            AppEventType::DownloadObject(file_detail) => {
+                app.download_object(file_detail);
             }
-            AppEventType::DownloadObjectAs(input) => {
-                app.download_object_as(input);
+            AppEventType::DownloadObjectAs(file_detail, input) => {
+                app.download_object_as(file_detail, input);
             }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
             }
-            AppEventType::PreviewObject => {
-                app.preview_object();
+            AppEventType::PreviewObject(file_detail) => {
+                app.preview_object(file_detail);
             }
             AppEventType::CompletePreviewObject(result) => {
                 app.complete_preview_object(result);

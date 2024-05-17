@@ -47,6 +47,10 @@ impl ObjectPreviewPage {
     pub fn close_save_dialog(&mut self) {
         self.svs = None;
     }
+
+    pub fn file_detail(&self) -> &FileDetail {
+        &self.file_detail
+    }
 }
 
 impl ObjectPreviewPage {

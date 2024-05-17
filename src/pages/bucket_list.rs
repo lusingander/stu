@@ -19,16 +19,19 @@ pub struct BucketListPage {
 }
 
 impl BucketListPage {
-    pub fn new(bucket_items: Vec<BucketItem>, list_state: AppListState) -> Self {
+    pub fn new(bucket_items: Vec<BucketItem>) -> Self {
         Self {
             bucket_items,
-            list_state,
+            list_state: AppListState::default(),
         }
     }
 }
 
 impl BucketListPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
+        // todo: reconsider list state management
+        self.list_state.height = area.height as usize - 2 /* border */;
+
         let list_state = ListViewState {
             current_selected: self.list_state.selected,
             current_offset: self.list_state.offset,
@@ -47,6 +50,50 @@ impl BucketListPage {
         f.render_widget(list, area);
 
         render_list_scroll_bar(f, area, list_state, self.bucket_items.len());
+    }
+
+    pub fn select_next(&mut self) {
+        if self.list_state.selected >= self.bucket_items.len() - 1 {
+            self.list_state.select_first();
+        } else {
+            self.list_state.select_next();
+        };
+    }
+
+    pub fn select_prev(&mut self) {
+        if self.list_state.selected == 0 {
+            self.list_state.select_last(self.bucket_items.len());
+        } else {
+            self.list_state.select_prev();
+        };
+    }
+
+    pub fn select_first(&mut self) {
+        self.list_state.select_first();
+    }
+
+    pub fn select_last(&mut self) {
+        self.list_state.select_last(self.bucket_items.len());
+    }
+
+    pub fn select_next_page(&mut self) {
+        self.list_state.select_next_page(self.bucket_items.len());
+    }
+
+    pub fn select_prev_page(&mut self) {
+        self.list_state.select_prev_page(self.bucket_items.len());
+    }
+
+    pub fn current_selected_item(&self) -> &BucketItem {
+        self.bucket_items
+            .get(self.list_state.selected)
+            .unwrap_or_else(|| {
+                panic!(
+                    "selected index {} is out of range {}",
+                    self.list_state.selected,
+                    self.bucket_items.len()
+                )
+            })
     }
 }
 
@@ -158,7 +205,7 @@ mod tests {
                     name: name.to_string(),
                 })
                 .collect();
-            let mut page = BucketListPage::new(items, AppListState::new(10));
+            let mut page = BucketListPage::new(items);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -196,7 +243,7 @@ mod tests {
                     name: format!("bucket{}", i + 1),
                 })
                 .collect();
-            let mut page = BucketListPage::new(items, AppListState::new(10));
+            let mut page = BucketListPage::new(items);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
