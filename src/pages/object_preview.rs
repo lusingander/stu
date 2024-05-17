@@ -8,7 +8,8 @@ use ratatui::{
 
 use crate::{
     event::{AppEventType, AppKeyInput},
-    object::FileDetail,
+    object::{FileDetail, Object},
+    util::{digits, to_preview_string},
     widget::Dialog,
 };
 
@@ -20,6 +21,8 @@ pub struct ObjectPreviewPage {
 
     preview: Vec<String>,
     preview_max_digits: usize,
+    object: Object,
+    path: String,
 
     save_dialog_state: Option<SaveDialogState>,
     offset: usize,
@@ -32,11 +35,23 @@ struct SaveDialogState {
 }
 
 impl ObjectPreviewPage {
-    pub fn new(file_detail: FileDetail, preview: Vec<String>, preview_max_digits: usize) -> Self {
+    pub fn new(file_detail: FileDetail, object: Object, path: String) -> Self {
+        let s = to_preview_string(&object.bytes, &object.content_type);
+        let s = if s.ends_with('\n') {
+            s.trim_end()
+        } else {
+            s.as_str()
+        };
+        let preview: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
+        let preview_len = preview.len();
+        let preview_max_digits = digits(preview_len);
+
         Self {
             file_detail,
             preview,
             preview_max_digits,
+            object,
+            path,
             save_dialog_state: None,
             offset: 0,
         }
@@ -163,6 +178,14 @@ impl ObjectPreviewPage {
     pub fn save_dialog_key_input(&self) -> Option<String> {
         self.save_dialog_state.as_ref().map(|s| s.input.clone())
     }
+
+    pub fn object(&self) -> &Object {
+        &self.object
+    }
+
+    pub fn path(&self) -> &str {
+        &self.path
+    }
 }
 
 fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
@@ -187,7 +210,15 @@ fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> 
 mod tests {
     use super::*;
     use chrono::{DateTime, Local};
+    use itertools::Itertools;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
+
+    fn object(ss: &[&str]) -> Object {
+        Object {
+            content_type: "text/plain".to_string(),
+            bytes: ss.iter().join("\n").as_bytes().to_vec(),
+        }
+    }
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
@@ -200,12 +231,10 @@ mod tests {
                 "This is a test file.",
                 "This file is used for testing.",
                 "Thank you!",
-            ]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
-            let preview_max_digits = 1;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
+            ];
+            let object = object(&preview);
+            let file_path = "file.txt".to_string();
+            let mut page = ObjectPreviewPage::new(file_detail, object, file_path);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -238,9 +267,10 @@ mod tests {
 
         terminal.draw(|f| {
             let file_detail = file_detail();
-            let preview = vec!["Hello, world!".to_string(); 20];
-            let preview_max_digits = 2;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
+            let preview = ["Hello, world!"; 20];
+            let object = object(&preview);
+            let file_path = "file.txt".to_string();
+            let mut page = ObjectPreviewPage::new(file_detail, object, file_path);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -280,12 +310,10 @@ mod tests {
                 "This is a test file.",
                 "This file is used for testing.",
                 "Thank you!",
-            ]
-            .iter()
-            .map(|s| s.to_string())
-            .collect();
-            let preview_max_digits = 1;
-            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
+            ];
+            let object = object(&preview);
+            let file_path = "file.txt".to_string();
+            let mut page = ObjectPreviewPage::new(file_detail, object, file_path);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);

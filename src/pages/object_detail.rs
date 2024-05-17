@@ -11,7 +11,6 @@ use ratatui::{
 };
 
 use crate::{
-    app::CopyDetailViewItemType,
     component::AppListState,
     event::{AppEventType, AppKeyInput},
     object::{FileDetail, FileVersion, ObjectItem},
@@ -49,6 +48,29 @@ enum Tab {
 struct SaveDialogState {
     input: String,
     cursor: u16,
+}
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum CopyDetailViewItemType {
+    #[default]
+    Key,
+    S3Uri,
+    Arn,
+    ObjectUrl,
+    Etag,
+}
+
+impl CopyDetailViewItemType {
+    pub fn name(&self) -> &str {
+        match self {
+            Self::Key => "Key",
+            Self::S3Uri => "S3 URI",
+            Self::Arn => "ARN",
+            Self::ObjectUrl => "Object URL",
+            Self::Etag => "ETag",
+        }
+    }
 }
 
 #[derive(Debug, Default)]

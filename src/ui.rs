@@ -60,9 +60,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
-    let helps = app
-        .action_manager
-        .short_helps(&app.app_view_state.view_state);
+    let helps = app.action_manager.short_helps(app.view_state_tag());
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
     let help = build_short_help_string(helps, max_width);

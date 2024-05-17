@@ -3,7 +3,7 @@ use ratatui::{backend::Backend, Terminal};
 use std::io::Result;
 
 use crate::{
-    app::{App, Notification, ViewState},
+    app::{App, Notification},
     event::{AppEventType, AppKeyAction, Receiver},
     key_code, key_code_char,
     pages::page::Page,
@@ -31,7 +31,7 @@ pub async fn run<B: Backend>(
                 }
 
                 if matches!(app.app_view_state.notification, Notification::Error(_)) {
-                    if matches!(app.app_view_state.view_state, ViewState::Initializing) {
+                    if matches!(app.page_stack.current_page(), Page::Initializing(_)) {
                         return Ok(());
                     }
                     // Clear message and cancel key input
@@ -47,11 +47,10 @@ pub async fn run<B: Backend>(
                     app.clear_notification();
                 }
 
-                let vs = &app.app_view_state.view_state;
-                if let Some(input) = app.action_manager.key_to_input(key, vs) {
+                if let Some(input) = app.action_manager.key_to_input(key, app.view_state_tag()) {
                     app.send_app_key_input(input)
                 }
-                if let Some(action) = app.action_manager.key_to_action(key, vs) {
+                if let Some(action) = app.action_manager.key_to_action(key, app.view_state_tag()) {
                     app.send_app_key_action(action);
                 }
             }

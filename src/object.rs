@@ -121,7 +121,7 @@ pub struct ObjectKey {
     pub object_path: Vec<String>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Object {
     pub content_type: String,
     pub bytes: Vec<u8>,

@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use enum_tag::EnumTag;
+
 use itertools::Itertools;
 
 use crate::{
-    app::{ViewState, ViewStateTag},
+    app::ViewStateTag,
     event::{AppKeyAction, AppKeyInput},
     key_code, key_code_char,
     util::{group_map, to_map},
@@ -283,16 +283,16 @@ impl AppKeyActionManager {
             .collect()
     }
 
-    pub fn key_to_action(&self, key: KeyEvent, vs: &ViewState) -> Option<AppKeyAction> {
+    pub fn key_to_action(&self, key: KeyEvent, tag: ViewStateTag) -> Option<AppKeyAction> {
         self.key_action_map
-            .get(&vs.tag())
+            .get(&tag)
             .and_then(|m| m.get(&(key.code, key.modifiers)))
             .copied()
     }
 
-    pub fn key_to_input(&self, key: KeyEvent, vs: &ViewState) -> Option<AppKeyInput> {
-        match vs {
-            ViewState::DetailSave(_) | ViewState::PreviewSave(_) => match key {
+    pub fn key_to_input(&self, key: KeyEvent, tag: ViewStateTag) -> Option<AppKeyInput> {
+        match tag {
+            ViewStateTag::DetailSave | ViewStateTag::PreviewSave => match key {
                 key_code_char!(c) => Some(AppKeyInput::Char(c)),
                 key_code!(KeyCode::Backspace) => Some(AppKeyInput::Backspace),
                 _ => None,
@@ -301,12 +301,12 @@ impl AppKeyActionManager {
         }
     }
 
-    pub fn helps(&self, vs: &ViewState) -> &Vec<String> {
-        self.helps.get(&vs.tag()).unwrap()
+    pub fn helps(&self, tag: ViewStateTag) -> &Vec<String> {
+        self.helps.get(&tag).unwrap()
     }
 
-    pub fn short_helps(&self, vs: &ViewState) -> &Vec<(String, usize)> {
-        self.short_helps.get(&vs.tag()).unwrap()
+    pub fn short_helps(&self, tag: ViewStateTag) -> &Vec<(String, usize)> {
+        self.short_helps.get(&tag).unwrap()
     }
 }
 

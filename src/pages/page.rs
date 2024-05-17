@@ -1,6 +1,6 @@
 use crate::{
     component::AppListState,
-    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
+    object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
@@ -45,16 +45,8 @@ impl Page {
         )))
     }
 
-    pub fn of_object_preview(
-        file_detail: FileDetail,
-        preview: Vec<String>,
-        preview_max_digits: usize,
-    ) -> Self {
-        Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
-            file_detail,
-            preview,
-            preview_max_digits,
-        )))
+    pub fn of_object_preview(file_detail: FileDetail, object: Object, path: String) -> Self {
+        Self::ObjectPreview(Box::new(ObjectPreviewPage::new(file_detail, object, path)))
     }
 
     pub fn of_help(helps: Vec<String>) -> Self {
