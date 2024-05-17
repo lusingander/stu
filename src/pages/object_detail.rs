@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use itsuki::zero_indexed_enum;
 use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
@@ -10,7 +11,7 @@ use ratatui::{
 };
 
 use crate::{
-    app::{CopyDetailViewItemType, CopyDetailViewState, DetailSaveViewState, DetailViewState},
+    app::CopyDetailViewItemType,
     component::AppListState,
     object::{FileDetail, FileVersion, ObjectItem},
     util::digits,
@@ -27,60 +28,76 @@ pub struct ObjectDetailPage {
     file_detail: FileDetail,
     file_versions: Vec<FileVersion>,
 
-    vs: DetailViewState,
-    svs: Option<DetailSaveViewState>,
-    cvs: Option<CopyDetailViewState>,
+    tab: Tab,
+    save_dialog_state: Option<SaveDialogState>,
+    copy_detail_dialog_state: Option<CopyDetailDialogState>,
 
     object_items: Vec<ObjectItem>,
     list_state: AppListState,
+}
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum Tab {
+    #[default]
+    Detail,
+    Version,
+}
+
+#[derive(Debug, Default)]
+struct SaveDialogState {
+    input: String,
+    cursor: u16,
+}
+
+#[derive(Debug, Default)]
+struct CopyDetailDialogState {
+    selected: CopyDetailViewItemType,
 }
 
 impl ObjectDetailPage {
     pub fn new(
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
-        vs: DetailViewState,
-        svs: Option<DetailSaveViewState>,
-        cvs: Option<CopyDetailViewState>,
         object_items: Vec<ObjectItem>,
         list_state: AppListState,
     ) -> Self {
         Self {
             file_detail,
             file_versions,
-            vs,
-            svs,
-            cvs,
+            tab: Tab::Detail,
+            save_dialog_state: None,
+            copy_detail_dialog_state: None,
             object_items,
             list_state,
         }
     }
 
     pub fn toggle_tab(&mut self) {
-        match self.vs {
-            DetailViewState::Detail => {
-                self.vs = DetailViewState::Version;
+        match self.tab {
+            Tab::Detail => {
+                self.tab = Tab::Version;
             }
-            DetailViewState::Version => {
-                self.vs = DetailViewState::Detail;
+            Tab::Version => {
+                self.tab = Tab::Detail;
             }
         }
     }
 
     pub fn open_save_dialog(&mut self) {
-        self.svs = Some(DetailSaveViewState::new(self.vs));
+        self.save_dialog_state = Some(SaveDialogState::default());
     }
 
     pub fn close_save_dialog(&mut self) {
-        self.svs = None;
+        self.save_dialog_state = None;
     }
 
     pub fn open_copy_detail_dialog(&mut self) {
-        self.cvs = Some(CopyDetailViewState::new(self.vs));
+        self.copy_detail_dialog_state = Some(CopyDetailDialogState::default());
     }
 
     pub fn close_copy_detail_dialog(&mut self) {
-        self.cvs = None;
+        self.copy_detail_dialog_state = None;
     }
 
     pub fn file_detail(&self) -> &FileDetail {
@@ -124,28 +141,28 @@ impl ObjectDetailPage {
             .margin(1)
             .split(chunks[1]);
 
-        let tabs = build_file_detail_tabs(&self.vs);
+        let tabs = build_file_detail_tabs(self.tab);
         f.render_widget(tabs, chunks[0]);
 
-        match self.vs {
-            DetailViewState::Detail => {
+        match self.tab {
+            Tab::Detail => {
                 let detail = build_file_detail(&self.file_detail);
                 f.render_widget(detail, chunks[1]);
             }
-            DetailViewState::Version => {
+            Tab::Version => {
                 let versions = build_file_versions(&self.file_versions, chunks[1].width);
                 f.render_widget(versions, chunks[1]);
             }
         }
 
-        if let Some(vs) = &self.svs {
+        if let Some(state) = &self.save_dialog_state {
             let dialog_width = (area.width - 4).min(40);
             let dialog_height = 1 + 2 /* border */;
             let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
 
             let max_width = dialog_width - 2 /* border */- 2/* pad */;
-            let input_width = vs.input.len().saturating_sub(max_width as usize);
-            let input_view: &str = &vs.input[input_width..];
+            let input_width = state.input.len().saturating_sub(max_width as usize);
+            let input_view: &str = &state.input[input_width..];
 
             let title = Title::from("Save As");
             let dialog_content = Paragraph::new(input_view).block(
@@ -157,13 +174,13 @@ impl ObjectDetailPage {
             let dialog = Dialog::new(Box::new(dialog_content));
             f.render_widget_ref(dialog, area);
 
-            let cursor_x = area.x + vs.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
+            let cursor_x = area.x + state.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
             let cursor_y = area.y + 1;
             f.set_cursor(cursor_x, cursor_y);
         }
 
-        if let Some(vs) = &self.cvs {
-            let selected = vs.selected as usize;
+        if let Some(state) = &self.copy_detail_dialog_state {
+            let selected = state.selected as usize;
             let list_items: Vec<ListItem> = [
                 (CopyDetailViewItemType::Key, &self.file_detail.key),
                 (CopyDetailViewItemType::S3Uri, &self.file_detail.s3_uri),
@@ -315,10 +332,10 @@ fn build_file_detail_block() -> Block<'static> {
     Block::bordered()
 }
 
-fn build_file_detail_tabs(selected: &DetailViewState) -> Tabs {
+fn build_file_detail_tabs(tab: Tab) -> Tabs<'static> {
     let tabs = vec![Line::from("Detail"), Line::from("Version")];
     Tabs::new(tabs)
-        .select(*selected as usize)
+        .select(tab.val())
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
@@ -475,15 +492,8 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                DetailViewState::Detail,
-                None,
-                None,
-                items,
-                AppListState::default(),
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -565,15 +575,9 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                DetailViewState::Version,
-                None,
-                None,
-                items,
-                AppListState::default(),
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            page.toggle_tab();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -655,19 +659,9 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                DetailViewState::Detail,
-                Some(DetailSaveViewState {
-                    input: "file1".to_string(),
-                    cursor: 5,
-                    before: DetailViewState::Detail,
-                }),
-                None,
-                items,
-                AppListState::default(),
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            page.open_save_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -683,7 +677,7 @@ mod tests {
             "│                            ││ Size:                      │",
             "│                            ││  1.01 KiB                  │",
             "│         ╭Save As───────────────────────────────╮         │",
-            "│         │ file1                                │         │",
+            "│         │                                      │         │",
             "│         ╰──────────────────────────────────────╯ 2       │",
             "│                            ││                            │",
             "│                            ││ ETag:                      │",
@@ -743,18 +737,9 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                DetailViewState::Detail,
-                None,
-                Some(CopyDetailViewState {
-                    selected: CopyDetailViewItemType::Key,
-                    before: DetailViewState::Detail,
-                }),
-                items,
-                AppListState::default(),
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            page.open_copy_detail_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;

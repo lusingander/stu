@@ -6,7 +6,7 @@ use ratatui::{
     Frame,
 };
 
-use crate::{app::PreviewSaveViewState, object::FileDetail, widget::Dialog};
+use crate::{object::FileDetail, widget::Dialog};
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 
@@ -17,35 +17,33 @@ pub struct ObjectPreviewPage {
     preview: Vec<String>,
     preview_max_digits: usize,
 
-    svs: Option<PreviewSaveViewState>,
+    save_dialog_state: Option<SaveDialogState>,
     offset: usize,
 }
 
+#[derive(Debug, Default)]
+struct SaveDialogState {
+    input: String,
+    cursor: u16,
+}
+
 impl ObjectPreviewPage {
-    pub fn new(
-        file_detail: FileDetail,
-        preview: Vec<String>,
-        preview_max_digits: usize,
-        offset: usize,
-        svs: Option<PreviewSaveViewState>,
-    ) -> Self {
+    pub fn new(file_detail: FileDetail, preview: Vec<String>, preview_max_digits: usize) -> Self {
         Self {
             file_detail,
             preview,
             preview_max_digits,
-            svs,
-            offset,
+            save_dialog_state: None,
+            offset: 0,
         }
     }
 
     pub fn open_save_dialog(&mut self) {
-        // fixme:
-        // self.svs = Some(PreviewSaveViewState::new());
-        unimplemented!()
+        self.save_dialog_state = Some(SaveDialogState::default());
     }
 
     pub fn close_save_dialog(&mut self) {
-        self.svs = None;
+        self.save_dialog_state = None;
     }
 
     pub fn file_detail(&self) -> &FileDetail {
@@ -91,14 +89,14 @@ impl ObjectPreviewPage {
 
         f.render_widget(paragraph, area);
 
-        if let Some(vs) = &self.svs {
+        if let Some(state) = &self.save_dialog_state {
             let dialog_width = (area.width - 4).min(40);
             let dialog_height = 1 + 2 /* border */;
             let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
 
             let max_width = dialog_width - 2 /* border */- 2/* pad */;
-            let input_width = vs.input.len().saturating_sub(max_width as usize);
-            let input_view: &str = &vs.input[input_width..];
+            let input_width = state.input.len().saturating_sub(max_width as usize);
+            let input_view: &str = &state.input[input_width..];
 
             let title = Title::from("Save As");
             let dialog_content = Paragraph::new(input_view).block(
@@ -110,7 +108,7 @@ impl ObjectPreviewPage {
             let dialog = Dialog::new(Box::new(dialog_content));
             f.render_widget_ref(dialog, area);
 
-            let cursor_x = area.x + vs.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
+            let cursor_x = area.x + state.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
             let cursor_y = area.y + 1;
             f.set_cursor(cursor_x, cursor_y);
         }
@@ -137,8 +135,6 @@ fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> 
 
 #[cfg(test)]
 mod tests {
-    use crate::{app::PreviewViewState, object::Object};
-
     use super::*;
     use chrono::{DateTime, Local};
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
@@ -159,8 +155,7 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
             let preview_max_digits = 1;
-            let mut page =
-                ObjectPreviewPage::new(file_detail, preview, preview_max_digits, 0, None);
+            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -195,8 +190,7 @@ mod tests {
             let file_detail = file_detail();
             let preview = vec!["Hello, world!".to_string(); 20];
             let preview_max_digits = 2;
-            let mut page =
-                ObjectPreviewPage::new(file_detail, preview, preview_max_digits, 0, None);
+            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -241,23 +235,8 @@ mod tests {
             .map(|s| s.to_string())
             .collect();
             let preview_max_digits = 1;
-            let mut page = ObjectPreviewPage::new(
-                file_detail,
-                preview,
-                preview_max_digits,
-                0,
-                Some(PreviewSaveViewState {
-                    input: "file.txt".to_string(),
-                    cursor: 7,
-                    before: PreviewViewState::new(
-                        Object {
-                            content_type: "".to_string(),
-                            bytes: vec![],
-                        },
-                        "".to_string(),
-                    ),
-                }),
-            );
+            let mut page = ObjectPreviewPage::new(file_detail, preview, preview_max_digits);
+            page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -268,7 +247,7 @@ mod tests {
             "│ 1 Hello, world!            │",
             "│ 2 This is a test file.     │",
             "│ ╭Save As─────────────────╮ │",
-            "│ │ file.txt               │ │",
+            "│ │                        │ │",
             "│ ╰────────────────────────╯ │",
             "│                            │",
             "│                            │",

@@ -1,6 +1,6 @@
 use enum_tag::EnumTag;
 use itsuki::zero_indexed_enum;
-use std::{default, sync::Arc};
+use std::sync::Arc;
 use tokio::spawn;
 
 use crate::{
@@ -483,7 +483,6 @@ impl App {
                         let object_detail_page = Page::of_object_detail(
                             detail.clone(),
                             versions.clone(),
-                            DetailViewState::Detail,
                             object_page.object_list().clone(),
                             object_page.list_state(),
                         );
@@ -693,7 +692,6 @@ impl App {
                 let object_detail_page = Page::of_object_detail(
                     *detail.clone(),
                     versions.clone(),
-                    DetailViewState::Detail,
                     object_page.object_list().clone(),
                     object_page.list_state(),
                 );

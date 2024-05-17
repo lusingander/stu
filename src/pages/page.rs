@@ -1,5 +1,4 @@
 use crate::{
-    app::DetailViewState,
     component::AppListState,
     object::{BucketItem, FileDetail, FileVersion, ObjectItem},
     pages::{
@@ -35,16 +34,12 @@ impl Page {
     pub fn of_object_detail(
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
-        vs: DetailViewState,
         object_items: Vec<ObjectItem>,
         list_state: AppListState,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
             file_detail,
             file_versions,
-            vs,
-            None,
-            None,
             object_items,
             list_state,
         )))
@@ -63,8 +58,6 @@ impl Page {
             file_detail,
             preview,
             preview_max_digits,
-            0,
-            None,
         )))
     }
 
