@@ -1,6 +1,6 @@
 use enum_tag::EnumTag;
 use itsuki::zero_indexed_enum;
-use std::sync::Arc;
+use std::{default, sync::Arc};
 use tokio::spawn;
 
 use crate::{
@@ -34,11 +34,10 @@ pub enum ViewState {
 
 pub type ViewStateTag = <ViewState as EnumTag>::Tag;
 
-zero_indexed_enum! {
-    DetailViewState => [
-        Detail,
-        Version,
-    ]
+#[zero_indexed_enum]
+pub enum DetailViewState {
+    Detail,
+    Version,
 }
 
 #[derive(Debug, Clone)]
@@ -90,14 +89,15 @@ impl CopyDetailViewState {
     }
 }
 
-zero_indexed_enum! {
-    CopyDetailViewItemType => [
-        Key,
-        S3Uri,
-        Arn,
-        ObjectUrl,
-        Etag,
-    ]
+#[derive(Default)]
+#[zero_indexed_enum]
+pub enum CopyDetailViewItemType {
+    #[default]
+    Key,
+    S3Uri,
+    Arn,
+    ObjectUrl,
+    Etag,
 }
 
 impl CopyDetailViewItemType {

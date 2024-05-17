@@ -24,7 +24,7 @@ dirs = "5.0.1"
 enum-tag = "0.3.0"
 humansize = "2.1.3"
 itertools = "0.12.1"
-itsuki = "0.1.2"
+itsuki = "0.2.0"
 open = "5.1.2"
 ratatui = { version = "0.26.2", features = [
     "all-widgets",

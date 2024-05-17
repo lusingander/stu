@@ -1580,9 +1580,9 @@ checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
 name = "itsuki"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2345631112523f1fa664a157ad9f83760ba5137d775106bb139116dd36d590a5"
+checksum = "694e25c23618dbcd842f6d0b10879490ac35fcba935a7cd4dbeb4f2d52e6eb90"
 dependencies = [
  "proc-macro2",
  "quote",
