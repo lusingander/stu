@@ -35,24 +35,15 @@ impl BucketListPage {
         // todo: reconsider list state management
         self.list_state.height = area.height as usize - 2 /* border */;
 
-        let list_state = ListViewState {
-            current_selected: self.list_state.selected,
-            current_offset: self.list_state.offset,
-        };
-        let styles = ListItemStyles {
-            selected_bg_color: SELECTED_COLOR,
-            selected_fg_color: SELECTED_ITEM_TEXT_COLOR,
-        };
-        let list_items =
-            build_list_items_from_bucket_items(&self.bucket_items, list_state, area, styles);
-        let list = build_list(
-            list_items,
-            self.bucket_items.len(),
-            list_state.current_selected,
-        );
+        let offset = self.list_state.offset;
+        let selected = self.list_state.selected;
+        let total_items_count = self.bucket_items.len();
+
+        let list_items = build_list_items(&self.bucket_items, offset, selected, area);
+        let list = build_list(list_items, total_items_count, selected);
         f.render_widget(list, area);
 
-        render_list_scroll_bar(f, area, list_state, self.bucket_items.len());
+        render_list_scroll_bar(f, area, offset, total_items_count);
     }
 
     pub fn select_next(&mut self) {
@@ -100,41 +91,33 @@ impl BucketListPage {
     }
 }
 
-fn build_list_items_from_bucket_items(
+fn build_list_items(
     current_items: &[BucketItem],
-    list_state: ListViewState,
+    offset: usize,
+    selected: usize,
     area: Rect,
-    styles: ListItemStyles,
 ) -> Vec<ListItem> {
     let show_item_count = (area.height as usize) - 2 /* border */;
     current_items
         .iter()
-        .skip(list_state.current_offset)
+        .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, item)| build_list_item_from_bucket_item(idx, item, list_state, area, styles))
+        .map(|(idx, item)| {
+            let content = format_bucket_item(&item.name, area.width);
+            let style = Style::default();
+            let span = Span::styled(content, style);
+            if idx + offset == selected {
+                ListItem::new(span).style(
+                    Style::default()
+                        .bg(SELECTED_COLOR)
+                        .fg(SELECTED_ITEM_TEXT_COLOR),
+                )
+            } else {
+                ListItem::new(span)
+            }
+        })
         .collect()
-}
-
-fn build_list_item_from_bucket_item(
-    idx: usize,
-    item: &BucketItem,
-    list_state: ListViewState,
-    area: Rect,
-    styles: ListItemStyles,
-) -> ListItem {
-    let content = format_bucket_item(&item.name, area.width);
-    let style = Style::default();
-    let span = Span::styled(content, style);
-    if idx + list_state.current_offset == list_state.current_selected {
-        ListItem::new(span).style(
-            Style::default()
-                .bg(styles.selected_bg_color)
-                .fg(styles.selected_fg_color),
-        )
-    } else {
-        ListItem::new(span)
-    }
 }
 
 fn build_list(list_items: Vec<ListItem>, total_count: usize, current_selected: usize) -> List {
@@ -165,31 +148,14 @@ fn format_bucket_item(name: &str, width: u16) -> String {
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
-fn render_list_scroll_bar(
-    f: &mut Frame,
-    area: Rect,
-    list_state: ListViewState,
-    current_items_len: usize,
-) {
+fn render_list_scroll_bar(f: &mut Frame, area: Rect, offset: usize, current_items_len: usize) {
     let area = area.inner(&Margin::new(2, 1));
     let scrollbar_area = Rect::new(area.right(), area.top(), 1, area.height);
 
     if current_items_len > (scrollbar_area.height as usize) {
-        let scroll_bar = ScrollBar::new(current_items_len, list_state.current_offset);
+        let scroll_bar = ScrollBar::new(current_items_len, offset);
         f.render_widget(scroll_bar, scrollbar_area);
     }
-}
-
-#[derive(Clone, Copy, Debug)]
-struct ListViewState {
-    current_selected: usize,
-    current_offset: usize,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct ListItemStyles {
-    selected_bg_color: Color,
-    selected_fg_color: Color,
 }
 
 #[cfg(test)]
