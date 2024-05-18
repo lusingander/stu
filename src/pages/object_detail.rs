@@ -13,7 +13,7 @@ use crate::{
     event::{AppEventType, AppKeyInput},
     object::{FileDetail, FileVersion, ObjectItem},
     ui::common::{calc_centered_dialog_rect, format_datetime, format_size_byte, format_version},
-    widget::{Dialog, ScrollList, ScrollListState},
+    widget::{Dialog, SaveDialog, SaveDialogState, ScrollList, ScrollListState},
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -40,12 +40,6 @@ enum Tab {
     #[default]
     Detail,
     Version,
-}
-
-#[derive(Debug, Default)]
-struct SaveDialogState {
-    input: String,
-    cursor: u16,
 }
 
 #[derive(Default)]
@@ -133,27 +127,11 @@ impl ObjectDetailPage {
             }
         }
 
-        if let Some(state) = &self.save_dialog_state {
-            let dialog_width = (area.width - 4).min(40);
-            let dialog_height = 1 + 2 /* border */;
-            let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        if let Some(state) = &mut self.save_dialog_state {
+            let save_dialog = SaveDialog::default();
+            f.render_stateful_widget(save_dialog, area, state);
 
-            let max_width = dialog_width - 2 /* border */- 2/* pad */;
-            let input_width = state.input.len().saturating_sub(max_width as usize);
-            let input_view: &str = &state.input[input_width..];
-
-            let title = Title::from("Save As");
-            let dialog_content = Paragraph::new(input_view).block(
-                Block::bordered()
-                    .border_type(BorderType::Rounded)
-                    .title(title)
-                    .padding(Padding::horizontal(1)),
-            );
-            let dialog = Dialog::new(Box::new(dialog_content));
-            f.render_widget_ref(dialog, area);
-
-            let cursor_x = area.x + state.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
-            let cursor_y = area.y + 1;
+            let (cursor_x, cursor_y) = state.cursor();
             f.set_cursor(cursor_x, cursor_y);
         }
 
@@ -246,12 +224,10 @@ impl ObjectDetailPage {
                     if c == '?' {
                         return;
                     }
-                    state.input.push(c);
-                    state.cursor = state.cursor.saturating_add(1);
+                    state.add_char(c);
                 }
                 AppKeyInput::Backspace => {
-                    state.input.pop();
-                    state.cursor = state.cursor.saturating_sub(1);
+                    state.delete_char();
                 }
             }
         }
@@ -262,7 +238,7 @@ impl ObjectDetailPage {
     }
 
     pub fn save_dialog_key_input(&self) -> Option<String> {
-        self.save_dialog_state.as_ref().map(|s| s.input.clone())
+        self.save_dialog_state.as_ref().map(|s| s.input().into())
     }
 
     pub fn copy_detail_dialog_selected(&self) -> Option<(String, String)> {

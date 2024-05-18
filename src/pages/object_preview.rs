@@ -2,16 +2,15 @@ use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, Padding, Paragraph},
+    widgets::{Block, Padding, Paragraph},
     Frame,
 };
 
 use crate::{
     event::{AppEventType, AppKeyInput},
     object::{FileDetail, Object},
-    ui::common::calc_centered_dialog_rect,
     util::{digits, to_preview_string},
-    widget::Dialog,
+    widget::{SaveDialog, SaveDialogState},
 };
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
@@ -27,12 +26,6 @@ pub struct ObjectPreviewPage {
 
     save_dialog_state: Option<SaveDialogState>,
     offset: usize,
-}
-
-#[derive(Debug, Default)]
-struct SaveDialogState {
-    input: String,
-    cursor: u16,
 }
 
 impl ObjectPreviewPage {
@@ -101,27 +94,11 @@ impl ObjectPreviewPage {
 
         f.render_widget(paragraph, area);
 
-        if let Some(state) = &self.save_dialog_state {
-            let dialog_width = (area.width - 4).min(40);
-            let dialog_height = 1 + 2 /* border */;
-            let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        if let Some(state) = &mut self.save_dialog_state {
+            let save_dialog = SaveDialog::default();
+            f.render_stateful_widget(save_dialog, area, state);
 
-            let max_width = dialog_width - 2 /* border */- 2/* pad */;
-            let input_width = state.input.len().saturating_sub(max_width as usize);
-            let input_view: &str = &state.input[input_width..];
-
-            let title = Title::from("Save As");
-            let dialog_content = Paragraph::new(input_view).block(
-                Block::bordered()
-                    .border_type(BorderType::Rounded)
-                    .title(title)
-                    .padding(Padding::horizontal(1)),
-            );
-            let dialog = Dialog::new(Box::new(dialog_content));
-            f.render_widget_ref(dialog, area);
-
-            let cursor_x = area.x + state.cursor.min(max_width) + 1 /* border */ + 1/* pad */;
-            let cursor_y = area.y + 1;
+            let (cursor_x, cursor_y) = state.cursor();
             f.set_cursor(cursor_x, cursor_y);
         }
     }
@@ -161,12 +138,10 @@ impl ObjectPreviewPage {
                     if c == '?' {
                         return;
                     }
-                    state.input.push(c);
-                    state.cursor = state.cursor.saturating_add(1);
+                    state.add_char(c);
                 }
                 AppKeyInput::Backspace => {
-                    state.input.pop();
-                    state.cursor = state.cursor.saturating_sub(1);
+                    state.delete_char();
                 }
             }
         }
@@ -177,7 +152,7 @@ impl ObjectPreviewPage {
     }
 
     pub fn save_dialog_key_input(&self) -> Option<String> {
-        self.save_dialog_state.as_ref().map(|s| s.input.clone())
+        self.save_dialog_state.as_ref().map(|s| s.input().into())
     }
 
     pub fn object(&self) -> &Object {
