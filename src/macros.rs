@@ -55,3 +55,13 @@ macro_rules! lines_with_empty_line {
         ratatui::widgets::Line::from($s)
     };
 }
+
+#[macro_export]
+macro_rules! if_match {
+    ( $i:ident : $p:pat => $ret:expr ) => {
+        match $i {
+            $p => Some($ret),
+            _ => None,
+        }
+    };
+}

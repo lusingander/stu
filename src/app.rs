@@ -11,6 +11,7 @@ use crate::{
         CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
+    if_match,
     keys::AppKeyActionManager,
     object::{AppObjects, BucketItem, FileDetail, Object, ObjectItem, ObjectKey},
     pages::page::Page,
@@ -71,6 +72,10 @@ impl PageStack {
         }
     }
 
+    fn len(&self) -> usize {
+        self.stack.len()
+    }
+
     fn push(&mut self, page: Page) {
         self.stack.push(page);
     }
@@ -90,6 +95,14 @@ impl PageStack {
     pub fn current_page_mut(&mut self) -> &mut Page {
         self.stack.last_mut().unwrap()
     }
+
+    pub fn head(&self) -> &Page {
+        self.stack.first().unwrap()
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<Page> {
+        self.stack.iter()
+    }
 }
 
 pub struct App {
@@ -97,8 +110,6 @@ pub struct App {
     pub app_view_state: AppViewState,
     pub page_stack: PageStack,
     app_objects: AppObjects,
-    current_bucket: Option<BucketItem>,
-    current_path: Vec<String>,
     client: Option<Arc<Client>>,
     config: Option<Config>,
     tx: Sender,
@@ -110,8 +121,6 @@ impl App {
             action_manager: AppKeyActionManager::new(),
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::new(),
-            current_bucket: None,
-            current_path: Vec::new(),
             page_stack: PageStack::new(),
             client: None,
             config: None,
@@ -161,17 +170,6 @@ impl App {
         self.app_view_state.reset_size(width, height);
     }
 
-    pub fn breadcrumb_strs(&self) -> Vec<String> {
-        match &self.current_bucket {
-            Some(b) => {
-                let mut current_path = self.current_path.to_vec();
-                current_path.insert(0, b.name.to_string());
-                current_path
-            }
-            None => Vec::new(),
-        }
-    }
-
     pub fn view_state_tag(&self) -> ViewStateTag {
         match self.page_stack.current_page() {
             Page::Initializing(_) => ViewStateTag::Initializing,
@@ -191,12 +189,22 @@ impl App {
     }
 
     fn current_bucket(&self) -> String {
-        self.current_bucket.as_ref().unwrap().name.to_owned()
+        let bucket_page = self.page_stack.head().as_bucket_list();
+        bucket_page.current_selected_item().name.clone()
+    }
+
+    fn current_path(&self) -> Vec<&str> {
+        self.page_stack
+            .iter()
+            .filter_map(|page| if_match! { page: Page::ObjectList(p) => p })
+            .map(|page| page.current_selected_item())
+            .filter_map(|item| if_match! { item: ObjectItem::Dir { name, .. } => name.as_str() })
+            .collect()
     }
 
     fn current_object_prefix(&self) -> String {
         let mut prefix = String::new();
-        for key in &self.current_path {
+        for key in &self.current_path() {
             prefix.push_str(key);
             prefix.push('/');
         }
@@ -206,12 +214,13 @@ impl App {
     fn current_object_key(&self) -> ObjectKey {
         ObjectKey {
             bucket_name: self.current_bucket(),
-            object_path: self.current_path.to_vec(),
+            object_path: self.current_path().iter().map(|s| s.to_string()).collect(),
         }
     }
 
     fn current_object_key_with_name(&self, name: String) -> ObjectKey {
-        let mut object_path = self.current_path.to_vec();
+        let mut object_path: Vec<String> =
+            self.current_path().iter().map(|s| s.to_string()).collect();
         object_path.push(name);
         ObjectKey {
             bucket_name: self.current_bucket(),
@@ -307,11 +316,6 @@ impl App {
     }
 
     pub fn bucket_list_move_down(&mut self) {
-        let bucket_page = self.page_stack.current_page().as_bucket_list();
-        let selected = bucket_page.current_selected_item().to_owned();
-
-        self.current_bucket = Some(selected);
-
         if self.exists_current_objects() {
             let object_list_page = Page::of_object_list(self.current_object_items());
             self.page_stack.push(object_list_page);
@@ -351,8 +355,6 @@ impl App {
                 }
             }
             ObjectItem::Dir { .. } => {
-                self.current_path.push(selected.name().to_owned());
-
                 if self.exists_current_objects() {
                     let object_list_page = Page::of_object_list(self.current_object_items());
                     self.page_stack.push(object_list_page);
@@ -383,12 +385,9 @@ impl App {
     }
 
     pub fn object_list_move_up(&mut self) {
-        let key = self.current_path.pop();
-        if key.is_none() {
-            if self.bucket_items().len() == 1 {
-                return;
-            }
-            self.current_bucket = None;
+        if self.page_stack.len() == 2 /* bucket list and object list */ && self.bucket_items().len() == 1
+        {
+            return;
         }
         self.page_stack.pop();
     }
@@ -434,8 +433,6 @@ impl App {
         if self.bucket_items().len() == 1 {
             return;
         }
-        self.current_bucket = None;
-        self.current_path.clear();
         self.page_stack.clear();
     }
 

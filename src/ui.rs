@@ -43,8 +43,7 @@ fn render_header(f: &mut Frame, area: Rect, app: &App) {
     if area.is_empty() {
         return;
     }
-
-    let header = Header::new(app.breadcrumb_strs());
+    let header = build_header(app);
     f.render_widget(header, area);
 }
 
@@ -57,6 +56,50 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
         Page::ObjectPreview(page) => page.render(f, area),
         Page::Help(page) => page.render(f, area),
     }
+}
+
+fn render_footer(f: &mut Frame, area: Rect, app: &App) {
+    match &app.app_view_state.notification {
+        Notification::Info(msg) => {
+            let msg = build_info_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::Success(msg) => {
+            let msg = build_success_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::Error(msg) => {
+            let msg = build_error_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::None => {
+            let help = build_short_help(app, area.width);
+            f.render_widget(help, area);
+        }
+    }
+}
+
+fn render_loading_dialog(f: &mut Frame, app: &App) {
+    if app.app_view_state.is_loading {
+        let loading = build_loading_dialog("Loading...");
+        let area = calc_centered_dialog_rect(f.size(), 30, 5);
+        let dialog = Dialog::new(Box::new(loading));
+        f.render_widget_ref(dialog, area);
+    }
+}
+
+fn build_header(app: &App) -> Header {
+    let mut breadcrumb: Vec<String> = app
+        .page_stack
+        .iter()
+        .filter_map(|page| match page {
+            Page::BucketList(page) => Some(page.current_selected_item().name.clone()),
+            Page::ObjectList(page) => Some(page.current_selected_item().name().into()),
+            _ => None,
+        })
+        .collect();
+    breadcrumb.pop(); // Remove the last item
+    Header::new(breadcrumb)
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
@@ -89,27 +132,6 @@ fn build_error_status(err: &str) -> Paragraph {
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn render_footer(f: &mut Frame, area: Rect, app: &App) {
-    match &app.app_view_state.notification {
-        Notification::Info(msg) => {
-            let msg = build_info_status(msg);
-            f.render_widget(msg, area);
-        }
-        Notification::Success(msg) => {
-            let msg = build_success_status(msg);
-            f.render_widget(msg, area);
-        }
-        Notification::Error(msg) => {
-            let msg = build_error_status(msg);
-            f.render_widget(msg, area);
-        }
-        Notification::None => {
-            let help = build_short_help(app, area.width);
-            f.render_widget(help, area);
-        }
-    }
-}
-
 fn build_loading_dialog(msg: &str) -> Paragraph {
     let text = Line::from(msg.add_modifier(Modifier::BOLD));
     Paragraph::new(text).alignment(Alignment::Center).block(
@@ -117,15 +139,6 @@ fn build_loading_dialog(msg: &str) -> Paragraph {
             .border_type(BorderType::Rounded)
             .padding(Padding::vertical(1)),
     )
-}
-
-fn render_loading_dialog(f: &mut Frame, app: &App) {
-    if app.app_view_state.is_loading {
-        let loading = build_loading_dialog("Loading...");
-        let area = calc_centered_dialog_rect(f.size(), 30, 5);
-        let dialog = Dialog::new(Box::new(loading));
-        f.render_widget_ref(dialog, area);
-    }
 }
 
 fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
