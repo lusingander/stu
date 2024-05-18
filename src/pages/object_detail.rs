@@ -1,4 +1,3 @@
-use chrono::{DateTime, Local};
 use itsuki::zero_indexed_enum;
 use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
@@ -14,6 +13,7 @@ use crate::{
     component::AppListState,
     event::{AppEventType, AppKeyInput},
     object::{FileDetail, FileVersion, ObjectItem},
+    ui::common::{calc_centered_dialog_rect, format_datetime, format_size_byte, format_version},
     util::digits,
     widget::Dialog,
 };
@@ -443,30 +443,6 @@ fn format_count(selected: usize, total: usize) -> String {
     format!(" {:>digits$} / {} ", selected, total)
 }
 
-fn format_size_byte(size_byte: usize) -> String {
-    humansize::format_size_i(size_byte, humansize::BINARY)
-}
-
-#[cfg(not(feature = "imggen"))]
-fn format_version(version: &str) -> &str {
-    version
-}
-
-#[cfg(feature = "imggen")]
-fn format_version(_version: &str) -> &str {
-    "GeJeVLwoQlknMCcSa"
-}
-
-#[cfg(not(feature = "imggen"))]
-fn format_datetime(datetime: &DateTime<Local>) -> String {
-    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-}
-
-#[cfg(feature = "imggen")]
-fn format_datetime(_datetime: &DateTime<Local>) -> String {
-    String::from("2024-01-02 13:04:05")
-}
-
 fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Vec<Line> {
     let n = line_groups.len();
     let mut ret: Vec<Line> = Vec::new();
@@ -481,27 +457,10 @@ fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Ve
     ret
 }
 
-fn calc_centered_dialog_rect(r: Rect, dialog_width: u16, dialog_height: u16) -> Rect {
-    let vertical_pad = (r.height - dialog_height) / 2;
-    let vertical_layout = Layout::vertical(Constraint::from_lengths([
-        vertical_pad,
-        dialog_height,
-        vertical_pad,
-    ]))
-    .split(r);
-
-    let horizontal_pad = (r.width - dialog_width) / 2;
-    Layout::horizontal(Constraint::from_lengths([
-        horizontal_pad,
-        dialog_width,
-        horizontal_pad,
-    ]))
-    .split(vertical_layout[1])[1]
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{DateTime, Local};
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]

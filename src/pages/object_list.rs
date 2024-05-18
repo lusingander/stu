@@ -8,7 +8,11 @@ use ratatui::{
 };
 
 use crate::{
-    component::AppListState, event::AppEventType, object::ObjectItem, util::digits,
+    component::AppListState,
+    event::AppEventType,
+    object::ObjectItem,
+    ui::common::{format_datetime, format_size_byte},
+    util::digits,
     widget::ScrollBar,
 };
 
@@ -201,20 +205,6 @@ fn format_list_count(total_count: usize, current_selected: usize) -> String {
 fn format_count(selected: usize, total: usize) -> String {
     let digits = digits(total);
     format!(" {:>digits$} / {} ", selected, total)
-}
-
-fn format_size_byte(size_byte: usize) -> String {
-    humansize::format_size_i(size_byte, humansize::BINARY)
-}
-
-#[cfg(not(feature = "imggen"))]
-fn format_datetime(datetime: &DateTime<Local>) -> String {
-    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
-}
-
-#[cfg(feature = "imggen")]
-fn format_datetime(_datetime: &DateTime<Local>) -> String {
-    String::from("2024-01-02 13:04:05")
 }
 
 fn render_list_scroll_bar(f: &mut Frame, area: Rect, offset: usize, current_items_len: usize) {
