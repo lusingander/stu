@@ -1,6 +1,6 @@
 use itsuki::zero_indexed_enum;
 use ratatui::{
-    layout::{Alignment, Constraint, Layout, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
     widgets::{
@@ -10,12 +10,10 @@ use ratatui::{
 };
 
 use crate::{
-    component::AppListState,
     event::{AppEventType, AppKeyInput},
     object::{FileDetail, FileVersion, ObjectItem},
     ui::common::{calc_centered_dialog_rect, format_datetime, format_size_byte, format_version},
-    util::digits,
-    widget::Dialog,
+    widget::{Dialog, ScrollList, ScrollListState},
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -33,7 +31,7 @@ pub struct ObjectDetailPage {
     copy_detail_dialog_state: Option<CopyDetailDialogState>,
 
     object_items: Vec<ObjectItem>,
-    list_state: AppListState,
+    list_state: ScrollListState,
 }
 
 #[derive(Default)]
@@ -83,7 +81,7 @@ impl ObjectDetailPage {
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
-        list_state: AppListState,
+        list_state: ScrollListState,
     ) -> Self {
         Self {
             file_detail,
@@ -105,17 +103,14 @@ impl ObjectDetailPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let chunks = Layout::horizontal(Constraint::from_percentages([50, 50])).split(area);
 
-        // todo: reconsider list state management
-        self.list_state.height = area.height as usize - 2 /* border */;
-
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
-        let total_items_count = self.object_items.len();
 
         let list_items =
             build_list_items_from_object_items(&self.object_items, offset, selected, chunks[0]);
-        let list = build_list(list_items, total_items_count, selected);
-        f.render_widget(list, chunks[0]);
+
+        let list = ScrollList::new(list_items);
+        f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
         let block = build_file_detail_block();
         f.render_widget(block, chunks[1]);
@@ -348,16 +343,6 @@ fn format_file_item(name: &str, width: u16) -> String {
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
-fn build_list(list_items: Vec<ListItem>, total_count: usize, current_selected: usize) -> List {
-    let title = format_list_count(total_count, current_selected);
-    List::new(list_items).block(
-        Block::bordered()
-            .title(title)
-            .title_alignment(Alignment::Right)
-            .padding(Padding::horizontal(1)),
-    )
-}
-
 fn build_file_detail_block() -> Block<'static> {
     Block::bordered()
 }
@@ -430,19 +415,6 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
         .highlight_style(Style::default().bg(SELECTED_COLOR))
 }
 
-fn format_list_count(total_count: usize, current_selected: usize) -> String {
-    if total_count == 0 {
-        String::new()
-    } else {
-        format_count(current_selected + 1, total_count)
-    }
-}
-
-fn format_count(selected: usize, total: usize) -> String {
-    let digits = digits(total);
-    format!(" {:>digits$} / {} ", selected, total)
-}
-
 fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Vec<Line> {
     let n = line_groups.len();
     let mut ret: Vec<Line> = Vec::new();
@@ -469,8 +441,13 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page =
-                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            let items_len = items.len();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                file_versions,
+                items,
+                ScrollListState::new(items_len),
+            );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -552,8 +529,13 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page =
-                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            let items_len = items.len();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                file_versions,
+                items,
+                ScrollListState::new(items_len),
+            );
             page.toggle_tab();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -636,8 +618,13 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page =
-                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            let items_len = items.len();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                file_versions,
+                items,
+                ScrollListState::new(items_len),
+            );
             page.open_save_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -714,8 +701,13 @@ mod tests {
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
-            let mut page =
-                ObjectDetailPage::new(file_detail, file_versions, items, AppListState::default());
+            let items_len = items.len();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                file_versions,
+                items,
+                ScrollListState::new(items_len),
+            );
             page.open_copy_detail_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);

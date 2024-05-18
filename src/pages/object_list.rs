@@ -1,19 +1,17 @@
 use chrono::{DateTime, Local};
 use ratatui::{
-    layout::{Alignment, Margin, Rect},
+    layout::Rect,
     style::{Color, Modifier, Style},
     text::Span,
-    widgets::{Block, List, ListItem, Padding},
+    widgets::ListItem,
     Frame,
 };
 
 use crate::{
-    component::AppListState,
     event::AppEventType,
     object::ObjectItem,
     ui::common::{format_datetime, format_size_byte},
-    util::digits,
-    widget::ScrollBar,
+    widget::{ScrollList, ScrollListState},
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -23,49 +21,37 @@ const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
 
-    list_state: AppListState,
+    list_state: ScrollListState,
 }
 
 impl ObjectListPage {
     pub fn new(object_items: Vec<ObjectItem>) -> Self {
+        let items_len = object_items.len();
         Self {
             object_items,
-            list_state: AppListState::default(),
+            list_state: ScrollListState::new(items_len),
         }
     }
 
     pub fn handle_event(&mut self, _event: AppEventType) {}
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        // todo: reconsider list state management
-        self.list_state.height = area.height as usize - 2 /* border */;
-
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
-        let total_items_count = self.object_items.len();
 
         let list_items =
             build_list_items_from_object_items(&self.object_items, offset, selected, area);
-        let list = build_list(list_items, total_items_count, selected);
-        f.render_widget(list, area);
 
-        render_list_scroll_bar(f, area, offset, total_items_count);
+        let list = ScrollList::new(list_items);
+        f.render_stateful_widget(list, area, &mut self.list_state);
     }
 
     pub fn select_next(&mut self) {
-        if self.list_state.selected >= self.object_items.len() - 1 {
-            self.list_state.select_first();
-        } else {
-            self.list_state.select_next();
-        };
+        self.list_state.select_next();
     }
 
     pub fn select_prev(&mut self) {
-        if self.list_state.selected == 0 {
-            self.list_state.select_last(self.object_items.len());
-        } else {
-            self.list_state.select_prev();
-        };
+        self.list_state.select_prev();
     }
 
     pub fn select_first(&mut self) {
@@ -73,15 +59,15 @@ impl ObjectListPage {
     }
 
     pub fn select_last(&mut self) {
-        self.list_state.select_last(self.object_items.len());
+        self.list_state.select_last();
     }
 
     pub fn select_next_page(&mut self) {
-        self.list_state.select_next_page(self.object_items.len());
+        self.list_state.select_next_page();
     }
 
     pub fn select_prev_page(&mut self) {
-        self.list_state.select_prev_page(self.object_items.len());
+        self.list_state.select_prev_page();
     }
 
     pub fn current_selected_item(&self) -> &ObjectItem {
@@ -100,7 +86,7 @@ impl ObjectListPage {
         &self.object_items
     }
 
-    pub fn list_state(&self) -> AppListState {
+    pub fn list_state(&self) -> ScrollListState {
         self.list_state
     }
 }
@@ -156,16 +142,6 @@ fn build_list_item_from_object_item(
     }
 }
 
-fn build_list(list_items: Vec<ListItem>, total_count: usize, current_selected: usize) -> List {
-    let title = format_list_count(total_count, current_selected);
-    List::new(list_items).block(
-        Block::bordered()
-            .title(title)
-            .title_alignment(Alignment::Right)
-            .padding(Padding::horizontal(1)),
-    )
-}
-
 fn format_dir_item(name: &str, width: u16) -> String {
     let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
     let name = format!("{}/", name);
@@ -192,29 +168,6 @@ fn format_file_item(
         date_w = date_w,
         size_w = size_w
     )
-}
-
-fn format_list_count(total_count: usize, current_selected: usize) -> String {
-    if total_count == 0 {
-        String::new()
-    } else {
-        format_count(current_selected + 1, total_count)
-    }
-}
-
-fn format_count(selected: usize, total: usize) -> String {
-    let digits = digits(total);
-    format!(" {:>digits$} / {} ", selected, total)
-}
-
-fn render_list_scroll_bar(f: &mut Frame, area: Rect, offset: usize, current_items_len: usize) {
-    let area = area.inner(&Margin::new(2, 1));
-    let scrollbar_area = Rect::new(area.right(), area.top(), 1, area.height);
-
-    if current_items_len > (scrollbar_area.height as usize) {
-        let scroll_bar = ScrollBar::new(current_items_len, offset);
-        f.render_widget(scroll_bar, scrollbar_area);
-    }
 }
 
 #[cfg(test)]

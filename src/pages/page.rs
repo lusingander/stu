@@ -1,11 +1,11 @@
 use crate::{
-    component::AppListState,
     object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
         object_preview::ObjectPreviewPage,
     },
+    widget::ScrollListState,
 };
 
 #[derive(Debug)]
@@ -35,7 +35,7 @@ impl Page {
         file_detail: FileDetail,
         file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
-        list_state: AppListState,
+        list_state: ScrollListState,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
             file_detail,
