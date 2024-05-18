@@ -109,3 +109,47 @@ impl Page {
         }
     }
 }
+
+pub struct PageStack {
+    stack: Vec<Page>,
+}
+
+impl PageStack {
+    pub fn new() -> PageStack {
+        PageStack {
+            stack: vec![Page::of_initializing()],
+        }
+    }
+
+    pub fn len(&self) -> usize {
+        self.stack.len()
+    }
+
+    pub fn push(&mut self, page: Page) {
+        self.stack.push(page);
+    }
+
+    pub fn pop(&mut self) -> Page {
+        self.stack.pop().unwrap()
+    }
+
+    pub fn clear(&mut self) {
+        self.stack.truncate(1);
+    }
+
+    pub fn current_page(&self) -> &Page {
+        self.stack.last().unwrap()
+    }
+
+    pub fn current_page_mut(&mut self) -> &mut Page {
+        self.stack.last_mut().unwrap()
+    }
+
+    pub fn head(&self) -> &Page {
+        self.stack.first().unwrap()
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<Page> {
+        self.stack.iter()
+    }
+}
