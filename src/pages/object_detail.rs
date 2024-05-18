@@ -3,17 +3,18 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{
-        block::Title, Block, BorderType, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap,
-    },
+    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap},
     Frame,
 };
 
 use crate::{
     event::{AppEventType, AppKeyInput},
     object::{FileDetail, FileVersion, ObjectItem},
-    ui::common::{calc_centered_dialog_rect, format_datetime, format_size_byte, format_version},
-    widget::{Dialog, SaveDialog, SaveDialogState, ScrollList, ScrollListState},
+    ui::common::{format_datetime, format_size_byte, format_version},
+    widget::{
+        CopyDetailDialog, CopyDetailDialogState, SaveDialog, SaveDialogState, ScrollList,
+        ScrollListState,
+    },
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -40,34 +41,6 @@ enum Tab {
     #[default]
     Detail,
     Version,
-}
-
-#[derive(Default)]
-#[zero_indexed_enum]
-enum CopyDetailViewItemType {
-    #[default]
-    Key,
-    S3Uri,
-    Arn,
-    ObjectUrl,
-    Etag,
-}
-
-impl CopyDetailViewItemType {
-    pub fn name(&self) -> &str {
-        match self {
-            Self::Key => "Key",
-            Self::S3Uri => "S3 URI",
-            Self::Arn => "ARN",
-            Self::ObjectUrl => "Object URL",
-            Self::Etag => "ETag",
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-struct CopyDetailDialogState {
-    selected: CopyDetailViewItemType,
 }
 
 impl ObjectDetailPage {
@@ -136,45 +109,8 @@ impl ObjectDetailPage {
         }
 
         if let Some(state) = &self.copy_detail_dialog_state {
-            let selected = state.selected as usize;
-            let list_items: Vec<ListItem> = [
-                (CopyDetailViewItemType::Key, &self.file_detail.key),
-                (CopyDetailViewItemType::S3Uri, &self.file_detail.s3_uri),
-                (CopyDetailViewItemType::Arn, &self.file_detail.arn),
-                (
-                    CopyDetailViewItemType::ObjectUrl,
-                    &self.file_detail.object_url,
-                ),
-                (CopyDetailViewItemType::Etag, &self.file_detail.e_tag),
-            ]
-            .iter()
-            .enumerate()
-            .map(|(i, (tp, value))| {
-                let item = ListItem::new(vec![
-                    Line::from(format!("{}:", tp.name()).add_modifier(Modifier::BOLD)),
-                    Line::from(format!("  {}", value)),
-                ]);
-                if i == selected {
-                    item.fg(SELECTED_COLOR)
-                } else {
-                    item
-                }
-            })
-            .collect();
-
-            let dialog_width = (area.width - 4).min(80);
-            let dialog_height = 2 * 5 /* list */ + 2 /* border */;
-            let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
-
-            let title = Title::from("Copy");
-            let list = List::new(list_items).block(
-                Block::bordered()
-                    .border_type(BorderType::Rounded)
-                    .title(title)
-                    .padding(Padding::horizontal(1)),
-            );
-            let dialog = Dialog::new(Box::new(list));
-            f.render_widget_ref(dialog, area);
+            let copy_detail_dialog = CopyDetailDialog::new(*state, &self.file_detail);
+            f.render_widget(copy_detail_dialog, area);
         }
     }
 
@@ -207,13 +143,13 @@ impl ObjectDetailPage {
 
     pub fn select_next_copy_detail_item(&mut self) {
         if let Some(ref mut state) = self.copy_detail_dialog_state {
-            state.selected = state.selected.next();
+            state.select_next();
         }
     }
 
     pub fn select_prev_copy_detail_item(&mut self) {
         if let Some(ref mut state) = self.copy_detail_dialog_state {
-            state.selected = state.selected.prev();
+            state.select_prev();
         }
     }
 
@@ -242,16 +178,9 @@ impl ObjectDetailPage {
     }
 
     pub fn copy_detail_dialog_selected(&self) -> Option<(String, String)> {
-        self.copy_detail_dialog_state.as_ref().map(|s| {
-            let value = match s.selected {
-                CopyDetailViewItemType::Key => &self.file_detail.key,
-                CopyDetailViewItemType::S3Uri => &self.file_detail.s3_uri,
-                CopyDetailViewItemType::Arn => &self.file_detail.arn,
-                CopyDetailViewItemType::ObjectUrl => &self.file_detail.object_url,
-                CopyDetailViewItemType::Etag => &self.file_detail.e_tag,
-            };
-            (s.selected.name().to_owned(), value.to_owned())
-        })
+        self.copy_detail_dialog_state
+            .as_ref()
+            .map(|s| s.selected_name_and_value(&self.file_detail))
     }
 
     pub fn status(&self) -> (bool, bool) {
