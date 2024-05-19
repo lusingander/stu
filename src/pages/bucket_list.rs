@@ -116,6 +116,8 @@ fn format_bucket_item(name: &str, width: u16) -> String {
 
 #[cfg(test)]
 mod tests {
+    use crate::set_cells;
+
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
@@ -148,9 +150,8 @@ mod tests {
             "│                            │",
             "└────────────────────────────┘",
         ]);
-        for x in 2..28 {
-            expected.get_mut(x, 1).set_bg(Color::Cyan);
-            expected.get_mut(x, 1).set_fg(Color::Black);
+        set_cells! { expected =>
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -186,10 +187,9 @@ mod tests {
             "│  bucket8                   │",
             "└────────────────────────────┘",
         ]);
-        for x in 2..28 {
+        set_cells! { expected =>
             // selected item
-            expected.get_mut(x, 1).set_bg(Color::Cyan);
-            expected.get_mut(x, 1).set_fg(Color::Black);
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
         }
 
         terminal.backend().assert_buffer(&expected);

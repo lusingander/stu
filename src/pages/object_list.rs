@@ -172,6 +172,8 @@ fn format_file_item(
 
 #[cfg(test)]
 mod tests {
+    use crate::set_cells;
+
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
@@ -220,19 +222,11 @@ mod tests {
             "│                                                          │",
             "└──────────────────────────────────────────────────────────┘",
         ]);
-        for x in 2..58 {
+        set_cells! { expected =>
             // dir items
-            expected
-                .get_mut(x, 1)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-            expected
-                .get_mut(x, 2)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 2..58 {
+            (2..58, [1, 2]) => modifier: Modifier::BOLD,
             // selected item
-            expected.get_mut(x, 1).set_bg(Color::Cyan);
-            expected.get_mut(x, 1).set_fg(Color::Black);
+            (2..58, [1]) => bg: Color::Cyan, fg: Color::Black,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -271,9 +265,9 @@ mod tests {
                 "│  file8                2024-01-02 13:01:02         1 KiB  │",
                 "└──────────────────────────────────────────────────────────┘",
         ]);
-        for x in 2..58 {
-            expected.get_mut(x, 1).set_bg(Color::Cyan);
-            expected.get_mut(x, 1).set_fg(Color::Black);
+        set_cells! { expected =>
+            // selected item
+            (2..58, [1]) => bg: Color::Cyan, fg: Color::Black,
         }
 
         terminal.backend().assert_buffer(&expected);

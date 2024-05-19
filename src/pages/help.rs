@@ -85,6 +85,8 @@ fn build_help_lines(helps: &[String], max_width: usize) -> Vec<Line> {
 
 #[cfg(test)]
 mod tests {
+    use crate::set_cells;
+
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
@@ -131,13 +133,11 @@ mod tests {
             "│                                                                    │",
             "└────────────────────────────────────────────────────────────────────┘",
         ]);
-        for x in 2..37 {
+        set_cells! { expected =>
             // link
-            expected.get_mut(x, 6).set_fg(Color::Blue);
-        }
-        for x in 2..68 {
+            (2..37, [6]) => fg: Color::Blue,
             // divider
-            expected.get_mut(x, 8).set_fg(Color::DarkGray);
+            (2..68, [8]) => fg: Color::DarkGray,
         }
 
         terminal.backend().assert_buffer(&expected);

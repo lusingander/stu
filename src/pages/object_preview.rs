@@ -170,6 +170,8 @@ impl ObjectPreviewPage {
 
 #[cfg(test)]
 mod tests {
+    use crate::set_cells;
+
     use super::*;
     use chrono::{DateTime, Local};
     use itertools::Itertools;
@@ -214,8 +216,8 @@ mod tests {
             "│                            │",
             "└────────────────────────────┘",
         ]);
-        for y in 1..6 {
-            expected.get_mut(2, y).set_fg(Color::DarkGray);
+        set_cells! { expected =>
+            ([2], 1..6) => fg: Color::DarkGray,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -250,10 +252,8 @@ mod tests {
             "│  8 Hello, world!           │",
             "└────────────────────────────┘",
         ]);
-        for y in 1..9 {
-            for x in 2..4 {
-                expected.get_mut(x, y).set_fg(Color::DarkGray);
-            }
+        set_cells! { expected =>
+            (2..4, 1..9) => fg: Color::DarkGray,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -294,8 +294,8 @@ mod tests {
             "│                            │",
             "└────────────────────────────┘",
         ]);
-        for y in 1..3 {
-            expected.get_mut(2, y).set_fg(Color::DarkGray);
+        set_cells! { expected =>
+            ([2], 1..3) => fg: Color::DarkGray,
         }
 
         terminal.backend().assert_buffer(&expected);

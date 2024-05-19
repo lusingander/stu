@@ -336,6 +336,8 @@ fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Ve
 
 #[cfg(test)]
 mod tests {
+    use crate::set_cells;
+
     use super::*;
     use chrono::{DateTime, Local};
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
@@ -380,47 +382,21 @@ mod tests {
             "│                            ││                            │",
             "└────────────────────────────┘└────────────────────────────┘",
         ]);
-        for x in 2..28 {
+        set_cells! { expected =>
             // selected item
-            expected.get_mut(x, 1).set_bg(Color::DarkGray);
-            expected.get_mut(x, 1).set_fg(Color::Black);
-        }
-        for x in 32..38 {
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // "Detail" is selected
-            expected
-                .get_mut(x, 1)
-                .set_fg(Color::Cyan)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Name" label
-            expected
-                .get_mut(x, 3)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..37, [3]) => modifier: Modifier::BOLD,
             // "Size" label
-            expected
-                .get_mut(x, 6)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..46 {
+            (32..37, [6]) => modifier: Modifier::BOLD,
             // "Last Modified" label
-            expected
-                .get_mut(x, 9)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..46, [9]) => modifier: Modifier::BOLD,
             // "ETag" label
-            expected
-                .get_mut(x, 12)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..45 {
+            (32..37, [12]) => modifier: Modifier::BOLD,
             // "Content-Type" label
-            expected
-                .get_mut(x, 16)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
+            (32..45, [16]) => modifier: Modifier::BOLD,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -469,47 +445,19 @@ mod tests {
             "│                            ││                            │",
             "└────────────────────────────┘└────────────────────────────┘",
         ]);
-        for x in 2..28 {
+        set_cells! { expected =>
             // selected item
-            expected.get_mut(x, 1).set_bg(Color::DarkGray);
-            expected.get_mut(x, 1).set_fg(Color::Black);
-        }
-        for x in 41..48 {
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // "Version" is selected
-            expected
-                .get_mut(x, 1)
-                .set_fg(Color::Cyan)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 31..47 {
-            for y in [3, 7] {
-                // "Version ID" label
-                expected
-                    .get_mut(x, y)
-                    .set_style(Style::default().add_modifier(Modifier::BOLD));
-            }
-        }
-        for x in 31..47 {
-            for y in [4, 8] {
-                // "Last Modified" label
-                expected
-                    .get_mut(x, y)
-                    .set_style(Style::default().add_modifier(Modifier::BOLD));
-            }
-        }
-        for x in 31..47 {
-            for y in [5, 9] {
-                // "Size" label
-                expected
-                    .get_mut(x, y)
-                    .set_style(Style::default().add_modifier(Modifier::BOLD));
-            }
-        }
-        for x in 31..59 {
-            for y in [6, 10] {
-                // divider
-                expected.get_mut(x, y).set_fg(Color::DarkGray);
-            }
+            (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
+            // "Version ID" label
+            (31..47, [3, 7]) => modifier: Modifier::BOLD,
+            // "Last Modified" label
+            (31..47, [4, 8]) => modifier: Modifier::BOLD,
+            // "Size" label
+            (31..47, [5, 9]) => modifier: Modifier::BOLD,
+            // divider
+            (31..59, [6, 10]) => fg: Color::DarkGray,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -558,41 +506,19 @@ mod tests {
             "│                            ││                            │",
             "└────────────────────────────┘└────────────────────────────┘",
         ]);
-        for x in 2..28 {
+        set_cells! { expected =>
             // selected item
-            expected.get_mut(x, 1).set_bg(Color::DarkGray);
-            expected.get_mut(x, 1).set_fg(Color::Black);
-        }
-        for x in 32..38 {
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // "Detail" is selected
-            expected
-                .get_mut(x, 1)
-                .set_fg(Color::Cyan)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Name" label
-            expected
-                .get_mut(x, 3)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..37, [3]) => modifier: Modifier::BOLD,
             // "Size" label
-            expected
-                .get_mut(x, 6)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..37, [6]) => modifier: Modifier::BOLD,
             // "ETag" label
-            expected
-                .get_mut(x, 12)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..45 {
+            (32..37, [12]) => modifier: Modifier::BOLD,
             // "Content-Type" label
-            expected
-                .get_mut(x, 16)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
+            (32..45, [16]) => modifier: Modifier::BOLD,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -641,65 +567,27 @@ mod tests {
             "│                            ││                            │",
             "└────────────────────────────┘└────────────────────────────┘",
         ]);
-        for x in 2..28 {
+        set_cells! { expected =>
             // selected item
-            expected.get_mut(x, 1).set_bg(Color::DarkGray);
-            expected.get_mut(x, 1).set_fg(Color::Black);
-        }
-        for x in 32..38 {
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // "Detail" is selected
-            expected
-                .get_mut(x, 1)
-                .set_fg(Color::Cyan)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..37 {
+            (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Name" label
-            expected
-                .get_mut(x, 3)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 32..45 {
+            (32..37, [3]) => modifier: Modifier::BOLD,
             // "Content-Type" label
-            expected
-                .get_mut(x, 16)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 4..8 {
+            (32..45, [16]) => modifier: Modifier::BOLD,
             // "Key" label
-            expected
-                .get_mut(x, 5)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 4..11 {
+            (4..8, [5]) => modifier: Modifier::BOLD,
             // "S3 URI" label
-            expected
-                .get_mut(x, 7)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 4..8 {
+            (4..11, [7]) => modifier: Modifier::BOLD,
             // "ARN" label
-            expected
-                .get_mut(x, 9)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 4..15 {
+            (4..8, [9]) => modifier: Modifier::BOLD,
             // "Object URL" label
-            expected
-                .get_mut(x, 11)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 4..9 {
+            (4..15, [11]) => modifier: Modifier::BOLD,
             // "ETag" label
-            expected
-                .get_mut(x, 13)
-                .set_style(Style::default().add_modifier(Modifier::BOLD));
-        }
-        for x in 4..56 {
-            for y in [5, 6] {
-                // "Key" is selected
-                expected.get_mut(x, y).set_fg(Color::Cyan);
-            }
+            (4..9, [13]) => modifier: Modifier::BOLD,
+            // "Key" is selected
+            (4..56, [5, 6]) => fg: Color::Cyan,
         }
 
         terminal.backend().assert_buffer(&expected);
