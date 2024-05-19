@@ -62,3 +62,50 @@ impl StatefulWidget for SaveDialog {
         state.cursor = (cursor_x, cursor_y);
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use ratatui::assert_buffer_eq;
+
+    use super::*;
+
+    #[test]
+    fn test_render_save_dialog() {
+        let mut state = SaveDialogState::default();
+        let save_dialog = SaveDialog::default();
+
+        for c in "file.txt".chars() {
+            state.add_char(c);
+        }
+
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
+        save_dialog.render(buf.area, &mut buf, &mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "  ╭Save As───────────────────────────╮  ",
+            "  │ file.txt                         │  ",
+            "  ╰──────────────────────────────────╯  ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+        ]);
+
+        assert_buffer_eq!(buf, expected);
+        assert_eq!(state.cursor(), (12, 9));
+    }
+}

@@ -137,3 +137,124 @@ fn format_list_count(total_count: usize, selected: usize) -> String {
         format!(" {:>digits$} / {} ", selected + 1, total_count)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use ratatui::{assert_buffer_eq, text::Line};
+
+    use super::*;
+
+    #[test]
+    fn test_render_scroll_list_without_scroll() {
+        let mut state = ScrollListState::new(5);
+        let items: Vec<ListItem> = (1..=5)
+            .map(|i| ListItem::new(vec![Line::from(format!("Item {}", i))]))
+            .collect();
+        let scroll_list = ScrollList::new(items);
+
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 12));
+        scroll_list.render(buf.area, &mut buf, &mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "┌─────────── 1 / 5 ┐",
+            "│ Item 1           │",
+            "│ Item 2           │",
+            "│ Item 3           │",
+            "│ Item 4           │",
+            "│ Item 5           │",
+            "│                  │",
+            "│                  │",
+            "│                  │",
+            "│                  │",
+            "│                  │",
+            "└──────────────────┘",
+        ]);
+
+        assert_buffer_eq!(buf, expected);
+    }
+
+    #[test]
+    fn test_render_scroll_list_with_scroll() {
+        let mut state = ScrollListState::new(20);
+
+        let buf = render_scroll_list(&mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "┌─────────  1 / 20 ┐",
+            "│ Item 1          ││",
+            "│ Item 2          ││",
+            "│ Item 3          ││",
+            "│ Item 4          ││",
+            "│ Item 5          ││",
+            "│ Item 6           │",
+            "│ Item 7           │",
+            "│ Item 8           │",
+            "│ Item 9           │",
+            "│ Item 10          │",
+            "└──────────────────┘",
+        ]);
+
+        assert_buffer_eq!(buf, expected);
+
+        for _ in 0..9 {
+            state.select_next();
+        }
+        let buf = render_scroll_list(&mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "┌───────── 10 / 20 ┐",
+            "│ Item 1          ││",
+            "│ Item 2          ││",
+            "│ Item 3          ││",
+            "│ Item 4          ││",
+            "│ Item 5          ││",
+            "│ Item 6           │",
+            "│ Item 7           │",
+            "│ Item 8           │",
+            "│ Item 9           │",
+            "│ Item 10          │",
+            "└──────────────────┘",
+        ]);
+
+        assert_buffer_eq!(buf, expected);
+
+        for _ in 0..4 {
+            state.select_next();
+        }
+        let buf = render_scroll_list(&mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "┌───────── 14 / 20 ┐",
+            "│ Item 5           │",
+            "│ Item 6           │",
+            "│ Item 7          ││",
+            "│ Item 8          ││",
+            "│ Item 9          ││",
+            "│ Item 10         ││",
+            "│ Item 11         ││",
+            "│ Item 12          │",
+            "│ Item 13          │",
+            "│ Item 14          │",
+            "└──────────────────┘",
+        ]);
+
+        assert_buffer_eq!(buf, expected);
+    }
+
+    fn render_scroll_list(state: &mut ScrollListState) -> Buffer {
+        let show_item_count = 10_u16;
+        let items: Vec<ListItem> = (1..=20)
+            .map(|i| ListItem::new(vec![Line::from(format!("Item {}", i))]))
+            .skip(state.offset)
+            .take(show_item_count as usize)
+            .collect();
+        let scroll_list = ScrollList::new(items);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, show_item_count + 2));
+        scroll_list.render(buf.area, &mut buf, state);
+        buf
+    }
+}

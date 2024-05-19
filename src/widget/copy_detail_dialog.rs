@@ -107,3 +107,84 @@ fn build_list_item(
         item
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use chrono::{DateTime, Local};
+    use ratatui::assert_buffer_eq;
+
+    use crate::set_cells;
+
+    use super::*;
+
+    #[test]
+    fn test_render_copy_detail_dialog() {
+        let state = CopyDetailDialogState::default();
+        let file_detail = file_detail();
+        let copy_detail_dialog = CopyDetailDialog::new(state, &file_detail);
+
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
+        copy_detail_dialog.render(buf.area, &mut buf);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "  ╭Copy──────────────────────────────╮  ",
+            "  │ Key:                             │  ",
+            "  │   file.txt                       │  ",
+            "  │ S3 URI:                          │  ",
+            "  │   s3://bucket-1/file.txt         │  ",
+            "  │ ARN:                             │  ",
+            "  │   arn:aws:s3:::bucket-1/file.txt │  ",
+            "  │ Object URL:                      │  ",
+            "  │   https://bucket-1.s3.ap-northea │  ",
+            "  │ ETag:                            │  ",
+            "  │   bef684de-a260-48a4-8178-8a535e │  ",
+            "  ╰──────────────────────────────────╯  ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+        ]);
+        set_cells! { expected =>
+            // "Key" is bold
+            (4..8, [5]) => modifier: Modifier::BOLD,
+            // "S3 URI" is bold
+            (4..11, [7]) => modifier: Modifier::BOLD,
+            // "ARN" is bold
+            (4..8, [9]) => modifier: Modifier::BOLD,
+            // "Object URL" is bold
+            (4..15, [11]) => modifier: Modifier::BOLD,
+            // "ETag" is bold
+            (4..9, [13]) => modifier: Modifier::BOLD,
+            // selected item
+            (4..36, [5, 6]) => fg: Color::Cyan,
+        }
+
+        assert_buffer_eq!(buf, expected);
+    }
+
+    fn file_detail() -> FileDetail {
+        FileDetail {
+            name: "file.txt".to_string(),
+            size_byte: 1024 + 10,
+            last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+            e_tag: "bef684de-a260-48a4-8178-8a535ecccadb".to_string(),
+            content_type: "text/plain".to_string(),
+            storage_class: "STANDARD".to_string(),
+            key: "file.txt".to_string(),
+            s3_uri: "s3://bucket-1/file.txt".to_string(),
+            arn: "arn:aws:s3:::bucket-1/file.txt".to_string(),
+            object_url: "https://bucket-1.s3.ap-northeast-1.amazonaws.com/file.txt".to_string(),
+        }
+    }
+
+    fn parse_datetime(s: &str) -> DateTime<Local> {
+        DateTime::parse_from_rfc3339(s)
+            .unwrap()
+            .with_timezone(&Local)
+    }
+}
