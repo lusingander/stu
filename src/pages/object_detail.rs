@@ -482,7 +482,7 @@ mod tests {
                 .set_style(Style::default().add_modifier(Modifier::BOLD));
         }
         for x in 31..47 {
-            for y in [3, 7].into_iter() {
+            for y in [3, 7] {
                 // "Version ID" label
                 expected
                     .get_mut(x, y)
@@ -490,7 +490,7 @@ mod tests {
             }
         }
         for x in 31..47 {
-            for y in [4, 8].into_iter() {
+            for y in [4, 8] {
                 // "Last Modified" label
                 expected
                     .get_mut(x, y)
@@ -498,7 +498,7 @@ mod tests {
             }
         }
         for x in 31..47 {
-            for y in [5, 9].into_iter() {
+            for y in [5, 9] {
                 // "Size" label
                 expected
                     .get_mut(x, y)
@@ -506,7 +506,7 @@ mod tests {
             }
         }
         for x in 31..59 {
-            for y in [6, 10].into_iter() {
+            for y in [6, 10] {
                 // divider
                 expected.get_mut(x, y).set_fg(Color::DarkGray);
             }
@@ -696,7 +696,7 @@ mod tests {
                 .set_style(Style::default().add_modifier(Modifier::BOLD));
         }
         for x in 4..56 {
-            for y in [5, 6].into_iter() {
+            for y in [5, 6] {
                 // "Key" is selected
                 expected.get_mut(x, y).set_fg(Color::Cyan);
             }
