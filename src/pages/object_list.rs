@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Style},
@@ -8,7 +9,8 @@ use ratatui::{
 };
 
 use crate::{
-    event::AppEventType,
+    event::{AppEventType, AppKeyAction, Sender},
+    key_code, key_code_char,
     object::ObjectItem,
     ui::common::{format_datetime, format_size_byte},
     widget::{ScrollList, ScrollListState},
@@ -22,18 +24,67 @@ pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
 
     list_state: ScrollListState,
+    tx: Sender,
 }
 
 impl ObjectListPage {
-    pub fn new(object_items: Vec<ObjectItem>) -> Self {
+    pub fn new(object_items: Vec<ObjectItem>, tx: Sender) -> Self {
         let items_len = object_items.len();
         Self {
             object_items,
             list_state: ScrollListState::new(items_len),
+            tx,
         }
     }
 
-    pub fn handle_event(&mut self, _event: AppEventType) {}
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        match key {
+            key_code!(KeyCode::Esc) => {
+                self.tx.send(AppEventType::Quit);
+            }
+            key_code!(KeyCode::Enter) => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ObjectListMoveDown));
+            }
+            key_code!(KeyCode::Backspace) => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ObjectListMoveUp));
+            }
+            key_code_char!('j') => {
+                self.select_next();
+            }
+            key_code_char!('k') => {
+                self.select_prev();
+            }
+            key_code_char!('g') => {
+                self.select_first();
+            }
+            key_code_char!('G') => {
+                self.select_last();
+            }
+            key_code_char!('f') => {
+                self.select_next_page();
+            }
+            key_code_char!('b') => {
+                self.select_prev_page();
+            }
+            key_code_char!('~') => {
+                self.tx.send(AppEventType::KeyAction(
+                    AppKeyAction::ObjectListBackToBucketList,
+                ));
+            }
+            key_code_char!('x') => {
+                self.tx.send(AppEventType::KeyAction(
+                    AppKeyAction::ObjectListOpenManagementConsole,
+                ));
+            }
+            key_code_char!('?') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+            }
+            _ => {}
+        }
+    }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let offset = self.list_state.offset;
@@ -45,28 +96,30 @@ impl ObjectListPage {
         let list = ScrollList::new(list_items);
         f.render_stateful_widget(list, area, &mut self.list_state);
     }
+}
 
-    pub fn select_next(&mut self) {
+impl ObjectListPage {
+    fn select_next(&mut self) {
         self.list_state.select_next();
     }
 
-    pub fn select_prev(&mut self) {
+    fn select_prev(&mut self) {
         self.list_state.select_prev();
     }
 
-    pub fn select_first(&mut self) {
+    fn select_first(&mut self) {
         self.list_state.select_first();
     }
 
-    pub fn select_last(&mut self) {
+    fn select_last(&mut self) {
         self.list_state.select_last();
     }
 
-    pub fn select_next_page(&mut self) {
+    fn select_next_page(&mut self) {
         self.list_state.select_next_page();
     }
 
-    pub fn select_prev_page(&mut self) {
+    fn select_prev_page(&mut self) {
         self.list_state.select_prev_page();
     }
 
@@ -172,13 +225,14 @@ fn format_file_item(
 
 #[cfg(test)]
 mod tests {
-    use crate::set_cells;
+    use crate::{event, set_cells};
 
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -204,7 +258,7 @@ mod tests {
                     paths: vec![],
                 },
             ];
-            let mut page = ObjectListPage::new(items);
+            let mut page = ObjectListPage::new(items, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -236,6 +290,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -247,7 +302,7 @@ mod tests {
                     paths: vec![],
                 })
                 .collect();
-            let mut page = ObjectListPage::new(items);
+            let mut page = ObjectListPage::new(items, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;

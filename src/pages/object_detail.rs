@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use itsuki::zero_indexed_enum;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
@@ -8,7 +9,8 @@ use ratatui::{
 };
 
 use crate::{
-    event::{AppEventType, AppKeyInput},
+    event::{AppEventType, AppKeyAction, Sender},
+    key_code, key_code_char,
     object::{FileDetail, FileVersion, ObjectItem},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
@@ -33,6 +35,7 @@ pub struct ObjectDetailPage {
 
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
+    tx: Sender,
 }
 
 #[derive(Default)]
@@ -49,6 +52,7 @@ impl ObjectDetailPage {
         file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
+        tx: Sender,
     ) -> Self {
         Self {
             file_detail,
@@ -58,12 +62,103 @@ impl ObjectDetailPage {
             copy_detail_dialog_state: None,
             object_items,
             list_state,
+            tx,
         }
     }
 
-    pub fn handle_event(&mut self, event: AppEventType) {
-        if let AppEventType::KeyInput(input) = event {
-            self.handle_key_input(input);
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        if self.save_dialog_state.is_some() {
+            match key {
+                key_code!(KeyCode::Esc) => {
+                    // todo: should not quit
+                    self.tx.send(AppEventType::Quit);
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.tx.send(AppEventType::KeyAction(
+                        AppKeyAction::DetailSaveDownloadObjectAs,
+                    ));
+                }
+                key_code_char!('?') => {
+                    self.tx
+                        .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                }
+                key_code_char!(c) => {
+                    // todo: fix
+                    self.add_char_to_input(c);
+                }
+                key_code!(KeyCode::Backspace) => {
+                    // todo: fix
+                    self.delete_char_from_input();
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        if self.copy_detail_dialog_state.is_some() {
+            match key {
+                key_code!(KeyCode::Esc) => {
+                    // todo: should not quit
+                    self.tx.send(AppEventType::Quit);
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.tx.send(AppEventType::KeyAction(
+                        AppKeyAction::CopyDetailCopySelectedValue,
+                    ));
+                }
+                key_code!(KeyCode::Backspace) => {
+                    self.close_copy_detail_dialog();
+                }
+                key_code_char!('j') => {
+                    self.select_next_copy_detail_item();
+                }
+                key_code_char!('k') => {
+                    self.select_prev_copy_detail_item();
+                }
+                key_code_char!('?') => {
+                    self.tx
+                        .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        match key {
+            key_code!(KeyCode::Esc) => {
+                self.tx.send(AppEventType::Quit);
+            }
+            key_code!(KeyCode::Backspace) => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::DetailClose));
+            }
+            key_code_char!('h') | key_code_char!('l') => {
+                self.toggle_tab();
+            }
+            key_code_char!('s') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::DetailDownloadObject));
+            }
+            key_code_char!('S') => {
+                self.open_save_dialog();
+            }
+            key_code_char!('p') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::DetailPreview));
+            }
+            key_code_char!('r') => {
+                self.open_copy_detail_dialog();
+            }
+            key_code_char!('x') => {
+                self.tx.send(AppEventType::KeyAction(
+                    AppKeyAction::DetailOpenManagementConsole,
+                ));
+            }
+            key_code_char!('?') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+            }
+            _ => {}
         }
     }
 
@@ -113,8 +208,10 @@ impl ObjectDetailPage {
             f.render_widget(copy_detail_dialog, area);
         }
     }
+}
 
-    pub fn toggle_tab(&mut self) {
+impl ObjectDetailPage {
+    fn toggle_tab(&mut self) {
         match self.tab {
             Tab::Detail => {
                 self.tab = Tab::Version;
@@ -125,7 +222,7 @@ impl ObjectDetailPage {
         }
     }
 
-    pub fn open_save_dialog(&mut self) {
+    fn open_save_dialog(&mut self) {
         self.save_dialog_state = Some(SaveDialogState::default());
     }
 
@@ -133,39 +230,35 @@ impl ObjectDetailPage {
         self.save_dialog_state = None;
     }
 
-    pub fn open_copy_detail_dialog(&mut self) {
+    fn open_copy_detail_dialog(&mut self) {
         self.copy_detail_dialog_state = Some(CopyDetailDialogState::default());
     }
 
-    pub fn close_copy_detail_dialog(&mut self) {
+    fn close_copy_detail_dialog(&mut self) {
         self.copy_detail_dialog_state = None;
     }
 
-    pub fn select_next_copy_detail_item(&mut self) {
+    fn select_next_copy_detail_item(&mut self) {
         if let Some(ref mut state) = self.copy_detail_dialog_state {
             state.select_next();
         }
     }
 
-    pub fn select_prev_copy_detail_item(&mut self) {
+    fn select_prev_copy_detail_item(&mut self) {
         if let Some(ref mut state) = self.copy_detail_dialog_state {
             state.select_prev();
         }
     }
 
-    fn handle_key_input(&mut self, input: AppKeyInput) {
+    fn add_char_to_input(&mut self, c: char) {
         if let Some(ref mut state) = self.save_dialog_state {
-            match input {
-                AppKeyInput::Char(c) => {
-                    if c == '?' {
-                        return;
-                    }
-                    state.add_char(c);
-                }
-                AppKeyInput::Backspace => {
-                    state.delete_char();
-                }
-            }
+            state.add_char(c);
+        }
+    }
+
+    fn delete_char_from_input(&mut self) {
+        if let Some(ref mut state) = self.save_dialog_state {
+            state.delete_char();
         }
     }
 
@@ -336,7 +429,7 @@ fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Ve
 
 #[cfg(test)]
 mod tests {
-    use crate::set_cells;
+    use crate::{event, set_cells};
 
     use super::*;
     use chrono::{DateTime, Local};
@@ -344,6 +437,7 @@ mod tests {
 
     #[test]
     fn test_render_detail_tab() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -354,6 +448,7 @@ mod tests {
                 file_versions,
                 items,
                 ScrollListState::new(items_len),
+                tx,
             );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -406,6 +501,7 @@ mod tests {
 
     #[test]
     fn test_render_version_tab() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -416,6 +512,7 @@ mod tests {
                 file_versions,
                 items,
                 ScrollListState::new(items_len),
+                tx,
             );
             page.toggle_tab();
             let area = Rect::new(0, 0, 60, 20);
@@ -467,6 +564,7 @@ mod tests {
 
     #[test]
     fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -477,6 +575,7 @@ mod tests {
                 file_versions,
                 items,
                 ScrollListState::new(items_len),
+                tx,
             );
             page.open_save_dialog();
             let area = Rect::new(0, 0, 60, 20);
@@ -528,6 +627,7 @@ mod tests {
 
     #[test]
     fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -538,6 +638,7 @@ mod tests {
                 file_versions,
                 items,
                 ScrollListState::new(items_len),
+                tx,
             );
             page.open_copy_detail_dialog();
             let area = Rect::new(0, 0, 60, 20);

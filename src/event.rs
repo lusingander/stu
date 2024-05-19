@@ -29,6 +29,7 @@ pub enum AppEventType {
     NotifyInfo(String),
     NotifySuccess(String),
     NotifyError(AppError),
+    Quit,
 }
 
 #[derive(Clone, Copy)]
@@ -169,7 +170,7 @@ impl CompletePreviewObjectResult {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Sender {
     tx: mpsc::Sender<AppEventType>,
 }

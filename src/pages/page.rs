@@ -1,4 +1,5 @@
 use crate::{
+    event::Sender,
     object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
@@ -19,16 +20,16 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn of_initializing() -> Self {
-        Self::Initializing(Box::new(InitializingPage::new()))
+    pub fn of_initializing(tx: Sender) -> Self {
+        Self::Initializing(Box::new(InitializingPage::new(tx)))
     }
 
-    pub fn of_bucket_list(bucket_items: Vec<BucketItem>) -> Self {
-        Self::BucketList(Box::new(BucketListPage::new(bucket_items)))
+    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, tx: Sender) -> Self {
+        Self::BucketList(Box::new(BucketListPage::new(bucket_items, tx)))
     }
 
-    pub fn of_object_list(object_items: Vec<ObjectItem>) -> Self {
-        Self::ObjectList(Box::new(ObjectListPage::new(object_items)))
+    pub fn of_object_list(object_items: Vec<ObjectItem>, tx: Sender) -> Self {
+        Self::ObjectList(Box::new(ObjectListPage::new(object_items, tx)))
     }
 
     pub fn of_object_detail(
@@ -36,21 +37,33 @@ impl Page {
         file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
+        tx: Sender,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
             file_detail,
             file_versions,
             object_items,
             list_state,
+            tx,
         )))
     }
 
-    pub fn of_object_preview(file_detail: FileDetail, object: Object, path: String) -> Self {
-        Self::ObjectPreview(Box::new(ObjectPreviewPage::new(file_detail, object, path)))
+    pub fn of_object_preview(
+        file_detail: FileDetail,
+        object: Object,
+        path: String,
+        tx: Sender,
+    ) -> Self {
+        Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
+            file_detail,
+            object,
+            path,
+            tx,
+        )))
     }
 
-    pub fn of_help(helps: Vec<String>) -> Self {
-        Self::Help(Box::new(HelpPage::new(helps)))
+    pub fn of_help(helps: Vec<String>, tx: Sender) -> Self {
+        Self::Help(Box::new(HelpPage::new(helps, tx)))
     }
 
     pub fn as_bucket_list(&self) -> &BucketListPage {
@@ -60,23 +73,9 @@ impl Page {
         }
     }
 
-    pub fn as_mut_bucket_list(&mut self) -> &mut BucketListPage {
-        match self {
-            Self::BucketList(page) => &mut *page,
-            page => panic!("Page is not BucketList: {:?}", page),
-        }
-    }
-
     pub fn as_object_list(&self) -> &ObjectListPage {
         match self {
             Self::ObjectList(page) => page,
-            page => panic!("Page is not ObjectList: {:?}", page),
-        }
-    }
-
-    pub fn as_mut_object_list(&mut self) -> &mut ObjectListPage {
-        match self {
-            Self::ObjectList(page) => &mut *page,
             page => panic!("Page is not ObjectList: {:?}", page),
         }
     }
@@ -115,9 +114,9 @@ pub struct PageStack {
 }
 
 impl PageStack {
-    pub fn new() -> PageStack {
+    pub fn new(tx: Sender) -> PageStack {
         PageStack {
-            stack: vec![Page::of_initializing()],
+            stack: vec![Page::of_initializing(tx)],
         }
     }
 

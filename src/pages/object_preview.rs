@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Stylize},
@@ -7,7 +8,8 @@ use ratatui::{
 };
 
 use crate::{
-    event::{AppEventType, AppKeyInput},
+    event::{AppEventType, AppKeyAction, Sender},
+    key_code, key_code_char,
     object::{FileDetail, Object},
     util::{digits, to_preview_string},
     widget::{SaveDialog, SaveDialogState},
@@ -26,10 +28,11 @@ pub struct ObjectPreviewPage {
 
     save_dialog_state: Option<SaveDialogState>,
     offset: usize,
+    tx: Sender,
 }
 
 impl ObjectPreviewPage {
-    pub fn new(file_detail: FileDetail, object: Object, path: String) -> Self {
+    pub fn new(file_detail: FileDetail, object: Object, path: String, tx: Sender) -> Self {
         let s = to_preview_string(&object.bytes, &object.content_type);
         let s = if s.ends_with('\n') {
             s.trim_end()
@@ -48,12 +51,71 @@ impl ObjectPreviewPage {
             path,
             save_dialog_state: None,
             offset: 0,
+            tx,
         }
     }
 
-    pub fn handle_event(&mut self, event: AppEventType) {
-        if let AppEventType::KeyInput(input) = event {
-            self.handle_key_input(input);
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        if self.save_dialog_state.is_some() {
+            match key {
+                key_code!(KeyCode::Esc) => {
+                    // todo: should not quit
+                    self.tx.send(AppEventType::Quit);
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.tx.send(AppEventType::KeyAction(
+                        AppKeyAction::PreviewSaveDownloadObjectAs,
+                    ));
+                }
+                key_code_char!('?') => {
+                    self.tx
+                        .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                }
+                key_code_char!(c) => {
+                    // todo: fix
+                    self.add_char_to_input(c);
+                }
+                key_code!(KeyCode::Backspace) => {
+                    // todo: fix
+                    self.delete_char_from_input();
+                }
+                _ => {}
+            }
+            return;
+        }
+
+        match key {
+            key_code!(KeyCode::Esc) => {
+                self.tx.send(AppEventType::Quit);
+            }
+            key_code!(KeyCode::Backspace) => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::PreviewClose));
+            }
+            key_code_char!('j') => {
+                self.scroll_forward();
+            }
+            key_code_char!('k') => {
+                self.scroll_backward();
+            }
+            key_code_char!('g') => {
+                self.scroll_to_top();
+            }
+            key_code_char!('G') => {
+                self.scroll_to_end();
+            }
+            key_code_char!('s') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::PreviewDownloadObject));
+            }
+            key_code_char!('S') => {
+                self.open_save_dialog();
+            }
+            key_code_char!('?') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+            }
+            _ => {}
         }
     }
 
@@ -102,8 +164,10 @@ impl ObjectPreviewPage {
             f.set_cursor(cursor_x, cursor_y);
         }
     }
+}
 
-    pub fn open_save_dialog(&mut self) {
+impl ObjectPreviewPage {
+    fn open_save_dialog(&mut self) {
         self.save_dialog_state = Some(SaveDialogState::default());
     }
 
@@ -111,39 +175,35 @@ impl ObjectPreviewPage {
         self.save_dialog_state = None;
     }
 
-    pub fn scroll_forward(&mut self) {
+    fn scroll_forward(&mut self) {
         if self.offset < self.preview.len() - 1 {
             self.offset = self.offset.saturating_add(1);
         }
     }
 
-    pub fn scroll_backward(&mut self) {
+    fn scroll_backward(&mut self) {
         if self.offset > 0 {
             self.offset = self.offset.saturating_sub(1);
         }
     }
 
-    pub fn scroll_to_top(&mut self) {
+    fn scroll_to_top(&mut self) {
         self.offset = 0;
     }
 
-    pub fn scroll_to_end(&mut self) {
+    fn scroll_to_end(&mut self) {
         self.offset = self.preview.len() - 1;
     }
 
-    fn handle_key_input(&mut self, input: AppKeyInput) {
+    fn add_char_to_input(&mut self, c: char) {
         if let Some(ref mut state) = self.save_dialog_state {
-            match input {
-                AppKeyInput::Char(c) => {
-                    if c == '?' {
-                        return;
-                    }
-                    state.add_char(c);
-                }
-                AppKeyInput::Backspace => {
-                    state.delete_char();
-                }
-            }
+            state.add_char(c);
+        }
+    }
+
+    fn delete_char_from_input(&mut self) {
+        if let Some(ref mut state) = self.save_dialog_state {
+            state.delete_char();
         }
     }
 
@@ -170,7 +230,7 @@ impl ObjectPreviewPage {
 
 #[cfg(test)]
 mod tests {
-    use crate::set_cells;
+    use crate::{event, set_cells};
 
     use super::*;
     use chrono::{DateTime, Local};
@@ -186,6 +246,7 @@ mod tests {
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -198,7 +259,7 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let mut page = ObjectPreviewPage::new(file_detail, object, file_path);
+            let mut page = ObjectPreviewPage::new(file_detail, object, file_path, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -227,6 +288,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -234,7 +296,7 @@ mod tests {
             let preview = ["Hello, world!"; 20];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let mut page = ObjectPreviewPage::new(file_detail, object, file_path);
+            let mut page = ObjectPreviewPage::new(file_detail, object, file_path, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -263,6 +325,7 @@ mod tests {
 
     #[test]
     fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -275,7 +338,7 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let mut page = ObjectPreviewPage::new(file_detail, object, file_path);
+            let mut page = ObjectPreviewPage::new(file_detail, object, file_path, tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);

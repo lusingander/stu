@@ -1,11 +1,10 @@
-use crossterm::event::KeyCode;
 use ratatui::{backend::Backend, Terminal};
 use std::io::Result;
 
 use crate::{
     app::{App, Notification},
     event::{AppEventType, AppKeyAction, Receiver},
-    key_code, key_code_char,
+    key_code_char,
     pages::page::Page,
     ui,
 };
@@ -19,8 +18,11 @@ pub async fn run<B: Backend>(
         terminal.draw(|f| ui::render(f, app))?;
         let event = rx.recv();
         match event {
+            AppEventType::Quit => {
+                return Ok(());
+            }
             AppEventType::Key(key) => {
-                if matches!(key, key_code!(KeyCode::Esc) | key_code_char!('c', Ctrl)) {
+                if matches!(key, key_code_char!('c', Ctrl)) {
                     // Exit regardless of status
                     return Ok(());
                 }
@@ -47,11 +49,13 @@ pub async fn run<B: Backend>(
                     app.clear_notification();
                 }
 
-                if let Some(input) = app.action_manager.key_to_input(key, app.view_state_tag()) {
-                    app.send_app_key_input(input)
-                }
-                if let Some(action) = app.action_manager.key_to_action(key, app.view_state_tag()) {
-                    app.send_app_key_action(action);
+                match app.page_stack.current_page_mut() {
+                    Page::Initializing(page) => page.handle_key(key),
+                    Page::BucketList(page) => page.handle_key(key),
+                    Page::ObjectList(page) => page.handle_key(key),
+                    Page::ObjectDetail(page) => page.handle_key(key),
+                    Page::ObjectPreview(page) => page.handle_key(key),
+                    Page::Help(page) => page.handle_key(key),
                 }
             }
             AppEventType::KeyAction(action) => match action {
@@ -237,20 +241,7 @@ pub async fn run<B: Backend>(
             AppEventType::NotifyError(e) => {
                 app.error_notification(e);
             }
-            _ => {
-                page_handle_event(app, event);
-            }
+            _ => {}
         }
-    }
-}
-
-fn page_handle_event(app: &mut App, event: AppEventType) {
-    match app.page_stack.current_page_mut() {
-        Page::Initializing(page) => page.handle_event(event),
-        Page::BucketList(page) => page.handle_event(event),
-        Page::ObjectList(page) => page.handle_event(event),
-        Page::ObjectDetail(page) => page.handle_event(event),
-        Page::ObjectPreview(page) => page.handle_event(event),
-        Page::Help(page) => page.handle_event(event),
     }
 }

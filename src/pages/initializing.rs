@@ -1,16 +1,26 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, widgets::Block, Frame};
 
-use crate::event::AppEventType;
+use crate::{
+    event::{AppEventType, Sender},
+    key_code,
+};
 
 #[derive(Debug)]
-pub struct InitializingPage {}
+pub struct InitializingPage {
+    tx: Sender,
+}
 
 impl InitializingPage {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(tx: Sender) -> Self {
+        Self { tx }
     }
 
-    pub fn handle_event(&mut self, _event: AppEventType) {}
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        if let key_code!(KeyCode::Esc) = key {
+            self.tx.send(AppEventType::Quit);
+        }
+    }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content = Block::bordered();
@@ -20,15 +30,18 @@ impl InitializingPage {
 
 #[cfg(test)]
 mod tests {
+    use crate::event;
+
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]
     fn test_render() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let mut page = InitializingPage::new();
+            let mut page = InitializingPage::new(tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;

@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Stylize},
@@ -8,7 +9,8 @@ use ratatui::{
 
 use crate::{
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
-    event::AppEventType,
+    event::{AppEventType, AppKeyAction, Sender},
+    key_code, key_code_char,
     util::group_strings_to_fit_width,
 };
 
@@ -18,14 +20,31 @@ const LINK_TEXT_COLOR: Color = Color::Blue;
 #[derive(Debug)]
 pub struct HelpPage {
     helps: Vec<String>,
+
+    tx: Sender,
 }
 
 impl HelpPage {
-    pub fn new(helps: Vec<String>) -> Self {
-        Self { helps }
+    pub fn new(helps: Vec<String>, tx: Sender) -> Self {
+        Self { helps, tx }
     }
 
-    pub fn handle_event(&mut self, _event: AppEventType) {}
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        match key {
+            key_code!(KeyCode::Esc) => {
+                self.tx.send(AppEventType::Quit);
+            }
+            key_code!(KeyCode::Backspace) => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::HelpClose));
+            }
+            key_code_char!('?') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+            }
+            _ => {}
+        }
+    }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
@@ -85,13 +104,14 @@ fn build_help_lines(helps: &[String], max_width: usize) -> Vec<Line> {
 
 #[cfg(test)]
 mod tests {
-    use crate::set_cells;
+    use crate::{event, set_cells};
 
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]
     fn test_render() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -104,7 +124,7 @@ mod tests {
             .iter()
             .map(|s| s.to_string())
             .collect();
-            let mut page = HelpPage::new(helps);
+            let mut page = HelpPage::new(helps, tx);
             let area = Rect::new(0, 0, 70, 20);
             page.render(f, area);
         })?;

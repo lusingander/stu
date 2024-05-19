@@ -1,3 +1,4 @@
+use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
@@ -7,7 +8,8 @@ use ratatui::{
 };
 
 use crate::{
-    event::AppEventType,
+    event::{AppEventType, AppKeyAction, Sender},
+    key_code, key_code_char,
     object::BucketItem,
     widget::{ScrollList, ScrollListState},
 };
@@ -20,18 +22,58 @@ pub struct BucketListPage {
     bucket_items: Vec<BucketItem>,
 
     list_state: ScrollListState,
+    tx: Sender,
 }
 
 impl BucketListPage {
-    pub fn new(bucket_items: Vec<BucketItem>) -> Self {
+    pub fn new(bucket_items: Vec<BucketItem>, tx: Sender) -> Self {
         let items_len = bucket_items.len();
         Self {
             bucket_items,
             list_state: ScrollListState::new(items_len),
+            tx,
         }
     }
 
-    pub fn handle_event(&mut self, _event: AppEventType) {}
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        match key {
+            key_code!(KeyCode::Esc) => {
+                self.tx.send(AppEventType::Quit);
+            }
+            key_code!(KeyCode::Enter) => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::BucketListMoveDown));
+            }
+            key_code_char!('j') => {
+                self.select_next();
+            }
+            key_code_char!('k') => {
+                self.select_prev();
+            }
+            key_code_char!('g') => {
+                self.select_first();
+            }
+            key_code_char!('G') => {
+                self.select_last();
+            }
+            key_code_char!('f') => {
+                self.select_next_page();
+            }
+            key_code_char!('b') => {
+                self.select_prev_page();
+            }
+            key_code_char!('x') => {
+                self.tx.send(AppEventType::KeyAction(
+                    AppKeyAction::BucketListOpenManagementConsole,
+                ));
+            }
+            key_code_char!('?') => {
+                self.tx
+                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+            }
+            _ => {}
+        }
+    }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let offset = self.list_state.offset;
@@ -42,28 +84,30 @@ impl BucketListPage {
         let list = ScrollList::new(list_items);
         f.render_stateful_widget(list, area, &mut self.list_state);
     }
+}
 
-    pub fn select_next(&mut self) {
+impl BucketListPage {
+    fn select_next(&mut self) {
         self.list_state.select_next();
     }
 
-    pub fn select_prev(&mut self) {
+    fn select_prev(&mut self) {
         self.list_state.select_prev();
     }
 
-    pub fn select_first(&mut self) {
+    fn select_first(&mut self) {
         self.list_state.select_first();
     }
 
-    pub fn select_last(&mut self) {
+    fn select_last(&mut self) {
         self.list_state.select_last();
     }
 
-    pub fn select_next_page(&mut self) {
+    fn select_next_page(&mut self) {
         self.list_state.select_next_page();
     }
 
-    pub fn select_prev_page(&mut self) {
+    fn select_prev_page(&mut self) {
         self.list_state.select_prev_page();
     }
 
@@ -116,13 +160,14 @@ fn format_bucket_item(name: &str, width: u16) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::set_cells;
+    use crate::{event, set_cells};
 
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -132,7 +177,7 @@ mod tests {
                     name: name.to_string(),
                 })
                 .collect();
-            let mut page = BucketListPage::new(items);
+            let mut page = BucketListPage::new(items, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -161,6 +206,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
+        let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -169,7 +215,7 @@ mod tests {
                     name: format!("bucket{}", i + 1),
                 })
                 .collect();
-            let mut page = BucketListPage::new(items);
+            let mut page = BucketListPage::new(items, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;

@@ -6,9 +6,8 @@ use crate::{
     config::Config,
     error::{AppError, Result},
     event::{
-        AppEventType, AppKeyAction, AppKeyInput, CompleteDownloadObjectResult,
-        CompleteInitializeResult, CompleteLoadObjectResult, CompleteLoadObjectsResult,
-        CompletePreviewObjectResult, Sender,
+        AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
+        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     if_match,
@@ -77,7 +76,7 @@ impl App {
             action_manager: AppKeyActionManager::new(),
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::new(),
-            page_stack: PageStack::new(),
+            page_stack: PageStack::new(tx.clone()),
             client: None,
             config: None,
             tx,
@@ -104,7 +103,7 @@ impl App {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_bucket_items(buckets);
 
-                let bucket_list_page = Page::of_bucket_list(self.bucket_items());
+                let bucket_list_page = Page::of_bucket_list(self.bucket_items(), self.tx.clone());
                 self.page_stack.pop(); // remove initializing page
                 self.page_stack.push(bucket_list_page);
             }
@@ -193,87 +192,80 @@ impl App {
             .get_object_items(&self.current_object_key())
     }
 
-    pub fn send_app_key_action(&self, action: AppKeyAction) {
-        self.tx.send(AppEventType::KeyAction(action));
-    }
-
-    pub fn send_app_key_input(&self, input: AppKeyInput) {
-        self.tx.send(AppEventType::KeyInput(input));
-    }
-
     pub fn bucket_list_select_next(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        page.select_next();
+        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+        // page.select_next();
     }
 
     pub fn object_list_select_next(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_list();
-        page.select_next();
+        // let page = self.page_stack.current_page_mut().as_mut_object_list();
+        // page.select_next();
     }
 
     pub fn copy_detail_select_next(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.select_next_copy_detail_item();
+        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
+        // page.select_next_copy_detail_item();
     }
 
     pub fn bucket_list_select_prev(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        page.select_prev();
+        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+        // page.select_prev();
     }
 
     pub fn object_list_select_prev(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_list();
-        page.select_prev();
+        // let page = self.page_stack.current_page_mut().as_mut_object_list();
+        // page.select_prev();
     }
 
     pub fn copy_detail_select_prev(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.select_prev_copy_detail_item();
+        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
+        // page.select_prev_copy_detail_item();
     }
 
     pub fn bucket_list_select_next_page(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        page.select_next_page();
+        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+        // page.select_next_page();
     }
 
     pub fn object_list_select_next_page(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_list();
-        page.select_next_page();
+        // let page = self.page_stack.current_page_mut().as_mut_object_list();
+        // page.select_next_page();
     }
 
     pub fn bucket_list_select_prev_page(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        page.select_prev_page();
+        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+        // page.select_prev_page();
     }
 
     pub fn object_list_select_prev_page(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_list();
-        page.select_prev_page();
+        // let page = self.page_stack.current_page_mut().as_mut_object_list();
+        // page.select_prev_page();
     }
 
     pub fn bucket_list_select_first(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        page.select_first();
+        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+        // page.select_first();
     }
 
     pub fn object_list_select_first(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_list();
-        page.select_first();
+        // let page = self.page_stack.current_page_mut().as_mut_object_list();
+        // page.select_first();
     }
 
     pub fn bucket_list_select_last(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        page.select_last();
+        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
+        // page.select_last();
     }
 
     pub fn object_list_select_last(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_list();
-        page.select_last();
+        // let page = self.page_stack.current_page_mut().as_mut_object_list();
+        // page.select_last();
     }
 
     pub fn bucket_list_move_down(&mut self) {
         if self.exists_current_objects() {
-            let object_list_page = Page::of_object_list(self.current_object_items());
+            let object_list_page =
+                Page::of_object_list(self.current_object_items(), self.tx.clone());
             self.page_stack.push(object_list_page);
         } else {
             self.tx.send(AppEventType::LoadObjects);
@@ -303,6 +295,7 @@ impl App {
                         versions.clone(),
                         object_page.object_list().clone(),
                         object_page.list_state(),
+                        self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
                 } else {
@@ -312,7 +305,8 @@ impl App {
             }
             ObjectItem::Dir { .. } => {
                 if self.exists_current_objects() {
-                    let object_list_page = Page::of_object_list(self.current_object_items());
+                    let object_list_page =
+                        Page::of_object_list(self.current_object_items(), self.tx.clone());
                     self.page_stack.push(object_list_page);
                 } else {
                     self.tx.send(AppEventType::LoadObjects);
@@ -353,28 +347,28 @@ impl App {
     }
 
     pub fn copy_detail_close(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.close_copy_detail_dialog();
+        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
+        // page.close_copy_detail_dialog();
     }
 
     pub fn preview_scroll_forward(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        page.scroll_forward();
+        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
+        // page.scroll_forward();
     }
 
     pub fn preview_scroll_backward(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        page.scroll_backward();
+        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
+        // page.scroll_backward();
     }
 
     pub fn preview_scroll_to_top(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        page.scroll_to_top();
+        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
+        // page.scroll_to_top();
     }
 
     pub fn preview_scroll_to_end(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        page.scroll_to_end();
+        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
+        // page.scroll_to_end();
     }
 
     pub fn preview_close(&mut self) {
@@ -409,7 +403,8 @@ impl App {
                 self.app_objects
                     .set_object_items(self.current_object_key().to_owned(), items);
 
-                let object_list_page = Page::of_object_list(self.current_object_items());
+                let object_list_page =
+                    Page::of_object_list(self.current_object_items(), self.tx.clone());
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {
@@ -464,6 +459,7 @@ impl App {
                     versions.clone(),
                     object_page.object_list().clone(),
                     object_page.list_state(),
+                    self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);
             }
@@ -475,8 +471,8 @@ impl App {
     }
 
     pub fn detail_select_tabs(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.toggle_tab();
+        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
+        // page.toggle_tab();
     }
 
     pub fn toggle_help(&mut self) {
@@ -487,7 +483,7 @@ impl App {
             }
             _ => {
                 let helps = self.action_manager.helps(self.view_state_tag());
-                let help_page = Page::of_help(helps.clone());
+                let help_page = Page::of_help(helps.clone(), self.tx.clone());
                 self.page_stack.push(help_page);
             }
         }
@@ -503,8 +499,8 @@ impl App {
     }
 
     pub fn detail_open_download_object_as(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.open_save_dialog();
+        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
+        // page.open_save_dialog();
     }
 
     pub fn preview_download_object(&self) {
@@ -518,8 +514,8 @@ impl App {
     }
 
     pub fn preview_open_download_object_as(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        page.open_save_dialog();
+        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
+        // page.open_save_dialog();
     }
 
     pub fn detail_preview(&mut self) {
@@ -532,8 +528,8 @@ impl App {
     }
 
     pub fn detail_open_copy_details(&mut self) {
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.open_copy_detail_dialog();
+        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
+        // page.open_copy_detail_dialog();
     }
 
     pub fn download_object(&self, file_detail: FileDetail) {
@@ -592,7 +588,8 @@ impl App {
                 file_detail,
                 path,
             }) => {
-                let object_preview_page = Page::of_object_preview(file_detail, obj, path);
+                let object_preview_page =
+                    Page::of_object_preview(file_detail, obj, path, self.tx.clone());
                 self.page_stack.push(object_preview_page);
             }
             Err(e) => {
