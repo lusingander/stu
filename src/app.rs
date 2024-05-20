@@ -11,7 +11,6 @@ use crate::{
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     if_match,
-    keys::AppKeyActionManager,
     object::{AppObjects, BucketItem, FileDetail, Object, ObjectItem, ObjectKey},
     pages::page::{Page, PageStack},
 };
@@ -61,7 +60,6 @@ impl AppViewState {
 }
 
 pub struct App {
-    pub action_manager: AppKeyActionManager,
     pub app_view_state: AppViewState,
     pub page_stack: PageStack,
     app_objects: AppObjects,
@@ -73,7 +71,6 @@ pub struct App {
 impl App {
     pub fn new(tx: Sender, width: usize, height: usize) -> App {
         App {
-            action_manager: AppKeyActionManager::new(),
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::new(),
             page_stack: PageStack::new(tx.clone()),

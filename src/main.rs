@@ -5,7 +5,6 @@ mod constant;
 mod error;
 mod event;
 mod file;
-mod keys;
 mod macros;
 mod object;
 mod pages;
