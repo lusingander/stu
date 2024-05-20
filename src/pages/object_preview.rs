@@ -98,8 +98,7 @@ impl ObjectPreviewPage {
             },
             ViewState::SaveDialog(_) => match key {
                 key_code!(KeyCode::Esc) => {
-                    // todo: should not quit
-                    self.tx.send(AppEventType::Quit);
+                    self.close_save_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
                     self.tx.send(AppEventType::PreviewDownloadObjectAs);
@@ -177,7 +176,8 @@ impl ObjectPreviewPage {
                 (&["S"], "Download object as"),
             ],
             ViewState::SaveDialog(_) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc"], "Close save dialog"),
                 (&["Enter"], "Download object"),
             ],
         };
@@ -196,7 +196,7 @@ impl ObjectPreviewPage {
                 (&["?"], "Help", 0),
             ],
             ViewState::SaveDialog(_) => &[
-                (&["Esc"], "Quit", 0),
+                (&["Esc"], "Close", 2),
                 (&["Enter"], "Download", 1),
                 (&["?"], "Help", 0),
             ],

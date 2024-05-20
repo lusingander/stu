@@ -108,8 +108,7 @@ impl ObjectDetailPage {
             },
             ViewState::SaveDialog(_) => match key {
                 key_code!(KeyCode::Esc) => {
-                    // todo: should not quit
-                    self.tx.send(AppEventType::Quit);
+                    self.close_save_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
                     self.tx.send(AppEventType::DetailDownloadObjectAs);
@@ -128,16 +127,12 @@ impl ObjectDetailPage {
                 _ => {}
             },
             ViewState::CopyDetailDialog(state) => match key {
-                key_code!(KeyCode::Esc) => {
-                    // todo: should not quit
-                    self.tx.send(AppEventType::Quit);
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                    self.close_copy_detail_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
                     let (name, value) = self.copy_detail_dialog_selected(state);
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
-                }
-                key_code!(KeyCode::Backspace) => {
-                    self.close_copy_detail_dialog();
                 }
                 key_code_char!('j') => {
                     self.select_next_copy_detail_item();
@@ -213,14 +208,15 @@ impl ObjectDetailPage {
                 (&["x"], "Open management console in browser"),
             ],
             ViewState::SaveDialog(_) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc"], "Close save dialog"),
                 (&["Enter"], "Download object"),
             ],
             ViewState::CopyDetailDialog(_) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc", "Backspace"], "Close copy dialog"),
                 (&["j/k"], "Select item"),
                 (&["Enter"], "Copy selected value to clipboard"),
-                (&["Backspace"], "Close copy dialog"),
             ],
         };
         build_helps(helps)
@@ -237,15 +233,14 @@ impl ObjectDetailPage {
                 (&["?"], "Help", 0),
             ],
             ViewState::SaveDialog(_) => &[
-                (&["Esc"], "Quit", 0),
+                (&["Esc"], "Close", 2),
                 (&["Enter"], "Download", 1),
                 (&["?"], "Help", 0),
             ],
             ViewState::CopyDetailDialog(_) => &[
-                (&["Esc"], "Quit", 0),
+                (&["Esc"], "Close", 2),
                 (&["j/k"], "Select", 3),
                 (&["Enter"], "Copy", 1),
-                (&["Backspace"], "Close", 2),
                 (&["?"], "Help", 0),
             ],
         };
