@@ -3,7 +3,7 @@ use std::io::Result;
 
 use crate::{
     app::{App, Notification},
-    event::{AppEventType, AppKeyAction, Receiver},
+    event::{AppEventType, Receiver},
     key_code_char,
     pages::page::Page,
     ui,
@@ -58,141 +58,6 @@ pub async fn run<B: Backend>(
                     Page::Help(page) => page.handle_key(key),
                 }
             }
-            AppEventType::KeyAction(action) => match action {
-                // Initializing
-                // BucketList
-                AppKeyAction::BucketListSelectNext => {
-                    app.bucket_list_select_next();
-                }
-                AppKeyAction::BucketListSelectPrev => {
-                    app.bucket_list_select_prev();
-                }
-                AppKeyAction::BucketListSelectFirst => {
-                    app.bucket_list_select_first();
-                }
-                AppKeyAction::BucketListSelectLast => {
-                    app.bucket_list_select_last();
-                }
-                AppKeyAction::BucketListSelectNextPage => {
-                    app.bucket_list_select_next_page();
-                }
-                AppKeyAction::BucketListSelectPrevPage => {
-                    app.bucket_list_select_prev_page();
-                }
-                AppKeyAction::BucketListMoveDown => {
-                    app.bucket_list_move_down();
-                }
-                AppKeyAction::BucketListOpenManagementConsole => {
-                    app.bucket_list_open_management_console();
-                }
-                // ObjectList
-                AppKeyAction::ObjectListSelectNext => {
-                    app.object_list_select_next();
-                }
-                AppKeyAction::ObjectListSelectPrev => {
-                    app.object_list_select_prev();
-                }
-                AppKeyAction::ObjectListSelectFirst => {
-                    app.object_list_select_first();
-                }
-                AppKeyAction::ObjectListSelectLast => {
-                    app.object_list_select_last();
-                }
-                AppKeyAction::ObjectListSelectNextPage => {
-                    app.object_list_select_next_page();
-                }
-                AppKeyAction::ObjectListSelectPrevPage => {
-                    app.object_list_select_prev_page();
-                }
-                AppKeyAction::ObjectListMoveDown => {
-                    app.object_list_move_down();
-                }
-                AppKeyAction::ObjectListMoveUp => {
-                    app.object_list_move_up();
-                }
-                AppKeyAction::ObjectListBackToBucketList => {
-                    app.object_list_back_to_bucket_list();
-                }
-                AppKeyAction::ObjectListOpenManagementConsole => {
-                    app.object_list_open_management_console();
-                }
-                // Detail
-                AppKeyAction::DetailClose => {
-                    app.detail_close();
-                }
-                AppKeyAction::DetailSelectNext => {
-                    app.detail_select_tabs();
-                }
-                AppKeyAction::DetailSelectPrev => {
-                    app.detail_select_tabs();
-                }
-                AppKeyAction::DetailDownloadObject => {
-                    app.detail_download_object();
-                }
-                AppKeyAction::DetailOpenDownloadObjectAs => {
-                    app.detail_open_download_object_as();
-                }
-                AppKeyAction::DetailPreview => {
-                    app.detail_preview();
-                }
-                AppKeyAction::DetailOpenCopyDetails => {
-                    app.detail_open_copy_details();
-                }
-                AppKeyAction::DetailOpenManagementConsole => {
-                    app.detail_open_management_console();
-                }
-                // DetailSave
-                AppKeyAction::DetailSaveDownloadObjectAs => {
-                    app.detail_save_download_object_as();
-                }
-                // CopyDetail
-                AppKeyAction::CopyDetailSelectNext => {
-                    app.copy_detail_select_next();
-                }
-                AppKeyAction::CopyDetailSelectPrev => {
-                    app.copy_detail_select_prev();
-                }
-                AppKeyAction::CopyDetailCopySelectedValue => {
-                    app.copy_detail_copy_selected_value();
-                }
-                AppKeyAction::CopyDetailClose => {
-                    app.copy_detail_close();
-                }
-                // Preview
-                AppKeyAction::PreviewScrollForward => {
-                    app.preview_scroll_forward();
-                }
-                AppKeyAction::PreviewScrollBackward => {
-                    app.preview_scroll_backward();
-                }
-                AppKeyAction::PreviewScrollToTop => {
-                    app.preview_scroll_to_top();
-                }
-                AppKeyAction::PreviewScrollToEnd => {
-                    app.preview_scroll_to_end();
-                }
-                AppKeyAction::PreviewClose => {
-                    app.preview_close();
-                }
-                AppKeyAction::PreviewDownloadObject => {
-                    app.preview_download_object();
-                }
-                AppKeyAction::PreviewOpenDownloadObjectAs => {
-                    app.preview_open_download_object_as();
-                }
-                // PreviewSave
-                AppKeyAction::PreviewSaveDownloadObjectAs => {
-                    app.preview_save_download_object_as();
-                }
-                // Help
-                AppKeyAction::HelpClose => {
-                    app.help_close();
-                }
-                // common
-                AppKeyAction::ToggleHelp => {
-                    app.toggle_help();
-                }
-            },
             AppEventType::Resize(width, height) => {
                 app.resize(width, height);
             }
@@ -229,6 +94,48 @@ pub async fn run<B: Backend>(
             AppEventType::CompletePreviewObject(result) => {
                 app.complete_preview_object(result);
             }
+            AppEventType::BucketListMoveDown => {
+                app.bucket_list_move_down();
+            }
+            AppEventType::ObjectListMoveDown => {
+                app.object_list_move_down();
+            }
+            AppEventType::ObjectListMoveUp => {
+                app.object_list_move_up();
+            }
+            AppEventType::BackToBucketList => {
+                app.back_to_bucket_list();
+            }
+            AppEventType::OpenPreview => {
+                app.open_preview();
+            }
+            AppEventType::DetailDownloadObject => {
+                app.detail_download_object();
+            }
+            AppEventType::DetailDownloadObjectAs => {
+                app.detail_download_object_as();
+            }
+            AppEventType::PreviewDownloadObject => {
+                app.preview_download_object();
+            }
+            AppEventType::PreviewDownloadObjectAs => {
+                app.preview_download_object_as();
+            }
+            AppEventType::BucketListOpenManagementConsole => {
+                app.bucket_list_open_management_console();
+            }
+            AppEventType::ObjectListOpenManagementConsole => {
+                app.object_list_open_management_console();
+            }
+            AppEventType::ObjectDetailOpenManagementConsole => {
+                app.object_detail_open_management_console();
+            }
+            AppEventType::CloseCurrentPage => {
+                app.close_current_page();
+            }
+            AppEventType::OpenHelp => {
+                app.open_help();
+            }
             AppEventType::CopyToClipboard(name, value) => {
                 app.copy_to_clipboard(name, value);
             }
@@ -241,7 +148,6 @@ pub async fn run<B: Backend>(
             AppEventType::NotifyError(e) => {
                 app.error_notification(e);
             }
-            _ => {}
         }
     }
 }

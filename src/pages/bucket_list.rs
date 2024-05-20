@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    event::{AppEventType, AppKeyAction, Sender},
+    event::{AppEventType, Sender},
     key_code, key_code_char,
     object::BucketItem,
     pages::util::{build_helps, build_short_helps},
@@ -42,8 +42,7 @@ impl BucketListPage {
                 self.tx.send(AppEventType::Quit);
             }
             key_code!(KeyCode::Enter) => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::BucketListMoveDown));
+                self.tx.send(AppEventType::BucketListMoveDown);
             }
             key_code_char!('j') => {
                 self.select_next();
@@ -64,13 +63,10 @@ impl BucketListPage {
                 self.select_prev_page();
             }
             key_code_char!('x') => {
-                self.tx.send(AppEventType::KeyAction(
-                    AppKeyAction::BucketListOpenManagementConsole,
-                ));
+                self.tx.send(AppEventType::BucketListOpenManagementConsole);
             }
             key_code_char!('?') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                self.tx.send(AppEventType::OpenHelp);
             }
             _ => {}
         }

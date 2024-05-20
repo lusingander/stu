@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    event::{AppEventType, AppKeyAction, Sender},
+    event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, FileVersion, ObjectItem},
     pages::util::{build_helps, build_short_helps},
@@ -75,13 +75,10 @@ impl ObjectDetailPage {
                     self.tx.send(AppEventType::Quit);
                 }
                 key_code!(KeyCode::Enter) => {
-                    self.tx.send(AppEventType::KeyAction(
-                        AppKeyAction::DetailSaveDownloadObjectAs,
-                    ));
+                    self.tx.send(AppEventType::DetailDownloadObjectAs);
                 }
                 key_code_char!('?') => {
-                    self.tx
-                        .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                    self.tx.send(AppEventType::OpenHelp);
                 }
                 key_code_char!(c) => {
                     // todo: fix
@@ -103,9 +100,8 @@ impl ObjectDetailPage {
                     self.tx.send(AppEventType::Quit);
                 }
                 key_code!(KeyCode::Enter) => {
-                    self.tx.send(AppEventType::KeyAction(
-                        AppKeyAction::CopyDetailCopySelectedValue,
-                    ));
+                    let (name, value) = self.copy_detail_dialog_selected().unwrap();
+                    self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
                 key_code!(KeyCode::Backspace) => {
                     self.close_copy_detail_dialog();
@@ -117,8 +113,7 @@ impl ObjectDetailPage {
                     self.select_prev_copy_detail_item();
                 }
                 key_code_char!('?') => {
-                    self.tx
-                        .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                    self.tx.send(AppEventType::OpenHelp);
                 }
                 _ => {}
             }
@@ -130,34 +125,29 @@ impl ObjectDetailPage {
                 self.tx.send(AppEventType::Quit);
             }
             key_code!(KeyCode::Backspace) => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::DetailClose));
+                self.tx.send(AppEventType::CloseCurrentPage);
             }
             key_code_char!('h') | key_code_char!('l') => {
                 self.toggle_tab();
             }
             key_code_char!('s') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::DetailDownloadObject));
+                self.tx.send(AppEventType::DetailDownloadObject);
             }
             key_code_char!('S') => {
                 self.open_save_dialog();
             }
             key_code_char!('p') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::DetailPreview));
+                self.tx.send(AppEventType::OpenPreview);
             }
             key_code_char!('r') => {
                 self.open_copy_detail_dialog();
             }
             key_code_char!('x') => {
-                self.tx.send(AppEventType::KeyAction(
-                    AppKeyAction::DetailOpenManagementConsole,
-                ));
+                self.tx
+                    .send(AppEventType::ObjectDetailOpenManagementConsole);
             }
             key_code_char!('?') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                self.tx.send(AppEventType::OpenHelp);
             }
             _ => {}
         }
@@ -335,17 +325,10 @@ impl ObjectDetailPage {
         self.save_dialog_state.as_ref().map(|s| s.input().into())
     }
 
-    pub fn copy_detail_dialog_selected(&self) -> Option<(String, String)> {
+    fn copy_detail_dialog_selected(&self) -> Option<(String, String)> {
         self.copy_detail_dialog_state
             .as_ref()
             .map(|s| s.selected_name_and_value(&self.file_detail))
-    }
-
-    pub fn status(&self) -> (bool, bool) {
-        (
-            self.save_dialog_state.is_some(),
-            self.copy_detail_dialog_state.is_some(),
-        )
     }
 }
 

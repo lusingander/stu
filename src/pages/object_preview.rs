@@ -8,7 +8,7 @@ use ratatui::{
 };
 
 use crate::{
-    event::{AppEventType, AppKeyAction, Sender},
+    event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, Object},
     pages::util::{build_helps, build_short_helps},
@@ -64,13 +64,10 @@ impl ObjectPreviewPage {
                     self.tx.send(AppEventType::Quit);
                 }
                 key_code!(KeyCode::Enter) => {
-                    self.tx.send(AppEventType::KeyAction(
-                        AppKeyAction::PreviewSaveDownloadObjectAs,
-                    ));
+                    self.tx.send(AppEventType::PreviewDownloadObjectAs);
                 }
                 key_code_char!('?') => {
-                    self.tx
-                        .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                    self.tx.send(AppEventType::OpenHelp);
                 }
                 key_code_char!(c) => {
                     // todo: fix
@@ -90,8 +87,7 @@ impl ObjectPreviewPage {
                 self.tx.send(AppEventType::Quit);
             }
             key_code!(KeyCode::Backspace) => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::PreviewClose));
+                self.tx.send(AppEventType::CloseCurrentPage);
             }
             key_code_char!('j') => {
                 self.scroll_forward();
@@ -106,15 +102,13 @@ impl ObjectPreviewPage {
                 self.scroll_to_end();
             }
             key_code_char!('s') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::PreviewDownloadObject));
+                self.tx.send(AppEventType::PreviewDownloadObject);
             }
             key_code_char!('S') => {
                 self.open_save_dialog();
             }
             key_code_char!('?') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                self.tx.send(AppEventType::OpenHelp);
             }
             _ => {}
         }
@@ -263,10 +257,6 @@ impl ObjectPreviewPage {
 
     pub fn path(&self) -> &str {
         &self.path
-    }
-
-    pub fn status(&self) -> bool {
-        self.save_dialog_state.is_some()
     }
 }
 

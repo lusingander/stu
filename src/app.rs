@@ -15,19 +15,6 @@ use crate::{
     pages::page::{Page, PageStack},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum ViewStateTag {
-    Initializing,
-    BucketList,
-    ObjectList,
-    Detail,
-    DetailSave,
-    CopyDetail,
-    Preview,
-    PreviewSave,
-    Help,
-}
-
 pub enum Notification {
     None,
     Info(String),
@@ -122,24 +109,6 @@ impl App {
         self.app_view_state.reset_size(width, height);
     }
 
-    pub fn view_state_tag(&self) -> ViewStateTag {
-        match self.page_stack.current_page() {
-            Page::Initializing(_) => ViewStateTag::Initializing,
-            Page::BucketList(_) => ViewStateTag::BucketList,
-            Page::ObjectList(_) => ViewStateTag::ObjectList,
-            Page::ObjectDetail(p) => match p.status() {
-                (true, false) => ViewStateTag::DetailSave,
-                (false, true) => ViewStateTag::CopyDetail,
-                _ => ViewStateTag::Detail,
-            },
-            Page::ObjectPreview(p) => match p.status() {
-                true => ViewStateTag::PreviewSave,
-                _ => ViewStateTag::Preview,
-            },
-            Page::Help(_) => ViewStateTag::Help,
-        }
-    }
-
     fn current_bucket(&self) -> String {
         let bucket_page = self.page_stack.head().as_bucket_list();
         bucket_page.current_selected_item().name.clone()
@@ -187,76 +156,6 @@ impl App {
     pub fn current_object_items(&self) -> Vec<ObjectItem> {
         self.app_objects
             .get_object_items(&self.current_object_key())
-    }
-
-    pub fn bucket_list_select_next(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        // page.select_next();
-    }
-
-    pub fn object_list_select_next(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_list();
-        // page.select_next();
-    }
-
-    pub fn copy_detail_select_next(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        // page.select_next_copy_detail_item();
-    }
-
-    pub fn bucket_list_select_prev(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        // page.select_prev();
-    }
-
-    pub fn object_list_select_prev(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_list();
-        // page.select_prev();
-    }
-
-    pub fn copy_detail_select_prev(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        // page.select_prev_copy_detail_item();
-    }
-
-    pub fn bucket_list_select_next_page(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        // page.select_next_page();
-    }
-
-    pub fn object_list_select_next_page(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_list();
-        // page.select_next_page();
-    }
-
-    pub fn bucket_list_select_prev_page(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        // page.select_prev_page();
-    }
-
-    pub fn object_list_select_prev_page(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_list();
-        // page.select_prev_page();
-    }
-
-    pub fn bucket_list_select_first(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        // page.select_first();
-    }
-
-    pub fn object_list_select_first(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_list();
-        // page.select_first();
-    }
-
-    pub fn bucket_list_select_last(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_bucket_list();
-        // page.select_last();
-    }
-
-    pub fn object_list_select_last(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_list();
-        // page.select_last();
     }
 
     pub fn bucket_list_move_down(&mut self) {
@@ -313,14 +212,6 @@ impl App {
         }
     }
 
-    pub fn copy_detail_copy_selected_value(&self) {
-        let object_detail_page = self.page_stack.current_page().as_object_detail();
-
-        if let Some((name, value)) = object_detail_page.copy_detail_dialog_selected() {
-            self.tx.send(AppEventType::CopyToClipboard(name, value));
-        }
-    }
-
     fn exists_current_object_detail(&self, object_name: &str) -> bool {
         let key = &self.current_object_key_with_name(object_name.to_string());
         self.app_objects.exists_object_details(key)
@@ -339,44 +230,7 @@ impl App {
         self.page_stack.pop();
     }
 
-    pub fn detail_close(&mut self) {
-        self.page_stack.pop(); // remove detail page
-    }
-
-    pub fn copy_detail_close(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        // page.close_copy_detail_dialog();
-    }
-
-    pub fn preview_scroll_forward(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        // page.scroll_forward();
-    }
-
-    pub fn preview_scroll_backward(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        // page.scroll_backward();
-    }
-
-    pub fn preview_scroll_to_top(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        // page.scroll_to_top();
-    }
-
-    pub fn preview_scroll_to_end(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        // page.scroll_to_end();
-    }
-
-    pub fn preview_close(&mut self) {
-        self.page_stack.pop(); // remove preview page
-    }
-
-    pub fn help_close(&mut self) {
-        self.toggle_help();
-    }
-
-    pub fn object_list_back_to_bucket_list(&mut self) {
+    pub fn back_to_bucket_list(&mut self) {
         if self.bucket_items().len() == 1 {
             return;
         }
@@ -467,30 +321,22 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub fn detail_select_tabs(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        // page.toggle_tab();
+    pub fn open_help(&mut self) {
+        let helps = match self.page_stack.current_page() {
+            Page::Initializing(_) | Page::Help(_) => {
+                return;
+            }
+            Page::BucketList(page) => page.helps(),
+            Page::ObjectList(page) => page.helps(),
+            Page::ObjectDetail(page) => page.helps(),
+            Page::ObjectPreview(page) => page.helps(),
+        };
+        let help_page = Page::of_help(helps, self.tx.clone());
+        self.page_stack.push(help_page);
     }
 
-    pub fn toggle_help(&mut self) {
-        match self.view_state_tag() {
-            ViewStateTag::Initializing => {}
-            ViewStateTag::Help => {
-                self.page_stack.pop(); // remove help page
-            }
-            _ => {
-                let helps = match self.page_stack.current_page() {
-                    Page::Initializing(page) => page.helps(),
-                    Page::BucketList(page) => page.helps(),
-                    Page::ObjectList(page) => page.helps(),
-                    Page::ObjectDetail(page) => page.helps(),
-                    Page::ObjectPreview(page) => page.helps(),
-                    Page::Help(page) => page.helps(),
-                };
-                let help_page = Page::of_help(helps, self.tx.clone());
-                self.page_stack.push(help_page);
-            }
-        }
+    pub fn close_current_page(&mut self) {
+        self.page_stack.pop();
     }
 
     pub fn detail_download_object(&mut self) {
@@ -500,11 +346,6 @@ impl App {
         self.tx
             .send(AppEventType::DownloadObject(file_detail.clone()));
         self.app_view_state.is_loading = true;
-    }
-
-    pub fn detail_open_download_object_as(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        // page.open_save_dialog();
     }
 
     pub fn preview_download_object(&self) {
@@ -517,23 +358,13 @@ impl App {
         self.tx.send(AppEventType::CompleteDownloadObject(result));
     }
 
-    pub fn preview_open_download_object_as(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        // page.open_save_dialog();
-    }
-
-    pub fn detail_preview(&mut self) {
+    pub fn open_preview(&mut self) {
         let object_detail_page = self.page_stack.current_page().as_object_detail();
         let file_detail = object_detail_page.file_detail();
 
         self.tx
             .send(AppEventType::PreviewObject(file_detail.clone()));
         self.app_view_state.is_loading = true;
-    }
-
-    pub fn detail_open_copy_details(&mut self) {
-        // let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        // page.open_copy_detail_dialog();
     }
 
     pub fn download_object(&self, file_detail: FileDetail) {
@@ -665,7 +496,7 @@ impl App {
         }
     }
 
-    pub fn detail_open_management_console(&self) {
+    pub fn object_detail_open_management_console(&self) {
         let object_detail_page = self.page_stack.current_page().as_object_detail();
 
         let (client, _) = self.unwrap_client_tx();
@@ -681,7 +512,7 @@ impl App {
         }
     }
 
-    pub fn detail_save_download_object_as(&mut self) {
+    pub fn detail_download_object_as(&mut self) {
         let object_detail_page = self.page_stack.current_page().as_object_detail();
         let file_detail = object_detail_page.file_detail();
 
@@ -698,7 +529,7 @@ impl App {
         }
     }
 
-    pub fn preview_save_download_object_as(&mut self) {
+    pub fn preview_download_object_as(&mut self) {
         let object_preview_page = self.page_stack.current_page().as_object_preview();
         let file_detail = object_preview_page.file_detail();
 

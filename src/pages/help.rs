@@ -9,7 +9,7 @@ use ratatui::{
 
 use crate::{
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
-    event::{AppEventType, AppKeyAction, Sender},
+    event::{AppEventType, Sender},
     key_code, key_code_char,
     pages::util::build_short_helps,
     util::group_strings_to_fit_width,
@@ -35,13 +35,8 @@ impl HelpPage {
             key_code!(KeyCode::Esc) => {
                 self.tx.send(AppEventType::Quit);
             }
-            key_code!(KeyCode::Backspace) => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::HelpClose));
-            }
-            key_code_char!('?') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+            key_code!(KeyCode::Backspace) | key_code_char!('?') => {
+                self.tx.send(AppEventType::CloseCurrentPage);
             }
             _ => {}
         }
@@ -71,10 +66,6 @@ impl HelpPage {
         );
 
         f.render_widget(paragraph, area);
-    }
-
-    pub fn helps(&self) -> Vec<String> {
-        Vec::new()
     }
 
     pub fn short_helps(&self) -> Vec<(String, usize)> {

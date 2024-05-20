@@ -11,7 +11,6 @@ use crate::{
 
 pub enum AppEventType {
     Key(KeyEvent),
-    KeyAction(AppKeyAction),
     Resize(usize, usize),
     Initialize(Config, Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
@@ -24,73 +23,25 @@ pub enum AppEventType {
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     PreviewObject(FileDetail),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
+    BucketListMoveDown,
+    ObjectListMoveDown,
+    ObjectListMoveUp,
+    BackToBucketList,
+    OpenPreview,
+    DetailDownloadObject,
+    DetailDownloadObjectAs,
+    PreviewDownloadObject,
+    PreviewDownloadObjectAs,
+    BucketListOpenManagementConsole,
+    ObjectListOpenManagementConsole,
+    ObjectDetailOpenManagementConsole,
+    CloseCurrentPage,
+    OpenHelp,
     CopyToClipboard(String, String),
-    KeyInput(AppKeyInput),
     NotifyInfo(String),
     NotifySuccess(String),
     NotifyError(AppError),
     Quit,
-}
-
-#[derive(Clone, Copy)]
-pub enum AppKeyInput {
-    Char(char),
-    Backspace,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-pub enum AppKeyAction {
-    // Initializing
-    // BucketList
-    BucketListSelectNext,
-    BucketListSelectPrev,
-    BucketListSelectFirst,
-    BucketListSelectLast,
-    BucketListSelectNextPage,
-    BucketListSelectPrevPage,
-    BucketListMoveDown,
-    BucketListOpenManagementConsole,
-    // ObjectList
-    ObjectListSelectNext,
-    ObjectListSelectPrev,
-    ObjectListSelectFirst,
-    ObjectListSelectLast,
-    ObjectListSelectNextPage,
-    ObjectListSelectPrevPage,
-    ObjectListMoveDown,
-    ObjectListMoveUp,
-    ObjectListBackToBucketList,
-    ObjectListOpenManagementConsole,
-    // Detail
-    DetailClose,
-    DetailSelectNext,
-    DetailSelectPrev,
-    DetailDownloadObject,
-    DetailPreview,
-    DetailOpenDownloadObjectAs,
-    DetailOpenCopyDetails,
-    DetailOpenManagementConsole,
-    // DetailSave
-    DetailSaveDownloadObjectAs,
-    // CopyDetail
-    CopyDetailSelectNext,
-    CopyDetailSelectPrev,
-    CopyDetailCopySelectedValue,
-    CopyDetailClose,
-    // Preview
-    PreviewScrollForward,
-    PreviewScrollBackward,
-    PreviewScrollToTop,
-    PreviewScrollToEnd,
-    PreviewClose,
-    PreviewDownloadObject,
-    PreviewOpenDownloadObjectAs,
-    // PreviewSave
-    PreviewSaveDownloadObjectAs,
-    // Help
-    HelpClose,
-    // common
-    ToggleHelp,
 }
 
 pub struct CompleteInitializeResult {

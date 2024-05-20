@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    event::{AppEventType, AppKeyAction, Sender},
+    event::{AppEventType, Sender},
     key_code, key_code_char,
     object::ObjectItem,
     pages::util::{build_helps, build_short_helps},
@@ -44,12 +44,10 @@ impl ObjectListPage {
                 self.tx.send(AppEventType::Quit);
             }
             key_code!(KeyCode::Enter) => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ObjectListMoveDown));
+                self.tx.send(AppEventType::ObjectListMoveDown);
             }
             key_code!(KeyCode::Backspace) => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ObjectListMoveUp));
+                self.tx.send(AppEventType::ObjectListMoveUp);
             }
             key_code_char!('j') => {
                 self.select_next();
@@ -70,18 +68,13 @@ impl ObjectListPage {
                 self.select_prev_page();
             }
             key_code_char!('~') => {
-                self.tx.send(AppEventType::KeyAction(
-                    AppKeyAction::ObjectListBackToBucketList,
-                ));
+                self.tx.send(AppEventType::BackToBucketList);
             }
             key_code_char!('x') => {
-                self.tx.send(AppEventType::KeyAction(
-                    AppKeyAction::ObjectListOpenManagementConsole,
-                ));
+                self.tx.send(AppEventType::ObjectListOpenManagementConsole);
             }
             key_code_char!('?') => {
-                self.tx
-                    .send(AppEventType::KeyAction(AppKeyAction::ToggleHelp));
+                self.tx.send(AppEventType::OpenHelp);
             }
             _ => {}
         }
