@@ -12,6 +12,7 @@ use crate::{
     event::{AppEventType, AppKeyAction, Sender},
     key_code, key_code_char,
     object::{FileDetail, FileVersion, ObjectItem},
+    pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
         CopyDetailDialog, CopyDetailDialogState, SaveDialog, SaveDialogState, ScrollList,
@@ -207,6 +208,70 @@ impl ObjectDetailPage {
             let copy_detail_dialog = CopyDetailDialog::new(*state, &self.file_detail);
             f.render_widget(copy_detail_dialog, area);
         }
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        if self.save_dialog_state.is_some() {
+            let helps: &[(&[&str], &str)] = &[
+                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["Enter"], "Download object"),
+            ];
+            return build_helps(helps);
+        }
+
+        if self.copy_detail_dialog_state.is_some() {
+            let helps: &[(&[&str], &str)] = &[
+                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Copy selected value to clipboard"),
+                (&["Backspace"], "Close copy dialog"),
+            ];
+            return build_helps(helps);
+        }
+
+        let helps: &[(&[&str], &str)] = &[
+            (&["Esc", "Ctrl-c"], "Quit app"),
+            (&["h/l"], "Select tabs"),
+            (&["Backspace"], "Close detail panel"),
+            (&["r"], "Open copy dialog"),
+            (&["s"], "Download object"),
+            (&["S"], "Download object as"),
+            (&["p"], "Preview object"),
+            (&["x"], "Open management console in browser"),
+        ];
+        build_helps(helps)
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        if self.save_dialog_state.is_some() {
+            let helps: &[(&[&str], &str, usize)] = &[
+                (&["Esc"], "Quit", 0),
+                (&["Enter"], "Download", 1),
+                (&["?"], "Help", 0),
+            ];
+            return build_short_helps(helps);
+        }
+
+        if self.copy_detail_dialog_state.is_some() {
+            let helps: &[(&[&str], &str, usize)] = &[
+                (&["Esc"], "Quit", 0),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Copy", 1),
+                (&["Backspace"], "Close", 2),
+                (&["?"], "Help", 0),
+            ];
+            return build_short_helps(helps);
+        }
+
+        let helps: &[(&[&str], &str, usize)] = &[
+            (&["Esc"], "Quit", 0),
+            (&["h/l"], "Select tabs", 3),
+            (&["s/S"], "Download", 1),
+            (&["p"], "Preview", 4),
+            (&["Backspace"], "Close", 2),
+            (&["?"], "Help", 0),
+        ];
+        build_short_helps(helps)
     }
 }
 

@@ -11,6 +11,7 @@ use crate::{
     event::{AppEventType, AppKeyAction, Sender},
     key_code, key_code_char,
     object::BucketItem,
+    pages::util::{build_helps, build_short_helps},
     widget::{ScrollList, ScrollListState},
 };
 
@@ -83,6 +84,30 @@ impl BucketListPage {
 
         let list = ScrollList::new(list_items);
         f.render_stateful_widget(list, area, &mut self.list_state);
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        let helps: &[(&[&str], &str)] = &[
+            (&["Esc", "Ctrl-c"], "Quit app"),
+            (&["j/k"], "Select item"),
+            (&["g/G"], "Go to top/bottom"),
+            (&["f"], "Scroll page forward"),
+            (&["b"], "Scroll page backward"),
+            (&["Enter"], "Open bucket"),
+            (&["x"], "Open management console in browser"),
+        ];
+        build_helps(helps)
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        let helps: &[(&[&str], &str, usize)] = &[
+            (&["Esc"], "Quit", 0),
+            (&["j/k"], "Select", 1),
+            (&["g/G"], "Top/Bottom", 3),
+            (&["Enter"], "Open", 2),
+            (&["?"], "Help", 0),
+        ];
+        build_short_helps(helps)
     }
 }
 

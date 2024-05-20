@@ -11,6 +11,7 @@ use crate::{
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
     event::{AppEventType, AppKeyAction, Sender},
     key_code, key_code_char,
+    pages::util::build_short_helps,
     util::group_strings_to_fit_width,
 };
 
@@ -70,6 +71,15 @@ impl HelpPage {
         );
 
         f.render_widget(paragraph, area);
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0), (&["?"], "Close help", 0)];
+        build_short_helps(helps)
     }
 }
 

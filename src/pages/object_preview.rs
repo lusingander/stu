@@ -11,6 +11,7 @@ use crate::{
     event::{AppEventType, AppKeyAction, Sender},
     key_code, key_code_char,
     object::{FileDetail, Object},
+    pages::util::{build_helps, build_short_helps},
     util::{digits, to_preview_string},
     widget::{SaveDialog, SaveDialogState},
 };
@@ -163,6 +164,47 @@ impl ObjectPreviewPage {
             let (cursor_x, cursor_y) = state.cursor();
             f.set_cursor(cursor_x, cursor_y);
         }
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        if self.save_dialog_state.is_some() {
+            let helps: &[(&[&str], &str)] = &[
+                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["Enter"], "Download object"),
+            ];
+            return build_helps(helps);
+        }
+
+        let helps: &[(&[&str], &str)] = &[
+            (&["Esc", "Ctrl-c"], "Quit app"),
+            (&["j/k"], "Scroll forward/backward"),
+            (&["g/G"], "Scroll to top/end"),
+            (&["Backspace"], "Close preview"),
+            (&["s"], "Download object"),
+            (&["S"], "Download object as"),
+        ];
+        build_helps(helps)
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        if self.save_dialog_state.is_some() {
+            let helps: &[(&[&str], &str, usize)] = &[
+                (&["Esc"], "Quit", 0),
+                (&["Enter"], "Download", 1),
+                (&["?"], "Help", 0),
+            ];
+            return build_short_helps(helps);
+        }
+
+        let helps: &[(&[&str], &str, usize)] = &[
+            (&["Esc"], "Quit", 0),
+            (&["j/k"], "Scroll", 2),
+            (&["g/G"], "Top/End", 4),
+            (&["s/S"], "Download", 3),
+            (&["Backspace"], "Close", 2),
+            (&["?"], "Help", 0),
+        ];
+        build_short_helps(helps)
     }
 }
 

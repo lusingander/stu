@@ -482,8 +482,15 @@ impl App {
                 self.page_stack.pop(); // remove help page
             }
             _ => {
-                let helps = self.action_manager.helps(self.view_state_tag());
-                let help_page = Page::of_help(helps.clone(), self.tx.clone());
+                let helps = match self.page_stack.current_page() {
+                    Page::Initializing(page) => page.helps(),
+                    Page::BucketList(page) => page.helps(),
+                    Page::ObjectList(page) => page.helps(),
+                    Page::ObjectDetail(page) => page.helps(),
+                    Page::ObjectPreview(page) => page.helps(),
+                    Page::Help(page) => page.helps(),
+                };
+                let help_page = Page::of_help(helps, self.tx.clone());
                 self.page_stack.push(help_page);
             }
         }

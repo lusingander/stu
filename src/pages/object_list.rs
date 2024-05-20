@@ -12,6 +12,7 @@ use crate::{
     event::{AppEventType, AppKeyAction, Sender},
     key_code, key_code_char,
     object::ObjectItem,
+    pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte},
     widget::{ScrollList, ScrollListState},
 };
@@ -95,6 +96,33 @@ impl ObjectListPage {
 
         let list = ScrollList::new(list_items);
         f.render_stateful_widget(list, area, &mut self.list_state);
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        let helps: &[(&[&str], &str)] = &[
+            (&["Esc", "Ctrl-c"], "Quit app"),
+            (&["j/k"], "Select item"),
+            (&["g/G"], "Go to top/bottom"),
+            (&["f"], "Scroll page forward"),
+            (&["b"], "Scroll page backward"),
+            (&["Enter"], "Open file or folder"),
+            (&["Backspace"], "Go back to prev folder"),
+            (&["~"], "Go back to bucket list"),
+            (&["x"], "Open management console in browser"),
+        ];
+        build_helps(helps)
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        let helps: &[(&[&str], &str, usize)] = &[
+            (&["Esc"], "Quit", 0),
+            (&["j/k"], "Select", 3),
+            (&["g/G"], "Top/Bottom", 4),
+            (&["Enter"], "Open", 1),
+            (&["Backspace"], "Go back", 2),
+            (&["?"], "Help", 0),
+        ];
+        build_short_helps(helps)
     }
 }
 

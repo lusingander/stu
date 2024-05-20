@@ -4,6 +4,7 @@ use ratatui::{layout::Rect, widgets::Block, Frame};
 use crate::{
     event::{AppEventType, Sender},
     key_code,
+    pages::util::build_short_helps,
 };
 
 #[derive(Debug)]
@@ -25,6 +26,15 @@ impl InitializingPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content = Block::bordered();
         f.render_widget(content, area);
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        Vec::new()
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0)];
+        build_short_helps(helps)
     }
 }
 

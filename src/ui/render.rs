@@ -104,10 +104,17 @@ fn build_header(app: &App) -> Header {
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
-    let helps = app.action_manager.short_helps(app.view_state_tag());
+    let helps = match app.page_stack.current_page() {
+        Page::Initializing(page) => page.short_helps(),
+        Page::BucketList(page) => page.short_helps(),
+        Page::ObjectList(page) => page.short_helps(),
+        Page::ObjectDetail(page) => page.short_helps(),
+        Page::ObjectPreview(page) => page.short_helps(),
+        Page::Help(page) => page.short_helps(),
+    };
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
-    let help = build_short_help_string(helps, max_width);
+    let help = build_short_help_string(&helps, max_width);
     Paragraph::new(help.fg(SHORT_HELP_COLOR)).block(Block::default().padding(pad))
 }
 
