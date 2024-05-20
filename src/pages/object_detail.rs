@@ -106,7 +106,7 @@ impl ObjectDetailPage {
                 }
                 _ => {}
             },
-            ViewState::SaveDialog(_) => match key {
+            ViewState::SaveDialog(ref mut state) => match key {
                 key_code!(KeyCode::Esc) => {
                     self.close_save_dialog();
                 }
@@ -116,15 +116,9 @@ impl ObjectDetailPage {
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
-                key_code_char!(c) => {
-                    // todo: fix
-                    self.add_char_to_input(c);
+                _ => {
+                    state.handle_key_event(key);
                 }
-                key_code!(KeyCode::Backspace) => {
-                    // todo: fix
-                    self.delete_char_from_input();
-                }
-                _ => {}
             },
             ViewState::CopyDetailDialog(state) => match key {
                 key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
@@ -286,18 +280,6 @@ impl ObjectDetailPage {
     fn select_prev_copy_detail_item(&mut self) {
         if let ViewState::CopyDetailDialog(ref mut state) = self.view_state {
             state.select_prev();
-        }
-    }
-
-    fn add_char_to_input(&mut self, c: char) {
-        if let ViewState::SaveDialog(ref mut state) = self.view_state {
-            state.add_char(c);
-        }
-    }
-
-    fn delete_char_from_input(&mut self) {
-        if let ViewState::SaveDialog(ref mut state) = self.view_state {
-            state.delete_char();
         }
     }
 

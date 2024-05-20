@@ -1,32 +1,31 @@
+use crossterm::event::KeyEvent;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
     widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, WidgetRef},
 };
+use tui_input::{backend::crossterm::EventHandler, Input};
 
 use crate::{ui::common::calc_centered_dialog_rect, widget::Dialog};
 
 #[derive(Debug, Default)]
 pub struct SaveDialogState {
-    input: String,
+    input: Input,
     cursor: (u16, u16),
 }
 
 impl SaveDialogState {
     pub fn input(&self) -> &str {
-        &self.input
+        self.input.value()
     }
 
     pub fn cursor(&self) -> (u16, u16) {
         self.cursor
     }
 
-    pub fn add_char(&mut self, c: char) {
-        self.input.push(c);
-    }
-
-    pub fn delete_char(&mut self) {
-        self.input.pop();
+    pub fn handle_key_event(&mut self, key: KeyEvent) {
+        let event = &crossterm::event::Event::Key(key);
+        self.input.handle_event(event);
     }
 }
 
@@ -42,9 +41,9 @@ impl StatefulWidget for SaveDialog {
         let dialog_area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
 
         // show the last `input_max_width` characters of the input
-        let input_max_width = dialog_width - 4;
-        let input_start_index = state.input.len().saturating_sub(input_max_width as usize);
-        let input_view: &str = &state.input[input_start_index..];
+        let input_max_width = (dialog_width - 4) as usize;
+        let input_start_index = state.input.visual_cursor().saturating_sub(input_max_width);
+        let input_view: &str = &state.input.value()[input_start_index..];
 
         let title = Title::from("Save As");
         let dialog_content = Paragraph::new(input_view).block(
@@ -57,7 +56,7 @@ impl StatefulWidget for SaveDialog {
         dialog.render_ref(dialog_area, buf);
 
         // update cursor position
-        let cursor_x = dialog_area.x + (state.input.len() as u16).min(input_max_width) + 2;
+        let cursor_x = dialog_area.x + state.input.visual_cursor().min(input_max_width) as u16 + 2;
         let cursor_y = dialog_area.y + 1;
         state.cursor = (cursor_x, cursor_y);
     }
@@ -65,6 +64,7 @@ impl StatefulWidget for SaveDialog {
 
 #[cfg(test)]
 mod tests {
+    use crossterm::event::KeyCode;
     use ratatui::assert_buffer_eq;
 
     use super::*;
@@ -75,7 +75,7 @@ mod tests {
         let save_dialog = SaveDialog::default();
 
         for c in "file.txt".chars() {
-            state.add_char(c);
+            state.handle_key_event(KeyEvent::from(KeyCode::Char(c)));
         }
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));

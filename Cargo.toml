@@ -33,6 +33,7 @@ serde = "1.0.202"
 serde_derive = "1.0.202"
 textwrap = "0.16.1"
 tokio = { version = "1.37.0", features = ["full"] }
+tui-input = "0.8.0"
 
 [dev-dependencies]
 indoc = "2.0.5"   # https://github.com/ratatui-org/ratatui/issues/1043
