@@ -249,6 +249,7 @@ mod tests {
     use crate::{event, set_cells};
 
     use super::*;
+    use chrono::NaiveDateTime;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]
@@ -267,12 +268,12 @@ mod tests {
                 ObjectItem::File {
                     name: "file1".to_string(),
                     size_byte: 1024 + 10,
-                    last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+                    last_modified: parse_datetime("2024-01-02 13:01:02"),
                 },
                 ObjectItem::File {
                     name: "file2".to_string(),
                     size_byte: 1024 * 999,
-                    last_modified: parse_datetime("2023-12-31T09:00:00+09:00"),
+                    last_modified: parse_datetime("2023-12-31 09:00:00"),
                 },
             ];
             let mut page = ObjectListPage::new(items, tx);
@@ -315,7 +316,7 @@ mod tests {
                 .map(|i| ObjectItem::File {
                     name: format!("file{}", i + 1),
                     size_byte: 1024,
-                    last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+                    last_modified: parse_datetime("2024-01-02 13:01:02"),
                 })
                 .collect();
             let mut page = ObjectListPage::new(items, tx);
@@ -354,8 +355,9 @@ mod tests {
     }
 
     fn parse_datetime(s: &str) -> DateTime<Local> {
-        DateTime::parse_from_rfc3339(s)
+        NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
             .unwrap()
-            .with_timezone(&Local)
+            .and_local_timezone(Local)
+            .unwrap()
     }
 }

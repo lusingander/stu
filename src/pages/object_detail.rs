@@ -480,7 +480,7 @@ mod tests {
     use crate::{event, set_cells};
 
     use super::*;
-    use chrono::{DateTime, Local};
+    use chrono::{DateTime, Local, NaiveDateTime};
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[test]
@@ -752,9 +752,10 @@ mod tests {
     }
 
     fn parse_datetime(s: &str) -> DateTime<Local> {
-        DateTime::parse_from_rfc3339(s)
+        NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
             .unwrap()
-            .with_timezone(&Local)
+            .and_local_timezone(Local)
+            .unwrap()
     }
 
     fn fixtures() -> (Vec<ObjectItem>, FileDetail, Vec<FileVersion>) {
@@ -762,23 +763,23 @@ mod tests {
             ObjectItem::File {
                 name: "file1".to_string(),
                 size_byte: 1024 + 10,
-                last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+                last_modified: parse_datetime("2024-01-02 13:01:02"),
             },
             ObjectItem::File {
                 name: "file2".to_string(),
                 size_byte: 1024 * 999,
-                last_modified: parse_datetime("2023-12-31T09:00:00+09:00"),
+                last_modified: parse_datetime("2023-12-31 09:00:00"),
             },
             ObjectItem::File {
                 name: "file3".to_string(),
                 size_byte: 1024,
-                last_modified: parse_datetime("2024-01-03T12:59:59+09:00"),
+                last_modified: parse_datetime("2024-01-03 12:59:59"),
             },
         ];
         let file_detail = FileDetail {
             name: "file1".to_string(),
             size_byte: 1024 + 10,
-            last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+            last_modified: parse_datetime("2024-01-02 13:01:02"),
             e_tag: "bef684de-a260-48a4-8178-8a535ecccadb".to_string(),
             content_type: "text/plain".to_string(),
             storage_class: "STANDARD".to_string(),
@@ -791,13 +792,13 @@ mod tests {
             FileVersion {
                 version_id: "60f36bc2-0f38-47b8-9bf0-e24e334b86d5".to_string(),
                 size_byte: 1024 + 10,
-                last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+                last_modified: parse_datetime("2024-01-02 13:01:02"),
                 is_latest: true,
             },
             FileVersion {
                 version_id: "1c5d3bcc-2bb3-4cd5-875f-a95a6ae53f65".to_string(),
                 size_byte: 1024,
-                last_modified: parse_datetime("2024-01-01T23:59:59+09:00"),
+                last_modified: parse_datetime("2024-01-01 23:59:59"),
                 is_latest: false,
             },
         ];

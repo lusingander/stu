@@ -265,7 +265,7 @@ mod tests {
     use crate::{event, set_cells};
 
     use super::*;
-    use chrono::{DateTime, Local};
+    use chrono::{DateTime, Local, NaiveDateTime};
     use itertools::Itertools;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
@@ -398,9 +398,10 @@ mod tests {
     }
 
     fn parse_datetime(s: &str) -> DateTime<Local> {
-        DateTime::parse_from_rfc3339(s)
+        NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
             .unwrap()
-            .with_timezone(&Local)
+            .and_local_timezone(Local)
+            .unwrap()
     }
 
     fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
@@ -414,7 +415,7 @@ mod tests {
         FileDetail {
             name: "file.txt".to_string(),
             size_byte: 1024 + 10,
-            last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
+            last_modified: parse_datetime("2024-01-02 13:01:02"),
             e_tag: "bef684de-a260-48a4-8178-8a535ecccadb".to_string(),
             content_type: "text/plain".to_string(),
             storage_class: "STANDARD".to_string(),
