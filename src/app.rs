@@ -149,11 +149,11 @@ impl App {
         }
     }
 
-    pub fn bucket_items(&self) -> Vec<BucketItem> {
+    fn bucket_items(&self) -> Vec<BucketItem> {
         self.app_objects.get_bucket_items()
     }
 
-    pub fn current_object_items(&self) -> Vec<ObjectItem> {
+    fn current_object_items(&self) -> Vec<ObjectItem> {
         self.app_objects
             .get_object_items(&self.current_object_key())
     }
