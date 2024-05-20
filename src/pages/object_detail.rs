@@ -437,7 +437,7 @@ fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
                     "          Size: ".add_modifier(Modifier::BOLD),
                     Span::raw(format_size_byte(v.size_byte)),
                 ]),
-                Line::from("-".repeat(width as usize).fg(DIVIDER_COLOR)),
+                Line::from("─".repeat(width as usize).fg(DIVIDER_COLOR)),
             ];
             ListItem::new(content)
         })
@@ -561,11 +561,11 @@ mod tests {
             "│  file3                     ││    Version ID: 60f36bc2-0f3│",
             "│                            ││ Last Modified: 2024-01-02 1│",
             "│                            ││          Size: 1.01 KiB    │",
-            "│                            ││----------------------------│",
+            "│                            ││────────────────────────────│",
             "│                            ││    Version ID: 1c5d3bcc-2bb│",
             "│                            ││ Last Modified: 2024-01-01 2│",
             "│                            ││          Size: 1 KiB       │",
-            "│                            ││----------------------------│",
+            "│                            ││────────────────────────────│",
             "│                            ││                            │",
             "│                            ││                            │",
             "│                            ││                            │",

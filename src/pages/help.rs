@@ -50,7 +50,7 @@ impl HelpPage {
             Line::from(format!(" {} - {}", APP_NAME, APP_DESCRIPTION)),
             Line::from(format!(" Version: {}", APP_VERSION)),
             Line::from(format!(" {}", APP_HOMEPAGE).fg(LINK_TEXT_COLOR)),
-            Line::from("-".repeat(w).fg(DIVIDER_COLOR)),
+            Line::from("─".repeat(w).fg(DIVIDER_COLOR)),
         ];
         let app_detail = with_empty_lines(app_details).into_iter();
 
@@ -141,7 +141,7 @@ mod tests {
             "│                                                                    │",
             "│  https://github.com/lusingander/stu                                │",
             "│                                                                    │",
-            "│ ------------------------------------------------------------------ │",
+            "│ ────────────────────────────────────────────────────────────────── │",
             "│                                                                    │",
             "│  <key1>: action1,  <key2>: action2,  <key3>: action3               │",
             "│                                                                    │",
