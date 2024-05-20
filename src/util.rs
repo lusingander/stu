@@ -1,5 +1,5 @@
-pub fn to_preview_string(bytes: &[u8], _content_type: &str) -> String {
-    // fixme: consider content_type
+pub fn to_preview_string(bytes: &[u8]) -> String {
+    // fixme: consider file type
     String::from_utf8_lossy(bytes).into()
 }
 

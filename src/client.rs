@@ -4,7 +4,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
 };
 
 const DELIMITER: &str = "/";
@@ -204,7 +204,7 @@ impl Client {
         key: &str,
         size_byte: usize,
         f: F,
-    ) -> Result<Object>
+    ) -> Result<RawObject>
     where
         F: Fn(usize),
     {
@@ -228,12 +228,7 @@ impl Client {
             f(bytes.len())
         }
 
-        let content_type = output.content_type.unwrap();
-
-        Ok(Object {
-            content_type,
-            bytes,
-        })
+        Ok(RawObject { bytes })
     }
 
     pub fn open_management_console_buckets(&self) -> Result<()> {
@@ -274,7 +269,7 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let path = dir.prefix().unwrap();
             let paths = parse_path(path, true);
             let name = paths.last().unwrap().to_owned();
-            ObjectItem::Dir { name, paths }
+            ObjectItem::Dir { name }
         })
         .collect()
 }
@@ -291,7 +286,6 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let last_modified = convert_datetime(file.last_modified().unwrap());
             ObjectItem::File {
                 name,
-                paths,
                 size_byte,
                 last_modified,
             }

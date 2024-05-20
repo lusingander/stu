@@ -260,23 +260,19 @@ mod tests {
             let items = vec![
                 ObjectItem::Dir {
                     name: "dir1".to_string(),
-                    paths: vec![],
                 },
                 ObjectItem::Dir {
                     name: "dir2".to_string(),
-                    paths: vec![],
                 },
                 ObjectItem::File {
                     name: "file1".to_string(),
                     size_byte: 1024 + 10,
                     last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
-                    paths: vec![],
                 },
                 ObjectItem::File {
                     name: "file2".to_string(),
                     size_byte: 1024 * 999,
                     last_modified: parse_datetime("2023-12-31T09:00:00+09:00"),
-                    paths: vec![],
                 },
             ];
             let mut page = ObjectListPage::new(items, tx);
@@ -320,7 +316,6 @@ mod tests {
                     name: format!("file{}", i + 1),
                     size_byte: 1024,
                     last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
-                    paths: vec![],
                 })
                 .collect();
             let mut page = ObjectListPage::new(items, tx);

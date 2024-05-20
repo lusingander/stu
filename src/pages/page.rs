@@ -1,6 +1,6 @@
 use crate::{
     event::Sender,
-    object::{BucketItem, FileDetail, FileVersion, Object, ObjectItem},
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
@@ -50,7 +50,7 @@ impl Page {
 
     pub fn of_object_preview(
         file_detail: FileDetail,
-        object: Object,
+        object: RawObject,
         path: String,
         tx: Sender,
     ) -> Self {

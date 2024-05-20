@@ -763,19 +763,16 @@ mod tests {
                 name: "file1".to_string(),
                 size_byte: 1024 + 10,
                 last_modified: parse_datetime("2024-01-02T13:01:02+09:00"),
-                paths: vec![],
             },
             ObjectItem::File {
                 name: "file2".to_string(),
                 size_byte: 1024 * 999,
                 last_modified: parse_datetime("2023-12-31T09:00:00+09:00"),
-                paths: vec![],
             },
             ObjectItem::File {
                 name: "file3".to_string(),
                 size_byte: 1024,
                 last_modified: parse_datetime("2024-01-03T12:59:59+09:00"),
-                paths: vec![],
             },
         ];
         let file_detail = FileDetail {

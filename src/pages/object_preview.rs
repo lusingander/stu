@@ -10,7 +10,7 @@ use ratatui::{
 use crate::{
     event::{AppEventType, Sender},
     key_code, key_code_char,
-    object::{FileDetail, Object},
+    object::{FileDetail, RawObject},
     pages::util::{build_helps, build_short_helps},
     util::{digits, to_preview_string},
     widget::{SaveDialog, SaveDialogState},
@@ -24,7 +24,7 @@ pub struct ObjectPreviewPage {
 
     preview: Vec<String>,
     preview_max_digits: usize,
-    object: Object,
+    object: RawObject,
     path: String,
 
     save_dialog_state: Option<SaveDialogState>,
@@ -33,8 +33,8 @@ pub struct ObjectPreviewPage {
 }
 
 impl ObjectPreviewPage {
-    pub fn new(file_detail: FileDetail, object: Object, path: String, tx: Sender) -> Self {
-        let s = to_preview_string(&object.bytes, &object.content_type);
+    pub fn new(file_detail: FileDetail, object: RawObject, path: String, tx: Sender) -> Self {
+        let s = to_preview_string(&object.bytes);
         let s = if s.ends_with('\n') {
             s.trim_end()
         } else {
@@ -251,7 +251,7 @@ impl ObjectPreviewPage {
         self.save_dialog_state.as_ref().map(|s| s.input().into())
     }
 
-    pub fn object(&self) -> &Object {
+    pub fn object(&self) -> &RawObject {
         &self.object
     }
 
@@ -269,9 +269,8 @@ mod tests {
     use itertools::Itertools;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
-    fn object(ss: &[&str]) -> Object {
-        Object {
-            content_type: "text/plain".to_string(),
+    fn object(ss: &[&str]) -> RawObject {
+        RawObject {
             bytes: ss.iter().join("\n").as_bytes().to_vec(),
         }
     }

@@ -11,7 +11,7 @@ use crate::{
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     if_match,
-    object::{AppObjects, BucketItem, FileDetail, Object, ObjectItem, ObjectKey},
+    object::{AppObjects, BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
 };
 
@@ -59,7 +59,7 @@ impl App {
     pub fn new(tx: Sender, width: usize, height: usize) -> App {
         App {
             app_view_state: AppViewState::new(width, height),
-            app_objects: AppObjects::new(),
+            app_objects: AppObjects::default(),
             page_stack: PageStack::new(tx.clone()),
             client: None,
             config: None,
@@ -175,17 +175,12 @@ impl App {
 
         match selected {
             ObjectItem::File { name, .. } => {
-                if self.exists_current_object_detail(&name) {
-                    let current_object_key = &self.current_object_key_with_name(name.to_string());
-                    let detail = self
-                        .app_objects
-                        .get_object_detail(current_object_key)
-                        .unwrap();
-                    let versions = self
-                        .app_objects
-                        .get_object_versions(current_object_key)
-                        .unwrap();
+                let current_object_key = &self.current_object_key_with_name(name.to_string());
+                let detail = self.app_objects.get_object_detail(current_object_key);
+                let versions = self.app_objects.get_object_versions(current_object_key);
 
+                if let (Some(detail), Some(versions)) = (detail, versions) {
+                    // object has been already loaded
                     let object_detail_page = Page::of_object_detail(
                         detail.clone(),
                         versions.clone(),
@@ -201,6 +196,7 @@ impl App {
             }
             ObjectItem::Dir { .. } => {
                 if self.exists_current_objects() {
+                    // object list has been already loaded
                     let object_list_page =
                         Page::of_object_list(self.current_object_items(), self.tx.clone());
                     self.page_stack.push(object_list_page);
@@ -210,11 +206,6 @@ impl App {
                 }
             }
         }
-    }
-
-    fn exists_current_object_detail(&self, object_name: &str) -> bool {
-        let key = &self.current_object_key_with_name(object_name.to_string());
-        self.app_objects.exists_object_details(key)
     }
 
     fn exists_current_objects(&self) -> bool {
@@ -442,7 +433,7 @@ impl App {
         save_file_name: Option<&str>,
         f: F,
     ) where
-        F: FnOnce(Sender, Result<Object>, String) + Send + 'static,
+        F: FnOnce(Sender, Result<RawObject>, String) + Send + 'static,
     {
         let bucket = self.current_bucket();
         let prefix = self.current_object_prefix();

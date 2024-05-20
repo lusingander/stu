@@ -11,11 +11,9 @@ pub struct BucketItem {
 pub enum ObjectItem {
     Dir {
         name: String,
-        paths: Vec<String>,
     },
     File {
         name: String,
-        paths: Vec<String>,
         size_byte: usize,
         last_modified: DateTime<Local>,
     },
@@ -52,6 +50,7 @@ pub struct FileVersion {
     pub is_latest: bool,
 }
 
+#[derive(Debug, Default)]
 pub struct AppObjects {
     bucket_items: Vec<BucketItem>,
     object_items_map: HashMap<ObjectKey, Vec<ObjectItem>>,
@@ -60,15 +59,6 @@ pub struct AppObjects {
 }
 
 impl AppObjects {
-    pub fn new() -> AppObjects {
-        AppObjects {
-            bucket_items: Vec::new(),
-            object_items_map: HashMap::new(),
-            detail_map: HashMap::new(),
-            versions_map: HashMap::new(),
-        }
-    }
-
     pub fn get_bucket_items(&self) -> Vec<BucketItem> {
         self.bucket_items.to_vec()
     }
@@ -109,20 +99,15 @@ impl AppObjects {
         self.detail_map.insert(key.to_owned(), detail);
         self.versions_map.insert(key.to_owned(), versions);
     }
-
-    pub fn exists_object_details(&self, key: &ObjectKey) -> bool {
-        self.detail_map.contains_key(key) && self.versions_map.contains_key(key)
-    }
 }
 
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub struct ObjectKey {
     pub bucket_name: String,
     pub object_path: Vec<String>,
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct Object {
-    pub content_type: String,
+pub struct RawObject {
     pub bytes: Vec<u8>,
 }
