@@ -153,15 +153,15 @@ impl App {
         self.app_objects.get_bucket_items()
     }
 
-    fn current_object_items(&self) -> Vec<ObjectItem> {
+    fn current_object_items(&self) -> Option<Vec<ObjectItem>> {
         self.app_objects
             .get_object_items(&self.current_object_key())
     }
 
     pub fn bucket_list_move_down(&mut self) {
-        if self.exists_current_objects() {
-            let object_list_page =
-                Page::of_object_list(self.current_object_items(), self.tx.clone());
+        if let Some(current_object_items) = self.current_object_items() {
+            // object list has been already loaded
+            let object_list_page = Page::of_object_list(current_object_items, self.tx.clone());
             self.page_stack.push(object_list_page);
         } else {
             self.tx.send(AppEventType::LoadObjects);
@@ -195,10 +195,10 @@ impl App {
                 }
             }
             ObjectItem::Dir { .. } => {
-                if self.exists_current_objects() {
+                if let Some(current_object_items) = self.current_object_items() {
                     // object list has been already loaded
                     let object_list_page =
-                        Page::of_object_list(self.current_object_items(), self.tx.clone());
+                        Page::of_object_list(current_object_items, self.tx.clone());
                     self.page_stack.push(object_list_page);
                 } else {
                     self.tx.send(AppEventType::LoadObjects);
@@ -206,11 +206,6 @@ impl App {
                 }
             }
         }
-    }
-
-    fn exists_current_objects(&self) -> bool {
-        self.app_objects
-            .exists_object_item(&self.current_object_key())
     }
 
     pub fn object_list_move_up(&mut self) {
@@ -243,10 +238,9 @@ impl App {
         match result {
             Ok(CompleteLoadObjectsResult { items }) => {
                 self.app_objects
-                    .set_object_items(self.current_object_key().to_owned(), items);
+                    .set_object_items(self.current_object_key().to_owned(), items.clone());
 
-                let object_list_page =
-                    Page::of_object_list(self.current_object_items(), self.tx.clone());
+                let object_list_page = Page::of_object_list(items, self.tx.clone());
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {

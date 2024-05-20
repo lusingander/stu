@@ -63,11 +63,8 @@ impl AppObjects {
         self.bucket_items.to_vec()
     }
 
-    pub fn get_object_items(&self, key: &ObjectKey) -> Vec<ObjectItem> {
-        self.object_items_map
-            .get(key)
-            .unwrap_or(&Vec::new())
-            .to_vec()
+    pub fn get_object_items(&self, key: &ObjectKey) -> Option<Vec<ObjectItem>> {
+        self.object_items_map.get(key).map(|items| items.to_vec())
     }
 
     pub fn set_bucket_items(&mut self, items: Vec<BucketItem>) {
@@ -76,10 +73,6 @@ impl AppObjects {
 
     pub fn set_object_items(&mut self, key: ObjectKey, items: Vec<ObjectItem>) {
         self.object_items_map.insert(key, items);
-    }
-
-    pub fn exists_object_item(&self, key: &ObjectKey) -> bool {
-        self.object_items_map.contains_key(key)
     }
 
     pub fn get_object_detail(&self, key: &ObjectKey) -> Option<&FileDetail> {
