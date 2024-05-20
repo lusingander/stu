@@ -31,8 +31,7 @@ pub struct ObjectDetailPage {
     file_versions: Vec<FileVersion>,
 
     tab: Tab,
-    save_dialog_state: Option<SaveDialogState>,
-    copy_detail_dialog_state: Option<CopyDetailDialogState>,
+    view_state: ViewState,
 
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
@@ -47,6 +46,14 @@ enum Tab {
     Version,
 }
 
+#[derive(Debug, Default)]
+enum ViewState {
+    #[default]
+    Default,
+    SaveDialog(SaveDialogState),
+    CopyDetailDialog(CopyDetailDialogState),
+}
+
 impl ObjectDetailPage {
     pub fn new(
         file_detail: FileDetail,
@@ -59,8 +66,7 @@ impl ObjectDetailPage {
             file_detail,
             file_versions,
             tab: Tab::Detail,
-            save_dialog_state: None,
-            copy_detail_dialog_state: None,
+            view_state: ViewState::Default,
             object_items,
             list_state,
             tx,
@@ -68,8 +74,39 @@ impl ObjectDetailPage {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
-        if self.save_dialog_state.is_some() {
-            match key {
+        match self.view_state {
+            ViewState::Default => match key {
+                key_code!(KeyCode::Esc) => {
+                    self.tx.send(AppEventType::Quit);
+                }
+                key_code!(KeyCode::Backspace) => {
+                    self.tx.send(AppEventType::CloseCurrentPage);
+                }
+                key_code_char!('h') | key_code_char!('l') => {
+                    self.toggle_tab();
+                }
+                key_code_char!('s') => {
+                    self.tx.send(AppEventType::DetailDownloadObject);
+                }
+                key_code_char!('S') => {
+                    self.open_save_dialog();
+                }
+                key_code_char!('p') => {
+                    self.tx.send(AppEventType::OpenPreview);
+                }
+                key_code_char!('r') => {
+                    self.open_copy_detail_dialog();
+                }
+                key_code_char!('x') => {
+                    self.tx
+                        .send(AppEventType::ObjectDetailOpenManagementConsole);
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
+            ViewState::SaveDialog(_) => match key {
                 key_code!(KeyCode::Esc) => {
                     // todo: should not quit
                     self.tx.send(AppEventType::Quit);
@@ -89,18 +126,14 @@ impl ObjectDetailPage {
                     self.delete_char_from_input();
                 }
                 _ => {}
-            }
-            return;
-        }
-
-        if self.copy_detail_dialog_state.is_some() {
-            match key {
+            },
+            ViewState::CopyDetailDialog(state) => match key {
                 key_code!(KeyCode::Esc) => {
                     // todo: should not quit
                     self.tx.send(AppEventType::Quit);
                 }
                 key_code!(KeyCode::Enter) => {
-                    let (name, value) = self.copy_detail_dialog_selected().unwrap();
+                    let (name, value) = self.copy_detail_dialog_selected(state);
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
                 key_code!(KeyCode::Backspace) => {
@@ -116,40 +149,7 @@ impl ObjectDetailPage {
                     self.tx.send(AppEventType::OpenHelp);
                 }
                 _ => {}
-            }
-            return;
-        }
-
-        match key {
-            key_code!(KeyCode::Esc) => {
-                self.tx.send(AppEventType::Quit);
-            }
-            key_code!(KeyCode::Backspace) => {
-                self.tx.send(AppEventType::CloseCurrentPage);
-            }
-            key_code_char!('h') | key_code_char!('l') => {
-                self.toggle_tab();
-            }
-            key_code_char!('s') => {
-                self.tx.send(AppEventType::DetailDownloadObject);
-            }
-            key_code_char!('S') => {
-                self.open_save_dialog();
-            }
-            key_code_char!('p') => {
-                self.tx.send(AppEventType::OpenPreview);
-            }
-            key_code_char!('r') => {
-                self.open_copy_detail_dialog();
-            }
-            key_code_char!('x') => {
-                self.tx
-                    .send(AppEventType::ObjectDetailOpenManagementConsole);
-            }
-            key_code_char!('?') => {
-                self.tx.send(AppEventType::OpenHelp);
-            }
-            _ => {}
+            },
         }
     }
 
@@ -186,7 +186,7 @@ impl ObjectDetailPage {
             }
         }
 
-        if let Some(state) = &mut self.save_dialog_state {
+        if let ViewState::SaveDialog(state) = &mut self.view_state {
             let save_dialog = SaveDialog::default();
             f.render_stateful_widget(save_dialog, area, state);
 
@@ -194,73 +194,62 @@ impl ObjectDetailPage {
             f.set_cursor(cursor_x, cursor_y);
         }
 
-        if let Some(state) = &self.copy_detail_dialog_state {
+        if let ViewState::CopyDetailDialog(state) = &self.view_state {
             let copy_detail_dialog = CopyDetailDialog::new(*state, &self.file_detail);
             f.render_widget(copy_detail_dialog, area);
         }
     }
 
     pub fn helps(&self) -> Vec<String> {
-        if self.save_dialog_state.is_some() {
-            let helps: &[(&[&str], &str)] = &[
+        let helps: &[(&[&str], &str)] = match self.view_state {
+            ViewState::Default => &[
+                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["h/l"], "Select tabs"),
+                (&["Backspace"], "Close detail panel"),
+                (&["r"], "Open copy dialog"),
+                (&["s"], "Download object"),
+                (&["S"], "Download object as"),
+                (&["p"], "Preview object"),
+                (&["x"], "Open management console in browser"),
+            ],
+            ViewState::SaveDialog(_) => &[
                 (&["Esc", "Ctrl-c"], "Quit app"),
                 (&["Enter"], "Download object"),
-            ];
-            return build_helps(helps);
-        }
-
-        if self.copy_detail_dialog_state.is_some() {
-            let helps: &[(&[&str], &str)] = &[
+            ],
+            ViewState::CopyDetailDialog(_) => &[
                 (&["Esc", "Ctrl-c"], "Quit app"),
                 (&["j/k"], "Select item"),
                 (&["Enter"], "Copy selected value to clipboard"),
                 (&["Backspace"], "Close copy dialog"),
-            ];
-            return build_helps(helps);
-        }
-
-        let helps: &[(&[&str], &str)] = &[
-            (&["Esc", "Ctrl-c"], "Quit app"),
-            (&["h/l"], "Select tabs"),
-            (&["Backspace"], "Close detail panel"),
-            (&["r"], "Open copy dialog"),
-            (&["s"], "Download object"),
-            (&["S"], "Download object as"),
-            (&["p"], "Preview object"),
-            (&["x"], "Open management console in browser"),
-        ];
+            ],
+        };
         build_helps(helps)
     }
 
     pub fn short_helps(&self) -> Vec<(String, usize)> {
-        if self.save_dialog_state.is_some() {
-            let helps: &[(&[&str], &str, usize)] = &[
+        let helps: &[(&[&str], &str, usize)] = match self.view_state {
+            ViewState::Default => &[
+                (&["Esc"], "Quit", 0),
+                (&["h/l"], "Select tabs", 3),
+                (&["s/S"], "Download", 1),
+                (&["p"], "Preview", 4),
+                (&["Backspace"], "Close", 2),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::SaveDialog(_) => &[
                 (&["Esc"], "Quit", 0),
                 (&["Enter"], "Download", 1),
                 (&["?"], "Help", 0),
-            ];
-            return build_short_helps(helps);
-        }
-
-        if self.copy_detail_dialog_state.is_some() {
-            let helps: &[(&[&str], &str, usize)] = &[
+            ],
+            ViewState::CopyDetailDialog(_) => &[
                 (&["Esc"], "Quit", 0),
                 (&["j/k"], "Select", 3),
                 (&["Enter"], "Copy", 1),
                 (&["Backspace"], "Close", 2),
                 (&["?"], "Help", 0),
-            ];
-            return build_short_helps(helps);
-        }
+            ],
+        };
 
-        let helps: &[(&[&str], &str, usize)] = &[
-            (&["Esc"], "Quit", 0),
-            (&["h/l"], "Select tabs", 3),
-            (&["s/S"], "Download", 1),
-            (&["p"], "Preview", 4),
-            (&["Backspace"], "Close", 2),
-            (&["?"], "Help", 0),
-        ];
         build_short_helps(helps)
     }
 }
@@ -278,41 +267,41 @@ impl ObjectDetailPage {
     }
 
     fn open_save_dialog(&mut self) {
-        self.save_dialog_state = Some(SaveDialogState::default());
+        self.view_state = ViewState::SaveDialog(SaveDialogState::default());
     }
 
     pub fn close_save_dialog(&mut self) {
-        self.save_dialog_state = None;
+        self.view_state = ViewState::Default;
     }
 
     fn open_copy_detail_dialog(&mut self) {
-        self.copy_detail_dialog_state = Some(CopyDetailDialogState::default());
+        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::default());
     }
 
     fn close_copy_detail_dialog(&mut self) {
-        self.copy_detail_dialog_state = None;
+        self.view_state = ViewState::Default;
     }
 
     fn select_next_copy_detail_item(&mut self) {
-        if let Some(ref mut state) = self.copy_detail_dialog_state {
+        if let ViewState::CopyDetailDialog(ref mut state) = self.view_state {
             state.select_next();
         }
     }
 
     fn select_prev_copy_detail_item(&mut self) {
-        if let Some(ref mut state) = self.copy_detail_dialog_state {
+        if let ViewState::CopyDetailDialog(ref mut state) = self.view_state {
             state.select_prev();
         }
     }
 
     fn add_char_to_input(&mut self, c: char) {
-        if let Some(ref mut state) = self.save_dialog_state {
+        if let ViewState::SaveDialog(ref mut state) = self.view_state {
             state.add_char(c);
         }
     }
 
     fn delete_char_from_input(&mut self) {
-        if let Some(ref mut state) = self.save_dialog_state {
+        if let ViewState::SaveDialog(ref mut state) = self.view_state {
             state.delete_char();
         }
     }
@@ -322,13 +311,15 @@ impl ObjectDetailPage {
     }
 
     pub fn save_dialog_key_input(&self) -> Option<String> {
-        self.save_dialog_state.as_ref().map(|s| s.input().into())
+        if let ViewState::SaveDialog(state) = &self.view_state {
+            Some(state.input().into())
+        } else {
+            None
+        }
     }
 
-    fn copy_detail_dialog_selected(&self) -> Option<(String, String)> {
-        self.copy_detail_dialog_state
-            .as_ref()
-            .map(|s| s.selected_name_and_value(&self.file_detail))
+    fn copy_detail_dialog_selected(&self, state: CopyDetailDialogState) -> (String, String) {
+        state.selected_name_and_value(&self.file_detail)
     }
 }
 
