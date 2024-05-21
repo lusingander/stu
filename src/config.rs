@@ -1,8 +1,7 @@
 use std::{env, path::PathBuf};
 
+use anyhow::Context;
 use serde_derive::{Deserialize, Serialize};
-
-use crate::error::{AppError, Result};
 
 const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 
@@ -30,10 +29,10 @@ impl Default for Config {
 }
 
 impl Config {
-    pub fn load() -> Result<Config> {
+    pub fn load() -> anyhow::Result<Config> {
         let dir = Config::get_app_base_dir()?;
         let path = dir.join(CONFIG_FILE_NAME);
-        confy::load_path(path).map_err(|e| AppError::new("Failed to load config file", e))
+        confy::load_path(path).context("Failed to load config file")
     }
 
     pub fn download_file_path(&self, name: &str) -> String {
@@ -42,20 +41,20 @@ impl Config {
         String::from(path.to_string_lossy())
     }
 
-    pub fn error_log_path(&self) -> Result<String> {
+    pub fn error_log_path(&self) -> anyhow::Result<String> {
         let dir = Config::get_app_base_dir()?;
         let path = dir.join(ERROR_LOG_FILE_NAME);
         Ok(String::from(path.to_string_lossy()))
     }
 
-    fn get_app_base_dir() -> Result<PathBuf> {
+    fn get_app_base_dir() -> anyhow::Result<PathBuf> {
         match env::var(STU_ROOT_DIR_ENV_VAR) {
             Ok(dir) => Ok(PathBuf::from(dir)),
             Err(_) => {
                 // default
                 dirs::home_dir()
                     .map(|home| home.join(APP_BASE_DIR))
-                    .ok_or_else(|| AppError::msg("Failed to load home directory"))
+                    .context("Failed to load home directory")
             }
         }
     }

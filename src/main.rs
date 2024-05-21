@@ -18,13 +18,13 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use event::{AppEventType, Sender};
+use event::AppEventType;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
 };
 use std::{
-    io::{stdout, Result, Stdout},
+    io::{stdout, Stdout},
     panic,
 };
 use tokio::spawn;
@@ -55,20 +55,21 @@ struct Args {
 }
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
+    let config = Config::load()?;
 
     initialize_panic_handler();
 
     let mut terminal = setup()?;
-    let ret = run(&mut terminal, args).await;
+    let ret = run(&mut terminal, args, config).await;
 
     shutdown()?;
 
     ret
 }
 
-fn setup() -> std::io::Result<Terminal<CrosstermBackend<Stdout>>> {
+fn setup() -> anyhow::Result<Terminal<CrosstermBackend<Stdout>>> {
     enable_raw_mode()?;
     execute!(stdout(), EnterAlternateScreen)?;
 
@@ -78,23 +79,23 @@ fn setup() -> std::io::Result<Terminal<CrosstermBackend<Stdout>>> {
     Ok(terminal)
 }
 
-async fn run<B: Backend>(terminal: &mut Terminal<B>, args: Args) -> std::io::Result<()> {
-    let Args {
-        region,
-        endpoint_url,
-        profile,
-        bucket,
-    } = args;
-
+async fn run<B: Backend>(
+    terminal: &mut Terminal<B>,
+    args: Args,
+    config: Config,
+) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
     let mut app = App::new(tx.clone(), width, height);
 
     spawn(async move {
-        initialize(tx, region, endpoint_url, profile, bucket).await;
+        let client = Client::new(args.region, args.endpoint_url, args.profile).await;
+        tx.send(AppEventType::Initialize(config, client, args.bucket));
     });
 
-    run::run(&mut app, terminal, rx).await
+    run::run(&mut app, terminal, rx).await?;
+
+    Ok(())
 }
 
 fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
@@ -102,25 +103,7 @@ fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
     (size.width as usize, size.height as usize)
 }
 
-async fn initialize(
-    tx: Sender,
-    region: Option<String>,
-    endpoint_url: Option<String>,
-    profile: Option<String>,
-    bucket: Option<String>,
-) {
-    match Config::load() {
-        Ok(config) => {
-            let client = Client::new(region, endpoint_url, profile).await;
-            tx.send(AppEventType::Initialize(config, client, bucket));
-        }
-        Err(e) => {
-            tx.send(AppEventType::NotifyError(e));
-        }
-    };
-}
-
-fn shutdown() -> std::io::Result<()> {
+fn shutdown() -> anyhow::Result<()> {
     execute!(stdout(), LeaveAlternateScreen)?;
     disable_raw_mode()?;
     Ok(())

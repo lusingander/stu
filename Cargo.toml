@@ -12,6 +12,7 @@ categories = ["command-line-utilities"]
 edition = "2021"
 
 [dependencies]
+anyhow = "1.0.86"
 arboard = "3.4.0"
 aws-config = "1.4.0"
 aws-sdk-s3 = "1.29.0"
