@@ -46,6 +46,7 @@ Options:
   -e, --endpoint-url <URL>  AWS endpoint url
   -p, --profile <NAME>      AWS profile name
   -b, --bucket <NAME>       Target bucket name
+      --debug               Output debug logs
   -h, --help                Print help
   -V, --version             Print version
 ```
