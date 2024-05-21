@@ -1,4 +1,8 @@
-use std::{sync::mpsc, thread};
+use std::{
+    fmt::{self, Debug, Formatter},
+    sync::mpsc,
+    thread,
+};
 
 use crossterm::event::KeyEvent;
 
@@ -9,6 +13,7 @@ use crate::{
     object::{BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey, RawObject},
 };
 
+#[derive(Debug)]
 pub enum AppEventType {
     Key(KeyEvent),
     Resize(usize, usize),
@@ -44,6 +49,7 @@ pub enum AppEventType {
     Quit,
 }
 
+#[derive(Debug)]
 pub struct CompleteInitializeResult {
     pub buckets: Vec<BucketItem>,
 }
@@ -55,6 +61,7 @@ impl CompleteInitializeResult {
     }
 }
 
+#[derive(Debug)]
 pub struct CompleteLoadObjectsResult {
     pub items: Vec<ObjectItem>,
 }
@@ -66,6 +73,7 @@ impl CompleteLoadObjectsResult {
     }
 }
 
+#[derive(Debug)]
 pub struct CompleteLoadObjectResult {
     pub detail: Box<FileDetail>, // to avoid "warning: large size difference between variants" for AppEventType
     pub versions: Vec<FileVersion>,
@@ -88,6 +96,7 @@ impl CompleteLoadObjectResult {
     }
 }
 
+#[derive(Debug)]
 pub struct CompleteDownloadObjectResult {
     pub obj: RawObject,
     pub path: String,
@@ -100,6 +109,7 @@ impl CompleteDownloadObjectResult {
     }
 }
 
+#[derive(Debug)]
 pub struct CompletePreviewObjectResult {
     pub obj: RawObject,
     pub file_detail: FileDetail,
@@ -121,9 +131,15 @@ impl CompletePreviewObjectResult {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Sender {
     tx: mpsc::Sender<AppEventType>,
+}
+
+impl Debug for Sender {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "Sender")
+    }
 }
 
 impl Sender {

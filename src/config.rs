@@ -11,7 +11,7 @@ const ERROR_LOG_FILE_NAME: &str = "error.log";
 const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Config {
     download_dir: String,
 }

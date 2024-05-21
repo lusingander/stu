@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    fmt::{self, Debug, Formatter},
+};
 
 use chrono::{DateTime, Local};
 
@@ -100,7 +103,13 @@ pub struct ObjectKey {
     pub object_path: Vec<String>,
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Default, Clone)]
 pub struct RawObject {
     pub bytes: Vec<u8>,
+}
+
+impl Debug for RawObject {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "RawObject {{ bytes: [u8; {}] }}", self.bytes.len())
+    }
 }
