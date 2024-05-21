@@ -556,11 +556,13 @@ impl App {
     }
 
     pub fn error_notification(&mut self, e: AppError) {
-        self.save_error(&e);
+        self.handle_error(&e);
         self.app_view_state.notification = Notification::Error(e.msg);
     }
 
-    fn save_error(&self, e: &AppError) {
+    fn handle_error(&self, e: &AppError) {
+        tracing::error!("AppError occurred: {:?}", e);
+
         // cause panic if save errors
         let path = self.config.error_log_path().unwrap();
         save_error_log(&path, e).unwrap();

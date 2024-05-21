@@ -16,7 +16,10 @@ pub async fn run<B: Backend>(
 ) -> Result<()> {
     loop {
         terminal.draw(|f| ui::render(f, app))?;
+
         let event = rx.recv();
+        tracing::debug!("event received: {:?}", event);
+
         match event {
             AppEventType::Quit => {
                 return Ok(());
