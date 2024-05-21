@@ -21,14 +21,17 @@ Screenshot ${OUTPUT_DIR}/initialize.png
 Sleep 2s
 
 Type "j"
+Sleep 100ms
 Type "j"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/bucket-list.png
 Type "k"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/bucket-list-help.png
 Type "?"
+Sleep 100ms
 
 Enter
 Sleep 500ms
@@ -37,9 +40,12 @@ Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-list-help.png
 Type "?"
+Sleep 100ms
 
 Type "j"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Enter
 Sleep 500ms
 Screenshot ${OUTPUT_DIR}/object-detail.png
@@ -47,14 +53,20 @@ Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-detail-help.png
 Type "?"
+Sleep 100ms
 Type "l"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-version.png
 Backspace
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Enter
+Sleep 100ms
 Type "r"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-details-copy.png
@@ -62,6 +74,7 @@ Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-details-copy-help.png
 Type "?"
+Sleep 100ms
 Backspace
 Sleep 500ms
 
@@ -74,6 +87,7 @@ Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-download-help.png
 Type "?"
+Sleep 100ms
 Enter
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-download-success.png
@@ -83,27 +97,38 @@ Sleep 100ms
 Type "p"
 Sleep 500ms
 Type@10ms "jjjjjjj"
+Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-preview.png
 Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-preview-help.png
 Type "?"
+Sleep 100ms
 Type "s"
 Sleep 500ms
 Backspace
+Sleep 100ms
 Backspace
+Sleep 100ms
 Backspace
+Sleep 100ms
 
 Type "~"
+Sleep 100ms
 Type "g"
+Sleep 100ms
 Enter
 Sleep 500ms
 Type "j"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Enter
 Sleep 500ms
 Type "j"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Enter
 Sleep 500ms
 Enter
@@ -113,9 +138,13 @@ Sleep 500ms
 Screenshot ${OUTPUT_DIR}/object-list-hierarchy.png
 
 Type "~"
+Sleep 100ms
 Type "g"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Type "j"
+Sleep 100ms
 Enter
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/loading-object-list.png
