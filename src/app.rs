@@ -51,24 +51,23 @@ pub struct App {
     pub page_stack: PageStack,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
-    config: Option<Config>,
+    config: Config,
     tx: Sender,
 }
 
 impl App {
-    pub fn new(tx: Sender, width: usize, height: usize) -> App {
+    pub fn new(config: Config, tx: Sender, width: usize, height: usize) -> App {
         App {
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(tx.clone()),
             client: None,
-            config: None,
+            config,
             tx,
         }
     }
 
-    pub fn initialize(&mut self, config: Config, client: Client, bucket: Option<String>) {
-        self.config = Some(config);
+    pub fn initialize(&mut self, client: Client, bucket: Option<String>) {
         self.client = Some(Arc::new(client));
 
         let (client, tx) = self.unwrap_client_tx();
@@ -433,8 +432,9 @@ impl App {
         let prefix = self.current_object_prefix();
         let key = format!("{}{}", prefix, object_name);
 
-        let config = self.config.as_ref().unwrap();
-        let path = config.download_file_path(save_file_name.unwrap_or(object_name));
+        let path = self
+            .config
+            .download_file_path(save_file_name.unwrap_or(object_name));
 
         let (client, tx) = self.unwrap_client_tx();
         let loading = self.handle_loading_size(size_byte, tx.clone());
@@ -561,9 +561,8 @@ impl App {
     }
 
     fn save_error(&self, e: &AppError) {
-        let config = self.config.as_ref().unwrap();
         // cause panic if save errors
-        let path = config.error_log_path().unwrap();
+        let path = self.config.error_log_path().unwrap();
         save_error_log(&path, e).unwrap();
     }
 

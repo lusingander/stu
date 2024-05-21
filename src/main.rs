@@ -94,11 +94,11 @@ async fn run<B: Backend>(
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
-    let mut app = App::new(tx.clone(), width, height);
+    let mut app = App::new(config, tx.clone(), width, height);
 
     spawn(async move {
         let client = Client::new(args.region, args.endpoint_url, args.profile).await;
-        tx.send(AppEventType::Initialize(config, client, args.bucket));
+        tx.send(AppEventType::Initialize(client, args.bucket));
     });
 
     run::run(&mut app, terminal, rx).await?;

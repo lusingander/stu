@@ -8,7 +8,6 @@ use crossterm::event::KeyEvent;
 
 use crate::{
     client::Client,
-    config::Config,
     error::{AppError, Result},
     object::{BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey, RawObject},
 };
@@ -17,7 +16,7 @@ use crate::{
 pub enum AppEventType {
     Key(KeyEvent),
     Resize(usize, usize),
-    Initialize(Config, Client, Option<String>),
+    Initialize(Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
