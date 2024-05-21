@@ -19,6 +19,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use event::AppEventType;
+use file::open_or_create_append_file;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
     Terminal,
@@ -26,8 +27,10 @@ use ratatui::{
 use std::{
     io::{stdout, Stdout},
     panic,
+    sync::Mutex,
 };
 use tokio::spawn;
+use tracing_subscriber::fmt::time::ChronoLocal;
 
 use crate::app::App;
 use crate::client::Client;
@@ -52,6 +55,10 @@ struct Args {
     /// Target bucket name
     #[arg(short, long, value_name = "NAME")]
     bucket: Option<String>,
+
+    /// Output debug logs
+    #[arg(long)]
+    debug: bool,
 }
 
 #[tokio::main]
@@ -59,6 +66,7 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = Config::load()?;
 
+    initialize_debug_log(&args, &config)?;
     initialize_panic_handler();
 
     let mut terminal = setup()?;
@@ -115,4 +123,18 @@ fn initialize_panic_handler() {
         shutdown().unwrap();
         original_hook(panic_info);
     }));
+}
+
+fn initialize_debug_log(args: &Args, config: &Config) -> anyhow::Result<()> {
+    if args.debug {
+        let path = config.debug_log_path()?;
+        let file = open_or_create_append_file(&path)?;
+        tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_timer(ChronoLocal::rfc_3339())
+            .with_max_level(tracing::Level::DEBUG)
+            .with_writer(Mutex::new(file))
+            .init();
+    }
+    Ok(())
 }

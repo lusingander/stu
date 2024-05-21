@@ -34,6 +34,9 @@ serde = "1.0.202"
 serde_derive = "1.0.202"
 textwrap = "0.16.1"
 tokio = { version = "1.37.0", features = ["full"] }
+tracing = "0.1.40"
+tracing-log = "0.2.0"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono"] }
 tui-input = "0.8.0"
 
 [dev-dependencies]

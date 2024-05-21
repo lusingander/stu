@@ -23,11 +23,8 @@ pub fn save_binary(path: &str, bytes: &[u8]) -> Result<()> {
 pub fn save_error_log(path: &str, e: &AppError) -> Result<()> {
     create_dirs(path)?;
 
-    let mut f = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(path)
-        .map_err(|e| AppError::new("Failed to open file", e))?;
+    let mut f =
+        open_or_create_append_file(path).map_err(|e| AppError::new("Failed to open file", e))?;
 
     let now = Local::now();
 
@@ -40,6 +37,10 @@ pub fn save_error_log(path: &str, e: &AppError) -> Result<()> {
         }
     }
     .map_err(|e| AppError::new("Failed to write file", e))
+}
+
+pub fn open_or_create_append_file(path: &str) -> std::io::Result<File> {
+    OpenOptions::new().create(true).append(true).open(path)
 }
 
 fn create_dirs(path: &str) -> Result<()> {

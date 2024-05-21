@@ -8,6 +8,7 @@ const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";
 const ERROR_LOG_FILE_NAME: &str = "error.log";
+const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
 
 #[derive(Serialize, Deserialize)]
@@ -44,6 +45,12 @@ impl Config {
     pub fn error_log_path(&self) -> anyhow::Result<String> {
         let dir = Config::get_app_base_dir()?;
         let path = dir.join(ERROR_LOG_FILE_NAME);
+        Ok(String::from(path.to_string_lossy()))
+    }
+
+    pub fn debug_log_path(&self) -> anyhow::Result<String> {
+        let dir = Config::get_app_base_dir()?;
+        let path = dir.join(DEBUG_LOG_FILE_NAME);
         Ok(String::from(path.to_string_lossy()))
     }
 
