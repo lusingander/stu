@@ -15,6 +15,7 @@ use crate::{
     pages::page::{Page, PageStack},
 };
 
+#[derive(Debug)]
 pub enum Notification {
     None,
     Info(String),
@@ -22,6 +23,7 @@ pub enum Notification {
     Error(String),
 }
 
+#[derive(Debug)]
 pub struct AppViewState {
     pub notification: Notification,
     pub is_loading: bool,
@@ -46,6 +48,7 @@ impl AppViewState {
     }
 }
 
+#[derive(Debug)]
 pub struct App {
     pub app_view_state: AppViewState,
     pub page_stack: PageStack,
@@ -566,6 +569,10 @@ impl App {
         // cause panic if save errors
         let path = self.config.error_log_path().unwrap();
         save_error_log(&path, e).unwrap();
+    }
+
+    pub fn dump_app(&self) {
+        tracing::debug!("{:?}", self);
     }
 
     fn unwrap_client_tx(&self) -> (Arc<Client>, Sender) {

@@ -1,10 +1,11 @@
+use crossterm::event::KeyCode;
 use ratatui::{backend::Backend, Terminal};
 use std::io::Result;
 
 use crate::{
     app::{App, Notification},
     event::{AppEventType, Receiver},
-    key_code_char,
+    key_code, key_code_char,
     pages::page::Page,
     ui,
 };
@@ -50,6 +51,11 @@ pub async fn run<B: Backend>(
                 ) {
                     // Clear message and pass key input as is
                     app.clear_notification();
+                }
+
+                if matches!(key, key_code!(KeyCode::F(12))) {
+                    app.dump_app();
+                    continue;
                 }
 
                 match app.page_stack.current_page_mut() {

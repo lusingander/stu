@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! key_code {
-    ( $code:path ) => {
+    ( $code:pat ) => {
         crossterm::event::KeyEvent { code: $code, .. }
     };
 }

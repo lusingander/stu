@@ -109,6 +109,7 @@ impl Page {
     }
 }
 
+#[derive(Debug)]
 pub struct PageStack {
     stack: Vec<Page>,
 }
