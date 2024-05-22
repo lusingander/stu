@@ -140,7 +140,7 @@ fn format_list_count(total_count: usize, selected: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use ratatui::{assert_buffer_eq, text::Line};
+    use ratatui::text::Line;
 
     use super::*;
 
@@ -171,7 +171,7 @@ mod tests {
             "└──────────────────┘",
         ]);
 
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
     }
 
     #[test]
@@ -196,7 +196,7 @@ mod tests {
             "└──────────────────┘",
         ]);
 
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
 
         for _ in 0..9 {
             state.select_next();
@@ -219,7 +219,7 @@ mod tests {
             "└──────────────────┘",
         ]);
 
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
 
         for _ in 0..4 {
             state.select_next();
@@ -242,7 +242,7 @@ mod tests {
             "└──────────────────┘",
         ]);
 
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
     }
 
     fn render_scroll_list(state: &mut ScrollListState) -> Buffer {

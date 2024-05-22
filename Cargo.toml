@@ -26,7 +26,7 @@ humansize = "2.1.3"
 itertools = "0.13.0"
 itsuki = "0.2.0"
 open = "5.1.3"
-ratatui = { version = "0.26.2", features = [
+ratatui = { version = "0.26.3", features = [
     "all-widgets",
     "unstable-widget-ref",
 ] }

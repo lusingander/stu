@@ -111,7 +111,6 @@ fn build_list_item(
 #[cfg(test)]
 mod tests {
     use chrono::{DateTime, Local, NaiveDateTime};
-    use ratatui::assert_buffer_eq;
 
     use crate::set_cells;
 
@@ -164,7 +163,7 @@ mod tests {
             (4..36, [5, 6]) => fg: Color::Cyan,
         }
 
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
     }
 
     fn file_detail() -> FileDetail {

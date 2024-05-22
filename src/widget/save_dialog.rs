@@ -65,7 +65,6 @@ impl StatefulWidget for SaveDialog {
 #[cfg(test)]
 mod tests {
     use crossterm::event::KeyCode;
-    use ratatui::assert_buffer_eq;
 
     use super::*;
 
@@ -105,7 +104,7 @@ mod tests {
             "                                        ",
         ]);
 
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
         assert_eq!(state.cursor(), (12, 9));
     }
 }

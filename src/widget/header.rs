@@ -69,8 +69,6 @@ impl Header {
 
 #[cfg(test)]
 mod tests {
-    use ratatui::assert_buffer_eq;
-
     use super::*;
 
     #[test]
@@ -89,7 +87,7 @@ mod tests {
             "│ bucket / key01 / key02 / key03 │",
             "└────────────────────────────────┘",
         ]);
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
     }
 
     #[test]
@@ -108,7 +106,7 @@ mod tests {
             "│ bucket / ... / key02a / key03  │",
             "└────────────────────────────────┘",
         ]);
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
     }
 
     #[test]
@@ -123,6 +121,6 @@ mod tests {
             "│                                │",
             "└────────────────────────────────┘",
         ]);
-        assert_buffer_eq!(buf, expected);
+        assert_eq!(buf, expected);
     }
 }
