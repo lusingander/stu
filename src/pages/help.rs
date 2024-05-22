@@ -1,9 +1,10 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
-    layout::{Margin, Rect},
+    buffer::Buffer,
+    layout::{Constraint, Layout, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{Block, Padding, Paragraph},
+    widgets::{Block, Borders, Padding, Paragraph, Widget},
     Frame,
 };
 
@@ -13,9 +14,9 @@ use crate::{
     key_code, key_code_char,
     pages::util::build_short_helps,
     util::group_strings_to_fit_width,
+    widget::Divider,
 };
 
-const DIVIDER_COLOR: Color = Color::DarkGray;
 const LINK_TEXT_COLOR: Color = Color::Blue;
 
 #[derive(Debug)]
@@ -43,29 +44,27 @@ impl HelpPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let content_area = area.inner(&Margin::new(1, 1)); // border
-        let w: usize = content_area.width as usize;
+        let block = Block::bordered()
+            .padding(Padding::horizontal(1))
+            .title(APP_NAME);
 
-        let app_details = vec![
-            Line::from(format!(" {} - {}", APP_NAME, APP_DESCRIPTION)),
-            Line::from(format!(" Version: {}", APP_VERSION)),
-            Line::from(format!(" {}", APP_HOMEPAGE).fg(LINK_TEXT_COLOR)),
-            Line::from("─".repeat(w).fg(DIVIDER_COLOR)),
-        ];
-        let app_detail = with_empty_lines(app_details).into_iter();
+        let content_area = block.inner(area);
 
-        let max_help_width: usize = 80;
-        let max_width = max_help_width.min(w) - 2;
-        let help = build_help_lines(&self.helps, max_width);
+        let chunks = Layout::vertical([
+            Constraint::Length(7),
+            Constraint::Length(1),
+            Constraint::Min(0),
+        ])
+        .split(content_area);
 
-        let content: Vec<Line> = app_detail.chain(help).collect();
-        let paragraph = Paragraph::new(content).block(
-            Block::bordered()
-                .title(APP_NAME)
-                .padding(Padding::uniform(1)),
-        );
+        let about = About::new(APP_NAME, APP_DESCRIPTION, APP_VERSION, APP_HOMEPAGE);
+        let divider = Divider::default();
+        let help = Help::new(&self.helps);
 
-        f.render_widget(paragraph, area);
+        f.render_widget(block, area);
+        f.render_widget(about, chunks[0]);
+        f.render_widget(divider, chunks[1]);
+        f.render_widget(help, chunks[2]);
     }
 
     pub fn short_helps(&self) -> Vec<(String, usize)> {
@@ -74,23 +73,67 @@ impl HelpPage {
     }
 }
 
-fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
-    let line_groups = lines.into_iter().map(|l| vec![l]).collect();
-    flatten_with_empty_lines(line_groups, true)
+#[derive(Debug)]
+struct About<'a> {
+    name: &'a str,
+    description: &'a str,
+    version: &'a str,
+    homepage: &'a str,
 }
 
-fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Vec<Line> {
-    let n = line_groups.len();
-    let mut ret: Vec<Line> = Vec::new();
-    for (i, lines) in line_groups.into_iter().enumerate() {
-        for line in lines {
-            ret.push(line);
-        }
-        if add_to_end || i != n - 1 {
-            ret.push(Line::from(""));
+impl<'a> About<'a> {
+    fn new(name: &'a str, description: &'a str, version: &'a str, homepage: &'a str) -> Self {
+        Self {
+            name,
+            description,
+            version,
+            homepage,
         }
     }
-    ret
+}
+
+impl Widget for About<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let lines = vec![
+            Line::from(format!("{} - {}", self.name, self.description)),
+            Line::from(format!("Version: {}", self.version)),
+            Line::from(self.homepage.fg(LINK_TEXT_COLOR)),
+        ];
+        let content = with_empty_lines(lines);
+        let paragraph = Paragraph::new(content).block(
+            Block::default()
+                .borders(Borders::NONE)
+                .padding(Padding::uniform(1)),
+        );
+        paragraph.render(area, buf);
+    }
+}
+
+#[derive(Debug)]
+struct Help<'a> {
+    helps: &'a [String],
+}
+
+impl<'a> Help<'a> {
+    fn new(helps: &'a [String]) -> Self {
+        Self { helps }
+    }
+}
+
+impl Widget for Help<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let max_help_width: usize = 80;
+        let max_width = max_help_width.min(area.width as usize) - 2;
+
+        let help = build_help_lines(self.helps, max_width);
+
+        let paragraph = Paragraph::new(help).block(
+            Block::default()
+                .borders(Borders::NONE)
+                .padding(Padding::uniform(1)),
+        );
+        paragraph.render(area, buf);
+    }
 }
 
 fn build_help_lines(helps: &[String], max_width: usize) -> Vec<Line> {
@@ -98,9 +141,21 @@ fn build_help_lines(helps: &[String], max_width: usize) -> Vec<Line> {
     let word_groups = group_strings_to_fit_width(helps, max_width, delimiter);
     let lines: Vec<Line> = word_groups
         .iter()
-        .map(|ws| Line::from(format!(" {} ", ws.join(delimiter))))
+        .map(|ws| Line::from(ws.join(delimiter)))
         .collect();
     with_empty_lines(lines)
+}
+
+fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
+    let n = lines.len();
+    let mut ret = Vec::new();
+    for (i, line) in lines.into_iter().enumerate() {
+        ret.push(line);
+        if i != n - 1 {
+            ret.push(Line::raw(""));
+        }
+    }
+    ret
 }
 
 #[cfg(test)]
@@ -156,7 +211,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // link
-            (2..37, [6]) => fg: Color::Blue,
+            (3..37, [6]) => fg: Color::Blue,
             // divider
             (2..68, [8]) => fg: Color::DarkGray,
         }
