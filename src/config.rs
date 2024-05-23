@@ -11,21 +11,37 @@ const ERROR_LOG_FILE_NAME: &str = "error.log";
 const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
-    download_dir: String,
+    #[serde(default = "default_download_dir")]
+    pub download_dir: String,
+    #[serde(default)]
+    pub preview: PreviewConfig,
+}
+
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+pub struct PreviewConfig {
+    #[serde(default)]
+    pub highlight: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let download_dir = match Config::get_app_base_dir() {
-            Ok(dir) => {
-                let path = dir.join(DOWNLOAD_DIR);
-                String::from(path.to_string_lossy())
-            }
-            Err(_) => "".to_string(),
-        };
-        Self { download_dir }
+        let download_dir = default_download_dir();
+        Self {
+            download_dir,
+            preview: PreviewConfig::default(),
+        }
+    }
+}
+
+fn default_download_dir() -> String {
+    match Config::get_app_base_dir() {
+        Ok(dir) => {
+            let path = dir.join(DOWNLOAD_DIR);
+            String::from(path.to_string_lossy())
+        }
+        Err(_) => "".to_string(),
     }
 }
 

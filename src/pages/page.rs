@@ -1,4 +1,5 @@
 use crate::{
+    config::PreviewConfig,
     event::Sender,
     object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
     pages::{
@@ -6,7 +7,7 @@ use crate::{
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
         object_preview::ObjectPreviewPage,
     },
-    widget::{PreviewConfig, ScrollListState},
+    widget::ScrollListState,
 };
 
 #[derive(Debug)]

@@ -24,18 +24,6 @@ const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
 static THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
-#[derive(Debug, Default, Clone, Copy)]
-pub struct PreviewConfig {
-    highlight: bool,
-}
-
-impl PreviewConfig {
-    pub fn highlight(mut self, highlight: bool) -> Self {
-        self.highlight = highlight;
-        self
-    }
-}
-
 #[derive(Debug)]
 pub struct PreviewState {
     file_name: String,
@@ -46,7 +34,7 @@ pub struct PreviewState {
 }
 
 impl PreviewState {
-    pub fn new(file_detail: &FileDetail, object: &RawObject, config: PreviewConfig) -> Self {
+    pub fn new(file_detail: &FileDetail, object: &RawObject, highlight: bool) -> Self {
         let s = to_preview_string(&object.bytes);
         let s = if s.ends_with('\n') {
             s.trim_end()
@@ -56,7 +44,7 @@ impl PreviewState {
 
         let original_lines: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
 
-        let lines: Vec<Line<'static>> = if config.highlight {
+        let lines: Vec<Line<'static>> = if highlight {
             let extension = extension_from_file_name(&file_detail.name);
             let syntax = SYNTAX_SET.find_syntax_by_extension(&extension).unwrap();
             let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);

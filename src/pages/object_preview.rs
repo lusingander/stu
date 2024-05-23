@@ -2,11 +2,12 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{layout::Rect, Frame};
 
 use crate::{
+    config::PreviewConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, RawObject},
     pages::util::{build_helps, build_short_helps},
-    widget::{Preview, PreviewConfig, PreviewState, SaveDialog, SaveDialogState},
+    widget::{Preview, PreviewState, SaveDialog, SaveDialogState},
 };
 
 #[derive(Debug)]
@@ -37,7 +38,7 @@ impl ObjectPreviewPage {
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
-        let state = PreviewState::new(&file_detail, &object, preview_config);
+        let state = PreviewState::new(&file_detail, &object, preview_config.highlight);
         Self {
             state,
             object,
@@ -211,7 +212,7 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let preview_config = PreviewConfig::default().highlight(false);
+            let preview_config = PreviewConfig::default();
             let mut page =
                 ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
             let area = Rect::new(0, 0, 30, 10);
@@ -250,7 +251,7 @@ mod tests {
             let preview = ["Hello, world!"; 20];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let preview_config = PreviewConfig::default().highlight(false);
+            let preview_config = PreviewConfig::default();
             let mut page =
                 ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
             let area = Rect::new(0, 0, 30, 10);
@@ -294,7 +295,7 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let preview_config = PreviewConfig::default().highlight(false);
+            let preview_config = PreviewConfig::default();
             let mut page =
                 ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
             page.open_save_dialog();
