@@ -17,6 +17,7 @@ use crate::{
 const SHORT_HELP_COLOR: Color = Color::DarkGray;
 const INFO_STATUS_COLOR: Color = Color::Blue;
 const SUCCESS_STATUS_COLOR: Color = Color::Green;
+const WARN_STATUS_COLOR: Color = Color::Yellow;
 const ERROR_STATUS_COLOR: Color = Color::Red;
 
 pub fn render(f: &mut Frame, app: &mut App) {
@@ -67,6 +68,10 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
         }
         Notification::Success(msg) => {
             let msg = build_success_status(msg);
+            f.render_widget(msg, area);
+        }
+        Notification::Warn(msg) => {
+            let msg = build_warn_status(msg);
             f.render_widget(msg, area);
         }
         Notification::Error(msg) => {
@@ -131,6 +136,11 @@ fn build_info_status(msg: &str) -> Paragraph {
 
 fn build_success_status(msg: &str) -> Paragraph {
     Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(SUCCESS_STATUS_COLOR))
+        .block(Block::default().padding(Padding::horizontal(2)))
+}
+
+fn build_warn_status(msg: &str) -> Paragraph {
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(WARN_STATUS_COLOR))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 

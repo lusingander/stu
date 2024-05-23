@@ -44,6 +44,7 @@ pub enum AppEventType {
     CopyToClipboard(String, String),
     NotifyInfo(String),
     NotifySuccess(String),
+    NotifyWarn(String),
     NotifyError(AppError),
     Quit,
 }

@@ -20,6 +20,7 @@ pub enum Notification {
     None,
     Info(String),
     Success(String),
+    Warn(String),
     Error(String),
 }
 
@@ -561,6 +562,10 @@ impl App {
 
     pub fn success_notification(&mut self, msg: String) {
         self.app_view_state.notification = Notification::Success(msg);
+    }
+
+    pub fn warn_notification(&mut self, msg: String) {
+        self.app_view_state.notification = Notification::Warn(msg);
     }
 
     pub fn error_notification(&mut self, e: AppError) {
