@@ -38,7 +38,11 @@ impl ObjectPreviewPage {
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
-        let state = PreviewState::new(&file_detail, &object, preview_config.highlight);
+        let (state, msg) = PreviewState::new(&file_detail, &object, preview_config.highlight);
+        if let Some(msg) = msg {
+            tx.send(AppEventType::NotifyWarn(msg));
+        }
+
         Self {
             state,
             object,

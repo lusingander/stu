@@ -34,7 +34,13 @@ pub struct PreviewState {
 }
 
 impl PreviewState {
-    pub fn new(file_detail: &FileDetail, object: &RawObject, highlight: bool) -> Self {
+    pub fn new(
+        file_detail: &FileDetail,
+        object: &RawObject,
+        highlight: bool,
+    ) -> (Self, Option<String>) {
+        let mut warn_msg = None;
+
         let s = to_preview_string(&object.bytes);
         let s = if s.ends_with('\n') {
             s.trim_end()
@@ -44,35 +50,31 @@ impl PreviewState {
 
         let original_lines: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
 
-        let lines: Vec<Line<'static>> = if highlight {
-            let extension = extension_from_file_name(&file_detail.name);
-            let syntax = SYNTAX_SET.find_syntax_by_extension(&extension).unwrap();
-            let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
-            let s = LinesWithEndings::from(s)
-                .map(|line| {
-                    let ranges: Vec<(syntect::highlighting::Style, &str)> =
-                        h.highlight_line(line, &SYNTAX_SET).unwrap();
-                    as_24_bit_terminal_escaped(&ranges[..], false)
-                })
-                .collect::<Vec<String>>()
-                .join("");
-            s.into_text().unwrap().into_iter().collect()
-        } else {
-            original_lines
-                .iter()
-                .map(|s| Line::raw(s.clone()))
-                .collect()
-        };
+        let lines: Vec<Line<'static>> =
+            match build_highlighted_lines(s, &file_detail.name, highlight) {
+                Ok(lines) => lines,
+                Err(msg) => {
+                    // If there is an error, display the original text
+                    if let Some(msg) = msg {
+                        warn_msg = Some(msg);
+                    }
+                    original_lines
+                        .iter()
+                        .map(|s| Line::raw(s.clone()))
+                        .collect()
+                }
+            };
 
         let max_digits = digits(lines.len());
 
-        Self {
+        let state = Self {
             file_name: file_detail.name.clone(),
             lines,
             original_lines,
             max_digits,
             offset: 0,
-        }
+        };
+        (state, warn_msg)
     }
 
     pub fn scroll_forward(&mut self) {
@@ -93,6 +95,33 @@ impl PreviewState {
 
     pub fn scroll_to_end(&mut self) {
         self.offset = self.lines.len() - 1;
+    }
+}
+
+fn build_highlighted_lines(
+    s: &str,
+    file_name: &str,
+    highlight: bool,
+) -> Result<Vec<Line<'static>>, Option<String>> {
+    if highlight {
+        let extension = extension_from_file_name(file_name);
+        if let Some(syntax) = SYNTAX_SET.find_syntax_by_extension(&extension) {
+            let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
+            let s = LinesWithEndings::from(s)
+                .map(|line| {
+                    let ranges: Vec<(syntect::highlighting::Style, &str)> =
+                        h.highlight_line(line, &SYNTAX_SET).unwrap();
+                    as_24_bit_terminal_escaped(&ranges[..], false)
+                })
+                .collect::<Vec<String>>()
+                .join("");
+            Ok(s.into_text().unwrap().into_iter().collect())
+        } else {
+            let msg = format!("No syntax definition found for `.{}`", extension);
+            Err(Some(msg))
+        }
+    } else {
+        Err(None)
     }
 }
 
