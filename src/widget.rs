@@ -11,7 +11,7 @@ pub use copy_detail_dialog::{CopyDetailDialog, CopyDetailDialogState};
 pub use dialog::Dialog;
 pub use divider::Divider;
 pub use header::Header;
-pub use preview::Preview;
+pub use preview::{Preview, PreviewConfig, PreviewState};
 pub use save_dialog::{SaveDialog, SaveDialogState};
 pub use scroll::ScrollBar;
 pub use scroll_list::{ScrollList, ScrollListState};

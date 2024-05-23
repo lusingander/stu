@@ -13,6 +13,7 @@ use crate::{
     if_match,
     object::{AppObjects, BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
+    widget::PreviewConfig,
 };
 
 #[derive(Debug)]
@@ -410,8 +411,14 @@ impl App {
                 file_detail,
                 path,
             }) => {
-                let object_preview_page =
-                    Page::of_object_preview(file_detail, obj, path, self.tx.clone());
+                let preview_config = PreviewConfig::default().highlight(true);
+                let object_preview_page = Page::of_object_preview(
+                    file_detail,
+                    obj,
+                    path,
+                    preview_config,
+                    self.tx.clone(),
+                );
                 self.page_stack.push(object_preview_page);
             }
             Err(e) => {

@@ -6,7 +6,7 @@ use crate::{
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
         object_preview::ObjectPreviewPage,
     },
-    widget::ScrollListState,
+    widget::{PreviewConfig, ScrollListState},
 };
 
 #[derive(Debug)]
@@ -52,12 +52,14 @@ impl Page {
         file_detail: FileDetail,
         object: RawObject,
         path: String,
+        preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
         Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
             file_detail,
             object,
             path,
+            preview_config,
             tx,
         )))
     }

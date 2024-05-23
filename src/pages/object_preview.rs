@@ -1,40 +1,24 @@
-use ansi_to_tui::IntoText;
 use crossterm::event::{KeyCode, KeyEvent};
-use once_cell::sync::Lazy;
-use ratatui::{layout::Rect, text::Line, Frame};
-use syntect::{
-    easy::HighlightLines,
-    highlighting::ThemeSet,
-    parsing::SyntaxSet,
-    util::{as_24_bit_terminal_escaped, LinesWithEndings},
-};
+use ratatui::{layout::Rect, Frame};
 
 use crate::{
     event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, RawObject},
     pages::util::{build_helps, build_short_helps},
-    util::{digits, extension_from_file_name, to_preview_string},
-    widget::{Preview, SaveDialog, SaveDialogState},
+    widget::{Preview, PreviewConfig, PreviewState, SaveDialog, SaveDialogState},
 };
-
-static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
-static THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
 #[derive(Debug)]
 pub struct ObjectPreviewPage {
+    state: PreviewState,
+
     file_detail: FileDetail,
-
-    preview: Vec<Line<'static>>,
-    original_lines: Vec<String>,
-    preview_max_digits: usize,
-
     object: RawObject,
     path: String,
 
     view_state: ViewState,
 
-    offset: usize,
     tx: Sender,
 }
 
@@ -46,42 +30,20 @@ enum ViewState {
 }
 
 impl ObjectPreviewPage {
-    pub fn new(file_detail: FileDetail, object: RawObject, path: String, tx: Sender) -> Self {
-        let s = to_preview_string(&object.bytes);
-        let s = if s.ends_with('\n') {
-            s.trim_end()
-        } else {
-            s.as_str()
-        };
-
-        let extension = extension_from_file_name(&file_detail.name);
-        let syntax = SYNTAX_SET.find_syntax_by_extension(&extension).unwrap();
-        let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
-        let s = LinesWithEndings::from(s)
-            .map(|line| {
-                let ranges: Vec<(syntect::highlighting::Style, &str)> =
-                    h.highlight_line(line, &SYNTAX_SET).unwrap();
-                as_24_bit_terminal_escaped(&ranges[..], false)
-            })
-            .collect::<Vec<String>>()
-            .join("");
-        let t = s.into_text().unwrap();
-
-        let preview: Vec<Line> = t.into_iter().collect();
-        let preview_len = preview.len();
-        let preview_max_digits = digits(preview_len);
-
-        let original_lines: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
-
+    pub fn new(
+        file_detail: FileDetail,
+        object: RawObject,
+        path: String,
+        preview_config: PreviewConfig,
+        tx: Sender,
+    ) -> Self {
+        let state = PreviewState::new(&file_detail, &object, preview_config);
         Self {
-            file_detail,
-            preview,
-            preview_max_digits,
-            original_lines,
+            state,
             object,
+            file_detail,
             path,
             view_state: ViewState::Default,
-            offset: 0,
             tx,
         }
     }
@@ -96,16 +58,16 @@ impl ObjectPreviewPage {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('j') => {
-                    self.scroll_forward();
+                    self.state.scroll_forward();
                 }
                 key_code_char!('k') => {
-                    self.scroll_backward();
+                    self.state.scroll_backward();
                 }
                 key_code_char!('g') => {
-                    self.scroll_to_top();
+                    self.state.scroll_to_top();
                 }
                 key_code_char!('G') => {
-                    self.scroll_to_end();
+                    self.state.scroll_to_end();
                 }
                 key_code_char!('s') => {
                     self.tx.send(AppEventType::PreviewDownloadObject);
@@ -136,13 +98,7 @@ impl ObjectPreviewPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let preview = Preview::new(
-            &self.file_detail.name,
-            &self.preview,
-            &self.original_lines,
-            self.preview_max_digits,
-            self.offset,
-        );
+        let preview = Preview::new(&self.state);
         f.render_widget(preview, area);
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
@@ -204,26 +160,6 @@ impl ObjectPreviewPage {
         self.view_state = ViewState::Default;
     }
 
-    fn scroll_forward(&mut self) {
-        if self.offset < self.preview.len() - 1 {
-            self.offset = self.offset.saturating_add(1);
-        }
-    }
-
-    fn scroll_backward(&mut self) {
-        if self.offset > 0 {
-            self.offset = self.offset.saturating_sub(1);
-        }
-    }
-
-    fn scroll_to_top(&mut self) {
-        self.offset = 0;
-    }
-
-    fn scroll_to_end(&mut self) {
-        self.offset = self.preview.len() - 1;
-    }
-
     pub fn file_detail(&self) -> &FileDetail {
         &self.file_detail
     }
@@ -275,7 +211,9 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let mut page = ObjectPreviewPage::new(file_detail, object, file_path, tx);
+            let preview_config = PreviewConfig::default().highlight(false);
+            let mut page =
+                ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -294,7 +232,7 @@ mod tests {
             "└────────────────────────────┘",
         ]);
         set_cells! { expected =>
-            ([2], 1..6) => fg: Color::DarkGray,
+            ([2], [1, 2, 3, 5]) => fg: Color::DarkGray,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -312,7 +250,9 @@ mod tests {
             let preview = ["Hello, world!"; 20];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let mut page = ObjectPreviewPage::new(file_detail, object, file_path, tx);
+            let preview_config = PreviewConfig::default().highlight(false);
+            let mut page =
+                ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -354,7 +294,9 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
-            let mut page = ObjectPreviewPage::new(file_detail, object, file_path, tx);
+            let preview_config = PreviewConfig::default().highlight(false);
+            let mut page =
+                ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
