@@ -1,16 +1,18 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Margin, Rect},
+    layout::{Constraint, Layout, Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{Block, Padding, Paragraph, Widget},
+    widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap},
 };
 
 const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 
+// fixme: bad implementation for highlighting and displaying the number of lines :(
 pub struct Preview<'a> {
     file_name: &'a str,
-    lines: &'a Vec<String>,
+    lines: &'a Vec<Line<'static>>,
+    original_lines: &'a Vec<String>,
     max_digits: usize,
     offset: usize,
 }
@@ -18,13 +20,15 @@ pub struct Preview<'a> {
 impl<'a> Preview<'a> {
     pub fn new(
         file_name: &'a str,
-        lines: &'a Vec<String>,
+        lines: &'a Vec<Line<'static>>,
+        original_lines: &'a Vec<String>,
         max_digits: usize,
         offset: usize,
     ) -> Self {
         Self {
             file_name,
             lines,
+            original_lines,
             max_digits,
             offset,
         }
@@ -35,37 +39,67 @@ impl Widget for Preview<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
 
-        let preview_max_digits = self.max_digits;
-        let show_lines_count = content_area.height as usize;
-        let content_max_width = (content_area.width as usize) - preview_max_digits - 3 /* pad */;
+        let title = format!("Preview [{}]", self.file_name);
+        let block = Block::bordered().title(title);
 
-        let content: Vec<Line> = ((self.offset + 1)..)
-            .zip(self.lines.iter().skip(self.offset))
-            .flat_map(|(n, s)| {
-                let ss = textwrap::wrap(s, content_max_width);
-                ss.into_iter().enumerate().map(move |(i, s)| {
-                    let line_number = if i == 0 {
-                        format!("{:>preview_max_digits$}", n)
-                    } else {
-                        " ".repeat(preview_max_digits)
-                    };
-                    Line::from(vec![
-                        line_number.fg(PREVIEW_LINE_NUMBER_COLOR),
-                        " ".into(),
-                        s.into(),
-                    ])
-                })
+        let chunks = Layout::horizontal([
+            Constraint::Length(self.max_digits as u16 + 1),
+            Constraint::Min(0),
+        ])
+        .split(content_area);
+
+        let show_lines_count = content_area.height as usize;
+
+        // may not be correct because the wrap of the text is calculated separately...
+        let line_heights = self
+            .original_lines
+            .iter()
+            .skip(self.offset)
+            .take(show_lines_count)
+            .map(|line| {
+                let lines = textwrap::wrap(line, chunks[1].width as usize - 2);
+                lines.len()
+            });
+        let lines_count = self.original_lines.len();
+        let line_numbers_content: Vec<Line> = ((self.offset + 1)..)
+            .zip(line_heights)
+            .flat_map(|(line, line_height)| {
+                if line > lines_count {
+                    vec![Line::raw("")]
+                } else {
+                    let line_number = format!("{:>width$}", line, width = self.max_digits);
+                    let number_line: Line = line_number.fg(PREVIEW_LINE_NUMBER_COLOR).into();
+                    let empty_lines = (0..(line_height - 1)).map(|_| Line::raw(""));
+                    std::iter::once(number_line).chain(empty_lines).collect()
+                }
             })
             .take(show_lines_count)
             .collect();
 
-        let title = format!("Preview [{}]", self.file_name);
-
-        let paragraph = Paragraph::new(content).block(
-            Block::bordered()
-                .title(title)
-                .padding(Padding::horizontal(1)),
+        let line_numbers_paragraph = Paragraph::new(line_numbers_content).block(
+            Block::default()
+                .borders(Borders::NONE)
+                .padding(Padding::left(1)),
         );
-        paragraph.render(area, buf);
+
+        let lines_content: Vec<Line> = self
+            .lines
+            .iter()
+            .skip(self.offset)
+            .take(show_lines_count)
+            .cloned()
+            .collect();
+
+        let lines_paragraph = Paragraph::new(lines_content)
+            .block(
+                Block::default()
+                    .borders(Borders::NONE)
+                    .padding(Padding::horizontal(1)),
+            )
+            .wrap(Wrap { trim: false });
+
+        block.render(area, buf);
+        line_numbers_paragraph.render(chunks[0], buf);
+        lines_paragraph.render(chunks[1], buf);
     }
 }

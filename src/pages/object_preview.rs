@@ -1,21 +1,34 @@
+use ansi_to_tui::IntoText;
 use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{layout::Rect, Frame};
+use once_cell::sync::Lazy;
+use ratatui::{layout::Rect, text::Line, Frame};
+use syntect::{
+    easy::HighlightLines,
+    highlighting::ThemeSet,
+    parsing::SyntaxSet,
+    util::{as_24_bit_terminal_escaped, LinesWithEndings},
+};
 
 use crate::{
     event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, RawObject},
     pages::util::{build_helps, build_short_helps},
-    util::{digits, to_preview_string},
+    util::{digits, extension_from_file_name, to_preview_string},
     widget::{Preview, SaveDialog, SaveDialogState},
 };
+
+static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
+static THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
 #[derive(Debug)]
 pub struct ObjectPreviewPage {
     file_detail: FileDetail,
 
-    preview: Vec<String>,
+    preview: Vec<Line<'static>>,
+    original_lines: Vec<String>,
     preview_max_digits: usize,
+
     object: RawObject,
     path: String,
 
@@ -40,14 +53,31 @@ impl ObjectPreviewPage {
         } else {
             s.as_str()
         };
-        let preview: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
+
+        let extension = extension_from_file_name(&file_detail.name);
+        let syntax = SYNTAX_SET.find_syntax_by_extension(&extension).unwrap();
+        let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
+        let s = LinesWithEndings::from(s)
+            .map(|line| {
+                let ranges: Vec<(syntect::highlighting::Style, &str)> =
+                    h.highlight_line(line, &SYNTAX_SET).unwrap();
+                as_24_bit_terminal_escaped(&ranges[..], false)
+            })
+            .collect::<Vec<String>>()
+            .join("");
+        let t = s.into_text().unwrap();
+
+        let preview: Vec<Line> = t.into_iter().collect();
         let preview_len = preview.len();
         let preview_max_digits = digits(preview_len);
+
+        let original_lines: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
 
         Self {
             file_detail,
             preview,
             preview_max_digits,
+            original_lines,
             object,
             path,
             view_state: ViewState::Default,
@@ -109,6 +139,7 @@ impl ObjectPreviewPage {
         let preview = Preview::new(
             &self.file_detail.name,
             &self.preview,
+            &self.original_lines,
             self.preview_max_digits,
             self.offset,
         );

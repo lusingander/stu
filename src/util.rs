@@ -74,6 +74,14 @@ pub fn digits(n: usize) -> usize {
     c
 }
 
+pub fn extension_from_file_name(filename: &str) -> String {
+    filename
+        .split('.')
+        .last()
+        .map(|s| s.to_string())
+        .unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -146,5 +154,11 @@ mod tests {
         assert_eq!(digits(123), 3);
         assert_eq!(digits(9999), 4);
         assert_eq!(digits(10000), 5);
+    }
+
+    #[test]
+    fn test_extension_from_file_name() {
+        assert_eq!(extension_from_file_name("a.txt"), "txt");
+        assert_eq!(extension_from_file_name("a.gif.txt"), "txt");
     }
 }
