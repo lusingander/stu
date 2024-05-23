@@ -1,10 +1,11 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use itsuki::zero_indexed_enum;
 use ratatui::{
+    buffer::Buffer,
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap},
+    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Widget, Wrap},
     Frame,
 };
 
@@ -120,19 +121,19 @@ impl ObjectDetailPage {
                     state.handle_key_event(key);
                 }
             },
-            ViewState::CopyDetailDialog(state) => match key {
+            ViewState::CopyDetailDialog(ref mut state) => match key {
                 key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
                     self.close_copy_detail_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
-                    let (name, value) = self.copy_detail_dialog_selected(state);
+                    let (name, value) = state.selected_name_and_value(&self.file_detail);
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
                 key_code_char!('j') => {
-                    self.select_next_copy_detail_item();
+                    state.select_next();
                 }
                 key_code_char!('k') => {
-                    self.select_prev_copy_detail_item();
+                    state.select_prev();
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
@@ -154,24 +155,24 @@ impl ObjectDetailPage {
         let list = ScrollList::new(list_items);
         f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
-        let block = build_file_detail_block();
+        let block = Block::bordered();
         f.render_widget(block, chunks[1]);
 
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Min(0)])
             .margin(1)
             .split(chunks[1]);
 
-        let tabs = build_file_detail_tabs(self.tab);
+        let tabs = build_tabs(self.tab);
         f.render_widget(tabs, chunks[0]);
 
         match self.tab {
             Tab::Detail => {
-                let detail = build_file_detail(&self.file_detail);
+                let detail = DetailTab::new(&self.file_detail);
                 f.render_widget(detail, chunks[1]);
             }
             Tab::Version => {
-                let versions = build_file_versions(&self.file_versions, chunks[1].width);
-                f.render_widget(versions, chunks[1]);
+                let version = VersionTab::new(&self.file_versions, chunks[1].width);
+                f.render_widget(version, chunks[1]);
             }
         }
 
@@ -245,14 +246,7 @@ impl ObjectDetailPage {
 
 impl ObjectDetailPage {
     fn toggle_tab(&mut self) {
-        match self.tab {
-            Tab::Detail => {
-                self.tab = Tab::Version;
-            }
-            Tab::Version => {
-                self.tab = Tab::Detail;
-            }
-        }
+        self.tab = self.tab.next();
     }
 
     fn open_save_dialog(&mut self) {
@@ -271,18 +265,6 @@ impl ObjectDetailPage {
         self.view_state = ViewState::Default;
     }
 
-    fn select_next_copy_detail_item(&mut self) {
-        if let ViewState::CopyDetailDialog(ref mut state) = self.view_state {
-            state.select_next();
-        }
-    }
-
-    fn select_prev_copy_detail_item(&mut self) {
-        if let ViewState::CopyDetailDialog(ref mut state) = self.view_state {
-            state.select_prev();
-        }
-    }
-
     pub fn file_detail(&self) -> &FileDetail {
         &self.file_detail
     }
@@ -293,10 +275,6 @@ impl ObjectDetailPage {
         } else {
             None
         }
-    }
-
-    fn copy_detail_dialog_selected(&self, state: CopyDetailDialogState) -> (String, String) {
-        state.selected_name_and_value(&self.file_detail)
     }
 }
 
@@ -357,12 +335,8 @@ fn format_file_item(name: &str, width: u16) -> String {
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
-fn build_file_detail_block() -> Block<'static> {
-    Block::bordered()
-}
-
-fn build_file_detail_tabs(tab: Tab) -> Tabs<'static> {
-    let tabs = vec![Line::from("Detail"), Line::from("Version")];
+fn build_tabs(tab: Tab) -> Tabs<'static> {
+    let tabs = vec!["Detail", "Version"];
     Tabs::new(tabs)
         .select(tab.val())
         .highlight_style(
@@ -373,70 +347,102 @@ fn build_file_detail_tabs(tab: Tab) -> Tabs<'static> {
         .block(Block::default().borders(Borders::BOTTOM))
 }
 
-fn build_file_detail(detail: &FileDetail) -> Paragraph {
-    let details = [
-        ("Name:", &detail.name),
-        ("Size:", &format_size_byte(detail.size_byte)),
-        ("Last Modified:", &format_datetime(&detail.last_modified)),
-        ("ETag:", &detail.e_tag),
-        ("Content-Type:", &detail.content_type),
-        ("Storage class:", &detail.storage_class),
-    ]
-    .iter()
-    .filter_map(|(label, value)| {
-        if value.is_empty() {
-            None
-        } else {
-            let lines = vec![
-                Line::from(label.add_modifier(Modifier::BOLD)),
-                Line::from(format!(" {}", value)),
-            ];
-            Some(lines)
-        }
-    })
-    .collect();
-
-    let content = flatten_with_empty_lines(details, false);
-    Paragraph::new(content)
-        .block(Block::default().padding(Padding::horizontal(1)))
-        .wrap(Wrap { trim: false })
+#[derive(Debug)]
+struct DetailTab<'a> {
+    detail: &'a FileDetail,
 }
 
-fn build_file_versions(versions: &[FileVersion], width: u16) -> List {
-    let list_items: Vec<ListItem> = versions
+impl<'a> DetailTab<'a> {
+    fn new(detail: &'a FileDetail) -> Self {
+        Self { detail }
+    }
+}
+
+impl Widget for DetailTab<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let details = [
+            ("Name:", &self.detail.name),
+            ("Size:", &format_size_byte(self.detail.size_byte)),
+            (
+                "Last Modified:",
+                &format_datetime(&self.detail.last_modified),
+            ),
+            ("ETag:", &self.detail.e_tag),
+            ("Content-Type:", &self.detail.content_type),
+            ("Storage class:", &self.detail.storage_class),
+        ]
         .iter()
-        .map(|v| {
-            let content = vec![
-                Line::from(vec![
-                    "    Version ID: ".add_modifier(Modifier::BOLD),
-                    Span::raw(format_version(&v.version_id)),
-                ]),
-                Line::from(vec![
-                    " Last Modified: ".add_modifier(Modifier::BOLD),
-                    Span::raw(format_datetime(&v.last_modified)),
-                ]),
-                Line::from(vec![
-                    "          Size: ".add_modifier(Modifier::BOLD),
-                    Span::raw(format_size_byte(v.size_byte)),
-                ]),
-                Line::from("─".repeat(width as usize).fg(DIVIDER_COLOR)),
-            ];
-            ListItem::new(content)
+        .filter_map(|(label, value)| {
+            if value.is_empty() {
+                None
+            } else {
+                let lines = vec![
+                    Line::from(label.add_modifier(Modifier::BOLD)),
+                    Line::from(format!(" {}", value)),
+                ];
+                Some(lines)
+            }
         })
         .collect();
-    List::new(list_items)
-        .block(Block::default())
-        .highlight_style(Style::default().bg(SELECTED_COLOR))
+
+        let content = flatten_with_empty_lines(details);
+        let paragraph = Paragraph::new(content)
+            .block(Block::default().padding(Padding::horizontal(1)))
+            .wrap(Wrap { trim: false });
+        paragraph.render(area, buf);
+    }
 }
 
-fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>, add_to_end: bool) -> Vec<Line> {
+#[derive(Debug)]
+struct VersionTab<'a> {
+    versions: &'a [FileVersion],
+    width: u16,
+}
+
+impl<'a> VersionTab<'a> {
+    fn new(versions: &'a [FileVersion], width: u16) -> Self {
+        Self { versions, width }
+    }
+}
+
+impl Widget for VersionTab<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let list_items: Vec<ListItem> = self
+            .versions
+            .iter()
+            .map(|v| {
+                let content = vec![
+                    Line::from(vec![
+                        "    Version ID: ".add_modifier(Modifier::BOLD),
+                        Span::raw(format_version(&v.version_id)),
+                    ]),
+                    Line::from(vec![
+                        " Last Modified: ".add_modifier(Modifier::BOLD),
+                        Span::raw(format_datetime(&v.last_modified)),
+                    ]),
+                    Line::from(vec![
+                        "          Size: ".add_modifier(Modifier::BOLD),
+                        Span::raw(format_size_byte(v.size_byte)),
+                    ]),
+                    Line::from("─".repeat(self.width as usize).fg(DIVIDER_COLOR)),
+                ];
+                ListItem::new(content)
+            })
+            .collect();
+
+        let list = List::new(list_items).highlight_style(Style::default().bg(SELECTED_COLOR));
+        Widget::render(list, area, buf);
+    }
+}
+
+fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>) -> Vec<Line> {
     let n = line_groups.len();
     let mut ret: Vec<Line> = Vec::new();
     for (i, lines) in line_groups.into_iter().enumerate() {
         for line in lines {
             ret.push(line);
         }
-        if add_to_end || i != n - 1 {
+        if i != n - 1 {
             ret.push(Line::from(""));
         }
     }
