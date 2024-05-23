@@ -38,7 +38,7 @@ impl ObjectPreviewPage {
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
-        let (state, msg) = PreviewState::new(&file_detail, &object, preview_config.highlight);
+        let (state, msg) = PreviewState::new(&file_detail, &object, preview_config.highlight, true);
         if let Some(msg) = msg {
             tx.send(AppEventType::NotifyWarn(msg));
         }
@@ -73,6 +73,15 @@ impl ObjectPreviewPage {
                 }
                 key_code_char!('G') => {
                     self.state.scroll_to_end();
+                }
+                key_code_char!('h') => {
+                    self.state.scroll_left();
+                }
+                key_code_char!('l') => {
+                    self.state.scroll_right();
+                }
+                key_code_char!('w') => {
+                    self.state.toggle_wrap();
                 }
                 key_code_char!('s') => {
                     self.tx.send(AppEventType::PreviewDownloadObject);
@@ -121,6 +130,8 @@ impl ObjectPreviewPage {
                 (&["Esc", "Ctrl-c"], "Quit app"),
                 (&["j/k"], "Scroll forward/backward"),
                 (&["g/G"], "Scroll to top/end"),
+                (&["h/l"], "Scroll left/right"),
+                (&["w"], "Toggle wrap"),
                 (&["Backspace"], "Close preview"),
                 (&["s"], "Download object"),
                 (&["S"], "Download object as"),

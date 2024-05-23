@@ -30,7 +30,10 @@ pub struct PreviewState {
     lines: Vec<Line<'static>>,
     original_lines: Vec<String>,
     max_digits: usize,
-    offset: usize,
+    max_line_width: usize,
+    v_offset: usize,
+    h_offset: usize,
+    wrap: bool,
 }
 
 impl PreviewState {
@@ -38,6 +41,7 @@ impl PreviewState {
         file_detail: &FileDetail,
         object: &RawObject,
         highlight: bool,
+        wrap: bool,
     ) -> (Self, Option<String>) {
         let mut warn_msg = None;
 
@@ -66,35 +70,56 @@ impl PreviewState {
             };
 
         let max_digits = digits(lines.len());
+        let max_line_width = lines.iter().map(Line::width).max().unwrap_or_default();
 
         let state = Self {
             file_name: file_detail.name.clone(),
             lines,
             original_lines,
             max_digits,
-            offset: 0,
+            max_line_width,
+            v_offset: 0,
+            h_offset: 0,
+            wrap,
         };
         (state, warn_msg)
     }
 
     pub fn scroll_forward(&mut self) {
-        if self.offset < self.lines.len() - 1 {
-            self.offset = self.offset.saturating_add(1);
+        if self.v_offset < self.lines.len().saturating_sub(1) {
+            self.v_offset = self.v_offset.saturating_add(1);
         }
     }
 
     pub fn scroll_backward(&mut self) {
-        if self.offset > 0 {
-            self.offset = self.offset.saturating_sub(1);
+        if self.v_offset > 0 {
+            self.v_offset = self.v_offset.saturating_sub(1);
         }
     }
 
     pub fn scroll_to_top(&mut self) {
-        self.offset = 0;
+        self.v_offset = 0;
     }
 
     pub fn scroll_to_end(&mut self) {
-        self.offset = self.lines.len() - 1;
+        self.v_offset = self.lines.len().saturating_sub(1);
+    }
+
+    pub fn scroll_right(&mut self) {
+        if self.h_offset < self.max_line_width.saturating_sub(1) {
+            self.h_offset = self.h_offset.saturating_add(1);
+        }
+    }
+
+    pub fn scroll_left(&mut self) {
+        if self.h_offset > 0 {
+            self.h_offset = self.h_offset.saturating_sub(1);
+        }
+    }
+
+    pub fn toggle_wrap(&mut self) {
+        self.wrap = !self.wrap;
+        self.h_offset = 0;
     }
 }
 
@@ -156,14 +181,18 @@ impl Widget for Preview<'_> {
             .state
             .original_lines
             .iter()
-            .skip(self.state.offset)
+            .skip(self.state.v_offset)
             .take(show_lines_count)
             .map(|line| {
-                let lines = textwrap::wrap(line, chunks[1].width as usize - 2);
-                lines.len()
+                if self.state.wrap {
+                    let lines = textwrap::wrap(line, chunks[1].width as usize - 2);
+                    lines.len()
+                } else {
+                    1
+                }
             });
         let lines_count = self.state.original_lines.len();
-        let line_numbers_content: Vec<Line> = ((self.state.offset + 1)..)
+        let line_numbers_content: Vec<Line> = ((self.state.v_offset + 1)..)
             .zip(line_heights)
             .flat_map(|(line, line_height)| {
                 if line > lines_count {
@@ -188,18 +217,22 @@ impl Widget for Preview<'_> {
             .state
             .lines
             .iter()
-            .skip(self.state.offset)
+            .skip(self.state.v_offset)
             .take(show_lines_count)
             .cloned()
             .collect();
 
-        let lines_paragraph = Paragraph::new(lines_content)
-            .block(
-                Block::default()
-                    .borders(Borders::NONE)
-                    .padding(Padding::horizontal(1)),
-            )
-            .wrap(Wrap { trim: false });
+        let mut lines_paragraph = Paragraph::new(lines_content).block(
+            Block::default()
+                .borders(Borders::NONE)
+                .padding(Padding::horizontal(1)),
+        );
+
+        lines_paragraph = if self.state.wrap {
+            lines_paragraph.wrap(Wrap { trim: false })
+        } else {
+            lines_paragraph.scroll((0, self.state.h_offset as u16))
+        };
 
         block.render(area, buf);
         line_numbers_paragraph.render(chunks[0], buf);
