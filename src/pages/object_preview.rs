@@ -69,6 +69,12 @@ impl ObjectPreviewPage {
                 key_code_char!('k') => {
                     self.state.scroll_backward();
                 }
+                key_code_char!('f') => {
+                    self.state.scroll_page_forward();
+                }
+                key_code_char!('b') => {
+                    self.state.scroll_page_backward();
+                }
                 key_code_char!('g') => {
                     self.state.scroll_to_top();
                 }
@@ -133,6 +139,7 @@ impl ObjectPreviewPage {
             ViewState::Default => &[
                 (&["Esc", "Ctrl-c"], "Quit app"),
                 (&["j/k"], "Scroll forward/backward"),
+                (&["f/b"], "Scroll page forward/backward"),
                 (&["g/G"], "Scroll to top/end"),
                 (&["h/l"], "Scroll left/right"),
                 (&["w"], "Toggle wrap"),

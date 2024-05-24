@@ -25,6 +25,13 @@ static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines
 static THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
 #[derive(Debug)]
+enum ScrollEvent {
+    None,
+    PageForward,
+    PageBackward,
+}
+
+#[derive(Debug)]
 pub struct PreviewState {
     file_name: String,
     lines: Vec<Line<'static>>,
@@ -35,6 +42,8 @@ pub struct PreviewState {
     h_offset: usize,
     number: bool,
     wrap: bool,
+
+    scroll_event: ScrollEvent,
 }
 
 impl PreviewState {
@@ -84,6 +93,7 @@ impl PreviewState {
             h_offset: 0,
             number,
             wrap,
+            scroll_event: ScrollEvent::None,
         };
         (state, warn_msg)
     }
@@ -98,6 +108,14 @@ impl PreviewState {
         if self.v_offset > 0 {
             self.v_offset = self.v_offset.saturating_sub(1);
         }
+    }
+
+    pub fn scroll_page_forward(&mut self) {
+        self.scroll_event = ScrollEvent::PageForward;
+    }
+
+    pub fn scroll_page_backward(&mut self) {
+        self.scroll_event = ScrollEvent::PageBackward;
     }
 
     pub fn scroll_to_top(&mut self) {
@@ -182,20 +200,73 @@ impl StatefulWidget for Preview {
 
         let show_lines_count = content_area.height as usize;
 
-        // may not be correct because the wrap of the text is calculated separately...
-        let line_heights = state
-            .original_lines
-            .iter()
-            .skip(state.v_offset)
-            .take(show_lines_count)
-            .map(|line| {
-                if state.wrap {
-                    let lines = textwrap::wrap(line, chunks[1].width as usize - 2);
-                    lines.len()
-                } else {
-                    1
+        // handle scroll events and update the state
+        match state.scroll_event {
+            ScrollEvent::PageForward => {
+                let line_heights = wrapped_line_width_iter(
+                    &state.original_lines,
+                    state.v_offset,
+                    chunks[1].width as usize - 2,
+                    show_lines_count,
+                    state.wrap,
+                );
+                let mut add_offset = 0;
+                let mut total_h = 0;
+                for h in line_heights {
+                    add_offset += 1;
+                    total_h += h;
+                    if total_h >= show_lines_count {
+                        state.v_offset += add_offset;
+                        if total_h > show_lines_count {
+                            // if the last line is wrapped, the offset should be decreased by 1
+                            state.v_offset -= 1;
+                        }
+                        break;
+                    }
                 }
-            });
+                if total_h < show_lines_count {
+                    state.scroll_to_end();
+                }
+                state.scroll_event = ScrollEvent::None;
+            }
+            ScrollEvent::PageBackward => {
+                let line_heights = wrapped_reversed_line_width_iter(
+                    &state.original_lines,
+                    state.v_offset,
+                    chunks[1].width as usize - 2,
+                    show_lines_count,
+                    state.wrap,
+                );
+                let mut sub_offset = 0;
+                let mut total_h = 0;
+                for h in line_heights {
+                    sub_offset += 1;
+                    total_h += h;
+                    if total_h >= show_lines_count {
+                        state.v_offset -= sub_offset;
+                        if total_h > show_lines_count {
+                            // if the first line is wrapped, the offset should be increased by 1
+                            state.v_offset += 1;
+                        }
+                        break;
+                    }
+                }
+                if total_h < show_lines_count {
+                    state.scroll_to_top();
+                }
+                state.scroll_event = ScrollEvent::None;
+            }
+            _ => {}
+        }
+
+        // may not be correct because the wrap of the text is calculated separately...
+        let line_heights = wrapped_line_width_iter(
+            &state.original_lines,
+            state.v_offset,
+            chunks[1].width as usize - 2,
+            show_lines_count,
+            state.wrap,
+        );
         let lines_count = state.original_lines.len();
         let line_numbers_content: Vec<Line> = ((state.v_offset + 1)..)
             .zip(line_heights)
@@ -242,4 +313,43 @@ impl StatefulWidget for Preview {
         line_numbers_paragraph.render(chunks[0], buf);
         lines_paragraph.render(chunks[1], buf);
     }
+}
+
+fn wrapped_line_width_iter(
+    lines: &[String],
+    offset: usize,
+    width: usize,
+    height: usize,
+    wrap: bool,
+) -> impl Iterator<Item = usize> + '_ {
+    lines.iter().skip(offset).take(height).map(move |line| {
+        if wrap {
+            let lines = textwrap::wrap(line, width);
+            lines.len()
+        } else {
+            1
+        }
+    })
+}
+
+fn wrapped_reversed_line_width_iter(
+    lines: &[String],
+    offset: usize,
+    width: usize,
+    height: usize,
+    wrap: bool,
+) -> impl Iterator<Item = usize> + '_ {
+    lines
+        .iter()
+        .take(offset)
+        .rev()
+        .take(height)
+        .map(move |line| {
+            if wrap {
+                let lines = textwrap::wrap(line, width);
+                lines.len()
+            } else {
+                1
+            }
+        })
 }
