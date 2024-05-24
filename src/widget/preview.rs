@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Layout, Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap},
+    widgets::{Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 use syntect::{
     easy::HighlightLines,
@@ -158,25 +158,20 @@ fn build_highlighted_lines(
 }
 
 // fixme: bad implementation for highlighting and displaying the number of lines :(
-pub struct Preview<'a> {
-    state: &'a PreviewState,
-}
+#[derive(Debug, Default)]
+pub struct Preview {}
 
-impl<'a> Preview<'a> {
-    pub fn new(state: &'a PreviewState) -> Self {
-        Self { state }
-    }
-}
+impl StatefulWidget for Preview {
+    type State = PreviewState;
 
-impl Widget for Preview<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let content_area = area.inner(&Margin::new(1, 1)); // border
 
-        let title = format!("Preview [{}]", self.state.file_name);
+        let title = format!("Preview [{}]", state.file_name);
         let block = Block::bordered().title(title);
 
-        let line_numbers_width = if self.state.number {
-            self.state.max_digits as u16 + 1
+        let line_numbers_width = if state.number {
+            state.max_digits as u16 + 1
         } else {
             0
         };
@@ -188,28 +183,27 @@ impl Widget for Preview<'_> {
         let show_lines_count = content_area.height as usize;
 
         // may not be correct because the wrap of the text is calculated separately...
-        let line_heights = self
-            .state
+        let line_heights = state
             .original_lines
             .iter()
-            .skip(self.state.v_offset)
+            .skip(state.v_offset)
             .take(show_lines_count)
             .map(|line| {
-                if self.state.wrap {
+                if state.wrap {
                     let lines = textwrap::wrap(line, chunks[1].width as usize - 2);
                     lines.len()
                 } else {
                     1
                 }
             });
-        let lines_count = self.state.original_lines.len();
-        let line_numbers_content: Vec<Line> = ((self.state.v_offset + 1)..)
+        let lines_count = state.original_lines.len();
+        let line_numbers_content: Vec<Line> = ((state.v_offset + 1)..)
             .zip(line_heights)
             .flat_map(|(line, line_height)| {
                 if line > lines_count {
                     vec![Line::raw("")]
                 } else {
-                    let line_number = format!("{:>width$}", line, width = self.state.max_digits);
+                    let line_number = format!("{:>width$}", line, width = state.max_digits);
                     let number_line: Line = line_number.fg(PREVIEW_LINE_NUMBER_COLOR).into();
                     let empty_lines = (0..(line_height - 1)).map(|_| Line::raw(""));
                     std::iter::once(number_line).chain(empty_lines).collect()
@@ -224,11 +218,10 @@ impl Widget for Preview<'_> {
                 .padding(Padding::left(1)),
         );
 
-        let lines_content: Vec<Line> = self
-            .state
+        let lines_content: Vec<Line> = state
             .lines
             .iter()
-            .skip(self.state.v_offset)
+            .skip(state.v_offset)
             .take(show_lines_count)
             .cloned()
             .collect();
@@ -239,10 +232,10 @@ impl Widget for Preview<'_> {
                 .padding(Padding::horizontal(1)),
         );
 
-        lines_paragraph = if self.state.wrap {
+        lines_paragraph = if state.wrap {
             lines_paragraph.wrap(Wrap { trim: false })
         } else {
-            lines_paragraph.scroll((0, self.state.h_offset as u16))
+            lines_paragraph.scroll((0, state.h_offset as u16))
         };
 
         block.render(area, buf);

@@ -116,8 +116,8 @@ impl ObjectPreviewPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let preview = Preview::new(&self.state);
-        f.render_widget(preview, area);
+        let preview = Preview::default();
+        f.render_stateful_widget(preview, area, &mut self.state);
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
             let save_dialog = SaveDialog::default();
