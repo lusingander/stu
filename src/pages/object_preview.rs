@@ -38,8 +38,7 @@ impl ObjectPreviewPage {
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
-        let (state, msg) =
-            PreviewState::new(&file_detail, &object, preview_config.highlight, true, true);
+        let (state, msg) = PreviewState::new(&file_detail, &object, preview_config.highlight);
         if let Some(msg) = msg {
             tx.send(AppEventType::NotifyWarn(msg));
         }
@@ -64,34 +63,34 @@ impl ObjectPreviewPage {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('j') => {
-                    self.state.scroll_forward();
+                    self.state.scroll_lines_state.scroll_forward();
                 }
                 key_code_char!('k') => {
-                    self.state.scroll_backward();
+                    self.state.scroll_lines_state.scroll_backward();
                 }
                 key_code_char!('f') => {
-                    self.state.scroll_page_forward();
+                    self.state.scroll_lines_state.scroll_page_forward();
                 }
                 key_code_char!('b') => {
-                    self.state.scroll_page_backward();
+                    self.state.scroll_lines_state.scroll_page_backward();
                 }
                 key_code_char!('g') => {
-                    self.state.scroll_to_top();
+                    self.state.scroll_lines_state.scroll_to_top();
                 }
                 key_code_char!('G') => {
-                    self.state.scroll_to_end();
+                    self.state.scroll_lines_state.scroll_to_end();
                 }
                 key_code_char!('h') => {
-                    self.state.scroll_left();
+                    self.state.scroll_lines_state.scroll_left();
                 }
                 key_code_char!('l') => {
-                    self.state.scroll_right();
+                    self.state.scroll_lines_state.scroll_right();
                 }
                 key_code_char!('w') => {
-                    self.state.toggle_wrap();
+                    self.state.scroll_lines_state.toggle_wrap();
                 }
                 key_code_char!('n') => {
-                    self.state.toggle_number();
+                    self.state.scroll_lines_state.toggle_number();
                 }
                 key_code_char!('s') => {
                     self.tx.send(AppEventType::PreviewDownloadObject);
