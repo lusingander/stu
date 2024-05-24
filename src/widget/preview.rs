@@ -33,6 +33,7 @@ pub struct PreviewState {
     max_line_width: usize,
     v_offset: usize,
     h_offset: usize,
+    number: bool,
     wrap: bool,
 }
 
@@ -41,6 +42,7 @@ impl PreviewState {
         file_detail: &FileDetail,
         object: &RawObject,
         highlight: bool,
+        number: bool,
         wrap: bool,
     ) -> (Self, Option<String>) {
         let mut warn_msg = None;
@@ -80,6 +82,7 @@ impl PreviewState {
             max_line_width,
             v_offset: 0,
             h_offset: 0,
+            number,
             wrap,
         };
         (state, warn_msg)
@@ -120,6 +123,10 @@ impl PreviewState {
     pub fn toggle_wrap(&mut self) {
         self.wrap = !self.wrap;
         self.h_offset = 0;
+    }
+
+    pub fn toggle_number(&mut self) {
+        self.number = !self.number;
     }
 }
 
@@ -168,11 +175,15 @@ impl Widget for Preview<'_> {
         let title = format!("Preview [{}]", self.state.file_name);
         let block = Block::bordered().title(title);
 
-        let chunks = Layout::horizontal([
-            Constraint::Length(self.state.max_digits as u16 + 1),
-            Constraint::Min(0),
-        ])
-        .split(content_area);
+        let line_numbers_width = if self.state.number {
+            self.state.max_digits as u16 + 1
+        } else {
+            0
+        };
+
+        let chunks =
+            Layout::horizontal([Constraint::Length(line_numbers_width), Constraint::Min(0)])
+                .split(content_area);
 
         let show_lines_count = content_area.height as usize;
 
