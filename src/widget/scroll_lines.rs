@@ -294,3 +294,347 @@ fn wrapped_reversed_line_width_iter(
             }
         })
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::set_cells;
+
+    use super::*;
+
+    #[test]
+    fn test_scroll_lines_scroll() {
+        let mut state = state(true, true);
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  1 aaa bbb ccc   │",
+            "│    ddd           │",
+            "│  2 aaa bbb ccc   │",
+            "│  3 aaa           │",
+            "│  4 aaa bbb       │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_forward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  2 aaa bbb ccc   │",
+            "│  3 aaa           │",
+            "│  4 aaa bbb       │",
+            "│  5 aaa bbb ccc   │",
+            "│    ddd eee       │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 3, 4]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_forward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  3 aaa           │",
+            "│  4 aaa bbb       │",
+            "│  5 aaa bbb ccc   │",
+            "│    ddd eee       │",
+            "│  6 aaaaaaaa      │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 3, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_page_forward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  6 aaaaaaaa      │",
+            "│    bbbbbbbb      │",
+            "│  7               │",
+            "│  8 0123456789012 │",
+            "│    3456789       │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 3, 4]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_page_forward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  9 a             │",
+            "│ 10 b             │",
+            "│ 11 c             │",
+            "│ 12 d             │",
+            "│ 13 e             │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_to_end();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│ 16 g             │",
+            "│                  │",
+            "│                  │",
+            "│                  │",
+            "│                  │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_page_backward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│ 13 e             │",
+            "│ 14 aaa bbb ccc   │",
+            "│    ddd eee fff   │",
+            "│    ggg           │",
+            "│ 15 f             │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_page_backward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  9 a             │",
+            "│ 10 b             │",
+            "│ 11 c             │",
+            "│ 12 d             │",
+            "│ 13 e             │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_backward();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  8 0123456789012 │",
+            "│    3456789       │",
+            "│  9 a             │",
+            "│ 10 b             │",
+            "│ 11 c             │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_to_top();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  1 aaa bbb ccc   │",
+            "│    ddd           │",
+            "│  2 aaa bbb ccc   │",
+            "│  3 aaa           │",
+            "│  4 aaa bbb       │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+    }
+
+    #[test]
+    fn test_scroll_lines_options() {
+        let mut state = state(true, true);
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  1 aaa bbb ccc   │",
+            "│    ddd           │",
+            "│  2 aaa bbb ccc   │",
+            "│  3 aaa           │",
+            "│  4 aaa bbb       │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.toggle_number();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│ aaa bbb ccc ddd  │",
+            "│ aaa bbb ccc      │",
+            "│ aaa              │",
+            "│ aaa bbb          │",
+            "│ aaa bbb ccc ddd  │",
+            "└──────────────────┘",
+        ]);
+
+        assert_eq!(buf, expected);
+
+        state.toggle_number();
+        state.toggle_wrap();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  1 aaa bbb ccc d │",
+            "│  2 aaa bbb ccc   │",
+            "│  3 aaa           │",
+            "│  4 aaa bbb       │",
+            "│  5 aaa bbb ccc d │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.scroll_right();
+        state.scroll_right();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│  1 a bbb ccc ddd │",
+            "│  2 a bbb ccc     │",
+            "│  3 a             │",
+            "│  4 a bbb         │",
+            "│  5 a bbb ccc ddd │",
+            "└──────────────────┘",
+        ]);
+        set_cells! { expected =>
+            ([2, 3], [1, 2, 3, 4, 5]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+
+        state.toggle_number();
+
+        let buf = render_scroll_lines(&mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "┌TITLE─────────────┐",
+            "│ a bbb ccc ddd    │",
+            "│ a bbb ccc        │",
+            "│ a                │",
+            "│ a bbb            │",
+            "│ a bbb ccc ddd ee │",
+            "└──────────────────┘",
+        ]);
+
+        assert_eq!(buf, expected);
+    }
+
+    fn state(number: bool, wrap: bool) -> ScrollLinesState {
+        let original_lines: Vec<String> = [
+            "aaa bbb ccc ddd",
+            "aaa bbb ccc",
+            "aaa",
+            "aaa bbb ",
+            "aaa bbb ccc ddd eee",
+            "aaaaaaaa bbbbbbbb",
+            "",
+            "01234567890123456789",
+            "a",
+            "b",
+            "c",
+            "d",
+            "e",
+            "aaa bbb ccc ddd eee fff ggg",
+            "f",
+            "g",
+        ]
+        .iter()
+        .map(|s| s.to_string())
+        .collect();
+        let lines = original_lines.iter().cloned().map(Line::raw).collect();
+        let title = "TITLE".into();
+        let options = ScrollLinesOptions { number, wrap };
+        ScrollLinesState::new(lines, original_lines, title, options)
+    }
+
+    fn render_scroll_lines(state: &mut ScrollLinesState) -> Buffer {
+        let scroll_lines = ScrollLines::default();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
+        scroll_lines.render(buf.area, &mut buf, state);
+        buf
+    }
+}
