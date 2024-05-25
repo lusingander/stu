@@ -7,12 +7,12 @@ use crate::{
     key_code, key_code_char,
     object::{FileDetail, RawObject},
     pages::util::{build_helps, build_short_helps},
-    widget::{Preview, PreviewState, SaveDialog, SaveDialogState},
+    widget::{SaveDialog, SaveDialogState, TextPreview, TextPreviewState},
 };
 
 #[derive(Debug)]
 pub struct ObjectPreviewPage {
-    state: PreviewState,
+    state: TextPreviewState,
 
     file_detail: FileDetail,
     object: RawObject,
@@ -38,7 +38,7 @@ impl ObjectPreviewPage {
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
-        let (state, msg) = PreviewState::new(&file_detail, &object, preview_config.highlight);
+        let (state, msg) = TextPreviewState::new(&file_detail, &object, preview_config.highlight);
         if let Some(msg) = msg {
             tx.send(AppEventType::NotifyWarn(msg));
         }
@@ -121,7 +121,7 @@ impl ObjectPreviewPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let preview = Preview::default();
+        let preview = TextPreview::default();
         f.render_stateful_widget(preview, area, &mut self.state);
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {

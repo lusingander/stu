@@ -18,11 +18,11 @@ static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines
 static THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 
 #[derive(Debug)]
-pub struct PreviewState {
+pub struct TextPreviewState {
     pub scroll_lines_state: ScrollLinesState,
 }
 
-impl PreviewState {
+impl TextPreviewState {
     pub fn new(
         file_detail: &FileDetail,
         object: &RawObject,
@@ -92,10 +92,10 @@ fn build_highlighted_lines(
 }
 
 #[derive(Debug, Default)]
-pub struct Preview {}
+pub struct TextPreview {}
 
-impl StatefulWidget for Preview {
-    type State = PreviewState;
+impl StatefulWidget for TextPreview {
+    type State = TextPreviewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         ScrollLines::default().render(area, buf, &mut state.scroll_lines_state);
