@@ -14,8 +14,14 @@ const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
 enum ScrollEvent {
     #[default]
     None,
+    Forward,
+    Backward,
     PageForward,
     PageBackward,
+    Top,
+    End,
+    Right,
+    Left,
 }
 
 #[derive(Debug, Clone)]
@@ -68,15 +74,11 @@ impl ScrollLinesState {
     }
 
     pub fn scroll_forward(&mut self) {
-        if self.v_offset < self.lines.len().saturating_sub(1) {
-            self.v_offset = self.v_offset.saturating_add(1);
-        }
+        self.scroll_event = ScrollEvent::Forward;
     }
 
     pub fn scroll_backward(&mut self) {
-        if self.v_offset > 0 {
-            self.v_offset = self.v_offset.saturating_sub(1);
-        }
+        self.scroll_event = ScrollEvent::Backward;
     }
 
     pub fn scroll_page_forward(&mut self) {
@@ -88,23 +90,19 @@ impl ScrollLinesState {
     }
 
     pub fn scroll_to_top(&mut self) {
-        self.v_offset = 0;
+        self.scroll_event = ScrollEvent::Top;
     }
 
     pub fn scroll_to_end(&mut self) {
-        self.v_offset = self.lines.len().saturating_sub(1);
+        self.scroll_event = ScrollEvent::End;
     }
 
     pub fn scroll_right(&mut self) {
-        if self.h_offset < self.max_line_width.saturating_sub(1) {
-            self.h_offset = self.h_offset.saturating_add(1);
-        }
+        self.scroll_event = ScrollEvent::Right;
     }
 
     pub fn scroll_left(&mut self) {
-        if self.h_offset > 0 {
-            self.h_offset = self.h_offset.saturating_sub(1);
-        }
+        self.scroll_event = ScrollEvent::Left;
     }
 
     pub fn toggle_wrap(&mut self) {
@@ -140,120 +138,165 @@ impl StatefulWidget for ScrollLines {
                 .split(content_area);
 
         let show_lines_count = content_area.height as usize;
+        let text_area_width = chunks[1].width as usize - 2 /* padding */;
 
         // handle scroll events and update the state
-        match state.scroll_event {
-            ScrollEvent::PageForward => {
-                let line_heights = wrapped_line_width_iter(
-                    &state.original_lines,
-                    state.v_offset,
-                    chunks[1].width as usize - 2,
-                    show_lines_count,
-                    state.options.wrap,
-                );
-                let mut add_offset = 0;
-                let mut total_h = 0;
-                for h in line_heights {
-                    add_offset += 1;
-                    total_h += h;
-                    if total_h >= show_lines_count {
-                        state.v_offset += add_offset;
-                        if total_h > show_lines_count {
-                            // if the last line is wrapped, the offset should be decreased by 1
-                            state.v_offset -= 1;
-                        }
-                        break;
-                    }
-                }
-                if total_h < show_lines_count {
-                    state.scroll_to_end();
-                }
-                state.scroll_event = ScrollEvent::None;
-            }
-            ScrollEvent::PageBackward => {
-                let line_heights = wrapped_reversed_line_width_iter(
-                    &state.original_lines,
-                    state.v_offset,
-                    chunks[1].width as usize - 2,
-                    show_lines_count,
-                    state.options.wrap,
-                );
-                let mut sub_offset = 0;
-                let mut total_h = 0;
-                for h in line_heights {
-                    sub_offset += 1;
-                    total_h += h;
-                    if total_h >= show_lines_count {
-                        state.v_offset -= sub_offset;
-                        if total_h > show_lines_count {
-                            // if the first line is wrapped, the offset should be increased by 1
-                            state.v_offset += 1;
-                        }
-                        break;
-                    }
-                }
-                if total_h < show_lines_count {
-                    state.scroll_to_top();
-                }
-                state.scroll_event = ScrollEvent::None;
-            }
-            _ => {}
-        }
+        handle_scroll_events(state, text_area_width, show_lines_count);
 
-        // may not be correct because the wrap of the text is calculated separately...
-        let line_heights = wrapped_line_width_iter(
-            &state.original_lines,
-            state.v_offset,
-            chunks[1].width as usize - 2,
-            show_lines_count,
-            state.options.wrap,
-        );
-        let lines_count = state.original_lines.len();
-        let line_numbers_content: Vec<Line> = ((state.v_offset + 1)..)
-            .zip(line_heights)
-            .flat_map(|(line, line_height)| {
-                if line > lines_count {
-                    vec![Line::raw("")]
-                } else {
-                    let line_number = format!("{:>width$}", line, width = state.max_digits);
-                    let number_line: Line = line_number.fg(PREVIEW_LINE_NUMBER_COLOR).into();
-                    let empty_lines = (0..(line_height - 1)).map(|_| Line::raw(""));
-                    std::iter::once(number_line).chain(empty_lines).collect()
-                }
-            })
-            .take(show_lines_count)
-            .collect();
-
-        let line_numbers_paragraph = Paragraph::new(line_numbers_content).block(
-            Block::default()
-                .borders(Borders::NONE)
-                .padding(Padding::left(1)),
-        );
-
-        let lines_content: Vec<Line> = state
-            .lines
-            .iter()
-            .skip(state.v_offset)
-            .take(show_lines_count)
-            .cloned()
-            .collect();
-
-        let mut lines_paragraph = Paragraph::new(lines_content).block(
-            Block::default()
-                .borders(Borders::NONE)
-                .padding(Padding::horizontal(1)),
-        );
-
-        lines_paragraph = if state.options.wrap {
-            lines_paragraph.wrap(Wrap { trim: false })
-        } else {
-            lines_paragraph.scroll((0, state.h_offset as u16))
-        };
+        let line_numbers_paragraph =
+            build_line_numbers_paragraph(state, text_area_width, show_lines_count);
+        let lines_paragraph = build_lines_paragraph(state, show_lines_count);
 
         block.render(area, buf);
         line_numbers_paragraph.render(chunks[0], buf);
         lines_paragraph.render(chunks[1], buf);
     }
+}
+
+fn build_line_numbers_paragraph(
+    state: &ScrollLinesState,
+    text_area_width: usize,
+    show_lines_count: usize,
+) -> Paragraph {
+    // may not be correct because the wrap of the text is calculated separately...
+    let line_heights = wrapped_line_width_iter(
+        &state.original_lines,
+        state.v_offset,
+        text_area_width,
+        show_lines_count,
+        state.options.wrap,
+    );
+    let lines_count = state.original_lines.len();
+    let line_numbers_content: Vec<Line> = ((state.v_offset + 1)..)
+        .zip(line_heights)
+        .flat_map(|(line, line_height)| {
+            if line > lines_count {
+                vec![Line::raw("")]
+            } else {
+                let line_number = format!("{:>width$}", line, width = state.max_digits);
+                let number_line: Line = line_number.fg(PREVIEW_LINE_NUMBER_COLOR).into();
+                let empty_lines = (0..(line_height - 1)).map(|_| Line::raw(""));
+                std::iter::once(number_line).chain(empty_lines).collect()
+            }
+        })
+        .take(show_lines_count)
+        .collect();
+
+    Paragraph::new(line_numbers_content).block(
+        Block::default()
+            .borders(Borders::NONE)
+            .padding(Padding::left(1)),
+    )
+}
+
+fn build_lines_paragraph(state: &ScrollLinesState, show_lines_count: usize) -> Paragraph {
+    let lines_content: Vec<Line> = state
+        .lines
+        .iter()
+        .skip(state.v_offset)
+        .take(show_lines_count)
+        .cloned()
+        .collect();
+
+    let lines_paragraph = Paragraph::new(lines_content).block(
+        Block::default()
+            .borders(Borders::NONE)
+            .padding(Padding::horizontal(1)),
+    );
+
+    if state.options.wrap {
+        lines_paragraph.wrap(Wrap { trim: false })
+    } else {
+        lines_paragraph.scroll((0, state.h_offset as u16))
+    }
+}
+
+fn handle_scroll_events(state: &mut ScrollLinesState, width: usize, height: usize) {
+    match state.scroll_event {
+        ScrollEvent::None => {}
+        ScrollEvent::Forward => {
+            if state.v_offset < state.lines.len().saturating_sub(1) {
+                state.v_offset = state.v_offset.saturating_add(1);
+            }
+        }
+        ScrollEvent::Backward => {
+            if state.v_offset > 0 {
+                state.v_offset = state.v_offset.saturating_sub(1);
+            }
+        }
+        ScrollEvent::PageForward => {
+            let line_heights = wrapped_line_width_iter(
+                &state.original_lines,
+                state.v_offset,
+                width,
+                height,
+                state.options.wrap,
+            );
+            let mut add_offset = 0;
+            let mut total_h = 0;
+            for h in line_heights {
+                add_offset += 1;
+                total_h += h;
+                if total_h >= height {
+                    state.v_offset += add_offset;
+                    if total_h > height {
+                        // if the last line is wrapped, the offset should be decreased by 1
+                        state.v_offset -= 1;
+                    }
+                    break;
+                }
+            }
+            if total_h < height {
+                // scroll to the end
+                state.v_offset = state.lines.len().saturating_sub(1);
+            }
+        }
+        ScrollEvent::PageBackward => {
+            let line_heights = wrapped_reversed_line_width_iter(
+                &state.original_lines,
+                state.v_offset,
+                width,
+                height,
+                state.options.wrap,
+            );
+            let mut sub_offset = 0;
+            let mut total_h = 0;
+            for h in line_heights {
+                sub_offset += 1;
+                total_h += h;
+                if total_h >= height {
+                    state.v_offset -= sub_offset;
+                    if total_h > height {
+                        // if the first line is wrapped, the offset should be increased by 1
+                        state.v_offset += 1;
+                    }
+                    break;
+                }
+            }
+            if total_h < height {
+                // scroll to the top
+                state.v_offset = 0;
+            }
+        }
+        ScrollEvent::Top => {
+            state.v_offset = 0;
+        }
+        ScrollEvent::End => {
+            state.v_offset = state.lines.len().saturating_sub(1);
+        }
+        ScrollEvent::Right => {
+            if state.h_offset < state.max_line_width.saturating_sub(1) {
+                state.h_offset = state.h_offset.saturating_add(1);
+            }
+        }
+        ScrollEvent::Left => {
+            if state.h_offset > 0 {
+                state.h_offset = state.h_offset.saturating_sub(1);
+            }
+        }
+    }
+    // reset the scroll event
+    state.scroll_event = ScrollEvent::None;
 }
 
 fn wrapped_line_width_iter(
@@ -565,18 +608,17 @@ mod tests {
         assert_eq!(buf, expected);
 
         state.scroll_right();
-        state.scroll_right();
 
         let buf = render_scroll_lines(&mut state);
 
         #[rustfmt::skip]
         let mut expected = Buffer::with_lines([
             "┌TITLE─────────────┐",
-            "│  1 a bbb ccc ddd │",
-            "│  2 a bbb ccc     │",
-            "│  3 a             │",
-            "│  4 a bbb         │",
-            "│  5 a bbb ccc ddd │",
+            "│  1 aa bbb ccc dd │",
+            "│  2 aa bbb ccc    │",
+            "│  3 aa            │",
+            "│  4 aa bbb        │",
+            "│  5 aa bbb ccc dd │",
             "└──────────────────┘",
         ]);
         set_cells! { expected =>
@@ -592,11 +634,11 @@ mod tests {
         #[rustfmt::skip]
         let expected = Buffer::with_lines([
             "┌TITLE─────────────┐",
-            "│ a bbb ccc ddd    │",
-            "│ a bbb ccc        │",
-            "│ a                │",
-            "│ a bbb            │",
-            "│ a bbb ccc ddd ee │",
+            "│ aa bbb ccc ddd   │",
+            "│ aa bbb ccc       │",
+            "│ aa               │",
+            "│ aa bbb           │",
+            "│ aa bbb ccc ddd e │",
             "└──────────────────┘",
         ]);
 
