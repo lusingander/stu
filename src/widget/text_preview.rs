@@ -42,8 +42,6 @@ impl TextPreviewState {
             s.as_str()
         };
 
-        let original_lines: Vec<String> = s.split('\n').map(|s| s.to_string()).collect();
-
         let lines: Vec<Line<'static>> =
             match build_highlighted_lines(s, &file_detail.name, highlight) {
                 Ok(lines) => lines,
@@ -52,15 +50,11 @@ impl TextPreviewState {
                     if let Some(msg) = msg {
                         warn_msg = Some(msg);
                     }
-                    original_lines
-                        .iter()
-                        .map(|s| Line::raw(s.clone()))
-                        .collect()
+                    s.split('\n').map(|s| Line::raw(s.to_string())).collect()
                 }
             };
 
-        let scroll_lines_state =
-            ScrollLinesState::new(lines, original_lines, ScrollLinesOptions::default());
+        let scroll_lines_state = ScrollLinesState::new(lines, ScrollLinesOptions::default());
 
         let state = Self { scroll_lines_state };
         (state, warn_msg)

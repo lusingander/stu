@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Stylize},
+    style::{Color, Style, Stylize},
     text::Line,
     widgets::{block::BlockExt, Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
@@ -42,7 +42,6 @@ impl Default for ScrollLinesOptions {
 #[derive(Debug, Default)]
 pub struct ScrollLinesState {
     lines: Vec<Line<'static>>,
-    original_lines: Vec<String>,
     max_digits: usize,
     max_line_width: usize,
     v_offset: usize,
@@ -52,17 +51,12 @@ pub struct ScrollLinesState {
 }
 
 impl ScrollLinesState {
-    pub fn new(
-        lines: Vec<Line<'static>>,
-        original_lines: Vec<String>,
-        options: ScrollLinesOptions,
-    ) -> Self {
+    pub fn new(lines: Vec<Line<'static>>, options: ScrollLinesOptions) -> Self {
         let max_digits = digits(lines.len());
         let max_line_width = lines.iter().map(Line::width).max().unwrap_or_default();
 
         Self {
             lines,
-            original_lines,
             max_digits,
             max_line_width,
             options,
@@ -129,7 +123,6 @@ impl StatefulWidget for ScrollLines {
     type State = ScrollLinesState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        // let content_area = area.inner(&Margin::new(1, 1)); // border
         let content_area = self.block.inner_if_some(area);
 
         let line_numbers_width = if state.options.number {
@@ -165,13 +158,13 @@ fn build_line_numbers_paragraph(
 ) -> Paragraph {
     // may not be correct because the wrap of the text is calculated separately...
     let line_heights = wrapped_line_width_iter(
-        &state.original_lines,
+        &state.lines,
         state.v_offset,
         text_area_width,
         show_lines_count,
         state.options.wrap,
     );
-    let lines_count = state.original_lines.len();
+    let lines_count = state.lines.len();
     let line_numbers_content: Vec<Line> = ((state.v_offset + 1)..)
         .zip(line_heights)
         .flat_map(|(line, line_height)| {
@@ -231,7 +224,7 @@ fn handle_scroll_events(state: &mut ScrollLinesState, width: usize, height: usiz
         }
         ScrollEvent::PageForward => {
             let line_heights = wrapped_line_width_iter(
-                &state.original_lines,
+                &state.lines,
                 state.v_offset,
                 width,
                 height,
@@ -258,7 +251,7 @@ fn handle_scroll_events(state: &mut ScrollLinesState, width: usize, height: usiz
         }
         ScrollEvent::PageBackward => {
             let line_heights = wrapped_reversed_line_width_iter(
-                &state.original_lines,
+                &state.lines,
                 state.v_offset,
                 width,
                 height,
@@ -304,16 +297,17 @@ fn handle_scroll_events(state: &mut ScrollLinesState, width: usize, height: usiz
     state.scroll_event = ScrollEvent::None;
 }
 
-fn wrapped_line_width_iter(
-    lines: &[String],
+fn wrapped_line_width_iter<'a>(
+    lines: &'a [Line],
     offset: usize,
     width: usize,
     height: usize,
     wrap: bool,
-) -> impl Iterator<Item = usize> + '_ {
+) -> impl Iterator<Item = usize> + 'a {
     lines.iter().skip(offset).take(height).map(move |line| {
         if wrap {
-            let lines = textwrap::wrap(line, width);
+            let line_str = line_to_string(line);
+            let lines = textwrap::wrap(&line_str, width);
             lines.len()
         } else {
             1
@@ -321,13 +315,13 @@ fn wrapped_line_width_iter(
     })
 }
 
-fn wrapped_reversed_line_width_iter(
-    lines: &[String],
+fn wrapped_reversed_line_width_iter<'a>(
+    lines: &'a [Line],
     offset: usize,
     width: usize,
     height: usize,
     wrap: bool,
-) -> impl Iterator<Item = usize> + '_ {
+) -> impl Iterator<Item = usize> + 'a {
     lines
         .iter()
         .take(offset)
@@ -335,12 +329,20 @@ fn wrapped_reversed_line_width_iter(
         .take(height)
         .map(move |line| {
             if wrap {
-                let lines = textwrap::wrap(line, width);
+                let line_str = line_to_string(line);
+                let lines = textwrap::wrap(&line_str, width);
                 lines.len()
             } else {
                 1
             }
         })
+}
+
+fn line_to_string(line: &Line) -> String {
+    line.styled_graphemes(Style::default())
+        .map(|g| g.symbol)
+        .collect::<Vec<&str>>()
+        .concat()
 }
 
 #[cfg(test)]
@@ -674,7 +676,7 @@ mod tests {
     }
 
     fn state(number: bool, wrap: bool) -> ScrollLinesState {
-        let original_lines: Vec<String> = [
+        let lines: Vec<Line> = [
             "aaa bbb ccc ddd",
             "aaa bbb ccc",
             "aaa",
@@ -693,11 +695,11 @@ mod tests {
             "g",
         ]
         .iter()
-        .map(|s| s.to_string())
+        .cloned()
+        .map(Line::raw)
         .collect();
-        let lines = original_lines.iter().cloned().map(Line::raw).collect();
         let options = ScrollLinesOptions { number, wrap };
-        ScrollLinesState::new(lines, original_lines, options)
+        ScrollLinesState::new(lines, options)
     }
 
     fn render_scroll_lines(state: &mut ScrollLinesState) -> Buffer {
