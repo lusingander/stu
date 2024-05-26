@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Widget, Wrap},
+    widgets::{Block, Borders, List, ListItem, StatefulWidget, Tabs, Widget},
     Frame,
 };
 
@@ -16,8 +16,8 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
-        CopyDetailDialog, CopyDetailDialogState, SaveDialog, SaveDialogState, ScrollList,
-        ScrollListState,
+        CopyDetailDialog, CopyDetailDialogState, SaveDialog, SaveDialogState, ScrollLines,
+        ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
     },
 };
 
@@ -36,6 +36,7 @@ pub struct ObjectDetailPage {
 
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
+    detail_tab_state: DetailTabState,
     tx: Sender,
 }
 
@@ -63,6 +64,7 @@ impl ObjectDetailPage {
         list_state: ScrollListState,
         tx: Sender,
     ) -> Self {
+        let detail_tab_state = DetailTabState::new(&file_detail);
         Self {
             file_detail,
             file_versions,
@@ -70,6 +72,7 @@ impl ObjectDetailPage {
             view_state: ViewState::Default,
             object_items,
             list_state,
+            detail_tab_state,
             tx,
         }
     }
@@ -82,6 +85,16 @@ impl ObjectDetailPage {
                 }
                 key_code!(KeyCode::Backspace) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
+                }
+                key_code_char!('j') => {
+                    if self.tab == Tab::Detail {
+                        self.detail_tab_state.scroll_lines_state.scroll_forward();
+                    }
+                }
+                key_code_char!('k') => {
+                    if self.tab == Tab::Detail {
+                        self.detail_tab_state.scroll_lines_state.scroll_backward();
+                    }
                 }
                 key_code_char!('h') | key_code_char!('l') => {
                     self.toggle_tab();
@@ -167,8 +180,8 @@ impl ObjectDetailPage {
 
         match self.tab {
             Tab::Detail => {
-                let detail = DetailTab::new(&self.file_detail);
-                f.render_widget(detail, chunks[1]);
+                let detail = DetailTab::default();
+                f.render_stateful_widget(detail, chunks[1], &mut self.detail_tab_state);
             }
             Tab::Version => {
                 let version = VersionTab::new(&self.file_versions, chunks[1].width);
@@ -192,16 +205,29 @@ impl ObjectDetailPage {
 
     pub fn helps(&self) -> Vec<String> {
         let helps: &[(&[&str], &str)] = match self.view_state {
-            ViewState::Default => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
-                (&["h/l"], "Select tabs"),
-                (&["Backspace"], "Close detail panel"),
-                (&["r"], "Open copy dialog"),
-                (&["s"], "Download object"),
-                (&["S"], "Download object as"),
-                (&["p"], "Preview object"),
-                (&["x"], "Open management console in browser"),
-            ],
+            ViewState::Default => match self.tab {
+                Tab::Detail => &[
+                    (&["Esc", "Ctrl-c"], "Quit app"),
+                    (&["h/l"], "Select tabs"),
+                    (&["Backspace"], "Close detail panel"),
+                    (&["j/k"], "Scroll forward/backward"),
+                    (&["r"], "Open copy dialog"),
+                    (&["s"], "Download object"),
+                    (&["S"], "Download object as"),
+                    (&["p"], "Preview object"),
+                    (&["x"], "Open management console in browser"),
+                ],
+                Tab::Version => &[
+                    (&["Esc", "Ctrl-c"], "Quit app"),
+                    (&["h/l"], "Select tabs"),
+                    (&["Backspace"], "Close detail panel"),
+                    (&["r"], "Open copy dialog"),
+                    (&["s"], "Download object"),
+                    (&["S"], "Download object as"),
+                    (&["p"], "Preview object"),
+                    (&["x"], "Open management console in browser"),
+                ],
+            },
             ViewState::SaveDialog(_) => &[
                 (&["Ctrl-c"], "Quit app"),
                 (&["Esc"], "Close save dialog"),
@@ -219,14 +245,25 @@ impl ObjectDetailPage {
 
     pub fn short_helps(&self) -> Vec<(String, usize)> {
         let helps: &[(&[&str], &str, usize)] = match self.view_state {
-            ViewState::Default => &[
-                (&["Esc"], "Quit", 0),
-                (&["h/l"], "Select tabs", 3),
-                (&["s/S"], "Download", 1),
-                (&["p"], "Preview", 4),
-                (&["Backspace"], "Close", 2),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::Default => match self.tab {
+                Tab::Detail => &[
+                    (&["Esc"], "Quit", 0),
+                    (&["h/l"], "Select tabs", 3),
+                    (&["j/k"], "Scroll", 5),
+                    (&["s/S"], "Download", 1),
+                    (&["p"], "Preview", 4),
+                    (&["Backspace"], "Close", 2),
+                    (&["?"], "Help", 0),
+                ],
+                Tab::Version => &[
+                    (&["Esc"], "Quit", 0),
+                    (&["h/l"], "Select tabs", 3),
+                    (&["s/S"], "Download", 1),
+                    (&["p"], "Preview", 4),
+                    (&["Backspace"], "Close", 2),
+                    (&["?"], "Help", 0),
+                ],
+            },
             ViewState::SaveDialog(_) => &[
                 (&["Esc"], "Close", 2),
                 (&["Enter"], "Download", 1),
@@ -347,49 +384,55 @@ fn build_tabs(tab: Tab) -> Tabs<'static> {
         .block(Block::default().borders(Borders::BOTTOM))
 }
 
-#[derive(Debug)]
-struct DetailTab<'a> {
-    detail: &'a FileDetail,
+fn build_detail_content_lines(detail: &FileDetail) -> Vec<Line<'static>> {
+    let details = [
+        ("Name:", &detail.name),
+        ("Size:", &format_size_byte(detail.size_byte)),
+        ("Last Modified:", &format_datetime(&detail.last_modified)),
+        ("ETag:", &detail.e_tag),
+        ("Content-Type:", &detail.content_type),
+        ("Storage class:", &detail.storage_class),
+    ]
+    .iter()
+    .filter_map(|(label, value)| {
+        if value.is_empty() {
+            None
+        } else {
+            let lines = vec![
+                Line::from(label.add_modifier(Modifier::BOLD)),
+                Line::from(format!(" {}", value)),
+            ];
+            Some(lines)
+        }
+    })
+    .collect();
+
+    flatten_with_empty_lines(details)
 }
 
-impl<'a> DetailTab<'a> {
-    fn new(detail: &'a FileDetail) -> Self {
-        Self { detail }
+#[derive(Debug)]
+struct DetailTabState {
+    scroll_lines_state: ScrollLinesState,
+}
+
+impl DetailTabState {
+    fn new(file_detail: &FileDetail) -> Self {
+        let scroll_lines = build_detail_content_lines(file_detail);
+        let scroll_lines_state =
+            ScrollLinesState::new(scroll_lines, ScrollLinesOptions::new(false, true));
+        Self { scroll_lines_state }
     }
 }
 
-impl Widget for DetailTab<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let details = [
-            ("Name:", &self.detail.name),
-            ("Size:", &format_size_byte(self.detail.size_byte)),
-            (
-                "Last Modified:",
-                &format_datetime(&self.detail.last_modified),
-            ),
-            ("ETag:", &self.detail.e_tag),
-            ("Content-Type:", &self.detail.content_type),
-            ("Storage class:", &self.detail.storage_class),
-        ]
-        .iter()
-        .filter_map(|(label, value)| {
-            if value.is_empty() {
-                None
-            } else {
-                let lines = vec![
-                    Line::from(label.add_modifier(Modifier::BOLD)),
-                    Line::from(format!(" {}", value)),
-                ];
-                Some(lines)
-            }
-        })
-        .collect();
+#[derive(Debug, Default)]
+struct DetailTab {}
 
-        let content = flatten_with_empty_lines(details);
-        let paragraph = Paragraph::new(content)
-            .block(Block::default().padding(Padding::horizontal(1)))
-            .wrap(Wrap { trim: false });
-        paragraph.render(area, buf);
+impl StatefulWidget for DetailTab {
+    type State = DetailTabState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let scroll_lines = ScrollLines::default();
+        StatefulWidget::render(scroll_lines, area, buf, &mut state.scroll_lines_state);
     }
 }
 

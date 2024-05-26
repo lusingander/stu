@@ -30,12 +30,15 @@ pub struct ScrollLinesOptions {
     pub wrap: bool,
 }
 
+impl ScrollLinesOptions {
+    pub fn new(number: bool, wrap: bool) -> Self {
+        Self { number, wrap }
+    }
+}
+
 impl Default for ScrollLinesOptions {
     fn default() -> Self {
-        Self {
-            number: true,
-            wrap: true,
-        }
+        Self::new(true, true)
     }
 }
 
