@@ -1,9 +1,9 @@
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Margin, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
+    widgets::{block::BlockExt, Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
 use crate::util::digits;
@@ -48,7 +48,6 @@ pub struct ScrollLinesState {
     v_offset: usize,
     h_offset: usize,
     options: ScrollLinesOptions,
-    title: String,
     scroll_event: ScrollEvent,
 }
 
@@ -56,7 +55,6 @@ impl ScrollLinesState {
     pub fn new(
         lines: Vec<Line<'static>>,
         original_lines: Vec<String>,
-        title: String,
         options: ScrollLinesOptions,
     ) -> Self {
         let max_digits = digits(lines.len());
@@ -68,7 +66,6 @@ impl ScrollLinesState {
             max_digits,
             max_line_width,
             options,
-            title,
             ..Default::default()
         }
     }
@@ -117,15 +114,23 @@ impl ScrollLinesState {
 
 // fixme: bad implementation for highlighting and displaying the number of lines :(
 #[derive(Debug, Default)]
-pub struct ScrollLines {}
+pub struct ScrollLines {
+    block: Option<Block<'static>>,
+}
+
+impl ScrollLines {
+    pub fn block(mut self, block: Block<'static>) -> Self {
+        self.block = Some(block);
+        self
+    }
+}
 
 impl StatefulWidget for ScrollLines {
     type State = ScrollLinesState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let content_area = area.inner(&Margin::new(1, 1)); // border
-
-        let block = Block::bordered().title(state.title.clone());
+        // let content_area = area.inner(&Margin::new(1, 1)); // border
+        let content_area = self.block.inner_if_some(area);
 
         let line_numbers_width = if state.options.number {
             state.max_digits as u16 + 1
@@ -147,7 +152,7 @@ impl StatefulWidget for ScrollLines {
             build_line_numbers_paragraph(state, text_area_width, show_lines_count);
         let lines_paragraph = build_lines_paragraph(state, show_lines_count);
 
-        block.render(area, buf);
+        self.block.render(area, buf);
         line_numbers_paragraph.render(chunks[0], buf);
         lines_paragraph.render(chunks[1], buf);
     }
@@ -645,6 +650,29 @@ mod tests {
         assert_eq!(buf, expected);
     }
 
+    #[test]
+    fn test_scroll_lines_no_block() {
+        let mut state = state(true, true);
+
+        let buf = render_scroll_lines_no_block(&mut state);
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "  1 aaa bbb ccc ddd ",
+            "  2 aaa bbb ccc     ",
+            "  3 aaa             ",
+            "  4 aaa bbb         ",
+            "  5 aaa bbb ccc ddd ",
+            "    eee             ",
+            "  6 aaaaaaaa        ",
+        ]);
+        set_cells! { expected =>
+            ([1, 2], [0, 1, 2, 3, 4, 6]) => fg: Color::DarkGray,
+        }
+
+        assert_eq!(buf, expected);
+    }
+
     fn state(number: bool, wrap: bool) -> ScrollLinesState {
         let original_lines: Vec<String> = [
             "aaa bbb ccc ddd",
@@ -668,12 +696,18 @@ mod tests {
         .map(|s| s.to_string())
         .collect();
         let lines = original_lines.iter().cloned().map(Line::raw).collect();
-        let title = "TITLE".into();
         let options = ScrollLinesOptions { number, wrap };
-        ScrollLinesState::new(lines, original_lines, title, options)
+        ScrollLinesState::new(lines, original_lines, options)
     }
 
     fn render_scroll_lines(state: &mut ScrollLinesState) -> Buffer {
+        let scroll_lines = ScrollLines::default().block(Block::bordered().title("TITLE"));
+        let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
+        scroll_lines.render(buf.area, &mut buf, state);
+        buf
+    }
+
+    fn render_scroll_lines_no_block(state: &mut ScrollLinesState) -> Buffer {
         let scroll_lines = ScrollLines::default();
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
         scroll_lines.render(buf.area, &mut buf, state);

@@ -1,6 +1,11 @@
 use ansi_to_tui::IntoText;
 use once_cell::sync::Lazy;
-use ratatui::{buffer::Buffer, layout::Rect, text::Line, widgets::StatefulWidget};
+use ratatui::{
+    buffer::Buffer,
+    layout::Rect,
+    text::Line,
+    widgets::{Block, StatefulWidget},
+};
 use syntect::{
     easy::HighlightLines,
     highlighting::ThemeSet,
@@ -54,10 +59,8 @@ impl TextPreviewState {
                 }
             };
 
-        let title = format!("Preview [{}]", file_detail.name);
-
         let scroll_lines_state =
-            ScrollLinesState::new(lines, original_lines, title, ScrollLinesOptions::default());
+            ScrollLinesState::new(lines, original_lines, ScrollLinesOptions::default());
 
         let state = Self { scroll_lines_state };
         (state, warn_msg)
@@ -91,13 +94,24 @@ fn build_highlighted_lines(
     }
 }
 
-#[derive(Debug, Default)]
-pub struct TextPreview {}
+#[derive(Debug)]
+pub struct TextPreview<'a> {
+    file_name: &'a str,
+}
 
-impl StatefulWidget for TextPreview {
+impl<'a> TextPreview<'a> {
+    pub fn new(file_name: &'a str) -> Self {
+        Self { file_name }
+    }
+}
+
+impl StatefulWidget for TextPreview<'_> {
     type State = TextPreviewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        ScrollLines::default().render(area, buf, &mut state.scroll_lines_state);
+        let title = format!("Preview [{}]", self.file_name);
+        ScrollLines::default()
+            .block(Block::bordered().title(title))
+            .render(area, buf, &mut state.scroll_lines_state);
     }
 }

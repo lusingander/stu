@@ -121,7 +121,7 @@ impl ObjectPreviewPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let preview = TextPreview::default();
+        let preview = TextPreview::new(self.file_detail.name.as_str());
         f.render_stateful_widget(preview, area, &mut self.state);
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
