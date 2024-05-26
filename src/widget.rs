@@ -1,3 +1,4 @@
+mod bar;
 mod copy_detail_dialog;
 mod dialog;
 mod divider;
@@ -8,6 +9,7 @@ mod scroll_lines;
 mod scroll_list;
 mod text_preview;
 
+pub use bar::Bar;
 pub use copy_detail_dialog::{CopyDetailDialog, CopyDetailDialogState};
 pub use dialog::Dialog;
 pub use divider::Divider;
