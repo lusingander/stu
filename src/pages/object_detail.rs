@@ -116,7 +116,8 @@ impl ObjectDetailPage {
                     }
                 }
                 key_code_char!('s') => {
-                    self.tx.send(AppEventType::DetailDownloadObject);
+                    self.tx
+                        .send(AppEventType::DetailDownloadObject(self.file_detail.clone()));
                 }
                 key_code_char!('S') => {
                     self.open_save_dialog();

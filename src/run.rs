@@ -118,8 +118,8 @@ pub async fn run<B: Backend>(
             AppEventType::OpenPreview => {
                 app.open_preview();
             }
-            AppEventType::DetailDownloadObject => {
-                app.detail_download_object();
+            AppEventType::DetailDownloadObject(file_detail) => {
+                app.detail_download_object(file_detail);
             }
             AppEventType::DetailDownloadObjectAs => {
                 app.detail_download_object_as();
