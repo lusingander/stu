@@ -124,8 +124,8 @@ pub async fn run<B: Backend>(
             AppEventType::DetailDownloadObjectAs(file_detail, input) => {
                 app.detail_download_object_as(file_detail, input);
             }
-            AppEventType::PreviewDownloadObject => {
-                app.preview_download_object();
+            AppEventType::PreviewDownloadObject(obj, path) => {
+                app.preview_download_object(obj, path);
             }
             AppEventType::PreviewDownloadObjectAs => {
                 app.preview_download_object_as();

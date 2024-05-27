@@ -93,7 +93,10 @@ impl ObjectPreviewPage {
                     self.state.scroll_lines_state.toggle_number();
                 }
                 key_code_char!('s') => {
-                    self.tx.send(AppEventType::PreviewDownloadObject);
+                    // object has been already downloaded, so send completion event to save file
+                    let obj = self.object.clone();
+                    let path = self.path.clone();
+                    self.tx.send(AppEventType::PreviewDownloadObject(obj, path));
                 }
                 key_code_char!('S') => {
                     self.open_save_dialog();
@@ -197,14 +200,6 @@ impl ObjectPreviewPage {
         } else {
             None
         }
-    }
-
-    pub fn object(&self) -> &RawObject {
-        &self.object
-    }
-
-    pub fn path(&self) -> &str {
-        &self.path
     }
 }
 

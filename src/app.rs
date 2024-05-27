@@ -332,13 +332,8 @@ impl App {
         self.app_view_state.is_loading = true;
     }
 
-    pub fn preview_download_object(&self) {
-        let object_preview_page = self.page_stack.current_page().as_object_preview();
-
-        // object has been already downloaded, so send completion event to save file
-        let obj = object_preview_page.object();
-        let path = object_preview_page.path();
-        let result = CompleteDownloadObjectResult::new(Ok(obj.clone()), path.to_string());
+    pub fn preview_download_object(&self, obj: RawObject, path: String) {
+        let result = CompleteDownloadObjectResult::new(Ok(obj), path);
         self.tx.send(AppEventType::CompleteDownloadObject(result));
     }
 

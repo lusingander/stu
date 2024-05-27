@@ -34,7 +34,7 @@ pub enum AppEventType {
     OpenPreview(FileDetail),
     DetailDownloadObject(FileDetail),
     DetailDownloadObjectAs(FileDetail, String),
-    PreviewDownloadObject,
+    PreviewDownloadObject(RawObject, String),
     PreviewDownloadObjectAs,
     BucketListOpenManagementConsole,
     ObjectListOpenManagementConsole,
