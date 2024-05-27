@@ -328,18 +328,6 @@ impl ObjectDetailPage {
     fn close_copy_detail_dialog(&mut self) {
         self.view_state = ViewState::Default;
     }
-
-    pub fn file_detail(&self) -> &FileDetail {
-        &self.file_detail
-    }
-
-    pub fn save_dialog_key_input(&self) -> Option<String> {
-        if let ViewState::SaveDialog(state) = &self.view_state {
-            Some(state.input().into())
-        } else {
-            None
-        }
-    }
 }
 
 fn build_list_items_from_object_items(

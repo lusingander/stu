@@ -83,13 +83,6 @@ impl Page {
         }
     }
 
-    pub fn as_object_detail(&self) -> &ObjectDetailPage {
-        match self {
-            Self::ObjectDetail(page) => page,
-            page => panic!("Page is not ObjectDetail: {:?}", page),
-        }
-    }
-
     pub fn as_mut_object_detail(&mut self) -> &mut ObjectDetailPage {
         match self {
             Self::ObjectDetail(page) => &mut *page,
