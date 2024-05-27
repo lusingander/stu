@@ -96,10 +96,7 @@ impl ObjectPreviewPage {
                     self.state.scroll_lines_state.toggle_number();
                 }
                 key_code_char!('s') => {
-                    // object has been already downloaded, so send completion event to save file
-                    let obj = self.object.clone();
-                    let path = self.path.clone();
-                    self.tx.send(AppEventType::PreviewDownloadObject(obj, path));
+                    self.download();
                 }
                 key_code_char!('S') => {
                     self.open_save_dialog();
@@ -114,14 +111,8 @@ impl ObjectPreviewPage {
                     self.close_save_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
-                    let input: String = state.input().trim().into();
-                    if !input.is_empty() {
-                        self.tx.send(AppEventType::PreviewDownloadObjectAs(
-                            self.file_detail.clone(),
-                            input,
-                            self.file_version_id.clone(),
-                        ));
-                    }
+                    let input = state.input().into();
+                    self.download_as(input);
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
@@ -201,6 +192,28 @@ impl ObjectPreviewPage {
 
     pub fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    fn download(&self) {
+        // object has been already downloaded, so send completion event to save file
+        let obj = self.object.clone();
+        let path = self.path.clone();
+        self.tx.send(AppEventType::PreviewDownloadObject(obj, path));
+    }
+
+    fn download_as(&self, input: String) {
+        let input: String = input.trim().into();
+        if input.is_empty() {
+            return;
+        }
+
+        let file_detail = self.file_detail.clone();
+        let version_id = self.file_version_id.clone();
+        self.tx.send(AppEventType::PreviewDownloadObjectAs(
+            file_detail,
+            input,
+            version_id,
+        ));
     }
 }
 

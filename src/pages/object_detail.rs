@@ -118,27 +118,19 @@ impl ObjectDetailPage {
                     }
                 }
                 key_code_char!('s') => {
-                    self.tx.send(AppEventType::DetailDownloadObject(
-                        self.file_detail.clone(),
-                        self.current_selected_version_id(),
-                    ));
+                    self.download();
                 }
                 key_code_char!('S') => {
                     self.open_save_dialog();
                 }
                 key_code_char!('p') => {
-                    self.tx.send(AppEventType::OpenPreview(
-                        self.file_detail.clone(),
-                        self.current_selected_version_id(),
-                    ));
+                    self.preview();
                 }
                 key_code_char!('r') => {
                     self.open_copy_detail_dialog();
                 }
                 key_code_char!('x') => {
-                    let file_name = self.file_detail.name.clone();
-                    self.tx
-                        .send(AppEventType::ObjectDetailOpenManagementConsole(file_name));
+                    self.open_management_console();
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
@@ -150,14 +142,8 @@ impl ObjectDetailPage {
                     self.close_save_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
-                    let input: String = state.input().trim().into();
-                    if !input.is_empty() {
-                        self.tx.send(AppEventType::DetailDownloadObjectAs(
-                            self.file_detail.clone(),
-                            input,
-                            self.current_selected_version_id(),
-                        ));
-                    }
+                    let input = state.input().into();
+                    self.download_as(input);
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
@@ -335,6 +321,41 @@ impl ObjectDetailPage {
 
     fn close_copy_detail_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    fn download(&self) {
+        let file_detail = self.file_detail.clone();
+        let version_id = self.current_selected_version_id();
+        self.tx
+            .send(AppEventType::DetailDownloadObject(file_detail, version_id));
+    }
+
+    fn download_as(&self, input: String) {
+        let input: String = input.trim().into();
+        if input.is_empty() {
+            return;
+        }
+
+        let file_detail = self.file_detail.clone();
+        let version_id = self.current_selected_version_id();
+        self.tx.send(AppEventType::DetailDownloadObjectAs(
+            file_detail,
+            input,
+            version_id,
+        ));
+    }
+
+    fn preview(&self) {
+        let file_detail = self.file_detail.clone();
+        let version_id = self.current_selected_version_id();
+        self.tx
+            .send(AppEventType::OpenPreview(file_detail, version_id));
+    }
+
+    fn open_management_console(&self) {
+        let file_name = self.file_detail.name.clone();
+        self.tx
+            .send(AppEventType::ObjectDetailOpenManagementConsole(file_name));
     }
 
     fn current_selected_version_id(&self) -> Option<String> {
