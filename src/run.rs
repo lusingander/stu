@@ -127,8 +127,8 @@ pub async fn run<B: Backend>(
             AppEventType::PreviewDownloadObject(obj, path) => {
                 app.preview_download_object(obj, path);
             }
-            AppEventType::PreviewDownloadObjectAs => {
-                app.preview_download_object_as();
+            AppEventType::PreviewDownloadObjectAs(file_detail, input) => {
+                app.preview_download_object_as(file_detail, input);
             }
             AppEventType::BucketListOpenManagementConsole => {
                 app.bucket_list_open_management_console();

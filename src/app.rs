@@ -496,21 +496,13 @@ impl App {
         page.close_save_dialog();
     }
 
-    pub fn preview_download_object_as(&mut self) {
-        let object_preview_page = self.page_stack.current_page().as_object_preview();
-        let file_detail = object_preview_page.file_detail();
+    pub fn preview_download_object_as(&mut self, file_detail: FileDetail, input: String) {
+        self.tx
+            .send(AppEventType::DownloadObjectAs(file_detail, input));
+        self.app_view_state.is_loading = true;
 
-        if let Some(input) = object_preview_page.save_dialog_key_input() {
-            let input = input.trim().to_string();
-            if !input.is_empty() {
-                self.tx
-                    .send(AppEventType::DownloadObjectAs(file_detail.clone(), input));
-                self.app_view_state.is_loading = true;
-            }
-
-            let page = self.page_stack.current_page_mut().as_mut_object_preview();
-            page.close_save_dialog();
-        }
+        let page = self.page_stack.current_page_mut().as_mut_object_preview();
+        page.close_save_dialog();
     }
 
     pub fn copy_to_clipboard(&self, name: String, value: String) {

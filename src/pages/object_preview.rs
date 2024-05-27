@@ -111,7 +111,12 @@ impl ObjectPreviewPage {
                     self.close_save_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
-                    self.tx.send(AppEventType::PreviewDownloadObjectAs);
+                    let input: String = state.input().trim().into();
+                    if !input.is_empty() {
+                        let file_detail = self.file_detail.clone();
+                        self.tx
+                            .send(AppEventType::PreviewDownloadObjectAs(file_detail, input));
+                    }
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
