@@ -194,18 +194,6 @@ impl ObjectPreviewPage {
     pub fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
     }
-
-    pub fn file_detail(&self) -> &FileDetail {
-        &self.file_detail
-    }
-
-    pub fn save_dialog_key_input(&self) -> Option<String> {
-        if let ViewState::SaveDialog(state) = &self.view_state {
-            Some(state.input().into())
-        } else {
-            None
-        }
-    }
 }
 
 #[cfg(test)]
