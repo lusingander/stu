@@ -22,20 +22,20 @@ pub enum AppEventType {
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
     LoadObject,
     CompleteLoadObject(Result<CompleteLoadObjectResult>),
-    DownloadObject(FileDetail),
-    DownloadObjectAs(FileDetail, String),
+    DownloadObject(FileDetail, Option<String>),
+    DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
-    PreviewObject(FileDetail),
+    PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,
     ObjectListMoveDown,
     ObjectListMoveUp,
     BackToBucketList,
-    OpenPreview(FileDetail),
-    DetailDownloadObject(FileDetail),
-    DetailDownloadObjectAs(FileDetail, String),
+    OpenPreview(FileDetail, Option<String>),
+    DetailDownloadObject(FileDetail, Option<String>),
+    DetailDownloadObjectAs(FileDetail, String, Option<String>),
     PreviewDownloadObject(RawObject, String),
-    PreviewDownloadObjectAs(FileDetail, String),
+    PreviewDownloadObjectAs(FileDetail, String, Option<String>),
     BucketListOpenManagementConsole,
     ObjectListOpenManagementConsole,
     ObjectDetailOpenManagementConsole(String),
@@ -113,6 +113,7 @@ impl CompleteDownloadObjectResult {
 pub struct CompletePreviewObjectResult {
     pub obj: RawObject,
     pub file_detail: FileDetail,
+    pub file_version_id: Option<String>,
     pub path: String,
 }
 
@@ -120,12 +121,14 @@ impl CompletePreviewObjectResult {
     pub fn new(
         obj: Result<RawObject>,
         file_detail: FileDetail,
+        file_version_id: Option<String>,
         path: String,
     ) -> Result<CompletePreviewObjectResult> {
         let obj = obj?;
         Ok(CompletePreviewObjectResult {
             obj,
             file_detail,
+            file_version_id,
             path,
         })
     }

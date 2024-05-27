@@ -210,19 +210,19 @@ impl Client {
         &self,
         bucket: &str,
         key: &str,
+        version_id: Option<String>,
         size_byte: usize,
         f: F,
     ) -> Result<RawObject>
     where
         F: Fn(usize),
     {
-        let result = self
-            .client
-            .get_object()
-            .bucket(bucket)
-            .key(key)
-            .send()
-            .await;
+        let mut request = self.client.get_object().bucket(bucket).key(key);
+        if let Some(version_id) = version_id {
+            request = request.version_id(version_id);
+        }
+
+        let result = request.send().await;
         let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
 
         let mut bytes: Vec<u8> = Vec::with_capacity(size_byte);

@@ -15,6 +15,7 @@ pub struct ObjectPreviewPage {
     state: TextPreviewState,
 
     file_detail: FileDetail,
+    file_version_id: Option<String>,
     object: RawObject,
     path: String,
 
@@ -33,6 +34,7 @@ enum ViewState {
 impl ObjectPreviewPage {
     pub fn new(
         file_detail: FileDetail,
+        file_version_id: Option<String>,
         object: RawObject,
         path: String,
         preview_config: PreviewConfig,
@@ -47,6 +49,7 @@ impl ObjectPreviewPage {
             state,
             object,
             file_detail,
+            file_version_id,
             path,
             view_state: ViewState::Default,
             tx,
@@ -113,9 +116,11 @@ impl ObjectPreviewPage {
                 key_code!(KeyCode::Enter) => {
                     let input: String = state.input().trim().into();
                     if !input.is_empty() {
-                        let file_detail = self.file_detail.clone();
-                        self.tx
-                            .send(AppEventType::PreviewDownloadObjectAs(file_detail, input));
+                        self.tx.send(AppEventType::PreviewDownloadObjectAs(
+                            self.file_detail.clone(),
+                            input,
+                            self.file_version_id.clone(),
+                        ));
                     }
                 }
                 key_code_char!('?') => {
@@ -228,7 +233,7 @@ mod tests {
             let file_path = "file.txt".to_string();
             let preview_config = PreviewConfig::default();
             let mut page =
-                ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
+                ObjectPreviewPage::new(file_detail, None, object, file_path, preview_config, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -267,7 +272,7 @@ mod tests {
             let file_path = "file.txt".to_string();
             let preview_config = PreviewConfig::default();
             let mut page =
-                ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
+                ObjectPreviewPage::new(file_detail, None, object, file_path, preview_config, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -311,7 +316,7 @@ mod tests {
             let file_path = "file.txt".to_string();
             let preview_config = PreviewConfig::default();
             let mut page =
-                ObjectPreviewPage::new(file_detail, object, file_path, preview_config, tx);
+                ObjectPreviewPage::new(file_detail, None, object, file_path, preview_config, tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);

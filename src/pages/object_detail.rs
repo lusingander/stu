@@ -28,6 +28,7 @@ const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 #[derive(Debug)]
 pub struct ObjectDetailPage {
     file_detail: FileDetail,
+    file_versions: Vec<FileVersion>,
 
     tab: Tab,
     view_state: ViewState,
@@ -67,6 +68,7 @@ impl ObjectDetailPage {
         let version_tab_state = VersionTabState::new(&file_versions);
         Self {
             file_detail,
+            file_versions,
             tab: Tab::Detail,
             view_state: ViewState::Default,
             object_items,
@@ -116,15 +118,19 @@ impl ObjectDetailPage {
                     }
                 }
                 key_code_char!('s') => {
-                    self.tx
-                        .send(AppEventType::DetailDownloadObject(self.file_detail.clone()));
+                    self.tx.send(AppEventType::DetailDownloadObject(
+                        self.file_detail.clone(),
+                        self.current_selected_version_id(),
+                    ));
                 }
                 key_code_char!('S') => {
                     self.open_save_dialog();
                 }
                 key_code_char!('p') => {
-                    self.tx
-                        .send(AppEventType::OpenPreview(self.file_detail.clone()));
+                    self.tx.send(AppEventType::OpenPreview(
+                        self.file_detail.clone(),
+                        self.current_selected_version_id(),
+                    ));
                 }
                 key_code_char!('r') => {
                     self.open_copy_detail_dialog();
@@ -146,9 +152,11 @@ impl ObjectDetailPage {
                 key_code!(KeyCode::Enter) => {
                     let input: String = state.input().trim().into();
                     if !input.is_empty() {
-                        let file_detail = self.file_detail.clone();
-                        self.tx
-                            .send(AppEventType::DetailDownloadObjectAs(file_detail, input));
+                        self.tx.send(AppEventType::DetailDownloadObjectAs(
+                            self.file_detail.clone(),
+                            input,
+                            self.current_selected_version_id(),
+                        ));
                     }
                 }
                 key_code_char!('?') => {
@@ -327,6 +335,16 @@ impl ObjectDetailPage {
 
     fn close_copy_detail_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    fn current_selected_version_id(&self) -> Option<String> {
+        match self.tab {
+            Tab::Detail => None,
+            Tab::Version => self
+                .file_versions
+                .get(self.version_tab_state.selected)
+                .map(|v| v.version_id.clone()),
+        }
     }
 }
 

@@ -51,6 +51,7 @@ impl Page {
 
     pub fn of_object_preview(
         file_detail: FileDetail,
+        file_version_id: Option<String>,
         object: RawObject,
         path: String,
         preview_config: PreviewConfig,
@@ -58,6 +59,7 @@ impl Page {
     ) -> Self {
         Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
             file_detail,
+            file_version_id,
             object,
             path,
             preview_config,

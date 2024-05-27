@@ -88,17 +88,17 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObject(result) => {
                 app.complete_load_object(result);
             }
-            AppEventType::DownloadObject(file_detail) => {
-                app.download_object(file_detail);
+            AppEventType::DownloadObject(file_detail, version_id) => {
+                app.download_object(file_detail, version_id);
             }
-            AppEventType::DownloadObjectAs(file_detail, input) => {
-                app.download_object_as(file_detail, input);
+            AppEventType::DownloadObjectAs(file_detail, input, version_id) => {
+                app.download_object_as(file_detail, input, version_id);
             }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
             }
-            AppEventType::PreviewObject(file_detail) => {
-                app.preview_object(file_detail);
+            AppEventType::PreviewObject(file_detail, version_id) => {
+                app.preview_object(file_detail, version_id);
             }
             AppEventType::CompletePreviewObject(result) => {
                 app.complete_preview_object(result);
@@ -115,20 +115,20 @@ pub async fn run<B: Backend>(
             AppEventType::BackToBucketList => {
                 app.back_to_bucket_list();
             }
-            AppEventType::OpenPreview(file_detail) => {
-                app.open_preview(file_detail);
+            AppEventType::OpenPreview(file_detail, version_id) => {
+                app.open_preview(file_detail, version_id);
             }
-            AppEventType::DetailDownloadObject(file_detail) => {
-                app.detail_download_object(file_detail);
+            AppEventType::DetailDownloadObject(file_detail, version_id) => {
+                app.detail_download_object(file_detail, version_id);
             }
-            AppEventType::DetailDownloadObjectAs(file_detail, input) => {
-                app.detail_download_object_as(file_detail, input);
+            AppEventType::DetailDownloadObjectAs(file_detail, input, version_id) => {
+                app.detail_download_object_as(file_detail, input, version_id);
             }
             AppEventType::PreviewDownloadObject(obj, path) => {
                 app.preview_download_object(obj, path);
             }
-            AppEventType::PreviewDownloadObjectAs(file_detail, input) => {
-                app.preview_download_object_as(file_detail, input);
+            AppEventType::PreviewDownloadObjectAs(file_detail, input, version_id) => {
+                app.preview_download_object_as(file_detail, input, version_id);
             }
             AppEventType::BucketListOpenManagementConsole => {
                 app.bucket_list_open_management_console();

@@ -327,8 +327,9 @@ impl App {
         self.page_stack.pop();
     }
 
-    pub fn detail_download_object(&mut self, file_detail: FileDetail) {
-        self.tx.send(AppEventType::DownloadObject(file_detail));
+    pub fn detail_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
+        self.tx
+            .send(AppEventType::DownloadObject(file_detail, version_id));
         self.app_view_state.is_loading = true;
     }
 
@@ -337,29 +338,47 @@ impl App {
         self.tx.send(AppEventType::CompleteDownloadObject(result));
     }
 
-    pub fn open_preview(&mut self, file_detail: FileDetail) {
-        self.tx.send(AppEventType::PreviewObject(file_detail));
+    pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
+        self.tx
+            .send(AppEventType::PreviewObject(file_detail, version_id));
         self.app_view_state.is_loading = true;
     }
 
-    pub fn download_object(&self, file_detail: FileDetail) {
+    pub fn download_object(&self, file_detail: FileDetail, version_id: Option<String>) {
         let object_name = file_detail.name;
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(&object_name, size_byte, None, |tx, obj, path| {
-            let result = CompleteDownloadObjectResult::new(obj, path);
-            tx.send(AppEventType::CompleteDownloadObject(result));
-        })
+        self.download_object_and(
+            &object_name,
+            size_byte,
+            None,
+            version_id,
+            |tx, obj, path| {
+                let result = CompleteDownloadObjectResult::new(obj, path);
+                tx.send(AppEventType::CompleteDownloadObject(result));
+            },
+        )
     }
 
-    pub fn download_object_as(&self, file_detail: FileDetail, input: String) {
+    pub fn download_object_as(
+        &self,
+        file_detail: FileDetail,
+        input: String,
+        version_id: Option<String>,
+    ) {
         let object_name = file_detail.name;
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(&object_name, size_byte, Some(&input), |tx, obj, path| {
-            let result = CompleteDownloadObjectResult::new(obj, path);
-            tx.send(AppEventType::CompleteDownloadObject(result));
-        })
+        self.download_object_and(
+            &object_name,
+            size_byte,
+            Some(&input),
+            version_id,
+            |tx, obj, path| {
+                let result = CompleteDownloadObjectResult::new(obj, path);
+                tx.send(AppEventType::CompleteDownloadObject(result));
+            },
+        )
     }
 
     pub fn complete_download_object(&mut self, result: Result<CompleteDownloadObjectResult>) {
@@ -381,14 +400,20 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub fn preview_object(&self, file_detail: FileDetail) {
+    pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {
         let object_name = file_detail.name.clone();
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(&object_name, size_byte, None, |tx, obj, path| {
-            let result = CompletePreviewObjectResult::new(obj, file_detail, path);
-            tx.send(AppEventType::CompletePreviewObject(result));
-        })
+        self.download_object_and(
+            &object_name,
+            size_byte,
+            None,
+            version_id.clone(),
+            |tx, obj, path| {
+                let result = CompletePreviewObjectResult::new(obj, file_detail, version_id, path);
+                tx.send(AppEventType::CompletePreviewObject(result));
+            },
+        )
     }
 
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
@@ -396,10 +421,12 @@ impl App {
             Ok(CompletePreviewObjectResult {
                 obj,
                 file_detail,
+                file_version_id,
                 path,
             }) => {
                 let object_preview_page = Page::of_object_preview(
                     file_detail,
+                    file_version_id,
                     obj,
                     path,
                     self.config.preview.clone(),
@@ -420,6 +447,7 @@ impl App {
         object_name: &str,
         size_byte: usize,
         save_file_name: Option<&str>,
+        version_id: Option<String>,
         f: F,
     ) where
         F: FnOnce(Sender, Result<RawObject>, String) + Send + 'static,
@@ -436,7 +464,7 @@ impl App {
         let loading = self.handle_loading_size(size_byte, tx.clone());
         spawn(async move {
             let obj = client
-                .download_object(&bucket, &key, size_byte, loading)
+                .download_object(&bucket, &key, version_id, size_byte, loading)
                 .await;
             f(tx, obj, path);
         });
@@ -487,18 +515,34 @@ impl App {
         }
     }
 
-    pub fn detail_download_object_as(&mut self, file_detail: FileDetail, input: String) {
-        self.tx
-            .send(AppEventType::DownloadObjectAs(file_detail, input));
+    pub fn detail_download_object_as(
+        &mut self,
+        file_detail: FileDetail,
+        input: String,
+        version_id: Option<String>,
+    ) {
+        self.tx.send(AppEventType::DownloadObjectAs(
+            file_detail,
+            input,
+            version_id,
+        ));
         self.app_view_state.is_loading = true;
 
         let page = self.page_stack.current_page_mut().as_mut_object_detail();
         page.close_save_dialog();
     }
 
-    pub fn preview_download_object_as(&mut self, file_detail: FileDetail, input: String) {
-        self.tx
-            .send(AppEventType::DownloadObjectAs(file_detail, input));
+    pub fn preview_download_object_as(
+        &mut self,
+        file_detail: FileDetail,
+        input: String,
+        version_id: Option<String>,
+    ) {
+        self.tx.send(AppEventType::DownloadObjectAs(
+            file_detail,
+            input,
+            version_id,
+        ));
         self.app_view_state.is_loading = true;
 
         let page = self.page_stack.current_page_mut().as_mut_object_preview();
