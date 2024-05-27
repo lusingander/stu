@@ -91,11 +91,15 @@ fn build_highlighted_lines(
 #[derive(Debug)]
 pub struct TextPreview<'a> {
     file_name: &'a str,
+    file_version_id: Option<&'a str>,
 }
 
 impl<'a> TextPreview<'a> {
-    pub fn new(file_name: &'a str) -> Self {
-        Self { file_name }
+    pub fn new(file_name: &'a str, file_version_id: Option<&'a str>) -> Self {
+        Self {
+            file_name,
+            file_version_id,
+        }
     }
 }
 
@@ -103,7 +107,11 @@ impl StatefulWidget for TextPreview<'_> {
     type State = TextPreviewState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let title = format!("Preview [{}]", self.file_name);
+        let title = if let Some(version_id) = self.file_version_id {
+            format!("Preview [{} (Version ID: {})]", self.file_name, version_id)
+        } else {
+            format!("Preview [{}]", self.file_name)
+        };
         ScrollLines::default()
             .block(Block::bordered().title(title))
             .render(area, buf, &mut state.scroll_lines_state);
