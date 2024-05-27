@@ -130,8 +130,9 @@ impl ObjectDetailPage {
                     self.open_copy_detail_dialog();
                 }
                 key_code_char!('x') => {
+                    let file_name = self.file_detail.name.clone();
                     self.tx
-                        .send(AppEventType::ObjectDetailOpenManagementConsole);
+                        .send(AppEventType::ObjectDetailOpenManagementConsole(file_name));
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);

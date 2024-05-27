@@ -136,8 +136,8 @@ pub async fn run<B: Backend>(
             AppEventType::ObjectListOpenManagementConsole => {
                 app.object_list_open_management_console();
             }
-            AppEventType::ObjectDetailOpenManagementConsole => {
-                app.object_detail_open_management_console();
+            AppEventType::ObjectDetailOpenManagementConsole(name) => {
+                app.object_detail_open_management_console(name);
             }
             AppEventType::CloseCurrentPage => {
                 app.close_current_page();

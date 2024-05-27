@@ -482,17 +482,11 @@ impl App {
         }
     }
 
-    pub fn object_detail_open_management_console(&self) {
-        let object_detail_page = self.page_stack.current_page().as_object_detail();
-
+    pub fn object_detail_open_management_console(&self, name: String) {
         let (client, _) = self.unwrap_client_tx();
         let prefix = self.current_object_prefix();
 
-        let result = client.open_management_console_object(
-            &self.current_bucket(),
-            &prefix,
-            &object_detail_page.file_detail().name,
-        );
+        let result = client.open_management_console_object(&self.current_bucket(), &prefix, &name);
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }

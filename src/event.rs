@@ -38,7 +38,7 @@ pub enum AppEventType {
     PreviewDownloadObjectAs,
     BucketListOpenManagementConsole,
     ObjectListOpenManagementConsole,
-    ObjectDetailOpenManagementConsole,
+    ObjectDetailOpenManagementConsole(String),
     CloseCurrentPage,
     OpenHelp,
     CopyToClipboard(String, String),
