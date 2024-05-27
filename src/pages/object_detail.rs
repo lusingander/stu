@@ -28,7 +28,6 @@ const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 #[derive(Debug)]
 pub struct ObjectDetailPage {
     file_detail: FileDetail,
-    file_versions: Vec<FileVersion>,
 
     tab: Tab,
     view_state: ViewState,
@@ -65,10 +64,9 @@ impl ObjectDetailPage {
         tx: Sender,
     ) -> Self {
         let detail_tab_state = DetailTabState::new(&file_detail);
-        let version_tab_state = VersionTabState::default();
+        let version_tab_state = VersionTabState::new(&file_versions);
         Self {
             file_detail,
-            file_versions,
             tab: Tab::Detail,
             view_state: ViewState::Default,
             object_items,
@@ -88,18 +86,34 @@ impl ObjectDetailPage {
                 key_code!(KeyCode::Backspace) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
-                key_code_char!('j') => {
-                    if self.tab == Tab::Detail {
-                        self.detail_tab_state.scroll_lines_state.scroll_forward();
-                    }
-                }
-                key_code_char!('k') => {
-                    if self.tab == Tab::Detail {
-                        self.detail_tab_state.scroll_lines_state.scroll_backward();
-                    }
-                }
                 key_code_char!('h') | key_code_char!('l') => {
                     self.toggle_tab();
+                }
+                key_code_char!('j') => match self.tab {
+                    Tab::Detail => {
+                        self.detail_tab_state.scroll_lines_state.scroll_forward();
+                    }
+                    Tab::Version => {
+                        self.version_tab_state.select_next();
+                    }
+                },
+                key_code_char!('k') => match self.tab {
+                    Tab::Detail => {
+                        self.detail_tab_state.scroll_lines_state.scroll_backward();
+                    }
+                    Tab::Version => {
+                        self.version_tab_state.select_prev();
+                    }
+                },
+                key_code_char!('g') => {
+                    if self.tab == Tab::Version {
+                        self.version_tab_state.select_first();
+                    }
+                }
+                key_code_char!('G') => {
+                    if self.tab == Tab::Version {
+                        self.version_tab_state.select_last();
+                    }
                 }
                 key_code_char!('s') => {
                     self.tx.send(AppEventType::DetailDownloadObject);
@@ -186,8 +200,8 @@ impl ObjectDetailPage {
                 f.render_stateful_widget(detail, chunks[1], &mut self.detail_tab_state);
             }
             Tab::Version => {
-                let version = VersionTab::new(&self.file_versions, &self.version_tab_state);
-                f.render_widget(version, chunks[1]);
+                let version = VersionTab::default();
+                f.render_stateful_widget(version, chunks[1], &mut self.version_tab_state);
             }
         }
 
@@ -222,6 +236,8 @@ impl ObjectDetailPage {
                 Tab::Version => &[
                     (&["Esc", "Ctrl-c"], "Quit app"),
                     (&["h/l"], "Select tabs"),
+                    (&["j/k"], "Select version"),
+                    (&["g/G"], "Go to top/bottom"),
                     (&["Backspace"], "Close detail panel"),
                     (&["r"], "Open copy dialog"),
                     (&["s"], "Download object"),
@@ -260,6 +276,7 @@ impl ObjectDetailPage {
                 Tab::Version => &[
                     (&["Esc"], "Quit", 0),
                     (&["h/l"], "Select tabs", 3),
+                    (&["j/k"], "Select", 5),
                     (&["s/S"], "Download", 1),
                     (&["p"], "Preview", 4),
                     (&["Backspace"], "Close", 2),
@@ -438,43 +455,120 @@ impl StatefulWidget for DetailTab {
     }
 }
 
-#[derive(Debug, Default)]
-struct VersionTabState {
-    selected: usize,
-}
-
-#[derive(Debug)]
-struct VersionTab<'a> {
-    versions: &'a [FileVersion],
-    state: &'a VersionTabState,
-}
-
-impl<'a> VersionTab<'a> {
-    fn new(versions: &'a [FileVersion], state: &'a VersionTabState) -> Self {
-        Self { versions, state }
-    }
-}
-
-impl Widget for VersionTab<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let mut area = area;
-
-        for (i, v) in self.versions.iter().enumerate() {
-            let lines = vec![
+fn build_help_lines(versions: &[FileVersion]) -> Vec<Vec<Line<'static>>> {
+    versions
+        .iter()
+        .map(|v| {
+            let version_id = format_version(&v.version_id).to_owned();
+            let last_modified = format_datetime(&v.last_modified);
+            let size_byte = format_size_byte(v.size_byte);
+            vec![
                 Line::from(vec![
                     "   Version ID: ".add_modifier(Modifier::BOLD),
-                    Span::raw(format_version(&v.version_id)),
+                    Span::raw(version_id),
                 ]),
                 Line::from(vec![
                     "Last Modified: ".add_modifier(Modifier::BOLD),
-                    Span::raw(format_datetime(&v.last_modified)),
+                    Span::raw(last_modified),
                 ]),
                 Line::from(vec![
                     "         Size: ".add_modifier(Modifier::BOLD),
-                    Span::raw(format_size_byte(v.size_byte)),
+                    Span::raw(size_byte),
                 ]),
-            ];
+            ]
+        })
+        .collect()
+}
 
+#[derive(Debug, Default)]
+struct VersionTabState {
+    help_lines: Vec<Vec<Line<'static>>>,
+    selected: usize,
+    offset: usize,
+    height: usize,
+}
+
+impl VersionTabState {
+    fn new(versions: &[FileVersion]) -> Self {
+        let help_lines = build_help_lines(versions);
+        Self {
+            help_lines,
+            ..Default::default()
+        }
+    }
+
+    fn select_next(&mut self) {
+        if self.selected >= self.help_lines.len() - 1 {
+            return;
+        }
+
+        self.selected += 1;
+
+        let mut total_height = 0;
+        for lines in self
+            .help_lines
+            .iter()
+            .skip(self.offset)
+            .take(self.selected - self.offset + 1)
+        {
+            total_height += lines.len();
+            total_height += 1; // divider
+        }
+        if total_height > self.height {
+            self.offset += 1;
+        }
+    }
+
+    fn select_prev(&mut self) {
+        if self.selected == 0 {
+            return;
+        }
+
+        self.selected -= 1;
+        if self.selected < self.offset {
+            self.offset -= 1;
+        }
+    }
+
+    fn select_first(&mut self) {
+        self.selected = 0;
+        self.offset = 0;
+    }
+
+    fn select_last(&mut self) {
+        self.selected = self.help_lines.len() - 1;
+
+        let mut total_height = 0;
+        for (i, lines) in self.help_lines.iter().enumerate().rev() {
+            total_height += lines.len();
+            total_height += 1; // divider
+
+            // https://github.com/rust-lang/rust-clippy/issues/4725
+            #[allow(clippy::comparison_chain)]
+            if total_height == self.height {
+                self.offset = i;
+                break;
+            } else if total_height > self.height {
+                self.offset = i + 1;
+                break;
+            }
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+struct VersionTab {}
+
+impl StatefulWidget for VersionTab {
+    type State = VersionTabState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // update state
+        state.height = area.height as usize;
+
+        let mut area = area;
+
+        for (i, lines) in state.help_lines.iter().enumerate().skip(state.offset) {
             let lines_count = lines.len() as u16;
 
             if area.height < lines_count {
@@ -499,12 +593,12 @@ impl Widget for VersionTab<'_> {
             let chunks =
                 Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).split(chunks[0]);
 
-            let version_paragraph = Paragraph::new(lines).block(
+            let version_paragraph = Paragraph::new(lines.clone()).block(
                 Block::default()
                     .borders(Borders::NONE)
                     .padding(Padding::left(1)),
             );
-            if i == self.state.selected {
+            if i == state.selected {
                 let bar = Bar::default().color(SELECTED_COLOR);
                 bar.render(chunks[0], buf);
             }
