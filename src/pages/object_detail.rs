@@ -123,7 +123,8 @@ impl ObjectDetailPage {
                     self.open_save_dialog();
                 }
                 key_code_char!('p') => {
-                    self.tx.send(AppEventType::OpenPreview);
+                    self.tx
+                        .send(AppEventType::OpenPreview(self.file_detail.clone()));
                 }
                 key_code_char!('r') => {
                     self.open_copy_detail_dialog();

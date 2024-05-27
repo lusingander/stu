@@ -31,7 +31,7 @@ pub enum AppEventType {
     ObjectListMoveDown,
     ObjectListMoveUp,
     BackToBucketList,
-    OpenPreview,
+    OpenPreview(FileDetail),
     DetailDownloadObject(FileDetail),
     DetailDownloadObjectAs(FileDetail, String),
     PreviewDownloadObject,

@@ -342,12 +342,8 @@ impl App {
         self.tx.send(AppEventType::CompleteDownloadObject(result));
     }
 
-    pub fn open_preview(&mut self) {
-        let object_detail_page = self.page_stack.current_page().as_object_detail();
-        let file_detail = object_detail_page.file_detail();
-
-        self.tx
-            .send(AppEventType::PreviewObject(file_detail.clone()));
+    pub fn open_preview(&mut self, file_detail: FileDetail) {
+        self.tx.send(AppEventType::PreviewObject(file_detail));
         self.app_view_state.is_loading = true;
     }
 

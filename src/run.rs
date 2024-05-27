@@ -115,8 +115,8 @@ pub async fn run<B: Backend>(
             AppEventType::BackToBucketList => {
                 app.back_to_bucket_list();
             }
-            AppEventType::OpenPreview => {
-                app.open_preview();
+            AppEventType::OpenPreview(file_detail) => {
+                app.open_preview(file_detail);
             }
             AppEventType::DetailDownloadObject(file_detail) => {
                 app.detail_download_object(file_detail);
