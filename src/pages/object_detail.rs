@@ -2,10 +2,10 @@ use crossterm::event::{KeyCode, KeyEvent};
 use itsuki::zero_indexed_enum;
 use ratatui::{
     buffer::Buffer,
-    layout::{Constraint, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, StatefulWidget, Tabs, Widget},
+    widgets::{Block, Borders, ListItem, Padding, Paragraph, StatefulWidget, Tabs, Widget},
     Frame,
 };
 
@@ -16,15 +16,14 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
-        CopyDetailDialog, CopyDetailDialogState, SaveDialog, SaveDialogState, ScrollLines,
-        ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
+        Bar, CopyDetailDialog, CopyDetailDialogState, Divider, SaveDialog, SaveDialogState,
+        ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
     },
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
 const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
-const DIVIDER_COLOR: Color = Color::DarkGray;
 
 #[derive(Debug)]
 pub struct ObjectDetailPage {
@@ -37,6 +36,7 @@ pub struct ObjectDetailPage {
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
     detail_tab_state: DetailTabState,
+    version_tab_state: VersionTabState,
     tx: Sender,
 }
 
@@ -65,6 +65,7 @@ impl ObjectDetailPage {
         tx: Sender,
     ) -> Self {
         let detail_tab_state = DetailTabState::new(&file_detail);
+        let version_tab_state = VersionTabState::default();
         Self {
             file_detail,
             file_versions,
@@ -73,6 +74,7 @@ impl ObjectDetailPage {
             object_items,
             list_state,
             detail_tab_state,
+            version_tab_state,
             tx,
         }
     }
@@ -184,7 +186,7 @@ impl ObjectDetailPage {
                 f.render_stateful_widget(detail, chunks[1], &mut self.detail_tab_state);
             }
             Tab::Version => {
-                let version = VersionTab::new(&self.file_versions, chunks[1].width);
+                let version = VersionTab::new(&self.file_versions, &self.version_tab_state);
                 f.render_widget(version, chunks[1]);
             }
         }
@@ -436,45 +438,78 @@ impl StatefulWidget for DetailTab {
     }
 }
 
+#[derive(Debug, Default)]
+struct VersionTabState {
+    selected: usize,
+}
+
 #[derive(Debug)]
 struct VersionTab<'a> {
     versions: &'a [FileVersion],
-    width: u16,
+    state: &'a VersionTabState,
 }
 
 impl<'a> VersionTab<'a> {
-    fn new(versions: &'a [FileVersion], width: u16) -> Self {
-        Self { versions, width }
+    fn new(versions: &'a [FileVersion], state: &'a VersionTabState) -> Self {
+        Self { versions, state }
     }
 }
 
 impl Widget for VersionTab<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let list_items: Vec<ListItem> = self
-            .versions
-            .iter()
-            .map(|v| {
-                let content = vec![
-                    Line::from(vec![
-                        "    Version ID: ".add_modifier(Modifier::BOLD),
-                        Span::raw(format_version(&v.version_id)),
-                    ]),
-                    Line::from(vec![
-                        " Last Modified: ".add_modifier(Modifier::BOLD),
-                        Span::raw(format_datetime(&v.last_modified)),
-                    ]),
-                    Line::from(vec![
-                        "          Size: ".add_modifier(Modifier::BOLD),
-                        Span::raw(format_size_byte(v.size_byte)),
-                    ]),
-                    Line::from("─".repeat(self.width as usize).fg(DIVIDER_COLOR)),
-                ];
-                ListItem::new(content)
-            })
-            .collect();
+        let mut area = area;
 
-        let list = List::new(list_items).highlight_style(Style::default().bg(SELECTED_COLOR));
-        Widget::render(list, area, buf);
+        for (i, v) in self.versions.iter().enumerate() {
+            let lines = vec![
+                Line::from(vec![
+                    "   Version ID: ".add_modifier(Modifier::BOLD),
+                    Span::raw(format_version(&v.version_id)),
+                ]),
+                Line::from(vec![
+                    "Last Modified: ".add_modifier(Modifier::BOLD),
+                    Span::raw(format_datetime(&v.last_modified)),
+                ]),
+                Line::from(vec![
+                    "         Size: ".add_modifier(Modifier::BOLD),
+                    Span::raw(format_size_byte(v.size_byte)),
+                ]),
+            ];
+
+            let lines_count = lines.len() as u16;
+
+            if area.height < lines_count {
+                let version_paragraph = Paragraph::new("⋮").alignment(Alignment::Center);
+                version_paragraph.render(area, buf);
+                break;
+            }
+
+            let divider_area_height = if area.height > lines_count { 1 } else { 0 };
+
+            let chunks = Layout::vertical([
+                Constraint::Length(lines_count),
+                Constraint::Length(divider_area_height),
+                Constraint::Min(0),
+            ])
+            .split(area);
+            area = chunks[2];
+
+            let divider = Divider::default();
+            divider.render(chunks[1], buf);
+
+            let chunks =
+                Layout::horizontal([Constraint::Length(1), Constraint::Min(0)]).split(chunks[0]);
+
+            let version_paragraph = Paragraph::new(lines).block(
+                Block::default()
+                    .borders(Borders::NONE)
+                    .padding(Padding::left(1)),
+            );
+            if i == self.state.selected {
+                let bar = Bar::default().color(SELECTED_COLOR);
+                bar.render(chunks[0], buf);
+            }
+            version_paragraph.render(chunks[1], buf);
+        }
     }
 }
 
@@ -589,13 +624,13 @@ mod tests {
             "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
             "│  file1                     ││ Detail │ Version           │",
             "│  file2                     ││────────────────────────────│",
-            "│  file3                     ││    Version ID: 60f36bc2-0f3│",
-            "│                            ││ Last Modified: 2024-01-02 1│",
-            "│                            ││          Size: 1.01 KiB    │",
+            "│  file3                     ││┃    Version ID: 60f36bc2-0f│",
+            "│                            ││┃ Last Modified: 2024-01-02 │",
+            "│                            ││┃          Size: 1.01 KiB   │",
             "│                            ││────────────────────────────│",
-            "│                            ││    Version ID: 1c5d3bcc-2bb│",
-            "│                            ││ Last Modified: 2024-01-01 2│",
-            "│                            ││          Size: 1 KiB       │",
+            "│                            ││     Version ID: 1c5d3bcc-2b│",
+            "│                            ││  Last Modified: 2024-01-01 │",
+            "│                            ││           Size: 1 KiB      │",
             "│                            ││────────────────────────────│",
             "│                            ││                            │",
             "│                            ││                            │",
@@ -613,11 +648,13 @@ mod tests {
             // "Version" is selected
             (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Version ID" label
-            (31..47, [3, 7]) => modifier: Modifier::BOLD,
+            (33..48, [3, 7]) => modifier: Modifier::BOLD,
             // "Last Modified" label
-            (31..47, [4, 8]) => modifier: Modifier::BOLD,
+            (33..48, [4, 8]) => modifier: Modifier::BOLD,
             // "Size" label
-            (31..47, [5, 9]) => modifier: Modifier::BOLD,
+            (33..48, [5, 9]) => modifier: Modifier::BOLD,
+            // selected bar
+            ([31], [3, 4, 5]) => fg: Color::Cyan,
             // divider
             (31..59, [6, 10]) => fg: Color::DarkGray,
         }
