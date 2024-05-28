@@ -43,34 +43,34 @@ impl ObjectListPage {
             key_code!(KeyCode::Esc) => {
                 self.tx.send(AppEventType::Quit);
             }
-            key_code!(KeyCode::Enter) => {
+            key_code!(KeyCode::Enter) if self.non_empty() => {
                 self.tx.send(AppEventType::ObjectListMoveDown);
             }
             key_code!(KeyCode::Backspace) => {
                 self.tx.send(AppEventType::ObjectListMoveUp);
             }
-            key_code_char!('j') => {
+            key_code_char!('j') if self.non_empty() => {
                 self.select_next();
             }
-            key_code_char!('k') => {
+            key_code_char!('k') if self.non_empty() => {
                 self.select_prev();
             }
-            key_code_char!('g') => {
+            key_code_char!('g') if self.non_empty() => {
                 self.select_first();
             }
-            key_code_char!('G') => {
+            key_code_char!('G') if self.non_empty() => {
                 self.select_last();
             }
-            key_code_char!('f') => {
+            key_code_char!('f') if self.non_empty() => {
                 self.select_next_page();
             }
-            key_code_char!('b') => {
+            key_code_char!('b') if self.non_empty() => {
                 self.select_prev_page();
             }
             key_code_char!('~') => {
                 self.tx.send(AppEventType::BackToBucketList);
             }
-            key_code_char!('x') => {
+            key_code_char!('x') if self.non_empty() => {
                 self.tx.send(AppEventType::ObjectListOpenManagementConsole);
             }
             key_code_char!('?') => {
@@ -162,6 +162,10 @@ impl ObjectListPage {
 
     pub fn list_state(&self) -> ScrollListState {
         self.list_state
+    }
+
+    fn non_empty(&self) -> bool {
+        !self.object_items.is_empty()
     }
 }
 

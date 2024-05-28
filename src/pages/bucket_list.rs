@@ -41,28 +41,28 @@ impl BucketListPage {
             key_code!(KeyCode::Esc) => {
                 self.tx.send(AppEventType::Quit);
             }
-            key_code!(KeyCode::Enter) => {
+            key_code!(KeyCode::Enter) if self.non_empty() => {
                 self.tx.send(AppEventType::BucketListMoveDown);
             }
-            key_code_char!('j') => {
+            key_code_char!('j') if self.non_empty() => {
                 self.select_next();
             }
-            key_code_char!('k') => {
+            key_code_char!('k') if self.non_empty() => {
                 self.select_prev();
             }
-            key_code_char!('g') => {
+            key_code_char!('g') if self.non_empty() => {
                 self.select_first();
             }
-            key_code_char!('G') => {
+            key_code_char!('G') if self.non_empty() => {
                 self.select_last();
             }
-            key_code_char!('f') => {
+            key_code_char!('f') if self.non_empty() => {
                 self.select_next_page();
             }
-            key_code_char!('b') => {
+            key_code_char!('b') if self.non_empty() => {
                 self.select_prev_page();
             }
-            key_code_char!('x') => {
+            key_code_char!('x') if self.non_empty() => {
                 self.tx.send(AppEventType::BucketListOpenManagementConsole);
             }
             key_code_char!('?') => {
@@ -142,6 +142,10 @@ impl BucketListPage {
                     self.bucket_items.len()
                 )
             })
+    }
+
+    fn non_empty(&self) -> bool {
+        !self.bucket_items.is_empty()
     }
 }
 
