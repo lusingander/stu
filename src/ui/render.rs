@@ -95,16 +95,21 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
 }
 
 fn build_header(app: &App) -> Header {
-    let mut breadcrumb: Vec<String> = app
+    let mut target_pages: Vec<&Page> = app
         .page_stack
         .iter()
-        .filter_map(|page| match page {
-            Page::BucketList(page) => Some(page.current_selected_item().name.clone()),
-            Page::ObjectList(page) => Some(page.current_selected_item().name().into()),
-            _ => None,
+        .filter(|page| matches!(page, Page::BucketList(_) | Page::ObjectList(_)))
+        .collect();
+    target_pages.pop(); // Remove the last item (current page)
+
+    let breadcrumb: Vec<String> = target_pages
+        .iter()
+        .map(|page| match page {
+            Page::BucketList(page) => page.current_selected_item().name.clone(),
+            Page::ObjectList(page) => page.current_selected_item().name().into(),
+            _ => unreachable!(),
         })
         .collect();
-    breadcrumb.pop(); // Remove the last item
     Header::new(breadcrumb)
 }
 
