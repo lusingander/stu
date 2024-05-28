@@ -25,6 +25,9 @@ impl ScrollListState {
     }
 
     pub fn select_next(&mut self) {
+        if self.total == 0 {
+            return;
+        }
         if self.selected >= self.total - 1 {
             self.select_first();
         } else {
@@ -36,6 +39,9 @@ impl ScrollListState {
     }
 
     pub fn select_prev(&mut self) {
+        if self.total == 0 {
+            return;
+        }
         if self.selected == 0 {
             self.select_last();
         } else {
@@ -47,6 +53,9 @@ impl ScrollListState {
     }
 
     pub fn select_next_page(&mut self) {
+        if self.total == 0 {
+            return;
+        }
         if self.total < self.height {
             self.selected = self.total - 1;
             self.offset = 0;
@@ -64,6 +73,9 @@ impl ScrollListState {
     }
 
     pub fn select_prev_page(&mut self) {
+        if self.total == 0 {
+            return;
+        }
         if self.total < self.height {
             self.selected = 0;
             self.offset = 0;
@@ -81,11 +93,17 @@ impl ScrollListState {
     }
 
     pub fn select_first(&mut self) {
+        if self.total == 0 {
+            return;
+        }
         self.selected = 0;
         self.offset = 0;
     }
 
     pub fn select_last(&mut self) {
+        if self.total == 0 {
+            return;
+        }
         self.selected = self.total - 1;
         if self.height < self.total {
             self.offset = self.total - self.height;
