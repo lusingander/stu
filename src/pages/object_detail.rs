@@ -16,7 +16,7 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
-        Bar, CopyDetailDialog, CopyDetailDialogState, Divider, SaveDialog, SaveDialogState,
+        Bar, CopyDetailDialog, CopyDetailDialogState, Divider, InputDialog, InputDialogState,
         ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
     },
 };
@@ -52,7 +52,7 @@ enum Tab {
 enum ViewState {
     #[default]
     Default,
-    SaveDialog(SaveDialogState),
+    SaveDialog(InputDialogState),
     CopyDetailDialog(CopyDetailDialogState),
 }
 
@@ -208,7 +208,7 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
-            let save_dialog = SaveDialog::default();
+            let save_dialog = InputDialog::default().title("Save As").max_width(40);
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -308,7 +308,7 @@ impl ObjectDetailPage {
     }
 
     fn open_save_dialog(&mut self) {
-        self.view_state = ViewState::SaveDialog(SaveDialogState::default());
+        self.view_state = ViewState::SaveDialog(InputDialogState::default());
     }
 
     pub fn close_save_dialog(&mut self) {

@@ -7,7 +7,7 @@ use crate::{
     key_code, key_code_char,
     object::{FileDetail, RawObject},
     pages::util::{build_helps, build_short_helps},
-    widget::{SaveDialog, SaveDialogState, TextPreview, TextPreviewState},
+    widget::{InputDialog, InputDialogState, TextPreview, TextPreviewState},
 };
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub struct ObjectPreviewPage {
 enum ViewState {
     #[default]
     Default,
-    SaveDialog(SaveDialogState),
+    SaveDialog(InputDialogState),
 }
 
 impl ObjectPreviewPage {
@@ -132,7 +132,7 @@ impl ObjectPreviewPage {
         f.render_stateful_widget(preview, area, &mut self.state);
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
-            let save_dialog = SaveDialog::default();
+            let save_dialog = InputDialog::default().title("Save As").max_width(40);
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -187,7 +187,7 @@ impl ObjectPreviewPage {
 
 impl ObjectPreviewPage {
     fn open_save_dialog(&mut self) {
-        self.view_state = ViewState::SaveDialog(SaveDialogState::default());
+        self.view_state = ViewState::SaveDialog(InputDialogState::default());
     }
 
     pub fn close_save_dialog(&mut self) {
