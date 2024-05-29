@@ -2,7 +2,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
     style::{Color, Style},
-    text::Span,
+    text::{Line, Span},
     widgets::ListItem,
     Frame,
 };
@@ -17,6 +17,7 @@ use crate::{
 
 const SELECTED_COLOR: Color = Color::Cyan;
 const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
+const HIGHLIGHTED_ITEM_TEXT_COLOR: Color = Color::Red;
 
 #[derive(Debug)]
 pub struct BucketListPage {
@@ -54,7 +55,11 @@ impl BucketListPage {
         match self.view_state {
             ViewState::Default => match key {
                 key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
+                    if self.filter_input_state.input().is_empty() {
+                        self.tx.send(AppEventType::Quit);
+                    } else {
+                        self.reset_filter();
+                    }
                 }
                 key_code!(KeyCode::Enter) if self.non_empty() => {
                     self.tx.send(AppEventType::BucketListMoveDown);
@@ -113,6 +118,7 @@ impl BucketListPage {
         let list_items = build_list_items(
             &self.bucket_items,
             &self.filtered_indices,
+            self.filter_input_state.input(),
             offset,
             selected,
             area,
@@ -122,8 +128,8 @@ impl BucketListPage {
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
-            let save_dialog = InputDialog::default().title("Filter").max_width(30);
-            f.render_stateful_widget(save_dialog, area, &mut self.filter_input_state);
+            let filter_dialog = InputDialog::default().title("Filter").max_width(30);
+            f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
             f.set_cursor(cursor_x, cursor_y);
@@ -132,16 +138,32 @@ impl BucketListPage {
 
     pub fn helps(&self) -> Vec<String> {
         let helps: &[(&[&str], &str)] = match self.view_state {
-            ViewState::Default => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
-                (&["j/k"], "Select item"),
-                (&["g/G"], "Go to top/bottom"),
-                (&["f"], "Scroll page forward"),
-                (&["b"], "Scroll page backward"),
-                (&["Enter"], "Open bucket"),
-                (&["/"], "Filter bucket list"),
-                (&["x"], "Open management console in browser"),
-            ],
+            ViewState::Default => {
+                if self.filter_input_state.input().is_empty() {
+                    &[
+                        (&["Esc", "Ctrl-c"], "Quit app"),
+                        (&["j/k"], "Select item"),
+                        (&["g/G"], "Go to top/bottom"),
+                        (&["f"], "Scroll page forward"),
+                        (&["b"], "Scroll page backward"),
+                        (&["Enter"], "Open bucket"),
+                        (&["/"], "Filter bucket list"),
+                        (&["x"], "Open management console in browser"),
+                    ]
+                } else {
+                    &[
+                        (&["Ctrl-c"], "Quit app"),
+                        (&["Esc"], "Clear filter"),
+                        (&["j/k"], "Select item"),
+                        (&["g/G"], "Go to top/bottom"),
+                        (&["f"], "Scroll page forward"),
+                        (&["b"], "Scroll page backward"),
+                        (&["Enter"], "Open bucket"),
+                        (&["/"], "Filter bucket list"),
+                        (&["x"], "Open management console in browser"),
+                    ]
+                }
+            }
             ViewState::FilterDialog => &[
                 (&["Ctrl-c"], "Quit app"),
                 (&["Esc"], "Close filter dialog"),
@@ -153,14 +175,27 @@ impl BucketListPage {
 
     pub fn short_helps(&self) -> Vec<(String, usize)> {
         let helps: &[(&[&str], &str, usize)] = match self.view_state {
-            ViewState::Default => &[
-                (&["Esc"], "Quit", 0),
-                (&["j/k"], "Select", 1),
-                (&["g/G"], "Top/Bottom", 4),
-                (&["Enter"], "Open", 2),
-                (&["/"], "Filter", 3),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::Default => {
+                if self.filter_input_state.input().is_empty() {
+                    &[
+                        (&["Esc"], "Quit", 0),
+                        (&["j/k"], "Select", 1),
+                        (&["g/G"], "Top/Bottom", 4),
+                        (&["Enter"], "Open", 2),
+                        (&["/"], "Filter", 3),
+                        (&["?"], "Help", 0),
+                    ]
+                } else {
+                    &[
+                        (&["Esc"], "Clear filter", 0),
+                        (&["j/k"], "Select", 1),
+                        (&["g/G"], "Top/Bottom", 4),
+                        (&["Enter"], "Open", 2),
+                        (&["/"], "Filter", 3),
+                        (&["?"], "Help", 0),
+                    ]
+                }
+            }
             ViewState::FilterDialog => &[
                 (&["Esc"], "Close", 2),
                 (&["Enter"], "Filter", 1),
@@ -201,14 +236,18 @@ impl BucketListPage {
     }
 
     fn close_filter_dialog(&mut self) {
-        self.filter_input_state.clear_input();
+        self.view_state = ViewState::Default;
+        self.reset_filter();
+    }
+
+    fn apply_filter(&mut self) {
         self.view_state = ViewState::Default;
 
         self.update_filtered_indices();
     }
 
-    fn apply_filter(&mut self) {
-        self.view_state = ViewState::Default;
+    fn reset_filter(&mut self) {
+        self.filter_input_state.clear_input();
 
         self.update_filtered_indices();
     }
@@ -254,6 +293,7 @@ impl BucketListPage {
 fn build_list_items<'a>(
     current_items: &'a [BucketItem],
     filter_indices: &'a [usize],
+    filter: &'a str,
     offset: usize,
     selected: usize,
     area: Rect,
@@ -267,25 +307,43 @@ fn build_list_items<'a>(
         .take(show_item_count)
         .enumerate()
         .map(|(idx, (_, item))| {
-            let content = format_bucket_item(&item.name, area.width);
-            let style = Style::default();
-            let span = Span::styled(content, style);
-            if idx + offset == selected {
-                ListItem::new(span).style(
-                    Style::default()
-                        .bg(SELECTED_COLOR)
-                        .fg(SELECTED_ITEM_TEXT_COLOR),
-                )
-            } else {
-                ListItem::new(span)
-            }
+            let selected = idx + offset == selected;
+            build_list_item(&item.name, selected, filter)
         })
         .collect()
 }
 
-fn format_bucket_item(name: &str, width: u16) -> String {
-    let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
-    format!(" {:<name_w$} ", name, name_w = name_w)
+fn build_list_item<'a>(name: &'a str, selected: bool, filter: &'a str) -> ListItem<'a> {
+    let line = if filter.is_empty() {
+        Line::from(vec![Span::raw(" "), Span::raw(name)])
+    } else {
+        let start = name.find(filter).unwrap();
+        let mut chars = name.chars();
+        let before = chars.by_ref().take(start).collect::<String>();
+        let highlighted = chars
+            .by_ref()
+            .take(filter.chars().count())
+            .collect::<String>();
+        let after = chars.collect::<String>();
+        Line::from(vec![
+            Span::raw(" "),
+            Span::raw(before),
+            Span::styled(
+                highlighted,
+                Style::default().fg(HIGHLIGHTED_ITEM_TEXT_COLOR),
+            ),
+            Span::raw(after),
+        ])
+    };
+
+    let style = if selected {
+        Style::default()
+            .bg(SELECTED_COLOR)
+            .fg(SELECTED_ITEM_TEXT_COLOR)
+    } else {
+        Style::default()
+    };
+    ListItem::new(line).style(style)
 }
 
 #[cfg(test)]
