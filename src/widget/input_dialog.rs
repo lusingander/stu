@@ -19,6 +19,10 @@ impl InputDialogState {
         self.input.value()
     }
 
+    pub fn clear_input(&mut self) {
+        self.input.reset();
+    }
+
     pub fn cursor(&self) -> (u16, u16) {
         self.cursor
     }
