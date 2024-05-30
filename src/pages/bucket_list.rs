@@ -1,8 +1,8 @@
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
-    style::{Color, Style},
-    text::{Line, Span},
+    style::{Color, Style, Stylize},
+    text::Line,
     widgets::ListItem,
     Frame,
 };
@@ -12,6 +12,7 @@ use crate::{
     key_code, key_code_char,
     object::BucketItem,
     pages::util::{build_helps, build_short_helps},
+    util::split_str,
     widget::{InputDialog, InputDialogState, ScrollList, ScrollListState},
 };
 
@@ -315,24 +316,15 @@ fn build_list_items<'a>(
 
 fn build_list_item<'a>(name: &'a str, selected: bool, filter: &'a str) -> ListItem<'a> {
     let line = if filter.is_empty() {
-        Line::from(vec![Span::raw(" "), Span::raw(name)])
+        Line::from(vec![" ".into(), name.into(), " ".into()])
     } else {
-        let start = name.find(filter).unwrap();
-        let mut chars = name.chars();
-        let before = chars.by_ref().take(start).collect::<String>();
-        let highlighted = chars
-            .by_ref()
-            .take(filter.chars().count())
-            .collect::<String>();
-        let after = chars.collect::<String>();
+        let (before, highlighted, after) = split_str(name, filter).unwrap();
         Line::from(vec![
-            Span::raw(" "),
-            Span::raw(before),
-            Span::styled(
-                highlighted,
-                Style::default().fg(HIGHLIGHTED_ITEM_TEXT_COLOR),
-            ),
-            Span::raw(after),
+            " ".into(),
+            before.into(),
+            highlighted.fg(HIGHLIGHTED_ITEM_TEXT_COLOR),
+            after.into(),
+            " ".into(),
         ])
     };
 

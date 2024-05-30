@@ -187,7 +187,7 @@ impl App {
                     let object_detail_page = Page::of_object_detail(
                         detail.clone(),
                         versions.clone(),
-                        object_page.object_list().clone(),
+                        object_page.object_list(),
                         object_page.list_state(),
                         self.tx.clone(),
                     );
@@ -296,7 +296,7 @@ impl App {
                 let object_detail_page = Page::of_object_detail(
                     *detail.clone(),
                     versions.clone(),
-                    object_page.object_list().clone(),
+                    object_page.object_list(),
                     object_page.list_state(),
                     self.tx.clone(),
                 );
