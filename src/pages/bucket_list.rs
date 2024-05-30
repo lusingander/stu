@@ -423,6 +423,120 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_filter_items() {
+        let (tx, _) = event::new();
+
+        let items = ["foo", "bar", "baz", "qux", "foobar"]
+            .iter()
+            .map(|name| BucketItem {
+                name: name.to_string(),
+            })
+            .collect();
+        let mut page = BucketListPage::new(items, tx);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
+
+        assert_eq!(page.filtered_indices, vec![1, 2, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
+
+        assert_eq!(page.filtered_indices, vec![1, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
+
+        assert!(page.filtered_indices.is_empty());
+
+        page.handle_key(KeyEvent::from(KeyCode::Backspace));
+        page.handle_key(KeyEvent::from(KeyCode::Backspace));
+
+        assert_eq!(page.filtered_indices, vec![1, 2, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(page.filtered_indices, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_render_filter_items() -> std::io::Result<()> {
+        let (tx, _) = event::new();
+        let mut terminal = setup_terminal()?;
+
+        let items = ["foo", "bar", "baz", "qux", "foobar"]
+            .iter()
+            .map(|name| BucketItem {
+                name: name.to_string(),
+            })
+            .collect();
+        let mut page = BucketListPage::new(items, tx);
+        let area = Rect::new(0, 0, 30, 10);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
+
+        terminal.draw(|f| {
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐",
+            "│  bar                       │",
+            "│  baz                       │",
+            "│ ╭Filter──────────────────╮ │",
+            "│ │ b                      │ │",
+            "│ ╰────────────────────────╯ │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
+            // match
+            ([3], [1]) => fg: Color::Red,
+            ([3], [2]) => fg: Color::Red,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        page.handle_key(KeyEvent::from(KeyCode::Enter));
+
+        terminal.draw(|f| {
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐",
+            "│  bar                       │",
+            "│  baz                       │",
+            "│  foobar                    │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
+            // match
+            ([3, 4], [1]) => fg: Color::Red,
+            ([3, 4], [2]) => fg: Color::Red,
+            ([6, 7], [3]) => fg: Color::Red,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
     fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
         let backend = TestBackend::new(30, 10);
         let mut terminal = Terminal::new(backend)?;
