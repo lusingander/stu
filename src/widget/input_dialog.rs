@@ -99,16 +99,11 @@ mod tests {
             state.handle_key_event(KeyEvent::from(KeyCode::Char(c)));
         }
 
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 10));
         save_dialog.render(buf.area, &mut buf, &mut state);
 
         #[rustfmt::skip]
         let expected = Buffer::with_lines([
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
             "                                        ",
             "                                        ",
             "                                        ",
@@ -119,15 +114,10 @@ mod tests {
             "                                        ",
             "                                        ",
             "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
         ]);
 
         assert_eq!(buf, expected);
-        assert_eq!(state.cursor(), (7, 9));
+        assert_eq!(state.cursor(), (7, 4));
     }
 
     #[test]
@@ -139,16 +129,11 @@ mod tests {
             state.handle_key_event(KeyEvent::from(KeyCode::Char(c)));
         }
 
-        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 9));
         save_dialog.render(buf.area, &mut buf, &mut state);
 
         #[rustfmt::skip]
         let expected = Buffer::with_lines([
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
             "                                        ",
             "                                        ",
             "                                        ",
@@ -158,15 +143,9 @@ mod tests {
             "                                        ",
             "                                        ",
             "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
-            "                                        ",
         ]);
 
         assert_eq!(buf, expected);
-        assert_eq!(state.cursor(), (15, 9));
+        assert_eq!(state.cursor(), (15, 4));
     }
 }
