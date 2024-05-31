@@ -13,7 +13,10 @@ use crate::{
     object::BucketItem,
     pages::util::{build_helps, build_short_helps},
     util::split_str,
-    widget::{InputDialog, InputDialogState, ScrollList, ScrollListState},
+    widget::{
+        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, InputDialog,
+        InputDialogState, ScrollList, ScrollListState,
+    },
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -23,12 +26,13 @@ const HIGHLIGHTED_ITEM_TEXT_COLOR: Color = Color::Red;
 #[derive(Debug)]
 pub struct BucketListPage {
     bucket_items: Vec<BucketItem>,
-    filtered_indices: Vec<usize>,
+    view_indices: Vec<usize>,
 
     view_state: ViewState,
 
     list_state: ScrollListState,
     filter_input_state: InputDialogState,
+    sort_dialog_state: BucketListSortDialogState,
     tx: Sender,
 }
 
@@ -36,18 +40,20 @@ pub struct BucketListPage {
 enum ViewState {
     Default,
     FilterDialog,
+    SortDialog,
 }
 
 impl BucketListPage {
     pub fn new(bucket_items: Vec<BucketItem>, tx: Sender) -> Self {
         let items_len = bucket_items.len();
-        let filtered_indices = (0..items_len).collect();
+        let view_indices = (0..items_len).collect();
         Self {
             bucket_items,
-            filtered_indices,
+            view_indices,
             view_state: ViewState::Default,
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
+            sort_dialog_state: BucketListSortDialogState::default(),
             tx,
         }
     }
@@ -89,6 +95,9 @@ impl BucketListPage {
                 key_code_char!('/') => {
                     self.open_filter_dialog();
                 }
+                key_code_char!('o') => {
+                    self.open_sort_dialog();
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -106,8 +115,26 @@ impl BucketListPage {
                 }
                 _ => {
                     self.filter_input_state.handle_key_event(key);
-                    self.update_filtered_indices();
+                    self.filter_view_indices();
                 }
+            },
+            ViewState::SortDialog => match key {
+                key_code!(KeyCode::Esc) => {
+                    self.close_sort_dialog();
+                }
+                key_code_char!('j') => {
+                    self.select_next_sort_item();
+                }
+                key_code_char!('k') => {
+                    self.select_prev_sort_item();
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.apply_sort();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
             },
         }
     }
@@ -118,7 +145,7 @@ impl BucketListPage {
 
         let list_items = build_list_items(
             &self.bucket_items,
-            &self.filtered_indices,
+            &self.view_indices,
             self.filter_input_state.input(),
             offset,
             selected,
@@ -135,6 +162,11 @@ impl BucketListPage {
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
             f.set_cursor(cursor_x, cursor_y);
         }
+
+        if let ViewState::SortDialog = self.view_state {
+            let sort_dialog = BucketListSortDialog::new(self.sort_dialog_state);
+            f.render_widget(sort_dialog, area);
+        }
     }
 
     pub fn helps(&self) -> Vec<String> {
@@ -149,6 +181,7 @@ impl BucketListPage {
                         (&["b"], "Scroll page backward"),
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
+                        (&["o"], "Sort bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 } else {
@@ -161,6 +194,7 @@ impl BucketListPage {
                         (&["b"], "Scroll page backward"),
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
+                        (&["o"], "Sort bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 }
@@ -169,6 +203,12 @@ impl BucketListPage {
                 (&["Ctrl-c"], "Quit app"),
                 (&["Esc"], "Close filter dialog"),
                 (&["Enter"], "Apply filter"),
+            ],
+            ViewState::SortDialog => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc"], "Close sort dialog"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Apply sort"),
             ],
         };
         build_helps(helps)
@@ -181,9 +221,10 @@ impl BucketListPage {
                     &[
                         (&["Esc"], "Quit", 0),
                         (&["j/k"], "Select", 1),
-                        (&["g/G"], "Top/Bottom", 4),
+                        (&["g/G"], "Top/Bottom", 5),
                         (&["Enter"], "Open", 2),
                         (&["/"], "Filter", 3),
+                        (&["o"], "Sort", 4),
                         (&["?"], "Help", 0),
                     ]
                 } else {
@@ -193,6 +234,7 @@ impl BucketListPage {
                         (&["g/G"], "Top/Bottom", 4),
                         (&["Enter"], "Open", 2),
                         (&["/"], "Filter", 3),
+                        (&["o"], "Sort", 4),
                         (&["?"], "Help", 0),
                     ]
                 }
@@ -200,6 +242,12 @@ impl BucketListPage {
             ViewState::FilterDialog => &[
                 (&["Esc"], "Close", 2),
                 (&["Enter"], "Filter", 1),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::SortDialog => &[
+                (&["Esc"], "Close", 2),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Sort", 1),
                 (&["?"], "Help", 0),
             ],
         };
@@ -241,21 +289,32 @@ impl BucketListPage {
         self.reset_filter();
     }
 
+    fn open_sort_dialog(&mut self) {
+        self.view_state = ViewState::SortDialog;
+    }
+
+    fn close_sort_dialog(&mut self) {
+        self.view_state = ViewState::Default;
+        self.sort_dialog_state.reset();
+
+        self.sort_view_indices();
+    }
+
     fn apply_filter(&mut self) {
         self.view_state = ViewState::Default;
 
-        self.update_filtered_indices();
+        self.filter_view_indices();
     }
 
     fn reset_filter(&mut self) {
         self.filter_input_state.clear_input();
 
-        self.update_filtered_indices();
+        self.filter_view_indices();
     }
 
-    fn update_filtered_indices(&mut self) {
+    fn filter_view_indices(&mut self) {
         let filter = self.filter_input_state.input();
-        self.filtered_indices = self
+        self.view_indices = self
             .bucket_items
             .iter()
             .enumerate()
@@ -263,18 +322,50 @@ impl BucketListPage {
             .map(|(idx, _)| idx)
             .collect();
         // reset list state
-        self.list_state = ScrollListState::new(self.filtered_indices.len());
+        self.list_state = ScrollListState::new(self.view_indices.len());
+
+        self.sort_view_indices();
+    }
+
+    fn apply_sort(&mut self) {
+        self.view_state = ViewState::Default;
+
+        self.sort_view_indices();
+    }
+
+    fn select_next_sort_item(&mut self) {
+        self.sort_dialog_state.select_next();
+
+        self.sort_view_indices();
+    }
+
+    fn select_prev_sort_item(&mut self) {
+        self.sort_dialog_state.select_prev();
+
+        self.sort_view_indices();
+    }
+
+    fn sort_view_indices(&mut self) {
+        match self.sort_dialog_state.selected() {
+            BucketListSortType::Default => self.view_indices.sort(),
+            BucketListSortType::NameAsc => self
+                .view_indices
+                .sort_by(|a, b| self.bucket_items[*a].name.cmp(&self.bucket_items[*b].name)),
+            BucketListSortType::NameDesc => self
+                .view_indices
+                .sort_by(|a, b| self.bucket_items[*b].name.cmp(&self.bucket_items[*a].name)),
+        }
     }
 
     pub fn current_selected_item(&self) -> &BucketItem {
         let i = self
-            .filtered_indices
+            .view_indices
             .get(self.list_state.selected)
             .unwrap_or_else(|| {
                 panic!(
-                    "selected filtered index {} is out of range {}",
+                    "selected view index {} is out of range {}",
                     self.list_state.selected,
-                    self.filtered_indices.len()
+                    self.view_indices.len()
                 )
             });
         self.bucket_items.get(*i).unwrap_or_else(|| {
@@ -287,27 +378,26 @@ impl BucketListPage {
     }
 
     fn non_empty(&self) -> bool {
-        !self.filtered_indices.is_empty()
+        !self.view_indices.is_empty()
     }
 }
 
 fn build_list_items<'a>(
     current_items: &'a [BucketItem],
-    filter_indices: &'a [usize],
+    view_indices: &'a [usize],
     filter: &'a str,
     offset: usize,
     selected: usize,
     area: Rect,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
-    current_items
+    view_indices
         .iter()
-        .enumerate()
-        .filter(|(original_idx, _)| filter_indices.contains(original_idx))
+        .map(|&original_idx| &current_items[original_idx])
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, (_, item))| {
+        .map(|(idx, item)| {
             let selected = idx + offset == selected;
             build_list_item(&item.name, selected, filter)
         })
@@ -424,42 +514,6 @@ mod tests {
     }
 
     #[test]
-    fn test_filter_items() {
-        let (tx, _) = event::new();
-
-        let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
-            .collect();
-        let mut page = BucketListPage::new(items, tx);
-
-        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
-
-        assert_eq!(page.filtered_indices, vec![1, 2, 4]);
-
-        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
-
-        assert_eq!(page.filtered_indices, vec![1, 4]);
-
-        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
-
-        assert!(page.filtered_indices.is_empty());
-
-        page.handle_key(KeyEvent::from(KeyCode::Backspace));
-        page.handle_key(KeyEvent::from(KeyCode::Backspace));
-
-        assert_eq!(page.filtered_indices, vec![1, 2, 4]);
-
-        page.handle_key(KeyEvent::from(KeyCode::Esc));
-
-        assert_eq!(page.filtered_indices, vec![0, 1, 2, 3, 4]);
-    }
-
-    #[test]
     fn test_render_filter_items() -> std::io::Result<()> {
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -535,6 +589,165 @@ mod tests {
         terminal.backend().assert_buffer(&expected);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_render_sort_items() -> std::io::Result<()> {
+        let (tx, _) = event::new();
+        let mut terminal = setup_terminal()?;
+
+        let items = ["foo", "bar", "baz", "qux", "foobar"]
+            .iter()
+            .map(|name| BucketItem {
+                name: name.to_string(),
+            })
+            .collect();
+        let mut page = BucketListPage::new(items, tx);
+        let area = Rect::new(0, 0, 30, 10);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+
+        terminal.draw(|f| {
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 5 ┐",
+            "│  qux                       │",
+            "│ ╭Sort────────────────────╮ │",
+            "│ │ Default                │ │",
+            "│ │ Name (Asc)             │ │",
+            "│ │ Name (Desc)            │ │",
+            "│ ╰────────────────────────╯ │",
+            "│                            │",
+            "│                            │",
+            "└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
+            // selected sort item
+            (4..26, [5]) => fg: Color::Cyan,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_filter_items() {
+        let (tx, _) = event::new();
+
+        let items = ["foo", "bar", "baz", "qux", "foobar"]
+            .iter()
+            .map(|name| BucketItem {
+                name: name.to_string(),
+            })
+            .collect();
+        let mut page = BucketListPage::new(items, tx);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
+
+        assert_eq!(page.view_indices, vec![1, 2, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
+
+        assert_eq!(page.view_indices, vec![1, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
+
+        assert!(page.view_indices.is_empty());
+
+        page.handle_key(KeyEvent::from(KeyCode::Backspace));
+        page.handle_key(KeyEvent::from(KeyCode::Backspace));
+
+        assert_eq!(page.view_indices, vec![1, 2, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(page.view_indices, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_sort_items() {
+        let (tx, _) = event::new();
+
+        let items = ["foo", "bar", "baz", "qux", "foobar"]
+            .iter()
+            .map(|name| BucketItem {
+                name: name.to_string(),
+            })
+            .collect();
+        let mut page = BucketListPage::new(items, tx);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc
+
+        assert_eq!(page.view_indices, vec![1, 2, 0, 4, 3]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameDesc
+        page.handle_key(KeyEvent::from(KeyCode::Enter));
+
+        assert_eq!(page.view_indices, vec![3, 4, 0, 2, 1]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('k'))); // select NameAsc
+
+        assert_eq!(page.view_indices, vec![1, 2, 0, 4, 3]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(page.view_indices, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_filter_and_sort_items() {
+        let (tx, _) = event::new();
+
+        let items = ["foo", "bar", "baz", "qux", "foobar"]
+            .iter()
+            .map(|name| BucketItem {
+                name: name.to_string(),
+            })
+            .collect();
+        let mut page = BucketListPage::new(items, tx);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        page.handle_key(KeyEvent::from(KeyCode::Enter));
+
+        assert_eq!(page.view_indices, vec![1, 2, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.handle_key(KeyEvent::from(KeyCode::Enter));
+
+        assert_eq!(page.view_indices, vec![4, 2, 1]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(page.view_indices, vec![3, 4, 0, 2, 1]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('f')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(KeyEvent::from(KeyCode::Enter));
+
+        assert_eq!(page.view_indices, vec![4, 0]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(KeyEvent::from(KeyCode::Esc));
+
+        assert_eq!(page.view_indices, vec![0, 4]);
     }
 
     fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
