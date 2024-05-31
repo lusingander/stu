@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
     layout::Rect,
@@ -346,15 +348,17 @@ impl BucketListPage {
     }
 
     fn sort_view_indices(&mut self) {
-        match self.sort_dialog_state.selected() {
-            BucketListSortType::Default => self.view_indices.sort(),
-            BucketListSortType::NameAsc => self
-                .view_indices
-                .sort_by(|a, b| self.bucket_items[*a].name.cmp(&self.bucket_items[*b].name)),
-            BucketListSortType::NameDesc => self
-                .view_indices
-                .sort_by(|a, b| self.bucket_items[*b].name.cmp(&self.bucket_items[*a].name)),
-        }
+        let items = &self.bucket_items;
+        let selected = self.sort_dialog_state.selected();
+
+        #[allow(clippy::type_complexity)]
+        let sort_func: Box<dyn FnMut(&usize, &usize) -> Ordering> = match selected {
+            BucketListSortType::Default => Box::new(|a, b| a.cmp(b)),
+            BucketListSortType::NameAsc => Box::new(|a, b| items[*a].name.cmp(&items[*b].name)),
+            BucketListSortType::NameDesc => Box::new(|a, b| items[*b].name.cmp(&items[*a].name)),
+        };
+
+        self.view_indices.sort_by(sort_func);
     }
 
     pub fn current_selected_item(&self) -> &BucketItem {
