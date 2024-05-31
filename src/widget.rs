@@ -19,5 +19,8 @@ pub use input_dialog::{InputDialog, InputDialogState};
 pub use scroll::ScrollBar;
 pub use scroll_lines::{ScrollLines, ScrollLinesOptions, ScrollLinesState};
 pub use scroll_list::{ScrollList, ScrollListState};
-pub use sort_list_dialog::{BucketListSortDialog, BucketListSortDialogState, BucketListSortType};
+pub use sort_list_dialog::{
+    BucketListSortDialog, BucketListSortDialogState, BucketListSortType, ObjectListSortDialog,
+    ObjectListSortDialogState, ObjectListSortType,
+};
 pub use text_preview::{TextPreview, TextPreviewState};

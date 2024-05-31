@@ -69,7 +69,7 @@ impl Widget for BucketListSortDialog {
         let list_items: Vec<ListItem> = BucketListSortType::vars_vec()
             .iter()
             .enumerate()
-            .map(|(i, sort_type)| build_bucket_list_sort_type_item(i, selected, sort_type.str()))
+            .map(|(i, sort_type)| build_sort_type_item(i, selected, sort_type.str()))
             .collect();
 
         let dialog_width = (area.width - 4).min(30);
@@ -88,11 +88,92 @@ impl Widget for BucketListSortDialog {
     }
 }
 
-fn build_bucket_list_sort_type_item(
-    i: usize,
-    selected: usize,
-    label: &'static str,
-) -> ListItem<'static> {
+#[derive(Default)]
+#[zero_indexed_enum]
+pub enum ObjectListSortType {
+    #[default]
+    Default,
+    NameAsc,
+    NameDesc,
+    LastModifiedAsc,
+    LastModifiedDesc,
+    SizeAsc,
+    SizeDesc,
+}
+
+impl ObjectListSortType {
+    pub fn str(&self) -> &'static str {
+        match self {
+            Self::Default => "Default",
+            Self::NameAsc => "Name (Asc)",
+            Self::NameDesc => "Name (Desc)",
+            Self::LastModifiedAsc => "Last Modified (Asc)",
+            Self::LastModifiedDesc => "Last Modified (Desc)",
+            Self::SizeAsc => "Size (Asc)",
+            Self::SizeDesc => "Size (Desc)",
+        }
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy)]
+pub struct ObjectListSortDialogState {
+    selected: ObjectListSortType,
+}
+
+impl ObjectListSortDialogState {
+    pub fn select_next(&mut self) {
+        self.selected = self.selected.next();
+    }
+
+    pub fn select_prev(&mut self) {
+        self.selected = self.selected.prev();
+    }
+
+    pub fn reset(&mut self) {
+        self.selected = ObjectListSortType::Default;
+    }
+
+    pub fn selected(&self) -> ObjectListSortType {
+        self.selected
+    }
+}
+
+pub struct ObjectListSortDialog {
+    state: ObjectListSortDialogState,
+}
+
+impl ObjectListSortDialog {
+    pub fn new(state: ObjectListSortDialogState) -> Self {
+        Self { state }
+    }
+}
+
+impl Widget for ObjectListSortDialog {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let selected = self.state.selected.val();
+        let list_items: Vec<ListItem> = ObjectListSortType::vars_vec()
+            .iter()
+            .enumerate()
+            .map(|(i, sort_type)| build_sort_type_item(i, selected, sort_type.str()))
+            .collect();
+
+        let dialog_width = (area.width - 4).min(30);
+        let dialog_height = ObjectListSortType::len() as u16 + 2 /* border */;
+        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+
+        let title = Title::from("Sort");
+        let list = List::new(list_items).block(
+            Block::bordered()
+                .border_type(BorderType::Rounded)
+                .title(title)
+                .padding(Padding::horizontal(1)),
+        );
+        let dialog = Dialog::new(Box::new(list));
+        dialog.render_ref(area, buf);
+    }
+}
+
+fn build_sort_type_item(i: usize, selected: usize, label: &'static str) -> ListItem<'static> {
     let item = ListItem::new(Line::raw(label));
     if i == selected {
         item.fg(SELECTED_COLOR)

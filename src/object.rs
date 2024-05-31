@@ -29,6 +29,20 @@ impl ObjectItem {
             ObjectItem::File { name, .. } => name,
         }
     }
+
+    pub fn size_byte(&self) -> Option<usize> {
+        match self {
+            ObjectItem::Dir { .. } => None,
+            ObjectItem::File { size_byte, .. } => Some(*size_byte),
+        }
+    }
+
+    pub fn last_modified(&self) -> Option<DateTime<Local>> {
+        match self {
+            ObjectItem::Dir { .. } => None,
+            ObjectItem::File { last_modified, .. } => Some(*last_modified),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

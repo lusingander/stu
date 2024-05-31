@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use chrono::{DateTime, Local};
 use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
@@ -15,7 +17,10 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte},
     util::split_str,
-    widget::{InputDialog, InputDialogState, ScrollList, ScrollListState},
+    widget::{
+        InputDialog, InputDialogState, ObjectListSortDialog, ObjectListSortDialogState,
+        ObjectListSortType, ScrollList, ScrollListState,
+    },
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
@@ -25,12 +30,13 @@ const HIGHLIGHTED_ITEM_TEXT_COLOR: Color = Color::Red;
 #[derive(Debug)]
 pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
-    filtered_indices: Vec<usize>,
+    view_indices: Vec<usize>,
 
     view_state: ViewState,
 
     list_state: ScrollListState,
     filter_input_state: InputDialogState,
+    sort_dialog_state: ObjectListSortDialogState,
     tx: Sender,
 }
 
@@ -38,18 +44,20 @@ pub struct ObjectListPage {
 enum ViewState {
     Default,
     FilterDialog,
+    SortDialog,
 }
 
 impl ObjectListPage {
     pub fn new(object_items: Vec<ObjectItem>, tx: Sender) -> Self {
         let items_len = object_items.len();
-        let filtered_indices = (0..items_len).collect();
+        let view_indices = (0..items_len).collect();
         Self {
             object_items,
-            filtered_indices,
+            view_indices,
             view_state: ViewState::Default,
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
+            sort_dialog_state: ObjectListSortDialogState::default(),
             tx,
         }
     }
@@ -97,6 +105,9 @@ impl ObjectListPage {
                 key_code_char!('/') => {
                     self.open_filter_dialog();
                 }
+                key_code_char!('o') => {
+                    self.open_sort_dialog();
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -114,8 +125,26 @@ impl ObjectListPage {
                 }
                 _ => {
                     self.filter_input_state.handle_key_event(key);
-                    self.update_filtered_indices();
+                    self.filter_view_indices();
                 }
+            },
+            ViewState::SortDialog => match key {
+                key_code!(KeyCode::Esc) => {
+                    self.close_sort_dialog();
+                }
+                key_code_char!('j') => {
+                    self.select_next_sort_item();
+                }
+                key_code_char!('k') => {
+                    self.select_prev_sort_item();
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.apply_sort();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
             },
         }
     }
@@ -126,7 +155,7 @@ impl ObjectListPage {
 
         let list_items = build_list_items(
             &self.object_items,
-            &self.filtered_indices,
+            &self.view_indices,
             self.filter_input_state.input(),
             offset,
             selected,
@@ -143,6 +172,11 @@ impl ObjectListPage {
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
             f.set_cursor(cursor_x, cursor_y);
         }
+
+        if let ViewState::SortDialog = self.view_state {
+            let sort_dialog = ObjectListSortDialog::new(self.sort_dialog_state);
+            f.render_widget(sort_dialog, area);
+        }
     }
 
     pub fn helps(&self) -> Vec<String> {
@@ -158,7 +192,8 @@ impl ObjectListPage {
                         (&["Enter"], "Open file or folder"),
                         (&["Backspace"], "Go back to prev folder"),
                         (&["~"], "Go back to bucket list"),
-                        (&["/"], "Filter bucket list"),
+                        (&["/"], "Filter object list"),
+                        (&["o"], "Sort object list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 } else {
@@ -172,7 +207,8 @@ impl ObjectListPage {
                         (&["Enter"], "Open file or folder"),
                         (&["Backspace"], "Go back to prev folder"),
                         (&["~"], "Go back to bucket list"),
-                        (&["/"], "Filter bucket list"),
+                        (&["/"], "Filter object list"),
+                        (&["o"], "Sort object list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 }
@@ -181,6 +217,12 @@ impl ObjectListPage {
                 (&["Ctrl-c"], "Quit app"),
                 (&["Esc"], "Close filter dialog"),
                 (&["Enter"], "Apply filter"),
+            ],
+            ViewState::SortDialog => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc"], "Close sort dialog"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Apply sort"),
             ],
         };
         build_helps(helps)
@@ -193,20 +235,22 @@ impl ObjectListPage {
                     &[
                         (&["Esc"], "Quit", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 5),
+                        (&["g/G"], "Top/Bottom", 6),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
+                        (&["o"], "Sort", 5),
                         (&["?"], "Help", 0),
                     ]
                 } else {
                     &[
                         (&["Esc"], "Clear filter", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 5),
+                        (&["g/G"], "Top/Bottom", 6),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
+                        (&["o"], "Sort", 5),
                         (&["?"], "Help", 0),
                     ]
                 }
@@ -214,6 +258,12 @@ impl ObjectListPage {
             ViewState::FilterDialog => &[
                 (&["Esc"], "Close", 2),
                 (&["Enter"], "Filter", 1),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::SortDialog => &[
+                (&["Esc"], "Close", 2),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Sort", 1),
                 (&["?"], "Help", 0),
             ],
         };
@@ -255,21 +305,32 @@ impl ObjectListPage {
         self.reset_filter();
     }
 
+    fn open_sort_dialog(&mut self) {
+        self.view_state = ViewState::SortDialog;
+    }
+
+    fn close_sort_dialog(&mut self) {
+        self.view_state = ViewState::Default;
+        self.sort_dialog_state.reset();
+
+        self.sort_view_indices();
+    }
+
     fn apply_filter(&mut self) {
         self.view_state = ViewState::Default;
 
-        self.update_filtered_indices();
+        self.filter_view_indices();
     }
 
     fn reset_filter(&mut self) {
         self.filter_input_state.clear_input();
 
-        self.update_filtered_indices();
+        self.filter_view_indices();
     }
 
-    fn update_filtered_indices(&mut self) {
+    fn filter_view_indices(&mut self) {
         let filter = self.filter_input_state.input();
-        self.filtered_indices = self
+        self.view_indices = self
             .object_items
             .iter()
             .enumerate()
@@ -277,18 +338,64 @@ impl ObjectListPage {
             .map(|(idx, _)| idx)
             .collect();
         // reset list state
-        self.list_state = ScrollListState::new(self.filtered_indices.len());
+        self.list_state = ScrollListState::new(self.view_indices.len());
+
+        self.sort_view_indices();
+    }
+
+    fn apply_sort(&mut self) {
+        self.view_state = ViewState::Default;
+
+        self.sort_view_indices();
+    }
+
+    fn select_next_sort_item(&mut self) {
+        self.sort_dialog_state.select_next();
+
+        self.sort_view_indices();
+    }
+
+    fn select_prev_sort_item(&mut self) {
+        self.sort_dialog_state.select_prev();
+
+        self.sort_view_indices();
+    }
+
+    fn sort_view_indices(&mut self) {
+        let items = &self.object_items;
+        let selected = self.sort_dialog_state.selected();
+
+        #[allow(clippy::type_complexity)]
+        let sort_func: Box<dyn FnMut(&usize, &usize) -> Ordering> = match selected {
+            ObjectListSortType::Default => Box::new(|a, b| a.cmp(b)),
+            ObjectListSortType::NameAsc => Box::new(|a, b| items[*a].name().cmp(items[*b].name())),
+            ObjectListSortType::NameDesc => Box::new(|a, b| items[*b].name().cmp(items[*a].name())),
+            ObjectListSortType::LastModifiedAsc => {
+                Box::new(|a, b| items[*a].last_modified().cmp(&items[*b].last_modified()))
+            }
+            ObjectListSortType::LastModifiedDesc => {
+                Box::new(|a, b| items[*b].last_modified().cmp(&items[*a].last_modified()))
+            }
+            ObjectListSortType::SizeAsc => {
+                Box::new(|a, b| items[*a].size_byte().cmp(&items[*b].size_byte()))
+            }
+            ObjectListSortType::SizeDesc => {
+                Box::new(|a, b| items[*b].size_byte().cmp(&items[*a].size_byte()))
+            }
+        };
+
+        self.view_indices.sort_by(sort_func);
     }
 
     pub fn current_selected_item(&self) -> &ObjectItem {
         let i = self
-            .filtered_indices
+            .view_indices
             .get(self.list_state.selected)
             .unwrap_or_else(|| {
                 panic!(
-                    "selected filtered index {} is out of range {}",
+                    "selected view index {} is out of range {}",
                     self.list_state.selected,
-                    self.filtered_indices.len()
+                    self.view_indices.len()
                 )
             });
         self.object_items.get(*i).unwrap_or_else(|| {
@@ -301,11 +408,9 @@ impl ObjectListPage {
     }
 
     pub fn object_list(&self) -> Vec<ObjectItem> {
-        self.object_items
+        self.view_indices
             .iter()
-            .enumerate()
-            .filter(|(i, _)| self.filtered_indices.contains(i))
-            .map(|(_, item)| item)
+            .map(|&original_idx| &self.object_items[original_idx])
             .cloned()
             .collect()
     }
@@ -315,27 +420,26 @@ impl ObjectListPage {
     }
 
     fn non_empty(&self) -> bool {
-        !self.filtered_indices.is_empty()
+        !self.view_indices.is_empty()
     }
 }
 
 fn build_list_items<'a>(
     current_items: &'a [ObjectItem],
-    filter_indices: &'a [usize],
+    view_indices: &'a [usize],
     filter: &'a str,
     offset: usize,
     selected: usize,
     area: Rect,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
-    current_items
+    view_indices
         .iter()
-        .enumerate()
-        .filter(|(original_idx, _)| filter_indices.contains(original_idx))
+        .map(|&original_idx| &current_items[original_idx])
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, (_, item))| build_list_item(item, idx + offset == selected, filter, area))
+        .map(|(idx, item)| build_list_item(item, idx + offset == selected, filter, area))
         .collect()
 }
 
@@ -525,6 +629,56 @@ mod tests {
         terminal.backend().assert_buffer(&expected);
 
         Ok(())
+    }
+
+    #[test]
+    fn test_sort_items() {
+        let (tx, _) = event::new();
+        let items = vec![
+            ObjectItem::Dir { name: "rid".into() },
+            ObjectItem::File {
+                name: "file".into(),
+                size_byte: 1024,
+                last_modified: parse_datetime("2024-01-02 13:01:02"),
+            },
+            ObjectItem::Dir { name: "dir".into() },
+            ObjectItem::File {
+                name: "xyz".into(),
+                size_byte: 1024 * 1024,
+                last_modified: parse_datetime("2023-12-31 23:59:59"),
+            },
+            ObjectItem::File {
+                name: "abc".into(),
+                size_byte: 0,
+                last_modified: parse_datetime("-2000-01-01 00:00:00"),
+            },
+        ];
+        let mut page = ObjectListPage::new(items, tx);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc
+
+        assert_eq!(page.view_indices, vec![4, 2, 1, 0, 3]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameDesc
+
+        assert_eq!(page.view_indices, vec![3, 0, 1, 2, 4]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select LastModifiedAsc
+
+        assert_eq!(page.view_indices, vec![0, 2, 4, 3, 1]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select LastModifiedDesc
+
+        assert_eq!(page.view_indices, vec![1, 3, 4, 0, 2]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select SizeAsc
+
+        assert_eq!(page.view_indices, vec![0, 2, 4, 1, 3]);
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select SizeDesc
+
+        assert_eq!(page.view_indices, vec![3, 1, 4, 0, 2]);
     }
 
     fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
