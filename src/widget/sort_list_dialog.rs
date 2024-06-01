@@ -55,36 +55,23 @@ impl BucketListSortDialogState {
 
 pub struct BucketListSortDialog {
     state: BucketListSortDialogState,
+    labels: Vec<&'static str>,
 }
 
 impl BucketListSortDialog {
     pub fn new(state: BucketListSortDialogState) -> Self {
-        Self { state }
+        let labels = BucketListSortType::vars_vec()
+            .iter()
+            .map(|sort_type| sort_type.str())
+            .collect();
+        Self { state, labels }
     }
 }
 
 impl Widget for BucketListSortDialog {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let selected = self.state.selected.val();
-        let list_items: Vec<ListItem> = BucketListSortType::vars_vec()
-            .iter()
-            .enumerate()
-            .map(|(i, sort_type)| build_sort_type_item(i, selected, sort_type.str()))
-            .collect();
-
-        let dialog_width = (area.width - 4).min(30);
-        let dialog_height = BucketListSortType::len() as u16 + 2 /* border */;
-        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
-
-        let title = Title::from("Sort");
-        let list = List::new(list_items).block(
-            Block::bordered()
-                .border_type(BorderType::Rounded)
-                .title(title)
-                .padding(Padding::horizontal(1)),
-        );
-        let dialog = Dialog::new(Box::new(list));
-        dialog.render_ref(area, buf);
+        let dialog = ListSortDialog::new(self.state.selected.val(), self.labels);
+        dialog.render(area, buf);
     }
 }
 
@@ -140,25 +127,55 @@ impl ObjectListSortDialogState {
 
 pub struct ObjectListSortDialog {
     state: ObjectListSortDialogState,
+    labels: Vec<&'static str>,
 }
 
 impl ObjectListSortDialog {
     pub fn new(state: ObjectListSortDialogState) -> Self {
-        Self { state }
+        let labels = ObjectListSortType::vars_vec()
+            .iter()
+            .map(|sort_type| sort_type.str())
+            .collect();
+        Self { state, labels }
     }
 }
 
 impl Widget for ObjectListSortDialog {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let selected = self.state.selected.val();
-        let list_items: Vec<ListItem> = ObjectListSortType::vars_vec()
+        let dialog = ListSortDialog::new(self.state.selected.val(), self.labels);
+        dialog.render(area, buf);
+    }
+}
+
+struct ListSortDialog {
+    selected: usize,
+    labels: Vec<&'static str>,
+}
+
+impl ListSortDialog {
+    pub fn new(selected: usize, labels: Vec<&'static str>) -> Self {
+        Self { selected, labels }
+    }
+}
+
+impl Widget for ListSortDialog {
+    fn render(self, area: Rect, buf: &mut Buffer) {
+        let list_items: Vec<ListItem> = self
+            .labels
             .iter()
             .enumerate()
-            .map(|(i, sort_type)| build_sort_type_item(i, selected, sort_type.str()))
+            .map(|(i, label)| {
+                let item = ListItem::new(Line::raw(*label));
+                if i == self.selected {
+                    item.fg(SELECTED_COLOR)
+                } else {
+                    item
+                }
+            })
             .collect();
 
         let dialog_width = (area.width - 4).min(30);
-        let dialog_height = ObjectListSortType::len() as u16 + 2 /* border */;
+        let dialog_height = self.labels.len() as u16 + 2 /* border */;
         let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
 
         let title = Title::from("Sort");
@@ -170,14 +187,5 @@ impl Widget for ObjectListSortDialog {
         );
         let dialog = Dialog::new(Box::new(list));
         dialog.render_ref(area, buf);
-    }
-}
-
-fn build_sort_type_item(i: usize, selected: usize, label: &'static str) -> ListItem<'static> {
-    let item = ListItem::new(Line::raw(label));
-    if i == selected {
-        item.fg(SELECTED_COLOR)
-    } else {
-        item
     }
 }
