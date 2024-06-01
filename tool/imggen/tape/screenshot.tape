@@ -6,7 +6,6 @@ Set FontSize 15
 Set Width 1000
 Set Height 600
 Set Padding 15
-Set BorderRadius 20
 Set Theme "nord"
 
 Type@10ms "export AWS_ACCESS_KEY_ID=dummy"
