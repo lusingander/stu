@@ -227,13 +227,20 @@ impl Client {
 
         let mut bytes: Vec<u8> = Vec::with_capacity(size_byte);
         let mut stream = output.body;
+        let mut i = 0;
         while let Some(buf) = stream // buf: 32 KiB
             .try_next()
             .await
             .map_err(|e| AppError::new("Failed to collect body", e))?
         {
             bytes.extend(buf.to_vec());
-            f(bytes.len())
+
+            // suppress too many calls (32 KiB * 32 = 1 MiB)
+            if i >= 32 {
+                f(bytes.len());
+                i = 0;
+            }
+            i += 1;
         }
 
         Ok(RawObject { bytes })
