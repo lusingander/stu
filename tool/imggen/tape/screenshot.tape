@@ -20,6 +20,7 @@ Sleep 500ms
 Screenshot ${OUTPUT_DIR}/initialize.png
 Sleep 2s
 
+# bucket list
 Type "j"
 Sleep 100ms
 Type "j"
@@ -32,7 +33,36 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/bucket-list-help.png
 Type "?"
 Sleep 100ms
+Type "o"
+Sleep 100ms
+Type "j"
+Sleep 100ms
+Type "j"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/bucket-list-sort.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/bucket-list-sort-help.png
+Type "?"
+Sleep 100ms
+Escape
+Sleep 100ms
+Type "/"
+Sleep 100ms
+Type@10ms "buck"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/bucket-list-filter.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/bucket-list-filter-help.png
+Type "?"
+Sleep 100ms
+Escape
+Sleep 100ms
+Type "j"
+Sleep 100ms
 
+# open test-bucket-2
 Enter
 Sleep 500ms
 Screenshot ${OUTPUT_DIR}/object-list-simple.png
@@ -41,9 +71,33 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-list-help.png
 Type "?"
 Sleep 100ms
-
-Type "j"
+Type "o"
 Sleep 100ms
+Type "k"
+Sleep 100ms
+Type "k"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-sort.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-sort-help.png
+Type "?"
+Sleep 100ms
+Enter
+Sleep 100ms
+Type "/"
+Sleep 100ms
+Type@10ms "image"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-filter.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-filter-help.png
+Type "?"
+Sleep 100ms
+Enter
+
+# open image.jpeg
 Type "j"
 Sleep 100ms
 Enter
@@ -57,14 +111,23 @@ Sleep 100ms
 Type "l"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-version.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-version-help.png
+Type "?"
+Sleep 100ms
 Backspace
 Sleep 100ms
-Type "j"
+Escape
 Sleep 100ms
 Type "j"
 Sleep 100ms
 Type "j"
 Sleep 100ms
+Type "j"
+Sleep 100ms
+
+# open medium.txt
 Enter
 Sleep 100ms
 Type "r"
@@ -94,18 +157,6 @@ Screenshot ${OUTPUT_DIR}/object-download-success.png
 Enter
 Sleep 100ms
 
-Type "p"
-Sleep 500ms
-Type@10ms "jjjjjjj"
-Sleep 100ms
-Screenshot ${OUTPUT_DIR}/object-preview.png
-Type "?"
-Sleep 100ms
-Screenshot ${OUTPUT_DIR}/object-preview-help.png
-Type "?"
-Sleep 100ms
-Type "s"
-Sleep 500ms
 Backspace
 Sleep 100ms
 Backspace
@@ -118,6 +169,8 @@ Sleep 100ms
 Type "g"
 Sleep 100ms
 Enter
+
+# open test-bucket-1
 Sleep 500ms
 Type "j"
 Sleep 100ms
@@ -136,6 +189,30 @@ Sleep 500ms
 Enter
 Sleep 500ms
 Screenshot ${OUTPUT_DIR}/object-list-hierarchy.png
+
+Backspace
+Type "j"
+Sleep 100ms
+Type "j"
+Sleep 100ms
+Type "j"
+Sleep 100ms
+Enter
+Sleep 500ms
+Type "p"
+Sleep 1s
+Type@10ms "jjjjj"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-preview.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-preview-help.png
+Type "?"
+Sleep 100ms
+Backspace
+Sleep 100ms
+Backspace
+Sleep 100ms
 
 Type "~"
 Sleep 100ms
