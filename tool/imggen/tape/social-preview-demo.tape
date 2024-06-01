@@ -7,6 +7,7 @@ Set FontSize 15
 Set Width 1000
 Set Height 500
 Set Padding 10
+Set Theme "nord"
 
 Hide
 

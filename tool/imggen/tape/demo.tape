@@ -8,6 +8,7 @@ Set Height 600
 Set Padding 15
 Set WindowBar Colorful
 Set BorderRadius 20
+Set Theme "nord"
 
 Hide
 
