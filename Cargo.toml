@@ -15,9 +15,9 @@ edition = "2021"
 ansi-to-tui = "4.0.1"
 anyhow = "1.0.86"
 arboard = "3.4.0"
-aws-config = "1.4.0"
-aws-sdk-s3 = "1.29.0"
-aws-smithy-types = "1.1.9"
+aws-config = "1.5.0"
+aws-sdk-s3 = "1.32.0"
+aws-smithy-types = "1.1.10"
 chrono = "0.4.38"
 clap = { version = "4.5.4", features = ["derive"] }
 confy = "0.6.1"
@@ -32,13 +32,13 @@ ratatui = { version = "0.26.3", features = [
     "all-widgets",
     "unstable-widget-ref",
 ] }
-serde = "1.0.202"
-serde_derive = "1.0.202"
+serde = "1.0.203"
+serde_derive = "1.0.203"
 syntect = { version = "5.2.0", default-features = false, features = [
     "default-fancy",
 ] }
 textwrap = "0.16.1"
-tokio = { version = "1.37.0", features = ["full"] }
+tokio = { version = "1.38.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono"] }
@@ -46,7 +46,7 @@ tui-input = "0.8.0"
 
 [dev-dependencies]
 indoc = "2.0.5"   # https://github.com/ratatui-org/ratatui/issues/1043
-rstest = "0.19.0"
+rstest = "0.21.0"
 
 [features]
 imggen = [] # for test
