@@ -77,20 +77,14 @@ The values that can be set are as follows:
 - Show list of buckets
   - filter/sort items
 
-<img src="./img/bucket-list.png" width=400>
-<img src="./img/bucket-list-filter.png" width=400>
-<img src="./img/bucket-list-sort.png" width=400>
+<img src="./img/bucket-list.png" width=400> <img src="./img/bucket-list-filter.png" width=400> <img src="./img/bucket-list-sort.png" width=400>
 
 ### Object list
 
 - Show list of objects in a hierarchy
   - filter/sort items
 
-<img src="./img/object-list-simple.png" width=400>
-<img src="./img/object-list-hierarchy.png" width=400>
-<img src="./img/object-list-many.png" width=400>
-<img src="./img/object-list-filter.png" width=400>
-<img src="./img/object-list-sort.png" width=400>
+<img src="./img/object-list-simple.png" width=400> <img src="./img/object-list-hierarchy.png" width=400> <img src="./img/object-list-many.png" width=400> <img src="./img/object-list-filter.png" width=400> <img src="./img/object-list-sort.png" width=400>
 
 ### Object detail
 
@@ -101,11 +95,7 @@ The values that can be set are as follows:
   - syntax highlighting (by [syntect](https://github.com/trishume/syntect))
 - Copy resource name to clipboard
 
-<img src="./img/object-detail.png" width=400>
-<img src="./img/object-version.png" width=400>
-<img src="./img/object-download.png" width=400>
-<img src="./img/object-preview.png" width=400>
-<img src="./img/object-details-copy.png" width=400>
+<img src="./img/object-detail.png" width=400> <img src="./img/object-version.png" width=400> <img src="./img/object-download.png" width=400> <img src="./img/object-preview.png" width=400> <img src="./img/object-details-copy.png" width=400>
 
 ## Troubleshooting
 
