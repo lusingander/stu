@@ -6,7 +6,7 @@ S3 Terminal UI
 
 ## About
 
-STU is the TUI application for AWS S3 written in Rust using [ratatui](https://github.com/ratatui-org/ratatui).
+STU is the TUI explorer application for Amazon S3 (AWS S3) written in Rust using [ratatui](https://github.com/ratatui-org/ratatui).
 
 <img src="./img/demo.gif">
 
@@ -32,9 +32,21 @@ $ paru -S stu
 
 ### Binary
 
-You can download binaries from [releases](https://github.com/lusingander/stu/releases)
+You can download binaries from [releases](https://github.com/lusingander/stu/releases).
 
 ## Usage
+
+After installation, run the following command:
+
+```
+$ stu
+```
+
+Basically, you can use it in [the same way as the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-files.html).
+
+In other words, if the default profile settings exist or [the environment variables are set](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html), you do not need to specify any options.
+
+### Options
 
 ```
 STU - S3 Terminal UI
@@ -51,11 +63,36 @@ Options:
   -V, --version             Print version
 ```
 
-You can also use each environment variable in the same way as [when using the AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html).
+Here are some examples of how to run with options:
+
+```sh
+# Connect by specifying the profile
+$ stu --profile foo-profile
+
+# Show only the specified bucket objects
+$ stu --bucket bar-bucket
+
+# Connect to localstack, minio, etc.
+$ stu --endpoint-url http://localhost:12345
+
+# Connect by specifying environment variables
+$ AWS_ACCESS_KEY_ID=abc AWS_SECRET_ACCESS_KEY=xyz stu
+```
+
+### Keybindings
+
+The basic key bindings are as follows:
+
+| Key                  | Description                        |
+| -------------------- | ---------------------------------- |
+| <kbd>Ctrl-C</kbd>    | Quit app                           |
+| <kbd>Esc</kbd>       | Quit app / Close dialog            |
+| <kbd>Enter</kbd>     | Confirm / Open selected item       |
+| <kbd>Backspace</kbd> | Go back to previous / Close dialog |
+| <kbd>j/k</kbd>       | Select item / Scroll               |
+| <kbd>?</kbd>         | Show help                          |
 
 Detailed operations on each view can be displayed by pressing `?` key.
-
-Or refer to the `***-help.png` screenshots in the [./img directory](./img).
 
 ### Config
 
