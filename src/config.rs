@@ -1,7 +1,7 @@
 use std::{env, path::PathBuf};
 
 use anyhow::Context;
-use serde_derive::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 

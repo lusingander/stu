@@ -2671,7 +2671,6 @@ dependencies = [
  "ratatui",
  "rstest",
  "serde",
- "serde_derive",
  "syntect",
  "textwrap",
  "tokio",
