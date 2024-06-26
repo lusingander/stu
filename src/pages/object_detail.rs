@@ -1,7 +1,7 @@
-use crossterm::event::{KeyCode, KeyEvent};
 use itsuki::zero_indexed_enum;
 use ratatui::{
     buffer::Buffer,
+    crossterm::event::{KeyCode, KeyEvent},
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},

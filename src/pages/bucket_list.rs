@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
-use crossterm::event::{KeyCode, KeyEvent};
 use ratatui::{
+    crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
     style::{Color, Style, Stylize},
     text::Line,

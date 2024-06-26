@@ -14,14 +14,14 @@ mod util;
 mod widget;
 
 use clap::{arg, Parser};
-use crossterm::{
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-};
 use event::AppEventType;
 use file::open_or_create_append_file;
 use ratatui::{
     backend::{Backend, CrosstermBackend},
+    crossterm::{
+        execute,
+        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    },
     Terminal,
 };
 use std::{

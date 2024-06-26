@@ -27,7 +27,7 @@ impl Header {
     const ELLIPSIS: &'static str = "...";
 
     fn render_header(self, area: Rect, buf: &mut Buffer) {
-        let inner_area = area.inner(&Margin::new(1, 1));
+        let inner_area = area.inner(Margin::new(1, 1));
         let pad = Padding::horizontal(1);
         let max_width = (inner_area.width - pad.left - pad.right) as usize;
 

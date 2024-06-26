@@ -1,6 +1,6 @@
-use crossterm::event::KeyEvent;
 use ratatui::{
     buffer::Buffer,
+    crossterm::event::KeyEvent,
     layout::Rect,
     widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, WidgetRef},
 };
@@ -28,7 +28,7 @@ impl InputDialogState {
     }
 
     pub fn handle_key_event(&mut self, key: KeyEvent) {
-        let event = &crossterm::event::Event::Key(key);
+        let event = &ratatui::crossterm::event::Event::Key(key);
         self.input.handle_event(event);
     }
 }
@@ -86,7 +86,7 @@ impl StatefulWidget for InputDialog {
 
 #[cfg(test)]
 mod tests {
-    use crossterm::event::KeyCode;
+    use ratatui::crossterm::event::KeyCode;
 
     use super::*;
 

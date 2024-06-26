@@ -1,5 +1,9 @@
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{layout::Rect, widgets::Block, Frame};
+use ratatui::{
+    crossterm::event::{KeyCode, KeyEvent},
+    layout::Rect,
+    widgets::Block,
+    Frame,
+};
 
 use crate::{
     event::{AppEventType, Sender},

@@ -1,5 +1,4 @@
-use crossterm::event::KeyCode;
-use ratatui::{backend::Backend, Terminal};
+use ratatui::{backend::Backend, crossterm::event::KeyCode, Terminal};
 use std::io::Result;
 
 use crate::{

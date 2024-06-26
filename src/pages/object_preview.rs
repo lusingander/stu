@@ -1,5 +1,8 @@
-use crossterm::event::{KeyCode, KeyEvent};
-use ratatui::{layout::Rect, Frame};
+use ratatui::{
+    crossterm::event::{KeyCode, KeyEvent},
+    layout::Rect,
+    Frame,
+};
 
 use crate::{
     config::PreviewConfig,

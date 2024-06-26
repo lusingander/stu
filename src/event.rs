@@ -4,7 +4,7 @@ use std::{
     thread,
 };
 
-use crossterm::event::KeyEvent;
+use ratatui::crossterm::event::KeyEvent;
 
 use crate::{
     client::Client,
@@ -168,12 +168,12 @@ pub fn new() -> (Sender, Receiver) {
 
     let event_tx = tx.clone();
     thread::spawn(move || loop {
-        match crossterm::event::read() {
+        match ratatui::crossterm::event::read() {
             Ok(e) => match e {
-                crossterm::event::Event::Key(key) => {
+                ratatui::crossterm::event::Event::Key(key) => {
                     event_tx.send(AppEventType::Key(key));
                 }
-                crossterm::event::Event::Resize(w, h) => {
+                ratatui::crossterm::event::Event::Resize(w, h) => {
                     event_tx.send(AppEventType::Resize(w as usize, h as usize));
                 }
                 _ => {}

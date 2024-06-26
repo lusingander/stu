@@ -137,7 +137,7 @@ impl StatefulWidget for ScrollList<'_> {
         );
         Widget::render(list, area, buf);
 
-        let area = area.inner(&Margin::new(2, 1));
+        let area = area.inner(Margin::new(2, 1));
         let scrollbar_area = Rect::new(area.right(), area.top(), 1, area.height);
 
         if state.total > (scrollbar_area.height as usize) {
