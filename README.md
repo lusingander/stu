@@ -15,7 +15,7 @@ STU is the TUI explorer application for Amazon S3 (AWS S3) written in Rust using
 ### Cargo
 
 ```
-$ cargo install stu
+$ cargo install --locked stu
 ```
 
 ### Homebrew (macOS)
