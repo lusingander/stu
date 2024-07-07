@@ -17,20 +17,20 @@ exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 ansi-to-tui = "4.0.1"
 anyhow = "1.0.86"
 arboard = "3.4.0"
-aws-config = "1.5.1"
-aws-sdk-s3 = "1.36.0"
+aws-config = "1.5.4"
+aws-sdk-s3 = "1.40.0"
 aws-smithy-types = "1.2.0"
 chrono = "0.4.38"
-clap = { version = "4.5.7", features = ["derive"] }
+clap = { version = "4.5.8", features = ["derive"] }
 confy = "0.6.1"
 dirs = "5.0.1"
 humansize = "2.1.3"
 itertools = "0.13.0"
 itsuki = "0.2.0"
 once_cell = "1.19.0"
-open = "5.1.4"
+open = "5.2.0"
 ratatui = { version = "0.27.0", features = ["unstable-widget-ref"] }
-serde = { version = "1.0.203", features = ["derive"] }
+serde = { version = "1.0.204", features = ["derive"] }
 syntect = { version = "5.2.0", default-features = false, features = [
     "default-fancy",
 ] }
@@ -39,7 +39,7 @@ tokio = { version = "1.38.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono"] }
-tui-input = "0.8.0"
+tui-input = "0.9.0"
 
 [dev-dependencies]
 rstest = "0.21.0"
