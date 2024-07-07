@@ -68,6 +68,10 @@ impl Client {
             })
             .collect();
 
+        if buckets.is_empty() {
+            return Err(AppError::msg("No buckets found"));
+        }
+
         let mut buckets_in_region: Vec<BucketItem> = Vec::new();
         for bucket in buckets {
             let bucket_location = self
@@ -81,17 +85,22 @@ impl Client {
                 Ok(location) => {
                     if let Some(constraint) = location.location_constraint() {
                         let constraint_str = match constraint.as_str() {
-                            "" => "us-east-1", // https://docs.rs/aws-sdk-s3/latest/aws_sdk_s3/operation/get_bucket_location/struct.GetBucketLocationOutput.html#method.location_constraint
+                            // AWS S3 returns an empty string for the us-east-1 region, as it is the "default" location for s3.
+                            // We need to explicitly handle this case by mapping it to "us-east-1".
+                            "" => "us-east-1",
                             other => other,
                         };
 
                         if constraint_str == self.region {
-                            buckets_in_region.push(bucket.clone());
+                            buckets_in_region.push(bucket);
                         }
                     }
                 }
                 Err(e) => {
-                    tracing::error!("Failed to get bucket location: {:?}", e);
+                    return Err(AppError::new(
+                        format!("Failed to get bucket location for bucket {}", bucket.name),
+                        e,
+                    ));
                 }
             }
         }
