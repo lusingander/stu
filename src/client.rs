@@ -68,10 +68,41 @@ impl Client {
             })
             .collect();
 
-        if buckets.is_empty() {
-            Err(AppError::msg("No buckets exist"))
+        let mut buckets_in_region: Vec<BucketItem> = Vec::new();
+        for bucket in buckets {
+            let bucket_location = self
+                .client
+                .get_bucket_location()
+                .bucket(bucket.name.as_str())
+                .send()
+                .await;
+
+            match bucket_location {
+                Ok(location) => {
+                    if let Some(constraint) = location.location_constraint() {
+                        let constraint_str = match constraint.as_str() {
+                            "" => "us-east-1", // https://docs.rs/aws-sdk-s3/latest/aws_sdk_s3/operation/get_bucket_location/struct.GetBucketLocationOutput.html#method.location_constraint
+                            other => other,
+                        };
+
+                        if constraint_str == self.region {
+                            buckets_in_region.push(bucket.clone());
+                        }
+                    }
+                }
+                Err(e) => {
+                    tracing::error!("Failed to get bucket location: {:?}", e);
+                }
+            }
+        }
+
+        if buckets_in_region.is_empty() {
+            Err(AppError::msg(format!(
+                "No buckets exist in region {}",
+                self.region
+            )))
         } else {
-            Ok(buckets)
+            Ok(buckets_in_region)
         }
     }
 
