@@ -1,8 +1,3 @@
-pub fn to_preview_string(bytes: &[u8]) -> String {
-    // fixme: consider file type
-    String::from_utf8_lossy(bytes).into()
-}
-
 pub fn prune_strings_to_fit_width(
     words_with_priority: &[(String, usize)],
     max_width: usize,

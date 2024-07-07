@@ -15,7 +15,7 @@ use syntect::{
 
 use crate::{
     object::{FileDetail, RawObject},
-    util::{extension_from_file_name, to_preview_string},
+    util::extension_from_file_name,
     widget::{ScrollLines, ScrollLinesOptions, ScrollLinesState},
 };
 
@@ -36,14 +36,9 @@ impl TextPreviewState {
         let mut warn_msg = None;
 
         let s = to_preview_string(&object.bytes);
-        let s = if s.ends_with('\n') {
-            s.trim_end()
-        } else {
-            s.as_str()
-        };
 
         let lines: Vec<Line<'static>> =
-            match build_highlighted_lines(s, &file_detail.name, highlight) {
+            match build_highlighted_lines(&s, &file_detail.name, highlight) {
                 Ok(lines) => lines,
                 Err(msg) => {
                     // If there is an error, display the original text
@@ -58,6 +53,17 @@ impl TextPreviewState {
 
         let state = Self { scroll_lines_state };
         (state, warn_msg)
+    }
+}
+
+fn to_preview_string(bytes: &[u8]) -> String {
+    let s: String = String::from_utf8_lossy(bytes).into();
+    // tab is not rendered correctly, so replace it
+    let s = s.replace('\t', "    ");
+    if s.ends_with('\n') {
+        s.trim_end().into()
+    } else {
+        s
     }
 }
 
