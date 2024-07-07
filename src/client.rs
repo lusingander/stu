@@ -85,8 +85,8 @@ impl Client {
                 Ok(location) => {
                     if let Some(constraint) = location.location_constraint() {
                         let constraint_str = match constraint.as_str() {
-                            // AWS S3 returns an empty string for the us-east-1 region, as it is the "default" location for s3.
-                            // We need to explicitly handle this case by mapping it to "us-east-1".
+                            // For us-east-1, `location.location_constraint() returns Some<Unknown<UnknownVariantValue("")>>, with it's `as_str()` returning "".
+                            // We explicitly handle this case by mapping it to "us-east-1".
                             "" => "us-east-1",
                             other => other,
                         };
