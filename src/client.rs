@@ -59,6 +59,7 @@ impl Client {
         let result = self.client.list_buckets().send().await;
         let output = result.map_err(|e| AppError::new("Failed to load buckets", e))?;
 
+        // Returns all buckets in account independant of client region
         let buckets: Vec<BucketItem> = output
             .buckets()
             .iter()
@@ -81,38 +82,35 @@ impl Client {
                 .send()
                 .await;
 
-            match bucket_location {
-                Ok(location) => {
-                    if let Some(constraint) = location.location_constraint() {
-                        let constraint_str = match constraint.as_str() {
-                            // For us-east-1, `location.location_constraint() returns Some<Unknown<UnknownVariantValue("")>>, with it's `as_str()` returning "".
-                            // We explicitly handle this case by mapping it to "us-east-1".
-                            "" => "us-east-1",
-                            other => other,
-                        };
+            let location = bucket_location.map_err(|e| {
+                AppError::new(
+                    format!("Failed to get bucket location for bucket {}", bucket.name),
+                    e,
+                )
+            })?;
 
-                        if constraint_str == self.region {
-                            buckets_in_region.push(bucket);
-                        }
-                    }
-                }
-                Err(e) => {
-                    return Err(AppError::new(
-                        format!("Failed to get bucket location for bucket {}", bucket.name),
-                        e,
-                    ));
+            if let Some(constraint) = location.location_constraint() {
+                let constraint_str = match constraint.as_str() {
+                    // For us-east-1, `location.location_constraint()` returns Some<Unknown<UnknownVariantValue("")>>, with it's `as_str()` returning "".
+                    // We explicitly handle this case by mapping it to "us-east-1".
+                    "" => "us-east-1",
+                    other => other,
+                };
+
+                if constraint_str == self.region {
+                    buckets_in_region.push(bucket);
                 }
             }
         }
 
         if buckets_in_region.is_empty() {
-            Err(AppError::msg(format!(
-                "No buckets exist in region {}",
+            return Err(AppError::msg(format!(
+                "Found no buckets in region {}",
                 self.region
-            )))
-        } else {
-            Ok(buckets_in_region)
+            )));
         }
+
+        Ok(buckets_in_region)
     }
 
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
