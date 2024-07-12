@@ -1,4 +1,5 @@
 mod app;
+mod cache;
 mod client;
 mod config;
 mod constant;

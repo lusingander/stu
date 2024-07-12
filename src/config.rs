@@ -10,6 +10,7 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 const ERROR_LOG_FILE_NAME: &str = "error.log";
 const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
+const CACHE_FILE_NAME: &str = "cache.json";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
@@ -67,6 +68,12 @@ impl Config {
     pub fn debug_log_path(&self) -> anyhow::Result<String> {
         let dir = Config::get_app_base_dir()?;
         let path = dir.join(DEBUG_LOG_FILE_NAME);
+        Ok(String::from(path.to_string_lossy()))
+    }
+
+    pub fn cache_file_path() -> anyhow::Result<String> {
+        let dir = Config::get_app_base_dir()?;
+        let path = dir.join(CACHE_FILE_NAME);
         Ok(String::from(path.to_string_lossy()))
     }
 
