@@ -67,15 +67,16 @@ impl Client {
     }
 
     pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
-        let result = self.client.list_buckets().send().await;
-        let output = result.map_err(|e| AppError::new("Failed to load buckets", e))?;
+        let list_buckets_result = self.client.list_buckets().send().await;
+        let list_buckets_output =
+            list_buckets_result.map_err(|e| AppError::new("Failed to load buckets", e))?;
 
-        let buckets: Vec<BucketItem> = output
+        let buckets: Vec<BucketItem> = list_buckets_output
             .buckets()
             .iter()
             .map(|bucket| {
-                let name = bucket.name().unwrap().to_string();
-                BucketItem { name }
+                let bucket_name = bucket.name().unwrap().to_string();
+                BucketItem { name: bucket_name }
             })
             .collect();
 
@@ -85,8 +86,8 @@ impl Client {
 
         let mut buckets_in_region: Vec<BucketItem> = Vec::new();
         for bucket in buckets {
-            let result = self.is_bucket_in_region(&bucket.name).await;
-            if result.unwrap_or(false) {
+            let in_region_result = self.is_bucket_in_region(&bucket.name).await;
+            if in_region_result.unwrap_or(false) {
                 buckets_in_region.push(bucket);
             }
         }
@@ -95,9 +96,9 @@ impl Client {
     }
 
     async fn is_bucket_in_region(&self, bucket_name: &str) -> Result<bool> {
-        let bucket_region_cache_hit = self.bucket_region_cache.get(bucket_name);
+        let cache_hit = self.bucket_region_cache.get(bucket_name);
 
-        let bucket_location = if let Some(location) = bucket_region_cache_hit.clone() {
+        let bucket_location = if let Some(location) = cache_hit.clone() {
             println!("Cache hit! Bucket: {}, Region: {}", bucket_name, location);
             Some(location.clone())
         } else {
@@ -118,7 +119,7 @@ impl Client {
             Some(res.to_string())
         };
 
-        let constraint_str = match bucket_location.as_deref() {
+        let region_constraint = match bucket_location.as_deref() {
             // For us-east-1, `location.location_constraint()` returns Some<Unknown<UnknownVariantValue("")>>, with its `as_str()` returning "".
             // We explicitly handle this case by mapping it to "us-east-1".
             Some("") => "us-east-1",
@@ -131,16 +132,16 @@ impl Client {
             }
         };
 
-        if bucket_region_cache_hit.is_none() {
+        if cache_hit.is_none() {
             let res = self
                 .bucket_region_cache
-                .put(bucket_name.to_string(), constraint_str.to_string());
+                .put(bucket_name.to_string(), region_constraint.to_string());
 
             match res {
                 Ok(_) => {
                     println!(
                         "Cache put success! Bucket: {}, Region: {}",
-                        bucket_name, constraint_str
+                        bucket_name, region_constraint
                     );
                 }
                 Err(e) => {
@@ -149,7 +150,7 @@ impl Client {
             }
         }
 
-        Ok(constraint_str == self.region)
+        Ok(region_constraint == self.region)
     }
 
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
