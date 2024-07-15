@@ -1,86 +1,74 @@
-use moka::sync::Cache;
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fmt;
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::{self, Write};
-use std::num::NonZeroUsize;
+use std::sync::RwLock;
 
-#[derive(Serialize, Deserialize)]
-struct CacheEntry<T> {
-    key: String,
-    value: T,
-}
-
-pub struct SyncMokaCache<T> {
-    pub cache: Cache<String, T>,
+pub struct SimpleStringCache {
+    pub cache: RwLock<HashMap<String, String>>,
     pub file_path: String,
 }
 
-impl<T> fmt::Debug for SyncMokaCache<T>
-where
-    T: fmt::Debug + Clone + Send + Sync + 'static, // Added 'static bound
-{
+impl fmt::Debug for SimpleStringCache {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SyncMokaCache")
+        let cache = self.cache.read().unwrap();
+        f.debug_struct("SimpleCache")
             .field("file_path", &self.file_path)
-            .field("cache", &self.cache.iter().collect::<Vec<_>>())
+            .field("cache", &*cache)
             .finish()
     }
 }
 
-impl<T> SyncMokaCache<T>
-where
-    T: Serialize + for<'de> Deserialize<'de> + Clone + Send + Sync + 'static,
-{
-    pub fn new(size: NonZeroUsize, file_path: String) -> io::Result<Self>
-    where
-        T: for<'de> Deserialize<'de>,
-    {
-        println!("Initializing cache with size: {} at {}", size, file_path);
-        let cache = Cache::builder().max_capacity(size.get() as u64).build();
+impl SimpleStringCache {
+    pub fn new(file_path: String) -> io::Result<Self> {
+        println!("Initializing cache at {}", file_path);
+        let mut cache = HashMap::new();
 
         if let Ok(mut file) = File::open(&file_path) {
             let mut contents = String::new();
             file.read_to_string(&mut contents)?;
-            let entries: Vec<CacheEntry<T>> = serde_json::from_str(&contents)?;
-            for entry in entries {
-                cache.insert(entry.key, entry.value);
+            for line in contents.lines() {
+                let parts: Vec<&str> = line.split(',').collect();
+                if parts.len() == 2 {
+                    cache.insert(parts[0].to_string(), parts[1].to_string());
+                }
             }
         }
 
-        Ok(SyncMokaCache { cache, file_path })
+        Ok(SimpleStringCache {
+            cache: RwLock::new(cache),
+            file_path,
+        })
     }
 
-    pub fn put(&self, key: String, value: T) -> io::Result<()> {
-        self.cache.insert(key.clone(), value);
-        self.sync_to_file()?;
+    pub fn put(&self, key: String, value: String) -> io::Result<()> {
+        {
+            let mut cache = self.cache.write().unwrap();
+            cache.insert(key.clone(), value);
+        }
         Ok(())
     }
 
-    pub fn get(&self, key: &str) -> Option<T> {
-        self.cache.get(key)
+    pub fn get(&self, key: &str) -> Option<String> {
+        let cache = self.cache.read().unwrap();
+        cache.get(key).cloned()
     }
 
-    fn sync_to_file(&self) -> io::Result<()> {
+    pub fn write_cache(&self) -> io::Result<()> {
         let temp_file_path = format!("{}.tmp", self.file_path);
         let mut file = OpenOptions::new()
             .write(true)
             .create(true)
             .truncate(true)
             .open(&temp_file_path)?;
-        let entries: Vec<CacheEntry<T>> = self
-            .cache
-            .iter()
-            .map(|(k, v)| CacheEntry {
-                key: k.to_string(),
-                value: v.clone(),
-            })
-            .collect();
 
-        let json = serde_json::to_string(&entries)?;
-        file.write_all(json.as_bytes())?;
+        let cache = self.cache.read().unwrap();
+        for (key, value) in &*cache {
+            writeln!(file, "{},{}", key, value)?;
+        }
+
         std::fs::rename(temp_file_path, &self.file_path)?;
         Ok(())
     }

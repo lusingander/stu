@@ -1,11 +1,11 @@
-use std::{fmt::Debug, num::NonZero};
+use std::fmt::Debug;
 
 use aws_config::{meta::region::RegionProviderChain, BehaviorVersion};
 use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output};
 use chrono::TimeZone;
 
 use crate::{
-    cache::SyncMokaCache,
+    cache::SimpleStringCache,
     config::Config,
     error::{AppError, Result},
     object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
@@ -17,7 +17,7 @@ const DEFAULT_REGION: &str = "ap-northeast-1";
 pub struct Client {
     pub client: aws_sdk_s3::Client,
     region: String,
-    bucket_region_cache: SyncMokaCache<String>,
+    bucket_region_cache: SimpleStringCache,
 }
 
 impl Debug for Client {
@@ -58,11 +58,8 @@ impl Client {
         Client {
             client,
             region,
-            bucket_region_cache: SyncMokaCache::new(
-                NonZero::new(1000).unwrap(),
-                Config::cache_file_path().unwrap(),
-            )
-            .unwrap(),
+            bucket_region_cache: SimpleStringCache::new(Config::cache_file_path().unwrap())
+                .unwrap(),
         }
     }
 
@@ -91,6 +88,8 @@ impl Client {
                 buckets_in_region.push(bucket);
             }
         }
+
+        self.bucket_region_cache.write_cache().unwrap();
 
         Ok(buckets_in_region)
     }
