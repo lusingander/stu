@@ -23,19 +23,7 @@ impl fmt::Debug for SimpleStringCache {
 
 impl SimpleStringCache {
     pub fn new(file_path: String) -> io::Result<Self> {
-        println!("Initializing cache at {}", file_path);
         let mut cache = HashMap::new();
-
-        if let Ok(mut file) = File::open(&file_path) {
-            let mut contents = String::new();
-            file.read_to_string(&mut contents)?;
-            for line in contents.lines() {
-                let parts: Vec<&str> = line.split(',').collect();
-                if parts.len() == 2 {
-                    cache.insert(parts[0].to_string(), parts[1].to_string());
-                }
-            }
-        }
 
         Ok(SimpleStringCache {
             cache: RwLock::new(cache),
@@ -54,6 +42,22 @@ impl SimpleStringCache {
     pub fn get(&self, key: &str) -> Option<String> {
         let cache = self.cache.read().unwrap();
         cache.get(key).cloned()
+    }
+
+    pub fn load_from_file(&self) -> io::Result<()> {
+        let mut file = File::open(&self.file_path)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        let mut cache = self.cache.write().unwrap();
+        cache.clear();
+        for line in contents.lines() {
+            let parts: Vec<&str> = line.split(',').collect();
+            if parts.len() == 2 {
+                cache.insert(parts[0].to_string(), parts[1].to_string());
+            }
+        }
+        Ok(())
     }
 
     pub fn write_cache(&self) -> io::Result<()> {
