@@ -117,6 +117,8 @@ impl Client {
             .location_constraint()
             .map(|loc| {
                 if loc.as_str().is_empty() {
+                    // Location.location_constraint() returns empty string for us-east-1 as it's the default region for S3.
+                    // Map it to us-east-1 to avoid having to deal with it as a special case.
                     "us-east-1".to_string()
                 } else {
                     loc.as_str().to_string()
