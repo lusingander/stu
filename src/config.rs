@@ -10,7 +10,7 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 const ERROR_LOG_FILE_NAME: &str = "error.log";
 const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
-const CACHE_FILE_NAME: &str = "cache.json";
+const CACHE_FILE_NAME: &str = "cache.txt";
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Config {
