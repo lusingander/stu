@@ -5,6 +5,8 @@ use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output
 use chrono::TimeZone;
 
 use crate::{
+    cache::SimpleStringCache,
+    config::Config,
     error::{AppError, Result},
     object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
 };
@@ -15,6 +17,7 @@ const DEFAULT_REGION: &str = "ap-northeast-1";
 pub struct Client {
     pub client: aws_sdk_s3::Client,
     region: String,
+    bucket_region_cache: SimpleStringCache,
 }
 
 impl Debug for Client {
@@ -52,20 +55,26 @@ impl Client {
         let client = aws_sdk_s3::Client::from_conf(config);
         let region = sdk_config.region().unwrap().to_string();
 
-        Client { client, region }
+        let bucket_region_cache = SimpleStringCache::new(Config::cache_file_path().unwrap());
+
+        Client {
+            client,
+            region,
+            bucket_region_cache,
+        }
     }
 
     pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
-        let result = self.client.list_buckets().send().await;
-        let output = result.map_err(|e| AppError::new("Failed to load buckets", e))?;
+        let list_buckets_result = self.client.list_buckets().send().await;
+        let list_buckets_output =
+            list_buckets_result.map_err(|e| AppError::new("Failed to load buckets", e))?;
 
-        // Returns all buckets in account independant of client region
-        let buckets: Vec<BucketItem> = output
+        let buckets: Vec<BucketItem> = list_buckets_output
             .buckets()
             .iter()
             .map(|bucket| {
-                let name = bucket.name().unwrap().to_string();
-                BucketItem { name }
+                let bucket_name = bucket.name().unwrap().to_string();
+                BucketItem { name: bucket_name }
             })
             .collect();
 
@@ -75,48 +84,62 @@ impl Client {
 
         let mut buckets_in_region: Vec<BucketItem> = Vec::new();
         for bucket in buckets {
-            let bucket_location = self
-                .client
-                .get_bucket_location()
-                .bucket(bucket.name.as_str())
-                .send()
-                .await;
-
-            let location = bucket_location.map_err(|e| {
-                AppError::new(
-                    format!("Failed to get bucket location for bucket {}", bucket.name),
-                    e,
-                )
-            })?;
-
-            if let Some(constraint) = location.location_constraint() {
-                let constraint_str = match constraint.as_str() {
-                    // For us-east-1, `location.location_constraint()` returns Some<Unknown<UnknownVariantValue("")>>, with it's `as_str()` returning "".
-                    // We explicitly handle this case by mapping it to "us-east-1".
-                    "" => "us-east-1",
-                    other => other,
-                };
-
-                if constraint_str == self.region {
-                    buckets_in_region.push(bucket);
-                }
+            let region = self.get_bucket_region(&bucket.name).await?;
+            if region == self.region {
+                buckets_in_region.push(bucket);
             }
         }
 
-        if buckets_in_region.is_empty() {
-            return Err(AppError::msg(format!(
-                "Found no buckets in region {}",
-                self.region
-            )));
-        }
+        self.bucket_region_cache.write_cache().unwrap();
 
         Ok(buckets_in_region)
     }
 
+    async fn get_bucket_region(&self, bucket_name: &str) -> Result<String> {
+        if let Some(bucket_region) = self.bucket_region_cache.get(bucket_name) {
+            return Ok(bucket_region);
+        }
+
+        let bucket_region = self
+            .client
+            .get_bucket_location()
+            .bucket(bucket_name)
+            .send()
+            .await
+            .map_err(|e| {
+                AppError::new(
+                    format!("Failed to fetch region for bucket {}", bucket_name),
+                    e,
+                )
+            })?
+            .location_constraint()
+            .map(|loc| {
+                if loc.as_str().is_empty() {
+                    // location_constraint() returns Some<Unknown<UnknownVariantValue("")>> for "us-east-1" region, not None
+                    "us-east-1".to_string()
+                } else {
+                    loc.as_str().to_string()
+                }
+            })
+            .unwrap();
+
+        self.bucket_region_cache
+            .put(bucket_name.to_string(), bucket_region.to_string())
+            .unwrap();
+
+        Ok(bucket_region.to_string())
+    }
+
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
-        let result = self.client.head_bucket().bucket(name).send().await;
-        // Check only existence and accessibility
-        result.map_err(|e| AppError::new(format!("Failed to load bucket '{}'", name), e))?;
+        let region = self.get_bucket_region(name).await?;
+        self.bucket_region_cache.write_cache().unwrap();
+
+        if region != self.region {
+            return Err(AppError::msg(format!(
+                "Bucket '{}' is in region '{}', expected '{}'",
+                name, region, self.region
+            )));
+        }
 
         let bucket = BucketItem {
             name: name.to_string(),
