@@ -51,6 +51,7 @@ impl SimpleStringCache {
             .read(true)
             .write(true)
             .create(true)
+            .truncate(false)
             .open(&self.file_path)?;
 
         let mut contents = String::new();

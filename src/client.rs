@@ -131,7 +131,7 @@ impl Client {
     }
 
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
-        let region = self.get_bucket_region(&name).await?;
+        let region = self.get_bucket_region(name).await?;
         self.bucket_region_cache.write_cache().unwrap();
 
         if region != self.region {
