@@ -64,7 +64,7 @@ impl SimpleStringCache {
             if parts.len() == 2 {
                 cache.insert(parts[0].to_string(), parts[1].to_string());
             } else {
-                tracing::error!("Invalid format line in cache file: {}", line);
+                panic!("Cache file has invalid format on line: {}", line);
             }
         }
 
