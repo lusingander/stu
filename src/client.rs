@@ -55,9 +55,7 @@ impl Client {
         let client = aws_sdk_s3::Client::from_conf(config);
         let region = sdk_config.region().unwrap().to_string();
 
-        let bucket_region_cache =
-            SimpleStringCache::new(Config::cache_file_path().unwrap()).unwrap();
-        bucket_region_cache.load_from_file().unwrap();
+        let bucket_region_cache = SimpleStringCache::new(Config::cache_file_path().unwrap());
 
         Client {
             client,
@@ -86,7 +84,7 @@ impl Client {
 
         let mut buckets_in_region: Vec<BucketItem> = Vec::new();
         for bucket in buckets {
-            let region = self.get_bucket_region(&bucket.name).await.unwrap();
+            let region = self.get_bucket_region(&bucket.name).await?;
             if region == self.region {
                 buckets_in_region.push(bucket);
             }
@@ -98,8 +96,8 @@ impl Client {
     }
 
     async fn get_bucket_region(&self, bucket_name: &str) -> Result<String> {
-        if let Some(location) = self.bucket_region_cache.get(bucket_name) {
-            return Ok(location);
+        if let Some(bucket_region) = self.bucket_region_cache.get(bucket_name) {
+            return Ok(bucket_region);
         }
 
         let bucket_region = self
@@ -117,16 +115,13 @@ impl Client {
             .location_constraint()
             .map(|loc| {
                 if loc.as_str().is_empty() {
-                    // Location.location_constraint() returns empty string for us-east-1 as it's the default region for S3.
-                    // Map it to us-east-1 to avoid having to deal with it as a special case.
+                    // location_constraint() returns Some<Unknown<UnknownVariantValue("")>> for "us-east-1" region, not None
                     "us-east-1".to_string()
                 } else {
                     loc.as_str().to_string()
                 }
             })
-            .unwrap()
-            .as_str()
-            .to_string();
+            .unwrap();
 
         self.bucket_region_cache
             .put(bucket_name.to_string(), bucket_region.to_string())
@@ -136,7 +131,7 @@ impl Client {
     }
 
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
-        let region = self.get_bucket_region(&name).await.unwrap();
+        let region = self.get_bucket_region(&name).await?;
         self.bucket_region_cache.write_cache().unwrap();
 
         if region != self.region {

@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 use std::fmt;
-use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::{self, Write};
@@ -22,13 +21,16 @@ impl fmt::Debug for SimpleStringCache {
 }
 
 impl SimpleStringCache {
-    pub fn new(file_path: String) -> io::Result<Self> {
-        let mut cache = HashMap::new();
+    pub fn new(file_path: String) -> SimpleStringCache {
+        let cache = HashMap::new();
 
-        Ok(SimpleStringCache {
+        let cache = SimpleStringCache {
             cache: RwLock::new(cache),
             file_path,
-        })
+        };
+
+        cache.load_from_file().unwrap();
+        cache
     }
 
     pub fn put(&self, key: String, value: String) -> io::Result<()> {
@@ -44,8 +46,13 @@ impl SimpleStringCache {
         cache.get(key).cloned()
     }
 
-    pub fn load_from_file(&self) -> io::Result<()> {
-        let mut file = File::open(&self.file_path)?;
+    fn load_from_file(&self) -> Result<(), io::Error> {
+        let mut file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .open(&self.file_path)?;
+
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
 
@@ -55,8 +62,11 @@ impl SimpleStringCache {
             let parts: Vec<&str> = line.split(',').collect();
             if parts.len() == 2 {
                 cache.insert(parts[0].to_string(), parts[1].to_string());
+            } else {
+                tracing::error!("Invalid format line in cache file: {}", line);
             }
         }
+
         Ok(())
     }
 
