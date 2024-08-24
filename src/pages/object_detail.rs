@@ -212,7 +212,7 @@ impl ObjectDetailPage {
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
-            f.set_cursor(cursor_x, cursor_y);
+            f.set_cursor_position((cursor_x, cursor_y));
         }
 
         if let ViewState::CopyDetailDialog(state) = &self.view_state {

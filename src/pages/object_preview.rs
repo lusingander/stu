@@ -139,7 +139,7 @@ impl ObjectPreviewPage {
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
-            f.set_cursor(cursor_x, cursor_y);
+            f.set_cursor_position((cursor_x, cursor_y));
         }
     }
 

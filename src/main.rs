@@ -108,7 +108,7 @@ async fn run<B: Backend>(
 }
 
 fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
-    let size = terminal.get_frame().size();
+    let size = terminal.get_frame().area();
     (size.width as usize, size.height as usize)
 }
 

@@ -31,7 +31,7 @@ impl ScrollBar {
         let x = area.x;
         for h in 0..scrollbar_height {
             let y = scrollbar_top + h;
-            buf.get_mut(x, y).set_char(self.bar_char);
+            buf[(x, y)].set_char(self.bar_char);
         }
     }
 

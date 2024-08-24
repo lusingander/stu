@@ -72,9 +72,9 @@ macro_rules! set_cells {
         $(
             for x in $xs {
                 for y in $ys {
-                    $( $buffer.get_mut(x, y).set_bg($bg); )?
-                    $( $buffer.get_mut(x, y).set_fg($fg); )?
-                    $( $buffer.get_mut(x, y).set_style(ratatui::style::Style::default().add_modifier($md)); )*
+                    $( $buffer[(x, y)].set_bg($bg); )?
+                    $( $buffer[(x, y)].set_fg($fg); )?
+                    $( $buffer[(x, y)].set_style(ratatui::style::Style::default().add_modifier($md)); )*
                 }
             }
         )*

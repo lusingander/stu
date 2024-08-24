@@ -26,7 +26,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
         Constraint::Min(0),
         Constraint::Length(2),
     ])
-    .split(f.size());
+    .split(f.area());
 
     render_header(f, chunks[0], app);
     render_content(f, chunks[1], app);
@@ -88,7 +88,7 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...");
-        let area = calc_centered_dialog_rect(f.size(), 30, 5);
+        let area = calc_centered_dialog_rect(f.area(), 30, 5);
         let dialog = Dialog::new(Box::new(loading));
         f.render_widget_ref(dialog, area);
     }

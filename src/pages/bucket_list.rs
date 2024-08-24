@@ -162,7 +162,7 @@ impl BucketListPage {
             f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
-            f.set_cursor(cursor_x, cursor_y);
+            f.set_cursor_position((cursor_x, cursor_y));
         }
 
         if let ViewState::SortDialog = self.view_state {
