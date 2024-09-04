@@ -17,19 +17,8 @@ mod widget;
 use clap::{arg, Parser};
 use event::AppEventType;
 use file::open_or_create_append_file;
-use ratatui::{
-    backend::{Backend, CrosstermBackend},
-    crossterm::{
-        execute,
-        terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    },
-    Terminal,
-};
-use std::{
-    io::{stdout, Stdout},
-    panic,
-    sync::Mutex,
-};
+use ratatui::{backend::Backend, Terminal};
+use std::sync::Mutex;
 use tokio::spawn;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
@@ -68,24 +57,13 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::load()?;
 
     initialize_debug_log(&args, &config)?;
-    initialize_panic_handler();
 
-    let mut terminal = setup()?;
+    let mut terminal = ratatui::try_init()?;
     let ret = run(&mut terminal, args, config).await;
 
-    shutdown()?;
+    ratatui::try_restore()?;
 
     ret
-}
-
-fn setup() -> anyhow::Result<Terminal<CrosstermBackend<Stdout>>> {
-    enable_raw_mode()?;
-    execute!(stdout(), EnterAlternateScreen)?;
-
-    let backend = CrosstermBackend::new(stdout());
-    let terminal = Terminal::new(backend)?;
-
-    Ok(terminal)
 }
 
 async fn run<B: Backend>(
@@ -110,20 +88,6 @@ async fn run<B: Backend>(
 fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
     let size = terminal.get_frame().area();
     (size.width as usize, size.height as usize)
-}
-
-fn shutdown() -> anyhow::Result<()> {
-    execute!(stdout(), LeaveAlternateScreen)?;
-    disable_raw_mode()?;
-    Ok(())
-}
-
-fn initialize_panic_handler() {
-    let original_hook = panic::take_hook();
-    panic::set_hook(Box::new(move |panic_info| {
-        shutdown().unwrap();
-        original_hook(panic_info);
-    }));
 }
 
 fn initialize_debug_log(args: &Args, config: &Config) -> anyhow::Result<()> {
