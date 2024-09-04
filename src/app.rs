@@ -7,7 +7,8 @@ use crate::{
     error::{AppError, Result},
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
-        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
+        CompleteLoadObjectDetailResult, CompleteLoadObjectsResult, CompletePreviewObjectResult,
+        Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     if_match,
@@ -193,7 +194,7 @@ impl App {
                     );
                     self.page_stack.push(object_detail_page);
                 } else {
-                    self.tx.send(AppEventType::LoadObject);
+                    self.tx.send(AppEventType::LoadObjectDetail);
                     self.app_view_state.is_loading = true;
                 }
             }
@@ -253,7 +254,7 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub fn load_object(&self) {
+    pub fn load_object_detail(&self) {
         let object_page = self.page_stack.current_page().as_object_list();
 
         if let ObjectItem::File {
@@ -275,15 +276,15 @@ impl App {
                     .load_object_detail(&bucket, &key, &name, size_byte)
                     .await;
                 let versions = client.load_object_versions(&bucket, &key).await;
-                let result = CompleteLoadObjectResult::new(detail, versions, map_key);
-                tx.send(AppEventType::CompleteLoadObject(result));
+                let result = CompleteLoadObjectDetailResult::new(detail, versions, map_key);
+                tx.send(AppEventType::CompleteLoadObjectDetail(result));
             });
         }
     }
 
-    pub fn complete_load_object(&mut self, result: Result<CompleteLoadObjectResult>) {
+    pub fn complete_load_object_detail(&mut self, result: Result<CompleteLoadObjectDetailResult>) {
         match result {
-            Ok(CompleteLoadObjectResult {
+            Ok(CompleteLoadObjectDetailResult {
                 detail,
                 versions,
                 map_key,

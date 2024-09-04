@@ -20,8 +20,8 @@ pub enum AppEventType {
     CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
-    LoadObject,
-    CompleteLoadObject(Result<CompleteLoadObjectResult>),
+    LoadObjectDetail,
+    CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
@@ -74,21 +74,21 @@ impl CompleteLoadObjectsResult {
 }
 
 #[derive(Debug)]
-pub struct CompleteLoadObjectResult {
+pub struct CompleteLoadObjectDetailResult {
     pub detail: Box<FileDetail>, // to avoid "warning: large size difference between variants" for AppEventType
     pub versions: Vec<FileVersion>,
     pub map_key: ObjectKey,
 }
 
-impl CompleteLoadObjectResult {
+impl CompleteLoadObjectDetailResult {
     pub fn new(
         detail: Result<FileDetail>,
         versions: Result<Vec<FileVersion>>,
         map_key: ObjectKey,
-    ) -> Result<CompleteLoadObjectResult> {
+    ) -> Result<CompleteLoadObjectDetailResult> {
         let detail = Box::new(detail?);
         let versions = versions?;
-        Ok(CompleteLoadObjectResult {
+        Ok(CompleteLoadObjectDetailResult {
             detail,
             versions,
             map_key,

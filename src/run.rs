@@ -81,11 +81,11 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObjects(result) => {
                 app.complete_load_objects(result);
             }
-            AppEventType::LoadObject => {
-                app.load_object();
+            AppEventType::LoadObjectDetail => {
+                app.load_object_detail();
             }
-            AppEventType::CompleteLoadObject(result) => {
-                app.complete_load_object(result);
+            AppEventType::CompleteLoadObjectDetail(result) => {
+                app.complete_load_object_detail(result);
             }
             AppEventType::DownloadObject(file_detail, version_id) => {
                 app.download_object(file_detail, version_id);
