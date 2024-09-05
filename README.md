@@ -147,6 +147,12 @@ The values that can be set are as follows:
   - Steps to reproduce the issue
   - Relevant log files or error messages
 
+## Contributing
+
+To get started with contributing, please review [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Contributions that do not follow these guidelines may not be accepted.
+
 ## License
 
 MIT
