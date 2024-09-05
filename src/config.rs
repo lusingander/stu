@@ -17,7 +17,23 @@ pub struct Config {
     #[serde(default = "default_download_dir")]
     pub download_dir: String,
     #[serde(default)]
+    pub ui: UiConfig,
+    #[serde(default)]
     pub preview: PreviewConfig,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UiConfig {
+    #[serde(default = "default_ui_date_format")]
+    pub date_format: String,
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            date_format: default_ui_date_format(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
@@ -31,6 +47,7 @@ impl Default for Config {
         let download_dir = default_download_dir();
         Self {
             download_dir,
+            ui: UiConfig::default(),
             preview: PreviewConfig::default(),
         }
     }
@@ -44,6 +61,10 @@ fn default_download_dir() -> String {
         }
         Err(_) => "".to_string(),
     }
+}
+
+fn default_ui_date_format() -> String {
+    "%Y-%m-%d %H:%M:%S".to_string()
 }
 
 impl Config {
