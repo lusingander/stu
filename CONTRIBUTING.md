@@ -8,6 +8,8 @@ To ensure that your contributions are considered, please follow this guidelines.
 
 Before reporting, please check if an issue with the same content already exists.
 
+Also, please refer to [Troubleshooting](./README.md#troubleshooting).
+
 ### Reporting Bugs
 
 When reporting a bug, please include the following information:
