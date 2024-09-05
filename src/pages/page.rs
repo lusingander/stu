@@ -35,14 +35,12 @@ impl Page {
 
     pub fn of_object_detail(
         file_detail: FileDetail,
-        file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
         tx: Sender,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
             file_detail,
-            file_versions,
             object_items,
             list_state,
             tx,

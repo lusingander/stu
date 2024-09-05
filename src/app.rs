@@ -181,13 +181,11 @@ impl App {
             ObjectItem::File { name, .. } => {
                 let current_object_key = &self.current_object_key_with_name(name.to_string());
                 let detail = self.app_objects.get_object_detail(current_object_key);
-                let versions = self.app_objects.get_object_versions(current_object_key);
 
-                if let (Some(detail), Some(versions)) = (detail, versions) {
-                    // object has been already loaded
+                if let Some(detail) = detail {
+                    // object detail has been already loaded
                     let object_detail_page = Page::of_object_detail(
                         detail.clone(),
-                        versions.clone(),
                         object_page.object_list(),
                         object_page.list_state(),
                         self.tx.clone(),
@@ -275,8 +273,7 @@ impl App {
                 let detail = client
                     .load_object_detail(&bucket, &key, &name, size_byte)
                     .await;
-                let versions = client.load_object_versions(&bucket, &key).await;
-                let result = CompleteLoadObjectDetailResult::new(detail, versions, map_key);
+                let result = CompleteLoadObjectDetailResult::new(detail, map_key);
                 tx.send(AppEventType::CompleteLoadObjectDetail(result));
             });
         }
@@ -284,19 +281,13 @@ impl App {
 
     pub fn complete_load_object_detail(&mut self, result: Result<CompleteLoadObjectDetailResult>) {
         match result {
-            Ok(CompleteLoadObjectDetailResult {
-                detail,
-                versions,
-                map_key,
-            }) => {
-                self.app_objects
-                    .set_object_details(map_key, *detail.clone(), versions.clone());
+            Ok(CompleteLoadObjectDetailResult { detail, map_key }) => {
+                self.app_objects.set_object_detail(map_key, *detail.clone());
 
                 let object_page = self.page_stack.current_page().as_object_list();
 
                 let object_detail_page = Page::of_object_detail(
                     *detail.clone(),
-                    versions.clone(),
                     object_page.object_list(),
                     object_page.list_state(),
                     self.tx.clone(),

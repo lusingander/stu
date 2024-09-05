@@ -63,7 +63,6 @@ enum ViewState {
 impl ObjectDetailPage {
     pub fn new(
         file_detail: FileDetail,
-        file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
         tx: Sender,
@@ -71,7 +70,7 @@ impl ObjectDetailPage {
         let detail_tab_state = DetailTabState::new(&file_detail);
         Self {
             file_detail,
-            file_versions,
+            file_versions: Vec::new(),
             tab: Tab::Detail(detail_tab_state),
             view_state: ViewState::Default,
             object_items,
@@ -673,13 +672,8 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -737,13 +731,8 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             page.toggle_tab();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -802,13 +791,8 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -865,13 +849,8 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             page.open_copy_detail_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
