@@ -81,11 +81,17 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObjects(result) => {
                 app.complete_load_objects(result);
             }
-            AppEventType::LoadObject => {
-                app.load_object();
+            AppEventType::LoadObjectDetail => {
+                app.load_object_detail();
             }
-            AppEventType::CompleteLoadObject(result) => {
-                app.complete_load_object(result);
+            AppEventType::CompleteLoadObjectDetail(result) => {
+                app.complete_load_object_detail(result);
+            }
+            AppEventType::LoadObjectVersions => {
+                app.load_object_versions();
+            }
+            AppEventType::CompleteLoadObjectVersions(result) => {
+                app.complete_load_object_versions(result);
             }
             AppEventType::DownloadObject(file_detail, version_id) => {
                 app.download_object(file_detail, version_id);
@@ -113,6 +119,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::BackToBucketList => {
                 app.back_to_bucket_list();
+            }
+            AppEventType::OpenObjectVersionsTab => {
+                app.open_object_versions_tab();
             }
             AppEventType::OpenPreview(file_detail, version_id) => {
                 app.open_preview(file_detail, version_id);

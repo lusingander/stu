@@ -7,7 +7,8 @@ use crate::{
     error::{AppError, Result},
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
-        CompleteLoadObjectResult, CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
+        CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
+        CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     if_match,
@@ -180,20 +181,18 @@ impl App {
             ObjectItem::File { name, .. } => {
                 let current_object_key = &self.current_object_key_with_name(name.to_string());
                 let detail = self.app_objects.get_object_detail(current_object_key);
-                let versions = self.app_objects.get_object_versions(current_object_key);
 
-                if let (Some(detail), Some(versions)) = (detail, versions) {
-                    // object has been already loaded
+                if let Some(detail) = detail {
+                    // object detail has been already loaded
                     let object_detail_page = Page::of_object_detail(
                         detail.clone(),
-                        versions.clone(),
                         object_page.object_list(),
                         object_page.list_state(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
                 } else {
-                    self.tx.send(AppEventType::LoadObject);
+                    self.tx.send(AppEventType::LoadObjectDetail);
                     self.app_view_state.is_loading = true;
                 }
             }
@@ -253,7 +252,7 @@ impl App {
         self.app_view_state.is_loading = false;
     }
 
-    pub fn load_object(&self) {
+    pub fn load_object_detail(&self) {
         let object_page = self.page_stack.current_page().as_object_list();
 
         if let ObjectItem::File {
@@ -274,33 +273,83 @@ impl App {
                 let detail = client
                     .load_object_detail(&bucket, &key, &name, size_byte)
                     .await;
-                let versions = client.load_object_versions(&bucket, &key).await;
-                let result = CompleteLoadObjectResult::new(detail, versions, map_key);
-                tx.send(AppEventType::CompleteLoadObject(result));
+                let result = CompleteLoadObjectDetailResult::new(detail, map_key);
+                tx.send(AppEventType::CompleteLoadObjectDetail(result));
             });
         }
     }
 
-    pub fn complete_load_object(&mut self, result: Result<CompleteLoadObjectResult>) {
+    pub fn complete_load_object_detail(&mut self, result: Result<CompleteLoadObjectDetailResult>) {
         match result {
-            Ok(CompleteLoadObjectResult {
-                detail,
-                versions,
-                map_key,
-            }) => {
-                self.app_objects
-                    .set_object_details(map_key, *detail.clone(), versions.clone());
+            Ok(CompleteLoadObjectDetailResult { detail, map_key }) => {
+                self.app_objects.set_object_detail(map_key, *detail.clone());
 
                 let object_page = self.page_stack.current_page().as_object_list();
 
                 let object_detail_page = Page::of_object_detail(
                     *detail.clone(),
-                    versions.clone(),
                     object_page.object_list(),
                     object_page.list_state(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::NotifyError(e));
+            }
+        }
+        self.app_view_state.is_loading = false;
+    }
+
+    pub fn open_object_versions_tab(&mut self) {
+        let object_detail_page = self.page_stack.current_page().as_object_detail();
+        let name = &object_detail_page.current_object_detail().name;
+
+        let current_object_key = self.current_object_key_with_name(name.to_string());
+        let versions = self.app_objects.get_object_versions(&current_object_key);
+
+        if let Some(versions) = versions {
+            // object versions has been already loaded
+            let result =
+                CompleteLoadObjectVersionsResult::new(Ok(versions.clone()), current_object_key);
+            self.tx
+                .send(AppEventType::CompleteLoadObjectVersions(result));
+        } else {
+            self.tx.send(AppEventType::LoadObjectVersions);
+            self.app_view_state.is_loading = true;
+        }
+    }
+
+    pub fn load_object_versions(&self) {
+        let object_detail_page = self.page_stack.current_page().as_object_detail();
+        let name = &object_detail_page.current_object_detail().name;
+
+        let bucket = self.current_bucket();
+        let prefix = self.current_object_prefix();
+        let key = format!("{}{}", prefix, name);
+
+        let map_key = self.current_object_key_with_name(name.to_string());
+
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let versions = client.load_object_versions(&bucket, &key).await;
+            let result = CompleteLoadObjectVersionsResult::new(versions, map_key);
+            tx.send(AppEventType::CompleteLoadObjectVersions(result));
+        });
+    }
+
+    pub fn complete_load_object_versions(
+        &mut self,
+        result: Result<CompleteLoadObjectVersionsResult>,
+    ) {
+        match result {
+            Ok(CompleteLoadObjectVersionsResult { versions, map_key }) => {
+                self.app_objects
+                    .set_object_versions(map_key, versions.clone());
+
+                let object_detail_page = self.page_stack.current_page_mut().as_mut_object_detail();
+                object_detail_page.set_versions(versions);
+                object_detail_page.select_versions_tab();
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));

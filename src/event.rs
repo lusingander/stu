@@ -20,8 +20,10 @@ pub enum AppEventType {
     CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
-    LoadObject,
-    CompleteLoadObject(Result<CompleteLoadObjectResult>),
+    LoadObjectDetail,
+    CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
+    LoadObjectVersions,
+    CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
@@ -31,6 +33,7 @@ pub enum AppEventType {
     ObjectListMoveDown,
     ObjectListMoveUp,
     BackToBucketList,
+    OpenObjectVersionsTab,
     OpenPreview(FileDetail, Option<String>),
     DetailDownloadObject(FileDetail, Option<String>),
     DetailDownloadObjectAs(FileDetail, String, Option<String>),
@@ -74,25 +77,34 @@ impl CompleteLoadObjectsResult {
 }
 
 #[derive(Debug)]
-pub struct CompleteLoadObjectResult {
+pub struct CompleteLoadObjectDetailResult {
     pub detail: Box<FileDetail>, // to avoid "warning: large size difference between variants" for AppEventType
+    pub map_key: ObjectKey,
+}
+
+impl CompleteLoadObjectDetailResult {
+    pub fn new(
+        detail: Result<FileDetail>,
+        map_key: ObjectKey,
+    ) -> Result<CompleteLoadObjectDetailResult> {
+        let detail = Box::new(detail?);
+        Ok(CompleteLoadObjectDetailResult { detail, map_key })
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteLoadObjectVersionsResult {
     pub versions: Vec<FileVersion>,
     pub map_key: ObjectKey,
 }
 
-impl CompleteLoadObjectResult {
+impl CompleteLoadObjectVersionsResult {
     pub fn new(
-        detail: Result<FileDetail>,
         versions: Result<Vec<FileVersion>>,
         map_key: ObjectKey,
-    ) -> Result<CompleteLoadObjectResult> {
-        let detail = Box::new(detail?);
+    ) -> Result<CompleteLoadObjectVersionsResult> {
         let versions = versions?;
-        Ok(CompleteLoadObjectResult {
-            detail,
-            versions,
-            map_key,
-        })
+        Ok(CompleteLoadObjectVersionsResult { versions, map_key })
     }
 }
 

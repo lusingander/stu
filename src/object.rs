@@ -101,14 +101,12 @@ impl AppObjects {
         self.versions_map.get(key)
     }
 
-    pub fn set_object_details(
-        &mut self,
-        key: ObjectKey,
-        detail: FileDetail,
-        versions: Vec<FileVersion>,
-    ) {
-        self.detail_map.insert(key.to_owned(), detail);
-        self.versions_map.insert(key.to_owned(), versions);
+    pub fn set_object_detail(&mut self, key: ObjectKey, detail: FileDetail) {
+        self.detail_map.insert(key, detail);
+    }
+
+    pub fn set_object_versions(&mut self, key: ObjectKey, versions: Vec<FileVersion>) {
+        self.versions_map.insert(key, versions);
     }
 }
 

@@ -1,4 +1,3 @@
-use itsuki::zero_indexed_enum;
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{KeyCode, KeyEvent},
@@ -35,17 +34,22 @@ pub struct ObjectDetailPage {
 
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
-    detail_tab_state: DetailTabState,
-    version_tab_state: VersionTabState,
     tx: Sender,
 }
 
-#[derive(Default)]
-#[zero_indexed_enum]
+#[derive(Debug)]
 enum Tab {
-    #[default]
-    Detail,
-    Version,
+    Detail(DetailTabState),
+    Version(VersionTabState),
+}
+
+impl Tab {
+    fn val(&self) -> usize {
+        match self {
+            Tab::Detail(_) => 0,
+            Tab::Version(_) => 1,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -59,22 +63,18 @@ enum ViewState {
 impl ObjectDetailPage {
     pub fn new(
         file_detail: FileDetail,
-        file_versions: Vec<FileVersion>,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
         tx: Sender,
     ) -> Self {
         let detail_tab_state = DetailTabState::new(&file_detail);
-        let version_tab_state = VersionTabState::new(&file_versions);
         Self {
             file_detail,
-            file_versions,
-            tab: Tab::Detail,
+            file_versions: Vec::new(),
+            tab: Tab::Detail(detail_tab_state),
             view_state: ViewState::Default,
             object_items,
             list_state,
-            detail_tab_state,
-            version_tab_state,
             tx,
         }
     }
@@ -92,29 +92,29 @@ impl ObjectDetailPage {
                     self.toggle_tab();
                 }
                 key_code_char!('j') => match self.tab {
-                    Tab::Detail => {
-                        self.detail_tab_state.scroll_lines_state.scroll_forward();
+                    Tab::Detail(ref mut state) => {
+                        state.scroll_lines_state.scroll_forward();
                     }
-                    Tab::Version => {
-                        self.version_tab_state.select_next();
+                    Tab::Version(ref mut state) => {
+                        state.select_next();
                     }
                 },
                 key_code_char!('k') => match self.tab {
-                    Tab::Detail => {
-                        self.detail_tab_state.scroll_lines_state.scroll_backward();
+                    Tab::Detail(ref mut state) => {
+                        state.scroll_lines_state.scroll_backward();
                     }
-                    Tab::Version => {
-                        self.version_tab_state.select_prev();
+                    Tab::Version(ref mut state) => {
+                        state.select_prev();
                     }
                 },
                 key_code_char!('g') => {
-                    if self.tab == Tab::Version {
-                        self.version_tab_state.select_first();
+                    if let Tab::Version(ref mut state) = self.tab {
+                        state.select_first();
                     }
                 }
                 key_code_char!('G') => {
-                    if self.tab == Tab::Version {
-                        self.version_tab_state.select_last();
+                    if let Tab::Version(ref mut state) = self.tab {
+                        state.select_last();
                     }
                 }
                 key_code_char!('s') => {
@@ -193,17 +193,17 @@ impl ObjectDetailPage {
             .margin(1)
             .split(chunks[1]);
 
-        let tabs = build_tabs(self.tab);
+        let tabs = build_tabs(&self.tab);
         f.render_widget(tabs, chunks[0]);
 
         match self.tab {
-            Tab::Detail => {
+            Tab::Detail(ref mut state) => {
                 let detail = DetailTab::default();
-                f.render_stateful_widget(detail, chunks[1], &mut self.detail_tab_state);
+                f.render_stateful_widget(detail, chunks[1], state);
             }
-            Tab::Version => {
+            Tab::Version(ref mut state) => {
                 let version = VersionTab::default();
-                f.render_stateful_widget(version, chunks[1], &mut self.version_tab_state);
+                f.render_stateful_widget(version, chunks[1], state);
             }
         }
 
@@ -224,7 +224,7 @@ impl ObjectDetailPage {
     pub fn helps(&self) -> Vec<String> {
         let helps: &[(&[&str], &str)] = match self.view_state {
             ViewState::Default => match self.tab {
-                Tab::Detail => &[
+                Tab::Detail(_) => &[
                     (&["Esc", "Ctrl-c"], "Quit app"),
                     (&["h/l"], "Select tabs"),
                     (&["Backspace"], "Close detail panel"),
@@ -235,7 +235,7 @@ impl ObjectDetailPage {
                     (&["p"], "Preview object"),
                     (&["x"], "Open management console in browser"),
                 ],
-                Tab::Version => &[
+                Tab::Version(_) => &[
                     (&["Esc", "Ctrl-c"], "Quit app"),
                     (&["h/l"], "Select tabs"),
                     (&["j/k"], "Select version"),
@@ -266,7 +266,7 @@ impl ObjectDetailPage {
     pub fn short_helps(&self) -> Vec<(String, usize)> {
         let helps: &[(&[&str], &str, usize)] = match self.view_state {
             ViewState::Default => match self.tab {
-                Tab::Detail => &[
+                Tab::Detail(_) => &[
                     (&["Esc"], "Quit", 0),
                     (&["h/l"], "Select tabs", 3),
                     (&["j/k"], "Scroll", 5),
@@ -275,7 +275,7 @@ impl ObjectDetailPage {
                     (&["Backspace"], "Close", 2),
                     (&["?"], "Help", 0),
                 ],
-                Tab::Version => &[
+                Tab::Version(_) => &[
                     (&["Esc"], "Quit", 0),
                     (&["h/l"], "Select tabs", 3),
                     (&["j/k"], "Select", 5),
@@ -304,7 +304,28 @@ impl ObjectDetailPage {
 
 impl ObjectDetailPage {
     fn toggle_tab(&mut self) {
-        self.tab = self.tab.next();
+        match self.tab {
+            Tab::Detail(_) => {
+                if self.file_versions.is_empty() {
+                    self.tx.send(AppEventType::OpenObjectVersionsTab);
+                } else {
+                    self.select_versions_tab();
+                }
+            }
+            Tab::Version(_) => self.select_detail_tab(),
+        }
+    }
+
+    pub fn select_detail_tab(&mut self) {
+        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail));
+    }
+
+    pub fn select_versions_tab(&mut self) {
+        self.tab = Tab::Version(VersionTabState::new(&self.file_versions));
+    }
+
+    pub fn set_versions(&mut self, versions: Vec<FileVersion>) {
+        self.file_versions = versions;
     }
 
     fn open_save_dialog(&mut self) {
@@ -358,12 +379,16 @@ impl ObjectDetailPage {
             .send(AppEventType::ObjectDetailOpenManagementConsole(file_name));
     }
 
+    pub fn current_object_detail(&self) -> &FileDetail {
+        &self.file_detail
+    }
+
     fn current_selected_version_id(&self) -> Option<String> {
-        match self.tab {
-            Tab::Detail => None,
-            Tab::Version => self
+        match &self.tab {
+            Tab::Detail(_) => None,
+            Tab::Version(state) => self
                 .file_versions
-                .get(self.version_tab_state.selected)
+                .get(state.selected)
                 .map(|v| v.version_id.clone()),
         }
     }
@@ -426,7 +451,7 @@ fn format_file_item(name: &str, width: u16) -> String {
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
-fn build_tabs(tab: Tab) -> Tabs<'static> {
+fn build_tabs(tab: &Tab) -> Tabs<'static> {
     let tabs = vec!["Detail", "Version"];
     Tabs::new(tabs)
         .select(tab.val())
@@ -670,15 +695,10 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -736,14 +756,10 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
-            page.toggle_tab();
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
+            page.set_versions(file_versions);
+            page.select_versions_tab();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -799,15 +815,10 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -862,15 +873,10 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
-            let mut page = ObjectDetailPage::new(
-                file_detail,
-                file_versions,
-                items,
-                ScrollListState::new(items_len),
-                tx,
-            );
+            let mut page =
+                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
             page.open_copy_detail_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
