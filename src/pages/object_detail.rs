@@ -304,7 +304,28 @@ impl ObjectDetailPage {
 
 impl ObjectDetailPage {
     fn toggle_tab(&mut self) {
-        todo!()
+        match self.tab {
+            Tab::Detail(_) => {
+                if self.file_versions.is_empty() {
+                    self.tx.send(AppEventType::OpenObjectVersionsTab);
+                } else {
+                    self.select_versions_tab();
+                }
+            }
+            Tab::Version(_) => self.select_detail_tab(),
+        }
+    }
+
+    pub fn select_detail_tab(&mut self) {
+        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail));
+    }
+
+    pub fn select_versions_tab(&mut self) {
+        self.tab = Tab::Version(VersionTabState::new(&self.file_versions));
+    }
+
+    pub fn set_versions(&mut self, versions: Vec<FileVersion>) {
+        self.file_versions = versions;
     }
 
     fn open_save_dialog(&mut self) {
@@ -356,6 +377,10 @@ impl ObjectDetailPage {
         let file_name = self.file_detail.name.clone();
         self.tx
             .send(AppEventType::ObjectDetailOpenManagementConsole(file_name));
+    }
+
+    pub fn current_object_detail(&self) -> &FileDetail {
+        &self.file_detail
     }
 
     fn current_selected_version_id(&self) -> Option<String> {
@@ -670,7 +695,7 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
             let mut page =
                 ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
@@ -733,7 +758,8 @@ mod tests {
             let items_len = items.len();
             let mut page =
                 ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
-            page.toggle_tab();
+            page.set_versions(file_versions);
+            page.select_versions_tab();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -789,7 +815,7 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
             let mut page =
                 ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
@@ -847,7 +873,7 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
             let mut page =
                 ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);

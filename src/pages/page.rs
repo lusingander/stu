@@ -1,7 +1,7 @@
 use crate::{
     config::PreviewConfig,
     event::Sender,
-    object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
+    object::{BucketItem, FileDetail, ObjectItem, RawObject},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
@@ -80,6 +80,13 @@ impl Page {
         match self {
             Self::ObjectList(page) => page,
             page => panic!("Page is not ObjectList: {:?}", page),
+        }
+    }
+
+    pub fn as_object_detail(&self) -> &ObjectDetailPage {
+        match self {
+            Self::ObjectDetail(page) => page,
+            page => panic!("Page is not ObjectDetail: {:?}", page),
         }
     }
 

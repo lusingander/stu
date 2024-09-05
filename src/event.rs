@@ -22,6 +22,8 @@ pub enum AppEventType {
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
     LoadObjectDetail,
     CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
+    LoadObjectVersions,
+    CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
@@ -31,6 +33,7 @@ pub enum AppEventType {
     ObjectListMoveDown,
     ObjectListMoveUp,
     BackToBucketList,
+    OpenObjectVersionsTab,
     OpenPreview(FileDetail, Option<String>),
     DetailDownloadObject(FileDetail, Option<String>),
     DetailDownloadObjectAs(FileDetail, String, Option<String>),
@@ -86,6 +89,22 @@ impl CompleteLoadObjectDetailResult {
     ) -> Result<CompleteLoadObjectDetailResult> {
         let detail = Box::new(detail?);
         Ok(CompleteLoadObjectDetailResult { detail, map_key })
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteLoadObjectVersionsResult {
+    pub versions: Vec<FileVersion>,
+    pub map_key: ObjectKey,
+}
+
+impl CompleteLoadObjectVersionsResult {
+    pub fn new(
+        versions: Result<Vec<FileVersion>>,
+        map_key: ObjectKey,
+    ) -> Result<CompleteLoadObjectVersionsResult> {
+        let versions = versions?;
+        Ok(CompleteLoadObjectVersionsResult { versions, map_key })
     }
 }
 
