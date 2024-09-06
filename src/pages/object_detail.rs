@@ -764,6 +764,72 @@ mod tests {
     }
 
     #[test]
+    fn test_render_detail_tab_with_config() -> std::io::Result<()> {
+        let (tx, _) = event::new();
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let (items, file_detail, _file_versions) = fixtures();
+            let items_len = items.len();
+            let mut ui_config = UiConfig::default();
+            ui_config.object_detail.date_format = "%Y/%m/%d".to_string();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                items,
+                ScrollListState::new(items_len),
+                ui_config,
+                tx,
+            );
+            let area = Rect::new(0, 0, 60, 20);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
+            "│  file1                     ││ Detail │ Version           │",
+            "│  file2                     ││────────────────────────────│",
+            "│  file3                     ││ Name:                      │",
+            "│                            ││  file1                     │",
+            "│                            ││                            │",
+            "│                            ││ Size:                      │",
+            "│                            ││  1.01 KiB                  │",
+            "│                            ││                            │",
+            "│                            ││ Last Modified:             │",
+            "│                            ││  2024/01/02                │",
+            "│                            ││                            │",
+            "│                            ││ ETag:                      │",
+            "│                            ││  bef684de-a260-48a4-8178-8 │",
+            "│                            ││ a535ecccadb                │",
+            "│                            ││                            │",
+            "│                            ││ Content-Type:              │",
+            "│                            ││  text/plain                │",
+            "│                            ││                            │",
+            "└────────────────────────────┘└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            // "Detail" is selected
+            (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
+            // "Name" label
+            (32..37, [3]) => modifier: Modifier::BOLD,
+            // "Size" label
+            (32..37, [6]) => modifier: Modifier::BOLD,
+            // "Last Modified" label
+            (32..46, [9]) => modifier: Modifier::BOLD,
+            // "ETag" label
+            (32..37, [12]) => modifier: Modifier::BOLD,
+            // "Content-Type" label
+            (32..45, [16]) => modifier: Modifier::BOLD,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_render_version_tab() -> std::io::Result<()> {
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -796,6 +862,74 @@ mod tests {
             "│                            ││────────────────────────────│",
             "│                            ││     Version ID: 1c5d3bcc-2b│",
             "│                            ││  Last Modified: 2024-01-01 │",
+            "│                            ││           Size: 1 KiB      │",
+            "│                            ││────────────────────────────│",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "└────────────────────────────┘└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            // "Version" is selected
+            (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
+            // "Version ID" label
+            (33..48, [3, 7]) => modifier: Modifier::BOLD,
+            // "Last Modified" label
+            (33..48, [4, 8]) => modifier: Modifier::BOLD,
+            // "Size" label
+            (33..48, [5, 9]) => modifier: Modifier::BOLD,
+            // selected bar
+            ([31], [3, 4, 5]) => fg: Color::Cyan,
+            // divider
+            (31..59, [6, 10]) => fg: Color::DarkGray,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_render_version_tab_with_config() -> std::io::Result<()> {
+        let (tx, _) = event::new();
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let (items, file_detail, file_versions) = fixtures();
+            let items_len = items.len();
+            let mut ui_config = UiConfig::default();
+            ui_config.object_detail.date_format = "%Y/%m/%d".to_string();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                items,
+                ScrollListState::new(items_len),
+                ui_config,
+                tx,
+            );
+            page.set_versions(file_versions);
+            page.select_versions_tab();
+            let area = Rect::new(0, 0, 60, 20);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
+            "│  file1                     ││ Detail │ Version           │",
+            "│  file2                     ││────────────────────────────│",
+            "│  file3                     ││┃    Version ID: 60f36bc2-0f│",
+            "│                            ││┃ Last Modified: 2024/01/02 │",
+            "│                            ││┃          Size: 1.01 KiB   │",
+            "│                            ││────────────────────────────│",
+            "│                            ││     Version ID: 1c5d3bcc-2b│",
+            "│                            ││  Last Modified: 2024/01/01 │",
             "│                            ││           Size: 1 KiB      │",
             "│                            ││────────────────────────────│",
             "│                            ││                            │",

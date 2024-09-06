@@ -649,6 +649,63 @@ mod tests {
     }
 
     #[test]
+    fn test_render_with_config() -> std::io::Result<()> {
+        let (tx, _) = event::new();
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let items = vec![
+                ObjectItem::Dir {
+                    name: "dir1".to_string(),
+                },
+                ObjectItem::Dir {
+                    name: "dir2".to_string(),
+                },
+                ObjectItem::File {
+                    name: "file1".to_string(),
+                    size_byte: 1024 + 10,
+                    last_modified: parse_datetime("2024-01-02 13:01:02"),
+                },
+                ObjectItem::File {
+                    name: "file2".to_string(),
+                    size_byte: 1024 * 999,
+                    last_modified: parse_datetime("2023-12-31 09:00:00"),
+                },
+            ];
+            let mut ui_config = UiConfig::default();
+            ui_config.object_list.date_format = "%Y/%m/%d".to_string();
+            ui_config.object_list.date_width = 10;
+            let mut page = ObjectListPage::new(items, ui_config, tx);
+            let area = Rect::new(0, 0, 60, 10);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌─────────────────────────────────────────────────── 1 / 4 ┐",
+            "│  dir1/                                                   │",
+            "│  dir2/                                                   │",
+            "│  file1                         2024/01/02      1.01 KiB  │",
+            "│  file2                         2023/12/31       999 KiB  │",
+            "│                                                          │",
+            "│                                                          │",
+            "│                                                          │",
+            "│                                                          │",
+            "└──────────────────────────────────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // dir items
+            (3..8, [1, 2]) => modifier: Modifier::BOLD,
+            // selected item
+            (2..58, [1]) => bg: Color::Cyan, fg: Color::Black,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[test]
     fn test_sort_items() {
         let (tx, _) = event::new();
         let items = vec![
