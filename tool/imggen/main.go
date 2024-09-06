@@ -24,7 +24,6 @@ import (
 )
 
 const (
-	vhsVersion        = "0.7.1"
 	localstackVersion = "3.2.0"
 )
 
@@ -155,9 +154,8 @@ func checkVhs() error {
 	cmd := exec.Command("vhs", "--version")
 	cmd.Stdout = &bufOut
 	cmd.Stderr = &bufErr
-	versionStr := "vhs version v" + vhsVersion
-	if err := cmd.Run(); err != nil || !strings.HasPrefix(bufOut.String(), versionStr) {
-		return fmt.Errorf("vhs %s is not available. %v", vhsVersion, err)
+	if err := cmd.Run(); err != nil || !strings.HasPrefix(bufOut.String(), "vhs") {
+		return fmt.Errorf("vhs is not available. %v", err)
 	}
 	return nil
 }
