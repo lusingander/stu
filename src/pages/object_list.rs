@@ -508,8 +508,8 @@ fn build_object_file_line<'a>(
     ui_config: &UiConfig,
 ) -> Line<'a> {
     let size = format_size_byte(size_byte);
-    let date = format_datetime(last_modified, &ui_config.date_format);
-    let date_w: usize = 19;
+    let date = format_datetime(last_modified, &ui_config.object_list.date_format);
+    let date_w: usize = ui_config.object_list.date_width;
     let size_w: usize = 10;
     let name_w: usize = (width as usize) - date_w - size_w - 10 /* spaces */ - 4 /* border + pad */;
 

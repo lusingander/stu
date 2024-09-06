@@ -474,7 +474,7 @@ fn build_detail_content_lines(detail: &FileDetail, ui_config: &UiConfig) -> Vec<
         ("Size:", &format_size_byte(detail.size_byte)),
         (
             "Last Modified:",
-            &format_datetime(&detail.last_modified, &ui_config.date_format),
+            &format_datetime(&detail.last_modified, &ui_config.object_detail.date_format),
         ),
         ("ETag:", &detail.e_tag),
         ("Content-Type:", &detail.content_type),
@@ -528,7 +528,8 @@ fn build_help_lines(versions: &[FileVersion], ui_config: &UiConfig) -> Vec<Vec<L
         .iter()
         .map(|v| {
             let version_id = format_version(&v.version_id).to_owned();
-            let last_modified = format_datetime(&v.last_modified, &ui_config.date_format);
+            let last_modified =
+                format_datetime(&v.last_modified, &ui_config.object_detail.date_format);
             let size_byte = format_size_byte(v.size_byte);
             vec![
                 Line::from(vec![

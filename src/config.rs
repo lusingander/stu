@@ -22,16 +22,41 @@ pub struct Config {
     pub preview: PreviewConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct UiConfig {
-    #[serde(default = "default_ui_date_format")]
+    #[serde(default)]
+    pub object_list: UiObjectListConfig,
+    #[serde(default)]
+    pub object_detail: UiObjectDetailConfig,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UiObjectListConfig {
+    #[serde(default = "default_ui_object_list_date_format")]
+    pub date_format: String,
+    #[serde(default = "default_ui_object_list_date_width")]
+    pub date_width: usize,
+}
+
+impl Default for UiObjectListConfig {
+    fn default() -> Self {
+        Self {
+            date_format: default_ui_object_list_date_format(),
+            date_width: default_ui_object_list_date_width(),
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct UiObjectDetailConfig {
+    #[serde(default = "default_ui_object_detail_date_format")]
     pub date_format: String,
 }
 
-impl Default for UiConfig {
+impl Default for UiObjectDetailConfig {
     fn default() -> Self {
         Self {
-            date_format: default_ui_date_format(),
+            date_format: default_ui_object_detail_date_format(),
         }
     }
 }
@@ -63,7 +88,15 @@ fn default_download_dir() -> String {
     }
 }
 
-fn default_ui_date_format() -> String {
+fn default_ui_object_list_date_format() -> String {
+    "%Y-%m-%d %H:%M:%S".to_string()
+}
+
+fn default_ui_object_list_date_width() -> usize {
+    19 // "2021-01-01 12:34:56".len()
+}
+
+fn default_ui_object_detail_date_format() -> String {
     "%Y-%m-%d %H:%M:%S".to_string()
 }
 
