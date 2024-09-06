@@ -1,5 +1,5 @@
 use crate::{
-    config::PreviewConfig,
+    config::{PreviewConfig, UiConfig},
     event::Sender,
     object::{BucketItem, FileDetail, ObjectItem, RawObject},
     pages::{
@@ -29,20 +29,22 @@ impl Page {
         Self::BucketList(Box::new(BucketListPage::new(bucket_items, tx)))
     }
 
-    pub fn of_object_list(object_items: Vec<ObjectItem>, tx: Sender) -> Self {
-        Self::ObjectList(Box::new(ObjectListPage::new(object_items, tx)))
+    pub fn of_object_list(object_items: Vec<ObjectItem>, ui_config: UiConfig, tx: Sender) -> Self {
+        Self::ObjectList(Box::new(ObjectListPage::new(object_items, ui_config, tx)))
     }
 
     pub fn of_object_detail(
         file_detail: FileDetail,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
+        ui_config: UiConfig,
         tx: Sender,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
             file_detail,
             object_items,
             list_state,
+            ui_config,
             tx,
         )))
     }

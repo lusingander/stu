@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::{
+    config::UiConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, FileVersion, ObjectItem},
@@ -34,6 +35,8 @@ pub struct ObjectDetailPage {
 
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
+
+    ui_config: UiConfig,
     tx: Sender,
 }
 
@@ -65,9 +68,10 @@ impl ObjectDetailPage {
         file_detail: FileDetail,
         object_items: Vec<ObjectItem>,
         list_state: ScrollListState,
+        ui_config: UiConfig,
         tx: Sender,
     ) -> Self {
-        let detail_tab_state = DetailTabState::new(&file_detail);
+        let detail_tab_state = DetailTabState::new(&file_detail, &ui_config);
         Self {
             file_detail,
             file_versions: Vec::new(),
@@ -75,6 +79,7 @@ impl ObjectDetailPage {
             view_state: ViewState::Default,
             object_items,
             list_state,
+            ui_config,
             tx,
         }
     }
@@ -317,11 +322,11 @@ impl ObjectDetailPage {
     }
 
     pub fn select_detail_tab(&mut self) {
-        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail));
+        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail, &self.ui_config));
     }
 
     pub fn select_versions_tab(&mut self) {
-        self.tab = Tab::Version(VersionTabState::new(&self.file_versions));
+        self.tab = Tab::Version(VersionTabState::new(&self.file_versions, &self.ui_config));
     }
 
     pub fn set_versions(&mut self, versions: Vec<FileVersion>) {
@@ -463,11 +468,14 @@ fn build_tabs(tab: &Tab) -> Tabs<'static> {
         .block(Block::default().borders(Borders::BOTTOM))
 }
 
-fn build_detail_content_lines(detail: &FileDetail) -> Vec<Line<'static>> {
+fn build_detail_content_lines(detail: &FileDetail, ui_config: &UiConfig) -> Vec<Line<'static>> {
     let details = [
         ("Name:", &detail.name),
         ("Size:", &format_size_byte(detail.size_byte)),
-        ("Last Modified:", &format_datetime(&detail.last_modified)),
+        (
+            "Last Modified:",
+            &format_datetime(&detail.last_modified, &ui_config.date_format),
+        ),
         ("ETag:", &detail.e_tag),
         ("Content-Type:", &detail.content_type),
         ("Storage class:", &detail.storage_class),
@@ -495,8 +503,8 @@ struct DetailTabState {
 }
 
 impl DetailTabState {
-    fn new(file_detail: &FileDetail) -> Self {
-        let scroll_lines = build_detail_content_lines(file_detail);
+    fn new(file_detail: &FileDetail, ui_config: &UiConfig) -> Self {
+        let scroll_lines = build_detail_content_lines(file_detail, ui_config);
         let scroll_lines_state =
             ScrollLinesState::new(scroll_lines, ScrollLinesOptions::new(false, true));
         Self { scroll_lines_state }
@@ -515,12 +523,12 @@ impl StatefulWidget for DetailTab {
     }
 }
 
-fn build_help_lines(versions: &[FileVersion]) -> Vec<Vec<Line<'static>>> {
+fn build_help_lines(versions: &[FileVersion], ui_config: &UiConfig) -> Vec<Vec<Line<'static>>> {
     versions
         .iter()
         .map(|v| {
             let version_id = format_version(&v.version_id).to_owned();
-            let last_modified = format_datetime(&v.last_modified);
+            let last_modified = format_datetime(&v.last_modified, &ui_config.date_format);
             let size_byte = format_size_byte(v.size_byte);
             vec![
                 Line::from(vec![
@@ -549,8 +557,8 @@ struct VersionTabState {
 }
 
 impl VersionTabState {
-    fn new(versions: &[FileVersion]) -> Self {
-        let help_lines = build_help_lines(versions);
+    fn new(versions: &[FileVersion], ui_config: &UiConfig) -> Self {
+        let help_lines = build_help_lines(versions, ui_config);
         Self {
             help_lines,
             ..Default::default()
@@ -697,8 +705,14 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
-            let mut page =
-                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
+            let ui_config = UiConfig::default();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                items,
+                ScrollListState::new(items_len),
+                ui_config,
+                tx,
+            );
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
         })?;
@@ -756,8 +770,14 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, file_versions) = fixtures();
             let items_len = items.len();
-            let mut page =
-                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
+            let ui_config = UiConfig::default();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                items,
+                ScrollListState::new(items_len),
+                ui_config,
+                tx,
+            );
             page.set_versions(file_versions);
             page.select_versions_tab();
             let area = Rect::new(0, 0, 60, 20);
@@ -817,8 +837,14 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
-            let mut page =
-                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
+            let ui_config = UiConfig::default();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                items,
+                ScrollListState::new(items_len),
+                ui_config,
+                tx,
+            );
             page.open_save_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);
@@ -875,8 +901,14 @@ mod tests {
         terminal.draw(|f| {
             let (items, file_detail, _file_versions) = fixtures();
             let items_len = items.len();
-            let mut page =
-                ObjectDetailPage::new(file_detail, items, ScrollListState::new(items_len), tx);
+            let ui_config = UiConfig::default();
+            let mut page = ObjectDetailPage::new(
+                file_detail,
+                items,
+                ScrollListState::new(items_len),
+                ui_config,
+                tx,
+            );
             page.open_copy_detail_dialog();
             let area = Rect::new(0, 0, 60, 20);
             page.render(f, area);

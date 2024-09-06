@@ -34,11 +34,11 @@ pub fn format_version(_version: &str) -> &str {
 }
 
 #[cfg(not(feature = "imggen"))]
-pub fn format_datetime(datetime: &DateTime<Local>) -> String {
-    datetime.format("%Y-%m-%d %H:%M:%S").to_string()
+pub fn format_datetime(datetime: &DateTime<Local>, format_str: &str) -> String {
+    datetime.format(format_str).to_string()
 }
 
 #[cfg(feature = "imggen")]
-pub fn format_datetime(_datetime: &DateTime<Local>) -> String {
+pub fn format_datetime(_datetime: &DateTime<Local>, _: &str) -> String {
     String::from("2024-01-02 13:04:05")
 }

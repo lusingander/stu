@@ -165,7 +165,11 @@ impl App {
     pub fn bucket_list_move_down(&mut self) {
         if let Some(current_object_items) = self.current_object_items() {
             // object list has been already loaded
-            let object_list_page = Page::of_object_list(current_object_items, self.tx.clone());
+            let object_list_page = Page::of_object_list(
+                current_object_items,
+                self.config.ui.clone(),
+                self.tx.clone(),
+            );
             self.page_stack.push(object_list_page);
         } else {
             self.tx.send(AppEventType::LoadObjects);
@@ -188,6 +192,7 @@ impl App {
                         detail.clone(),
                         object_page.object_list(),
                         object_page.list_state(),
+                        self.config.ui.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
@@ -199,8 +204,11 @@ impl App {
             ObjectItem::Dir { .. } => {
                 if let Some(current_object_items) = self.current_object_items() {
                     // object list has been already loaded
-                    let object_list_page =
-                        Page::of_object_list(current_object_items, self.tx.clone());
+                    let object_list_page = Page::of_object_list(
+                        current_object_items,
+                        self.config.ui.clone(),
+                        self.tx.clone(),
+                    );
                     self.page_stack.push(object_list_page);
                 } else {
                     self.tx.send(AppEventType::LoadObjects);
@@ -242,7 +250,8 @@ impl App {
                 self.app_objects
                     .set_object_items(self.current_object_key().to_owned(), items.clone());
 
-                let object_list_page = Page::of_object_list(items, self.tx.clone());
+                let object_list_page =
+                    Page::of_object_list(items, self.config.ui.clone(), self.tx.clone());
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {
@@ -290,6 +299,7 @@ impl App {
                     *detail.clone(),
                     object_page.object_list(),
                     object_page.list_state(),
+                    self.config.ui.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);

@@ -11,6 +11,7 @@ use ratatui::{
 };
 
 use crate::{
+    config::UiConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
     object::ObjectItem,
@@ -37,6 +38,8 @@ pub struct ObjectListPage {
     list_state: ScrollListState,
     filter_input_state: InputDialogState,
     sort_dialog_state: ObjectListSortDialogState,
+
+    ui_config: UiConfig,
     tx: Sender,
 }
 
@@ -48,7 +51,7 @@ enum ViewState {
 }
 
 impl ObjectListPage {
-    pub fn new(object_items: Vec<ObjectItem>, tx: Sender) -> Self {
+    pub fn new(object_items: Vec<ObjectItem>, ui_config: UiConfig, tx: Sender) -> Self {
         let items_len = object_items.len();
         let view_indices = (0..items_len).collect();
         Self {
@@ -58,6 +61,7 @@ impl ObjectListPage {
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
             sort_dialog_state: ObjectListSortDialogState::default(),
+            ui_config,
             tx,
         }
     }
@@ -160,6 +164,7 @@ impl ObjectListPage {
             offset,
             selected,
             area,
+            &self.ui_config,
         );
 
         let list = ScrollList::new(list_items);
@@ -431,6 +436,7 @@ fn build_list_items<'a>(
     offset: usize,
     selected: usize,
     area: Rect,
+    ui_config: &UiConfig,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
     view_indices
@@ -439,7 +445,7 @@ fn build_list_items<'a>(
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, item)| build_list_item(item, idx + offset == selected, filter, area))
+        .map(|(idx, item)| build_list_item(item, idx + offset == selected, filter, area, ui_config))
         .collect()
 }
 
@@ -448,6 +454,7 @@ fn build_list_item<'a>(
     selected: bool,
     filter: &'a str,
     area: Rect,
+    ui_config: &UiConfig,
 ) -> ListItem<'a> {
     let line = match item {
         ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter),
@@ -456,7 +463,14 @@ fn build_list_item<'a>(
             size_byte,
             last_modified,
             ..
-        } => build_object_file_line(name, *size_byte, last_modified, filter, area.width),
+        } => build_object_file_line(
+            name,
+            *size_byte,
+            last_modified,
+            filter,
+            area.width,
+            ui_config,
+        ),
     };
 
     let style = if selected {
@@ -491,9 +505,10 @@ fn build_object_file_line<'a>(
     last_modified: &'a DateTime<Local>,
     filter: &'a str,
     width: u16,
+    ui_config: &UiConfig,
 ) -> Line<'a> {
     let size = format_size_byte(size_byte);
-    let date = format_datetime(last_modified);
+    let date = format_datetime(last_modified, &ui_config.date_format);
     let date_w: usize = 19;
     let size_w: usize = 10;
     let name_w: usize = (width as usize) - date_w - size_w - 10 /* spaces */ - 4 /* border + pad */;
@@ -560,7 +575,8 @@ mod tests {
                     last_modified: parse_datetime("2023-12-31 09:00:00"),
                 },
             ];
-            let mut page = ObjectListPage::new(items, tx);
+            let ui_config = UiConfig::default();
+            let mut page = ObjectListPage::new(items, ui_config, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -603,7 +619,8 @@ mod tests {
                     last_modified: parse_datetime("2024-01-02 13:01:02"),
                 })
                 .collect();
-            let mut page = ObjectListPage::new(items, tx);
+            let ui_config = UiConfig::default();
+            let mut page = ObjectListPage::new(items, ui_config, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -653,7 +670,8 @@ mod tests {
                 last_modified: parse_datetime("-2000-01-01 00:00:00"),
             },
         ];
-        let mut page = ObjectListPage::new(items, tx);
+        let ui_config = UiConfig::default();
+        let mut page = ObjectListPage::new(items, ui_config, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('o')));
         page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc
