@@ -22,7 +22,6 @@ aws-sdk-s3 = "1.48.0"
 aws-smithy-types = "1.2.4"
 chrono = "0.4.38"
 clap = { version = "4.5.16", features = ["derive"] }
-confy = "0.6.1"
 dirs = "5.0.1"
 humansize = "2.1.3"
 itertools = "0.13.0"
