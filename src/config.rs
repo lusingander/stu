@@ -104,7 +104,13 @@ impl Config {
     pub fn load() -> anyhow::Result<Config> {
         let dir = Config::get_app_base_dir()?;
         let path = dir.join(CONFIG_FILE_NAME);
-        confy::load_path(path).context("Failed to load config file")
+        if path.exists() {
+            let content = std::fs::read_to_string(path).unwrap();
+            let config = toml::from_str(&content)?;
+            Ok(config)
+        } else {
+            Ok(Config::default())
+        }
     }
 
     pub fn download_file_path(&self, name: &str) -> String {
