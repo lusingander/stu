@@ -155,7 +155,7 @@ func checkVhs() error {
 	cmd.Stdout = &bufOut
 	cmd.Stderr = &bufErr
 	if err := cmd.Run(); err != nil || !strings.HasPrefix(bufOut.String(), "vhs") {
-		return fmt.Errorf("vhs is not available. %v", err)
+		return fmt.Errorf("vhs is not available. %w", err)
 	}
 	return nil
 }
@@ -179,7 +179,7 @@ func generateGif(tape string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to generate gif. %v", err)
+		return fmt.Errorf("failed to generate gif. %w", err)
 	}
 	return nil
 }
