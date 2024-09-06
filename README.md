@@ -102,10 +102,38 @@ Config is loaded from `$STU_ROOT_DIR/config.toml`.
 - If the file does not exist, it will be created automatically at startup.
 - If no value is set, the default value will be set.
 
-The values that can be set are as follows:
+#### Config file format
 
-- `download_dir`: _string_ - Directory to save when downloading objects (_default_: `$STU_ROOT_DIR/download`)
-- `preview.highlight`: _bool_ - Whether syntax highlighting is enabled in preview (_default_: `false`)
+The values set in this example are the default values.
+
+```toml
+# The directory to save the downloaded objects.
+# type: string
+download_dir = "$STU_ROOT_DIR/download"
+
+[ui.object_list]
+# The date format of a last modified in the object list.
+# The format must be specified in strftime format.
+# https://docs.rs/chrono/latest/chrono/format/strftime/index.html
+# type: string
+date_format = "%Y-%m-%d %H:%M:%S"
+# The width of a last modified in the object list.
+# It is recommended to set this when setting date_format.
+# type: u16
+date_width = 19
+
+[ui.object_detail]
+# The date format of a last modified in the object detail.
+# The format must be specified in strftime format.
+# https://docs.rs/chrono/latest/chrono/format/strftime/index.html
+# type: string
+date_format = "%Y-%m-%d %H:%M:%S"
+
+[preview]
+# Whether syntax highlighting is enabled in preview.
+# type: bool
+highlight = false
+```
 
 ## Features / Screenshots
 
