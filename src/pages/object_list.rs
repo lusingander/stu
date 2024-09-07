@@ -14,7 +14,7 @@ use crate::{
     config::UiConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
-    object::ObjectItem,
+    object::{ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte},
     util::split_str,
@@ -31,6 +31,7 @@ const HIGHLIGHTED_ITEM_TEXT_COLOR: Color = Color::Red;
 #[derive(Debug)]
 pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
+    object_key: ObjectKey,
     view_indices: Vec<usize>,
 
     view_state: ViewState,
@@ -51,11 +52,17 @@ enum ViewState {
 }
 
 impl ObjectListPage {
-    pub fn new(object_items: Vec<ObjectItem>, ui_config: UiConfig, tx: Sender) -> Self {
+    pub fn new(
+        object_items: Vec<ObjectItem>,
+        object_key: ObjectKey,
+        ui_config: UiConfig,
+        tx: Sender,
+    ) -> Self {
         let items_len = object_items.len();
         let view_indices = (0..items_len).collect();
         Self {
             object_items,
+            object_key,
             view_indices,
             view_state: ViewState::Default,
             list_state: ScrollListState::new(items_len),
@@ -412,6 +419,21 @@ impl ObjectListPage {
         })
     }
 
+    pub fn current_dir_object_key(&self) -> &ObjectKey {
+        // not include current selected item
+        &self.object_key
+    }
+
+    pub fn current_selected_object_key(&self) -> ObjectKey {
+        let item = self.current_selected_item();
+        let mut object_path = self.object_key.object_path.clone();
+        object_path.push(item.name().to_string());
+        ObjectKey {
+            bucket_name: self.object_key.bucket_name.clone(),
+            object_path,
+        }
+    }
+
     pub fn object_list(&self) -> Vec<ObjectItem> {
         self.view_indices
             .iter()
@@ -575,8 +597,12 @@ mod tests {
                     last_modified: parse_datetime("2023-12-31 09:00:00"),
                 },
             ];
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec!["path".to_string(), "to".to_string()],
+            };
             let ui_config = UiConfig::default();
-            let mut page = ObjectListPage::new(items, ui_config, tx);
+            let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -619,8 +645,12 @@ mod tests {
                     last_modified: parse_datetime("2024-01-02 13:01:02"),
                 })
                 .collect();
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec!["path".to_string(), "to".to_string()],
+            };
             let ui_config = UiConfig::default();
-            let mut page = ObjectListPage::new(items, ui_config, tx);
+            let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -672,10 +702,14 @@ mod tests {
                     last_modified: parse_datetime("2023-12-31 09:00:00"),
                 },
             ];
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec!["path".to_string(), "to".to_string()],
+            };
             let mut ui_config = UiConfig::default();
             ui_config.object_list.date_format = "%Y/%m/%d".to_string();
             ui_config.object_list.date_width = 10;
-            let mut page = ObjectListPage::new(items, ui_config, tx);
+            let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -727,8 +761,12 @@ mod tests {
                 last_modified: parse_datetime("-2000-01-01 00:00:00"),
             },
         ];
+        let object_key = ObjectKey {
+            bucket_name: "test-bucket".to_string(),
+            object_path: vec!["path".to_string(), "to".to_string()],
+        };
         let ui_config = UiConfig::default();
-        let mut page = ObjectListPage::new(items, ui_config, tx);
+        let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('o')));
         page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc

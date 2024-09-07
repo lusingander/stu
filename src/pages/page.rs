@@ -29,8 +29,18 @@ impl Page {
         Self::BucketList(Box::new(BucketListPage::new(bucket_items, tx)))
     }
 
-    pub fn of_object_list(object_items: Vec<ObjectItem>, ui_config: UiConfig, tx: Sender) -> Self {
-        Self::ObjectList(Box::new(ObjectListPage::new(object_items, ui_config, tx)))
+    pub fn of_object_list(
+        object_items: Vec<ObjectItem>,
+        object_key: ObjectKey,
+        ui_config: UiConfig,
+        tx: Sender,
+    ) -> Self {
+        Self::ObjectList(Box::new(ObjectListPage::new(
+            object_items,
+            object_key,
+            ui_config,
+            tx,
+        )))
     }
 
     pub fn of_object_detail(

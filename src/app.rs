@@ -136,13 +136,6 @@ impl App {
         prefix
     }
 
-    fn current_object_key(&self) -> ObjectKey {
-        ObjectKey {
-            bucket_name: self.current_bucket(),
-            object_path: self.current_path().iter().map(|s| s.to_string()).collect(),
-        }
-    }
-
     fn current_object_key_with_name(&self, name: String) -> ObjectKey {
         let mut object_path: Vec<String> =
             self.current_path().iter().map(|s| s.to_string()).collect();
@@ -157,23 +150,19 @@ impl App {
         self.app_objects.get_bucket_items()
     }
 
-    fn current_object_items(&self) -> Option<Vec<ObjectItem>> {
-        self.app_objects
-            .get_object_items(&self.current_object_key())
-    }
-
     fn current_object_items_by(&self, object_key: &ObjectKey) -> Option<Vec<ObjectItem>> {
         self.app_objects.get_object_items(object_key)
     }
 
     pub fn bucket_list_move_down(&mut self) {
         let bucket_page = self.page_stack.current_page().as_bucket_list();
-        let object_key = &bucket_page.current_selected_object_key();
+        let object_key = bucket_page.current_selected_object_key();
 
-        if let Some(current_object_items) = self.current_object_items_by(object_key) {
+        if let Some(current_object_items) = self.current_object_items_by(&object_key) {
             // object list has been already loaded
             let object_list_page = Page::of_object_list(
                 current_object_items,
+                object_key,
                 self.config.ui.clone(),
                 self.tx.clone(),
             );
@@ -185,21 +174,21 @@ impl App {
     }
 
     pub fn object_list_move_down(&mut self) {
-        let object_page = self.page_stack.current_page().as_object_list();
-        let selected = object_page.current_selected_item().to_owned();
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let selected = object_list_page.current_selected_item().to_owned();
 
         match selected {
-            ObjectItem::File { name, .. } => {
-                let current_object_key = &self.current_object_key_with_name(name.to_string());
-                let detail = self.app_objects.get_object_detail(current_object_key);
+            ObjectItem::File { .. } => {
+                let current_object_key = object_list_page.current_selected_object_key();
+                let detail = self.app_objects.get_object_detail(&current_object_key);
 
                 if let Some(detail) = detail {
                     // object detail has been already loaded
                     let object_detail_page = Page::of_object_detail(
                         detail.clone(),
-                        object_page.object_list(),
-                        current_object_key.clone(),
-                        object_page.list_state(),
+                        object_list_page.object_list(),
+                        current_object_key,
+                        object_list_page.list_state(),
                         self.config.ui.clone(),
                         self.tx.clone(),
                     );
@@ -210,14 +199,16 @@ impl App {
                 }
             }
             ObjectItem::Dir { .. } => {
-                if let Some(current_object_items) = self.current_object_items() {
+                let object_key = object_list_page.current_selected_object_key();
+                if let Some(current_object_items) = self.current_object_items_by(&object_key) {
                     // object list has been already loaded
-                    let object_list_page = Page::of_object_list(
+                    let new_object_list_page = Page::of_object_list(
                         current_object_items,
+                        object_key,
                         self.config.ui.clone(),
                         self.tx.clone(),
                     );
-                    self.page_stack.push(object_list_page);
+                    self.page_stack.push(new_object_list_page);
                 } else {
                     self.tx.send(AppEventType::LoadObjects);
                     self.app_view_state.is_loading = true;
@@ -255,11 +246,25 @@ impl App {
     pub fn complete_load_objects(&mut self, result: Result<CompleteLoadObjectsResult>) {
         match result {
             Ok(CompleteLoadObjectsResult { items }) => {
-                self.app_objects
-                    .set_object_items(self.current_object_key().to_owned(), items.clone());
+                let current_object_key = match self.page_stack.current_page() {
+                    page @ Page::BucketList(_) => {
+                        page.as_bucket_list().current_selected_object_key()
+                    }
+                    page @ Page::ObjectList(_) => {
+                        page.as_object_list().current_selected_object_key()
+                    }
+                    page => panic!("Invalid page: {:?}", page),
+                };
 
-                let object_list_page =
-                    Page::of_object_list(items, self.config.ui.clone(), self.tx.clone());
+                self.app_objects
+                    .set_object_items(current_object_key.clone(), items.clone());
+
+                let object_list_page = Page::of_object_list(
+                    items,
+                    current_object_key,
+                    self.config.ui.clone(),
+                    self.tx.clone(),
+                );
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {
