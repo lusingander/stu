@@ -162,8 +162,15 @@ impl App {
             .get_object_items(&self.current_object_key())
     }
 
+    fn current_object_items_by(&self, object_key: &ObjectKey) -> Option<Vec<ObjectItem>> {
+        self.app_objects.get_object_items(object_key)
+    }
+
     pub fn bucket_list_move_down(&mut self) {
-        if let Some(current_object_items) = self.current_object_items() {
+        let bucket_page = self.page_stack.current_page().as_bucket_list();
+        let object_key = &bucket_page.current_selected_object_key();
+
+        if let Some(current_object_items) = self.current_object_items_by(object_key) {
             // object list has been already loaded
             let object_list_page = Page::of_object_list(
                 current_object_items,

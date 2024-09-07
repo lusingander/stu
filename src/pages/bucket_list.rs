@@ -12,7 +12,7 @@ use ratatui::{
 use crate::{
     event::{AppEventType, Sender},
     key_code, key_code_char,
-    object::BucketItem,
+    object::{BucketItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     util::split_str,
     widget::{
@@ -379,6 +379,14 @@ impl BucketListPage {
                 self.bucket_items.len()
             )
         })
+    }
+
+    pub fn current_selected_object_key(&self) -> ObjectKey {
+        let item = self.current_selected_item();
+        ObjectKey {
+            bucket_name: item.name.clone(),
+            object_path: Vec::new(),
+        }
     }
 
     fn non_empty(&self) -> bool {
