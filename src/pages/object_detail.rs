@@ -12,7 +12,7 @@ use crate::{
     config::UiConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
-    object::{FileDetail, FileVersion, ObjectItem},
+    object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
@@ -29,6 +29,7 @@ const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 pub struct ObjectDetailPage {
     file_detail: FileDetail,
     file_versions: Vec<FileVersion>,
+    object_key: ObjectKey,
 
     tab: Tab,
     view_state: ViewState,
@@ -67,6 +68,7 @@ impl ObjectDetailPage {
     pub fn new(
         file_detail: FileDetail,
         object_items: Vec<ObjectItem>,
+        object_key: ObjectKey,
         list_state: ScrollListState,
         ui_config: UiConfig,
         tx: Sender,
@@ -75,6 +77,7 @@ impl ObjectDetailPage {
         Self {
             file_detail,
             file_versions: Vec::new(),
+            object_key,
             tab: Tab::Detail(detail_tab_state),
             view_state: ViewState::Default,
             object_items,
@@ -397,6 +400,10 @@ impl ObjectDetailPage {
                 .map(|v| v.version_id.clone()),
         }
     }
+
+    pub fn current_object_key(&self) -> &ObjectKey {
+        &self.object_key
+    }
 }
 
 fn build_list_items_from_object_items(
@@ -704,12 +711,13 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, _file_versions) = fixtures();
+            let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
             let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
+                object_key,
                 ScrollListState::new(items_len),
                 ui_config,
                 tx,
@@ -769,13 +777,14 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, _file_versions) = fixtures();
+            let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
             let mut ui_config = UiConfig::default();
             ui_config.object_detail.date_format = "%Y/%m/%d".to_string();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
+                object_key,
                 ScrollListState::new(items_len),
                 ui_config,
                 tx,
@@ -835,12 +844,13 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, file_versions, object_key) = fixtures();
             let items_len = items.len();
             let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
+                object_key,
                 ScrollListState::new(items_len),
                 ui_config,
                 tx,
@@ -902,13 +912,14 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, file_versions) = fixtures();
+            let (items, file_detail, file_versions, object_key) = fixtures();
             let items_len = items.len();
             let mut ui_config = UiConfig::default();
             ui_config.object_detail.date_format = "%Y/%m/%d".to_string();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
+                object_key,
                 ScrollListState::new(items_len),
                 ui_config,
                 tx,
@@ -970,12 +981,13 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, _file_versions) = fixtures();
+            let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
             let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
+                object_key,
                 ScrollListState::new(items_len),
                 ui_config,
                 tx,
@@ -1034,12 +1046,13 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let (items, file_detail, _file_versions) = fixtures();
+            let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
             let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
+                object_key,
                 ScrollListState::new(items_len),
                 ui_config,
                 tx,
@@ -1114,7 +1127,7 @@ mod tests {
             .unwrap()
     }
 
-    fn fixtures() -> (Vec<ObjectItem>, FileDetail, Vec<FileVersion>) {
+    fn fixtures() -> (Vec<ObjectItem>, FileDetail, Vec<FileVersion>, ObjectKey) {
         let items = vec![
             ObjectItem::File {
                 name: "file1".to_string(),
@@ -1158,6 +1171,10 @@ mod tests {
                 is_latest: false,
             },
         ];
-        (items, file_detail, file_versions)
+        let object_key = ObjectKey {
+            bucket_name: "test-bucket".to_string(),
+            object_path: vec!["path".to_string(), "to".to_string(), "file1".to_string()],
+        };
+        (items, file_detail, file_versions, object_key)
     }
 }

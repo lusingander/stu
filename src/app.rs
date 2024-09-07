@@ -191,6 +191,7 @@ impl App {
                     let object_detail_page = Page::of_object_detail(
                         detail.clone(),
                         object_page.object_list(),
+                        current_object_key.clone(),
                         object_page.list_state(),
                         self.config.ui.clone(),
                         self.tx.clone(),
@@ -291,13 +292,15 @@ impl App {
     pub fn complete_load_object_detail(&mut self, result: Result<CompleteLoadObjectDetailResult>) {
         match result {
             Ok(CompleteLoadObjectDetailResult { detail, map_key }) => {
-                self.app_objects.set_object_detail(map_key, *detail.clone());
+                self.app_objects
+                    .set_object_detail(map_key.clone(), *detail.clone());
 
                 let object_page = self.page_stack.current_page().as_object_list();
 
                 let object_detail_page = Page::of_object_detail(
                     *detail.clone(),
                     object_page.object_list(),
+                    map_key,
                     object_page.list_state(),
                     self.config.ui.clone(),
                     self.tx.clone(),
@@ -313,9 +316,8 @@ impl App {
 
     pub fn open_object_versions_tab(&mut self) {
         let object_detail_page = self.page_stack.current_page().as_object_detail();
-        let name = &object_detail_page.current_object_detail().name;
 
-        let current_object_key = self.current_object_key_with_name(name.to_string());
+        let current_object_key = object_detail_page.current_object_key().clone();
         let versions = self.app_objects.get_object_versions(&current_object_key);
 
         if let Some(versions) = versions {
@@ -332,13 +334,10 @@ impl App {
 
     pub fn load_object_versions(&self) {
         let object_detail_page = self.page_stack.current_page().as_object_detail();
-        let name = &object_detail_page.current_object_detail().name;
 
-        let bucket = self.current_bucket();
-        let prefix = self.current_object_prefix();
-        let key = format!("{}{}", prefix, name);
-
-        let map_key = self.current_object_key_with_name(name.to_string());
+        let map_key = object_detail_page.current_object_key().clone();
+        let bucket = map_key.bucket_name.clone();
+        let key = map_key.object_path.join("/");
 
         let (client, tx) = self.unwrap_client_tx();
         spawn(async move {

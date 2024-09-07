@@ -1,7 +1,7 @@
 use crate::{
     config::{PreviewConfig, UiConfig},
     event::Sender,
-    object::{BucketItem, FileDetail, ObjectItem, RawObject},
+    object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
         object_detail::ObjectDetailPage, object_list::ObjectListPage,
@@ -36,6 +36,7 @@ impl Page {
     pub fn of_object_detail(
         file_detail: FileDetail,
         object_items: Vec<ObjectItem>,
+        object_key: ObjectKey,
         list_state: ScrollListState,
         ui_config: UiConfig,
         tx: Sender,
@@ -43,6 +44,7 @@ impl Page {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
             file_detail,
             object_items,
+            object_key,
             list_state,
             ui_config,
             tx,
