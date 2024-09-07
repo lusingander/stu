@@ -107,6 +107,9 @@ impl ObjectListPage {
                 key_code_char!('b') if self.non_empty() => {
                     self.select_prev_page();
                 }
+                key_code_char!('R') if self.non_empty() => {
+                    self.tx.send(AppEventType::ObjectListRefresh);
+                }
                 key_code_char!('~') => {
                     self.tx.send(AppEventType::BackToBucketList);
                 }

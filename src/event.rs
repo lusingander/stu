@@ -20,6 +20,8 @@ pub enum AppEventType {
     CompleteInitialize(Result<CompleteInitializeResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
+    ReloadObjects,
+    CompleteReloadObjects(Result<CompleteReloadObjectsResult>),
     LoadObjectDetail,
     CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
     LoadObjectVersions,
@@ -32,6 +34,7 @@ pub enum AppEventType {
     BucketListMoveDown,
     ObjectListMoveDown,
     ObjectListMoveUp,
+    ObjectListRefresh,
     BackToBucketList,
     OpenObjectVersionsTab,
     OpenPreview(FileDetail, Option<String>),
@@ -73,6 +76,26 @@ impl CompleteLoadObjectsResult {
     pub fn new(items: Result<Vec<ObjectItem>>) -> Result<CompleteLoadObjectsResult> {
         let items = items?;
         Ok(CompleteLoadObjectsResult { items })
+    }
+}
+
+impl From<CompleteReloadObjectsResult> for CompleteLoadObjectsResult {
+    fn from(result: CompleteReloadObjectsResult) -> Self {
+        CompleteLoadObjectsResult {
+            items: result.items,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteReloadObjectsResult {
+    pub items: Vec<ObjectItem>,
+}
+
+impl CompleteReloadObjectsResult {
+    pub fn new(items: Result<Vec<ObjectItem>>) -> Result<CompleteReloadObjectsResult> {
+        let items = items?;
+        Ok(CompleteReloadObjectsResult { items })
     }
 }
 

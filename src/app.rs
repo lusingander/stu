@@ -8,7 +8,8 @@ use crate::{
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
-        CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
+        CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadObjectsResult,
+        Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     object::{AppObjects, FileDetail, ObjectItem, RawObject},
@@ -184,6 +185,15 @@ impl App {
         self.page_stack.pop();
     }
 
+    pub fn object_list_refresh(&mut self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let object_key = object_list_page.current_dir_object_key();
+        self.app_objects.clear_object_items_under(object_key);
+
+        self.tx.send(AppEventType::ReloadObjects);
+        self.app_view_state.is_loading = true;
+    }
+
     pub fn back_to_bucket_list(&mut self) {
         if self.app_objects.get_bucket_items().len() == 1 {
             return;
@@ -232,6 +242,24 @@ impl App {
             }
         }
         self.app_view_state.is_loading = false;
+    }
+
+    pub fn reload_objects(&self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let object_key = object_list_page.current_dir_object_key();
+        let bucket = object_key.bucket_name.clone();
+        let prefix = object_key.joined_object_path(false);
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let items = client.load_objects(&bucket, &prefix).await;
+            let result = CompleteReloadObjectsResult::new(items);
+            tx.send(AppEventType::CompleteReloadObjects(result));
+        });
+    }
+
+    pub fn complete_reload_objects(&mut self, result: Result<CompleteReloadObjectsResult>) {
+        self.page_stack.pop();
+        self.complete_load_objects(result.map(|r| r.into()));
     }
 
     pub fn load_object_detail(&self) {

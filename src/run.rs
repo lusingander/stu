@@ -81,6 +81,12 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObjects(result) => {
                 app.complete_load_objects(result);
             }
+            AppEventType::ReloadObjects => {
+                app.reload_objects();
+            }
+            AppEventType::CompleteReloadObjects(result) => {
+                app.complete_reload_objects(result);
+            }
             AppEventType::LoadObjectDetail => {
                 app.load_object_detail();
             }
@@ -116,6 +122,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::ObjectListMoveUp => {
                 app.object_list_move_up();
+            }
+            AppEventType::ObjectListRefresh => {
+                app.object_list_refresh();
             }
             AppEventType::BackToBucketList => {
                 app.back_to_bucket_list();
