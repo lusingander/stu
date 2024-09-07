@@ -11,7 +11,6 @@ use crate::{
         CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
-    if_match,
     object::{AppObjects, BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
 };
@@ -113,29 +112,6 @@ impl App {
         self.app_view_state.reset_size(width, height);
     }
 
-    fn current_bucket(&self) -> String {
-        let bucket_page = self.page_stack.head().as_bucket_list();
-        bucket_page.current_selected_item().name.clone()
-    }
-
-    fn current_path(&self) -> Vec<&str> {
-        self.page_stack
-            .iter()
-            .filter_map(|page| if_match! { page: Page::ObjectList(p) => p })
-            .map(|page| page.current_selected_item())
-            .filter_map(|item| if_match! { item: ObjectItem::Dir { name, .. } => name.as_str() })
-            .collect()
-    }
-
-    fn current_object_prefix(&self) -> String {
-        let mut prefix = String::new();
-        for key in &self.current_path() {
-            prefix.push_str(key);
-            prefix.push('/');
-        }
-        prefix
-    }
-
     fn bucket_items(&self) -> Vec<BucketItem> {
         self.app_objects.get_bucket_items()
     }
@@ -223,8 +199,13 @@ impl App {
     }
 
     pub fn load_objects(&self) {
-        let bucket = self.current_bucket();
-        let prefix = self.current_object_prefix();
+        let current_object_key = match self.page_stack.current_page() {
+            page @ Page::BucketList(_) => page.as_bucket_list().current_selected_object_key(),
+            page @ Page::ObjectList(_) => page.as_object_list().current_selected_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
+        let bucket = current_object_key.bucket_name.clone();
+        let prefix = current_object_key.joined_object_path(false);
         let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
@@ -234,18 +215,14 @@ impl App {
     }
 
     pub fn complete_load_objects(&mut self, result: Result<CompleteLoadObjectsResult>) {
+        let current_object_key = match self.page_stack.current_page() {
+            page @ Page::BucketList(_) => page.as_bucket_list().current_selected_object_key(),
+            page @ Page::ObjectList(_) => page.as_object_list().current_selected_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
+
         match result {
             Ok(CompleteLoadObjectsResult { items }) => {
-                let current_object_key = match self.page_stack.current_page() {
-                    page @ Page::BucketList(_) => {
-                        page.as_bucket_list().current_selected_object_key()
-                    }
-                    page @ Page::ObjectList(_) => {
-                        page.as_object_list().current_selected_object_key()
-                    }
-                    page => panic!("Invalid page: {:?}", page),
-                };
-
                 self.app_objects
                     .set_object_items(current_object_key.clone(), items.clone());
 
@@ -276,7 +253,7 @@ impl App {
 
             let map_key = object_list_page.current_selected_object_key().clone();
             let bucket = map_key.bucket_name.clone();
-            let key = map_key.object_path.join("/");
+            let key = map_key.joined_object_path(true);
 
             let (client, tx) = self.unwrap_client_tx();
             spawn(async move {
@@ -337,7 +314,7 @@ impl App {
 
         let map_key = object_detail_page.current_object_key().clone();
         let bucket = map_key.bucket_name.clone();
-        let key = map_key.object_path.join("/");
+        let key = map_key.joined_object_path(true);
 
         let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
@@ -510,9 +487,11 @@ impl App {
     ) where
         F: FnOnce(Sender, Result<RawObject>, String) + Send + 'static,
     {
-        let bucket = self.current_bucket();
-        let prefix = self.current_object_prefix();
-        let key = format!("{}{}", prefix, object_name);
+        let object_detail_page = self.page_stack.current_page().as_object_detail();
+        let object_key = object_detail_page.current_object_key();
+
+        let bucket = object_key.bucket_name.clone();
+        let key = object_key.joined_object_path(true);
 
         let path = self
             .config
@@ -554,20 +533,26 @@ impl App {
     }
 
     pub fn object_list_open_management_console(&self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let object_key = object_list_page.current_dir_object_key();
+
         let (client, _) = self.unwrap_client_tx();
-        let bucket = &self.current_bucket();
-        let prefix = self.current_object_prefix();
-        let result = client.open_management_console_list(bucket, &prefix);
+        let bucket = &object_key.bucket_name;
+        let prefix = &object_key.joined_object_path(false);
+        let result = client.open_management_console_list(bucket, prefix);
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }
     }
 
-    pub fn object_detail_open_management_console(&self, name: String) {
-        let (client, _) = self.unwrap_client_tx();
-        let prefix = self.current_object_prefix();
+    pub fn object_detail_open_management_console(&self) {
+        let object_detail_page = self.page_stack.current_page().as_object_detail();
+        let object_key = object_detail_page.current_object_key();
 
-        let result = client.open_management_console_object(&self.current_bucket(), &prefix, &name);
+        let (client, _) = self.unwrap_client_tx();
+        let bucket = &object_key.bucket_name;
+        let prefix = &object_key.joined_object_path(true); // should contains file name
+        let result = client.open_management_console_object(bucket, prefix);
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }

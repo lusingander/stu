@@ -323,15 +323,10 @@ impl Client {
         open::that(path).map_err(AppError::error)
     }
 
-    pub fn open_management_console_object(
-        &self,
-        bucket: &str,
-        prefix: &str,
-        name: &str,
-    ) -> Result<()> {
+    pub fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()> {
         let path = format!(
-            "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}{}",
-            bucket, self.region, prefix, name
+            "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}",
+            bucket, self.region, prefix
         );
         open::that(path).map_err(AppError::error)
     }

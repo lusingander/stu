@@ -116,6 +116,16 @@ pub struct ObjectKey {
     pub object_path: Vec<String>,
 }
 
+impl ObjectKey {
+    pub fn joined_object_path(&self, contains_file_name: bool) -> String {
+        let mut joined = self.object_path.join("/");
+        if !contains_file_name {
+            joined.push('/');
+        }
+        joined
+    }
+}
+
 #[derive(Default, Clone)]
 pub struct RawObject {
     pub bytes: Vec<u8>,

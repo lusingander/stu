@@ -382,9 +382,8 @@ impl ObjectDetailPage {
     }
 
     fn open_management_console(&self) {
-        let file_name = self.file_detail.name.clone();
         self.tx
-            .send(AppEventType::ObjectDetailOpenManagementConsole(file_name));
+            .send(AppEventType::ObjectDetailOpenManagementConsole);
     }
 
     pub fn current_object_detail(&self) -> &FileDetail {
