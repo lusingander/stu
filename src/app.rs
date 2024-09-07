@@ -136,16 +136,6 @@ impl App {
         prefix
     }
 
-    fn current_object_key_with_name(&self, name: String) -> ObjectKey {
-        let mut object_path: Vec<String> =
-            self.current_path().iter().map(|s| s.to_string()).collect();
-        object_path.push(name);
-        ObjectKey {
-            bucket_name: self.current_bucket(),
-            object_path,
-        }
-    }
-
     fn bucket_items(&self) -> Vec<BucketItem> {
         self.app_objects.get_bucket_items()
     }
@@ -275,20 +265,18 @@ impl App {
     }
 
     pub fn load_object_detail(&self) {
-        let object_page = self.page_stack.current_page().as_object_list();
+        let object_list_page = self.page_stack.current_page().as_object_list();
 
         if let ObjectItem::File {
             name, size_byte, ..
-        } = object_page.current_selected_item()
+        } = object_list_page.current_selected_item()
         {
             let name = name.clone();
             let size_byte = *size_byte;
 
-            let bucket = self.current_bucket();
-            let prefix = self.current_object_prefix();
-            let key = format!("{}{}", prefix, name);
-
-            let map_key = self.current_object_key_with_name(name.to_string());
+            let map_key = object_list_page.current_selected_object_key().clone();
+            let bucket = map_key.bucket_name.clone();
+            let key = map_key.object_path.join("/");
 
             let (client, tx) = self.unwrap_client_tx();
             spawn(async move {
