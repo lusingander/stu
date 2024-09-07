@@ -116,7 +116,7 @@ impl App {
         self.app_objects.get_bucket_items()
     }
 
-    fn current_object_items_by(&self, object_key: &ObjectKey) -> Option<Vec<ObjectItem>> {
+    fn object_items_by(&self, object_key: &ObjectKey) -> Option<Vec<ObjectItem>> {
         self.app_objects.get_object_items(object_key)
     }
 
@@ -124,7 +124,7 @@ impl App {
         let bucket_page = self.page_stack.current_page().as_bucket_list();
         let object_key = bucket_page.current_selected_object_key();
 
-        if let Some(current_object_items) = self.current_object_items_by(&object_key) {
+        if let Some(current_object_items) = self.object_items_by(&object_key) {
             // object list has been already loaded
             let object_list_page = Page::of_object_list(
                 current_object_items,
@@ -166,7 +166,7 @@ impl App {
             }
             ObjectItem::Dir { .. } => {
                 let object_key = object_list_page.current_selected_object_key();
-                if let Some(current_object_items) = self.current_object_items_by(&object_key) {
+                if let Some(current_object_items) = self.object_items_by(&object_key) {
                     // object list has been already loaded
                     let new_object_list_page = Page::of_object_list(
                         current_object_items,
