@@ -155,10 +155,6 @@ impl PageStack {
         self.stack.last_mut().unwrap()
     }
 
-    pub fn head(&self) -> &Page {
-        self.stack.first().unwrap()
-    }
-
     pub fn iter(&self) -> std::slice::Iter<Page> {
         self.stack.iter()
     }

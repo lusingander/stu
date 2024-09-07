@@ -386,10 +386,6 @@ impl ObjectDetailPage {
             .send(AppEventType::ObjectDetailOpenManagementConsole);
     }
 
-    pub fn current_object_detail(&self) -> &FileDetail {
-        &self.file_detail
-    }
-
     fn current_selected_version_id(&self) -> Option<String> {
         match &self.tab {
             Tab::Detail(_) => None,
