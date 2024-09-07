@@ -11,7 +11,7 @@ use crate::{
         CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
-    object::{AppObjects, BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
+    object::{AppObjects, FileDetail, ObjectItem, RawObject},
     pages::page::{Page, PageStack},
 };
 
@@ -90,7 +90,8 @@ impl App {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_bucket_items(buckets);
 
-                let bucket_list_page = Page::of_bucket_list(self.bucket_items(), self.tx.clone());
+                let bucket_list_page =
+                    Page::of_bucket_list(self.app_objects.get_bucket_items(), self.tx.clone());
                 self.page_stack.pop(); // remove initializing page
                 self.page_stack.push(bucket_list_page);
             }
@@ -99,7 +100,7 @@ impl App {
             }
         }
 
-        if self.bucket_items().len() == 1 {
+        if self.app_objects.get_bucket_items().len() == 1 {
             // bucket name is specified, or if there is only one bucket, open it.
             // since continues to load object, is_loading is not reset.
             self.bucket_list_move_down();
@@ -112,19 +113,11 @@ impl App {
         self.app_view_state.reset_size(width, height);
     }
 
-    fn bucket_items(&self) -> Vec<BucketItem> {
-        self.app_objects.get_bucket_items()
-    }
-
-    fn object_items_by(&self, object_key: &ObjectKey) -> Option<Vec<ObjectItem>> {
-        self.app_objects.get_object_items(object_key)
-    }
-
     pub fn bucket_list_move_down(&mut self) {
         let bucket_page = self.page_stack.current_page().as_bucket_list();
         let object_key = bucket_page.current_selected_object_key();
 
-        if let Some(current_object_items) = self.object_items_by(&object_key) {
+        if let Some(current_object_items) = self.app_objects.get_object_items(&object_key) {
             // object list has been already loaded
             let object_list_page = Page::of_object_list(
                 current_object_items,
@@ -166,7 +159,7 @@ impl App {
             }
             ObjectItem::Dir { .. } => {
                 let object_key = object_list_page.current_selected_object_key();
-                if let Some(current_object_items) = self.object_items_by(&object_key) {
+                if let Some(current_object_items) = self.app_objects.get_object_items(&object_key) {
                     // object list has been already loaded
                     let new_object_list_page = Page::of_object_list(
                         current_object_items,
@@ -184,7 +177,7 @@ impl App {
     }
 
     pub fn object_list_move_up(&mut self) {
-        if self.page_stack.len() == 2 /* bucket list and object list */ && self.bucket_items().len() == 1
+        if self.page_stack.len() == 2 /* bucket list and object list */ && self.app_objects.get_bucket_items().len() == 1
         {
             return;
         }
@@ -192,7 +185,7 @@ impl App {
     }
 
     pub fn back_to_bucket_list(&mut self) {
-        if self.bucket_items().len() == 1 {
+        if self.app_objects.get_bucket_items().len() == 1 {
             return;
         }
         self.page_stack.clear();
