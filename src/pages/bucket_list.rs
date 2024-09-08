@@ -91,6 +91,9 @@ impl BucketListPage {
                 key_code_char!('b') if self.non_empty() => {
                     self.select_prev_page();
                 }
+                key_code_char!('R') if self.non_empty() => {
+                    self.tx.send(AppEventType::BucketListRefresh);
+                }
                 key_code_char!('x') if self.non_empty() => {
                     self.tx.send(AppEventType::BucketListOpenManagementConsole);
                 }

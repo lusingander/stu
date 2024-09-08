@@ -114,6 +114,13 @@ impl AppObjects {
         self.detail_map.retain(|k, _| !k.has_prefix(key));
         self.versions_map.retain(|k, _| !k.has_prefix(key));
     }
+
+    pub fn clear_all(&mut self) {
+        self.bucket_items.clear();
+        self.object_items_map.clear();
+        self.detail_map.clear();
+        self.versions_map.clear();
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]

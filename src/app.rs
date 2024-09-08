@@ -8,8 +8,8 @@ use crate::{
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
-        CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadObjectsResult,
-        Sender,
+        CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
+        CompleteReloadObjectsResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     object::{AppObjects, FileDetail, ObjectItem, RawObject},
@@ -72,6 +72,10 @@ impl App {
         }
     }
 
+    pub fn resize(&mut self, width: usize, height: usize) {
+        self.app_view_state.reset_size(width, height);
+    }
+
     pub fn initialize(&mut self, client: Client, bucket: Option<String>) {
         self.client = Some(Arc::new(client));
 
@@ -110,8 +114,18 @@ impl App {
         }
     }
 
-    pub fn resize(&mut self, width: usize, height: usize) {
-        self.app_view_state.reset_size(width, height);
+    pub fn reload_buckets(&self) {
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let buckets = client.load_all_buckets().await;
+            let result = CompleteReloadBucketsResult::new(buckets);
+            tx.send(AppEventType::CompleteReloadBuckets(result));
+        });
+    }
+
+    pub fn complete_reload_buckets(&mut self, result: Result<CompleteReloadBucketsResult>) {
+        // current bucket list page is popped inside complete_initialize
+        self.complete_initialize(result.map(|r| r.into()));
     }
 
     pub fn bucket_list_move_down(&mut self) {
@@ -131,6 +145,13 @@ impl App {
             self.tx.send(AppEventType::LoadObjects);
             self.app_view_state.is_loading = true;
         }
+    }
+
+    pub fn bucket_list_refresh(&mut self) {
+        self.app_objects.clear_all();
+
+        self.tx.send(AppEventType::ReloadBuckets);
+        self.app_view_state.is_loading = true;
     }
 
     pub fn object_list_move_down(&mut self) {

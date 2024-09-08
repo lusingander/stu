@@ -18,6 +18,8 @@ pub enum AppEventType {
     Resize(usize, usize),
     Initialize(Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
+    ReloadBuckets,
+    CompleteReloadBuckets(Result<CompleteReloadBucketsResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
     ReloadObjects,
@@ -32,6 +34,7 @@ pub enum AppEventType {
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,
+    BucketListRefresh,
     ObjectListMoveDown,
     ObjectListMoveUp,
     ObjectListRefresh,
@@ -64,6 +67,26 @@ impl CompleteInitializeResult {
     pub fn new(buckets: Result<Vec<BucketItem>>) -> Result<CompleteInitializeResult> {
         let buckets = buckets?;
         Ok(CompleteInitializeResult { buckets })
+    }
+}
+
+impl From<CompleteReloadBucketsResult> for CompleteInitializeResult {
+    fn from(result: CompleteReloadBucketsResult) -> Self {
+        CompleteInitializeResult {
+            buckets: result.buckets,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteReloadBucketsResult {
+    pub buckets: Vec<BucketItem>,
+}
+
+impl CompleteReloadBucketsResult {
+    pub fn new(buckets: Result<Vec<BucketItem>>) -> Result<CompleteReloadBucketsResult> {
+        let buckets = buckets?;
+        Ok(CompleteReloadBucketsResult { buckets })
     }
 }
 
