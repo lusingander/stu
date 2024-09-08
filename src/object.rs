@@ -108,6 +108,19 @@ impl AppObjects {
     pub fn set_object_versions(&mut self, key: ObjectKey, versions: Vec<FileVersion>) {
         self.versions_map.insert(key, versions);
     }
+
+    pub fn clear_object_items_under(&mut self, key: &ObjectKey) {
+        self.object_items_map.retain(|k, _| !k.has_prefix(key));
+        self.detail_map.retain(|k, _| !k.has_prefix(key));
+        self.versions_map.retain(|k, _| !k.has_prefix(key));
+    }
+
+    pub fn clear_all(&mut self) {
+        self.bucket_items.clear();
+        self.object_items_map.clear();
+        self.detail_map.clear();
+        self.versions_map.clear();
+    }
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
@@ -124,6 +137,21 @@ impl ObjectKey {
         }
         joined
     }
+
+    fn has_prefix(&self, prefix: &ObjectKey) -> bool {
+        if self.bucket_name != prefix.bucket_name {
+            return false;
+        }
+        if self.object_path.len() < prefix.object_path.len() {
+            return false;
+        }
+        for (a, b) in self.object_path.iter().zip(prefix.object_path.iter()) {
+            if a != b {
+                return false;
+            }
+        }
+        true
+    }
 }
 
 #[derive(Default, Clone)]
@@ -134,5 +162,76 @@ pub struct RawObject {
 impl Debug for RawObject {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write!(f, "RawObject {{ bytes: [u8; {}] }}", self.bytes.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashSet;
+
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case("foo", &["a", "b"], true)]
+    #[case("foo", &["a", "b", "c"], true)]
+    #[case("foo", &[], true)]
+    #[case("foo", &["a", "c"], false)]
+    #[case("bar", &["a", "b"], false)]
+    #[case("foo", &["a", "b", "c", "d"], false)]
+    fn test_object_key_has_prefix(
+        #[case] prefix_bucket_name: &str,
+        #[case] prefix_object_path: &[&str],
+        #[case] expected: bool,
+    ) {
+        let key = object_key("foo", &["a", "b", "c"]);
+        let prefix = object_key(prefix_bucket_name, prefix_object_path);
+        assert_eq!(key.has_prefix(&prefix), expected);
+    }
+
+    #[test]
+    fn test_clear_object_items_under() {
+        let mut app_objects = AppObjects::default();
+        app_objects.set_object_items(object_key("foo", &[]), Vec::new());
+        app_objects.set_object_items(object_key("foo", &["a"]), Vec::new());
+        app_objects.set_object_items(object_key("foo", &["a", "b"]), Vec::new());
+        app_objects.set_object_items(object_key("foo", &["a", "b", "c"]), Vec::new());
+        app_objects.set_object_items(object_key("foo", &["a", "b", "c", "d"]), Vec::new());
+        app_objects.set_object_items(object_key("foo", &["a", "b", "e"]), Vec::new());
+        app_objects.set_object_items(object_key("foo", &["a", "f"]), Vec::new());
+        app_objects.set_object_items(object_key("bar", &[]), Vec::new());
+        app_objects.set_object_items(object_key("bar", &["a"]), Vec::new());
+        app_objects.set_object_items(object_key("bar", &["a", "b"]), Vec::new());
+        app_objects.set_object_items(object_key("bar", &["a", "b", "c"]), Vec::new());
+
+        app_objects.clear_object_items_under(&object_key("foo", &["a", "b"]));
+
+        let expected = vec![
+            object_key("foo", &[]),
+            object_key("foo", &["a"]),
+            object_key("foo", &["a", "f"]),
+            object_key("bar", &[]),
+            object_key("bar", &["a"]),
+            object_key("bar", &["a", "b"]),
+            object_key("bar", &["a", "b", "c"]),
+        ]
+        .into_iter()
+        .collect::<HashSet<_>>();
+
+        let actual = app_objects
+            .object_items_map
+            .keys()
+            .cloned()
+            .collect::<HashSet<_>>();
+
+        assert_eq!(actual, expected);
+    }
+
+    fn object_key(bucket_name: &str, object_path: &[&str]) -> ObjectKey {
+        ObjectKey {
+            bucket_name: bucket_name.to_string(),
+            object_path: object_path.iter().map(|s| s.to_string()).collect(),
+        }
     }
 }

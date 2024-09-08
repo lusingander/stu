@@ -18,8 +18,12 @@ pub enum AppEventType {
     Resize(usize, usize),
     Initialize(Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
+    ReloadBuckets,
+    CompleteReloadBuckets(Result<CompleteReloadBucketsResult>),
     LoadObjects,
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
+    ReloadObjects,
+    CompleteReloadObjects(Result<CompleteReloadObjectsResult>),
     LoadObjectDetail,
     CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
     LoadObjectVersions,
@@ -30,8 +34,10 @@ pub enum AppEventType {
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,
+    BucketListRefresh,
     ObjectListMoveDown,
     ObjectListMoveUp,
+    ObjectListRefresh,
     BackToBucketList,
     OpenObjectVersionsTab,
     OpenPreview(FileDetail, Option<String>),
@@ -64,6 +70,26 @@ impl CompleteInitializeResult {
     }
 }
 
+impl From<CompleteReloadBucketsResult> for CompleteInitializeResult {
+    fn from(result: CompleteReloadBucketsResult) -> Self {
+        CompleteInitializeResult {
+            buckets: result.buckets,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteReloadBucketsResult {
+    pub buckets: Vec<BucketItem>,
+}
+
+impl CompleteReloadBucketsResult {
+    pub fn new(buckets: Result<Vec<BucketItem>>) -> Result<CompleteReloadBucketsResult> {
+        let buckets = buckets?;
+        Ok(CompleteReloadBucketsResult { buckets })
+    }
+}
+
 #[derive(Debug)]
 pub struct CompleteLoadObjectsResult {
     pub items: Vec<ObjectItem>,
@@ -73,6 +99,26 @@ impl CompleteLoadObjectsResult {
     pub fn new(items: Result<Vec<ObjectItem>>) -> Result<CompleteLoadObjectsResult> {
         let items = items?;
         Ok(CompleteLoadObjectsResult { items })
+    }
+}
+
+impl From<CompleteReloadObjectsResult> for CompleteLoadObjectsResult {
+    fn from(result: CompleteReloadObjectsResult) -> Self {
+        CompleteLoadObjectsResult {
+            items: result.items,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteReloadObjectsResult {
+    pub items: Vec<ObjectItem>,
+}
+
+impl CompleteReloadObjectsResult {
+    pub fn new(items: Result<Vec<ObjectItem>>) -> Result<CompleteReloadObjectsResult> {
+        let items = items?;
+        Ok(CompleteReloadObjectsResult { items })
     }
 }
 

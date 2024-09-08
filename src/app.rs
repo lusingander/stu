@@ -8,7 +8,8 @@ use crate::{
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
-        CompleteLoadObjectsResult, CompletePreviewObjectResult, Sender,
+        CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
+        CompleteReloadObjectsResult, Sender,
     },
     file::{copy_to_clipboard, save_binary, save_error_log},
     object::{AppObjects, FileDetail, ObjectItem, RawObject},
@@ -71,6 +72,10 @@ impl App {
         }
     }
 
+    pub fn resize(&mut self, width: usize, height: usize) {
+        self.app_view_state.reset_size(width, height);
+    }
+
     pub fn initialize(&mut self, client: Client, bucket: Option<String>) {
         self.client = Some(Arc::new(client));
 
@@ -109,8 +114,18 @@ impl App {
         }
     }
 
-    pub fn resize(&mut self, width: usize, height: usize) {
-        self.app_view_state.reset_size(width, height);
+    pub fn reload_buckets(&self) {
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let buckets = client.load_all_buckets().await;
+            let result = CompleteReloadBucketsResult::new(buckets);
+            tx.send(AppEventType::CompleteReloadBuckets(result));
+        });
+    }
+
+    pub fn complete_reload_buckets(&mut self, result: Result<CompleteReloadBucketsResult>) {
+        // current bucket list page is popped inside complete_initialize
+        self.complete_initialize(result.map(|r| r.into()));
     }
 
     pub fn bucket_list_move_down(&mut self) {
@@ -130,6 +145,13 @@ impl App {
             self.tx.send(AppEventType::LoadObjects);
             self.app_view_state.is_loading = true;
         }
+    }
+
+    pub fn bucket_list_refresh(&mut self) {
+        self.app_objects.clear_all();
+
+        self.tx.send(AppEventType::ReloadBuckets);
+        self.app_view_state.is_loading = true;
     }
 
     pub fn object_list_move_down(&mut self) {
@@ -184,6 +206,15 @@ impl App {
         self.page_stack.pop();
     }
 
+    pub fn object_list_refresh(&mut self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let object_key = object_list_page.current_dir_object_key();
+        self.app_objects.clear_object_items_under(object_key);
+
+        self.tx.send(AppEventType::ReloadObjects);
+        self.app_view_state.is_loading = true;
+    }
+
     pub fn back_to_bucket_list(&mut self) {
         if self.app_objects.get_bucket_items().len() == 1 {
             return;
@@ -232,6 +263,24 @@ impl App {
             }
         }
         self.app_view_state.is_loading = false;
+    }
+
+    pub fn reload_objects(&self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let object_key = object_list_page.current_dir_object_key();
+        let bucket = object_key.bucket_name.clone();
+        let prefix = object_key.joined_object_path(false);
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let items = client.load_objects(&bucket, &prefix).await;
+            let result = CompleteReloadObjectsResult::new(items);
+            tx.send(AppEventType::CompleteReloadObjects(result));
+        });
+    }
+
+    pub fn complete_reload_objects(&mut self, result: Result<CompleteReloadObjectsResult>) {
+        self.page_stack.pop();
+        self.complete_load_objects(result.map(|r| r.into()));
     }
 
     pub fn load_object_detail(&self) {

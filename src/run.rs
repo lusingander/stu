@@ -75,11 +75,23 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteInitialize(result) => {
                 app.complete_initialize(result);
             }
+            AppEventType::ReloadBuckets => {
+                app.reload_buckets();
+            }
+            AppEventType::CompleteReloadBuckets(result) => {
+                app.complete_reload_buckets(result);
+            }
             AppEventType::LoadObjects => {
                 app.load_objects();
             }
             AppEventType::CompleteLoadObjects(result) => {
                 app.complete_load_objects(result);
+            }
+            AppEventType::ReloadObjects => {
+                app.reload_objects();
+            }
+            AppEventType::CompleteReloadObjects(result) => {
+                app.complete_reload_objects(result);
             }
             AppEventType::LoadObjectDetail => {
                 app.load_object_detail();
@@ -111,11 +123,17 @@ pub async fn run<B: Backend>(
             AppEventType::BucketListMoveDown => {
                 app.bucket_list_move_down();
             }
+            AppEventType::BucketListRefresh => {
+                app.bucket_list_refresh();
+            }
             AppEventType::ObjectListMoveDown => {
                 app.object_list_move_down();
             }
             AppEventType::ObjectListMoveUp => {
                 app.object_list_move_up();
+            }
+            AppEventType::ObjectListRefresh => {
+                app.object_list_refresh();
             }
             AppEventType::BackToBucketList => {
                 app.back_to_bucket_list();
