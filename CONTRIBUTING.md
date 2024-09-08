@@ -36,6 +36,12 @@ We welcome pull requests, but please note that they are not guaranteed to be acc
 - Creating a pull request does not necessarily require an issue. But if the problem is complex, creating an issue beforehand might make the process smoother.
 - Do not include fixes that are not directly related to the pull request topic.
 
+## Development
+
+- The `Makefile` and `tool` directories (go projects) are not relevant for development, so you don't need to worry about them.
+  - These are tools for creating screenshots, etc.
+  - It's ok if you can run `cargo build` and `cargo test` as a normal Rust project.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE). By contributing, contributors agree to abide by the terms of the applicable license.
