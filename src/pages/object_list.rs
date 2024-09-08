@@ -209,6 +209,7 @@ impl ObjectListPage {
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
                         (&["o"], "Sort object list"),
+                        (&["R"], "Refresh object list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 } else {
@@ -224,6 +225,7 @@ impl ObjectListPage {
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
                         (&["o"], "Sort object list"),
+                        (&["R"], "Refresh object list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 }
@@ -250,22 +252,24 @@ impl ObjectListPage {
                     &[
                         (&["Esc"], "Quit", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 6),
+                        (&["g/G"], "Top/Bottom", 7),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
                         (&["o"], "Sort", 5),
+                        (&["R"], "Refresh", 6),
                         (&["?"], "Help", 0),
                     ]
                 } else {
                     &[
                         (&["Esc"], "Clear filter", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 6),
+                        (&["g/G"], "Top/Bottom", 7),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
                         (&["o"], "Sort", 5),
+                        (&["R"], "Refresh", 6),
                         (&["?"], "Help", 0),
                     ]
                 }

@@ -187,6 +187,7 @@ impl BucketListPage {
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
                         (&["o"], "Sort bucket list"),
+                        (&["R"], "Refresh bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 } else {
@@ -200,6 +201,7 @@ impl BucketListPage {
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
                         (&["o"], "Sort bucket list"),
+                        (&["R"], "Refresh bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
                 }
@@ -226,20 +228,22 @@ impl BucketListPage {
                     &[
                         (&["Esc"], "Quit", 0),
                         (&["j/k"], "Select", 1),
-                        (&["g/G"], "Top/Bottom", 5),
+                        (&["g/G"], "Top/Bottom", 6),
                         (&["Enter"], "Open", 2),
                         (&["/"], "Filter", 3),
                         (&["o"], "Sort", 4),
+                        (&["R"], "Refresh", 5),
                         (&["?"], "Help", 0),
                     ]
                 } else {
                     &[
                         (&["Esc"], "Clear filter", 0),
                         (&["j/k"], "Select", 1),
-                        (&["g/G"], "Top/Bottom", 4),
+                        (&["g/G"], "Top/Bottom", 6),
                         (&["Enter"], "Open", 2),
                         (&["/"], "Filter", 3),
                         (&["o"], "Sort", 4),
+                        (&["R"], "Refresh", 5),
                         (&["?"], "Help", 0),
                     ]
                 }
