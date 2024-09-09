@@ -113,6 +113,13 @@ impl Page {
         }
     }
 
+    pub fn as_object_preview(&self) -> &ObjectPreviewPage {
+        match self {
+            Self::ObjectPreview(page) => page,
+            page => panic!("Page is not ObjectPreview: {:?}", page),
+        }
+    }
+
     pub fn as_mut_object_preview(&mut self) -> &mut ObjectPreviewPage {
         match self {
             Self::ObjectPreview(page) => &mut *page,

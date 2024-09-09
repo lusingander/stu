@@ -533,8 +533,11 @@ impl App {
     ) where
         F: FnOnce(Sender, Result<RawObject>, String) + Send + 'static,
     {
-        let object_detail_page = self.page_stack.current_page().as_object_detail();
-        let object_key = object_detail_page.current_object_key();
+        let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
+            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
 
         let bucket = object_key.bucket_name.clone();
         let key = object_key.joined_object_path(true);
