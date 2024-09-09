@@ -494,6 +494,9 @@ impl App {
     }
 
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
+        let object_detail_page = self.page_stack.current_page().as_object_detail();
+        let current_object_key = object_detail_page.current_object_key().clone();
+
         match result {
             Ok(CompletePreviewObjectResult {
                 obj,
@@ -506,6 +509,7 @@ impl App {
                     file_version_id,
                     obj,
                     path,
+                    current_object_key,
                     self.config.preview.clone(),
                     self.tx.clone(),
                 );

@@ -8,7 +8,7 @@ use crate::{
     config::PreviewConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
-    object::{FileDetail, RawObject},
+    object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
     widget::{InputDialog, InputDialogState, TextPreview, TextPreviewState},
 };
@@ -21,6 +21,7 @@ pub struct ObjectPreviewPage {
     file_version_id: Option<String>,
     object: RawObject,
     path: String,
+    object_key: ObjectKey,
 
     view_state: ViewState,
 
@@ -40,6 +41,7 @@ impl ObjectPreviewPage {
         file_version_id: Option<String>,
         object: RawObject,
         path: String,
+        object_key: ObjectKey,
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
@@ -54,6 +56,7 @@ impl ObjectPreviewPage {
             file_detail,
             file_version_id,
             path,
+            object_key,
             view_state: ViewState::Default,
             tx,
         }
@@ -218,6 +221,10 @@ impl ObjectPreviewPage {
             version_id,
         ));
     }
+
+    pub fn current_object_key(&self) -> &ObjectKey {
+        &self.object_key
+    }
 }
 
 #[cfg(test)]
@@ -250,9 +257,20 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec![file_path.clone()],
+            };
             let preview_config = PreviewConfig::default();
-            let mut page =
-                ObjectPreviewPage::new(file_detail, None, object, file_path, preview_config, tx);
+            let mut page = ObjectPreviewPage::new(
+                file_detail,
+                None,
+                object,
+                file_path,
+                object_key,
+                preview_config,
+                tx,
+            );
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -289,9 +307,20 @@ mod tests {
             let preview = ["Hello, world!"; 20];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec![file_path.clone()],
+            };
             let preview_config = PreviewConfig::default();
-            let mut page =
-                ObjectPreviewPage::new(file_detail, None, object, file_path, preview_config, tx);
+            let mut page = ObjectPreviewPage::new(
+                file_detail,
+                None,
+                object,
+                file_path,
+                object_key,
+                preview_config,
+                tx,
+            );
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -333,9 +362,20 @@ mod tests {
             ];
             let object = object(&preview);
             let file_path = "file.txt".to_string();
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec![file_path.clone()],
+            };
             let preview_config = PreviewConfig::default();
-            let mut page =
-                ObjectPreviewPage::new(file_detail, None, object, file_path, preview_config, tx);
+            let mut page = ObjectPreviewPage::new(
+                file_detail,
+                None,
+                object,
+                file_path,
+                object_key,
+                preview_config,
+                tx,
+            );
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);

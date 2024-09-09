@@ -66,6 +66,7 @@ impl Page {
         file_version_id: Option<String>,
         object: RawObject,
         path: String,
+        object_key: ObjectKey,
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
@@ -74,6 +75,7 @@ impl Page {
             file_version_id,
             object,
             path,
+            object_key,
             preview_config,
             tx,
         )))
