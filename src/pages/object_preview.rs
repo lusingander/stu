@@ -10,12 +10,15 @@ use crate::{
     key_code, key_code_char,
     object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
-    widget::{InputDialog, InputDialogState, TextPreview, TextPreviewState},
+    widget::{
+        ImagePreview, ImagePreviewState, InputDialog, InputDialogState, TextPreview,
+        TextPreviewState,
+    },
 };
 
 #[derive(Debug)]
 pub struct ObjectPreviewPage {
-    state: TextPreviewState,
+    preview_type: PreviewType,
 
     file_detail: FileDetail,
     file_version_id: Option<String>,
@@ -26,6 +29,12 @@ pub struct ObjectPreviewPage {
     view_state: ViewState,
 
     tx: Sender,
+}
+
+#[derive(Debug)]
+enum PreviewType {
+    Text(TextPreviewState),
+    Image(ImagePreviewState),
 }
 
 #[derive(Debug, Default)]
@@ -45,13 +54,23 @@ impl ObjectPreviewPage {
         preview_config: PreviewConfig,
         tx: Sender,
     ) -> Self {
-        let (state, msg) = TextPreviewState::new(&file_detail, &object, preview_config.highlight);
-        if let Some(msg) = msg {
-            tx.send(AppEventType::NotifyWarn(msg));
-        }
+        let preview_type = if infer::is_image(&object.bytes) {
+            let (state, msg) = ImagePreviewState::new(&object.bytes);
+            if let Some(msg) = msg {
+                tx.send(AppEventType::NotifyWarn(msg));
+            }
+            PreviewType::Image(state)
+        } else {
+            let (state, msg) =
+                TextPreviewState::new(&file_detail, &object, preview_config.highlight);
+            if let Some(msg) = msg {
+                tx.send(AppEventType::NotifyWarn(msg));
+            }
+            PreviewType::Text(state)
+        };
 
         Self {
-            state,
+            preview_type,
             object,
             file_detail,
             file_version_id,
@@ -63,8 +82,8 @@ impl ObjectPreviewPage {
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
-        match self.view_state {
-            ViewState::Default => match key {
+        match (&mut self.view_state, &mut self.preview_type) {
+            (ViewState::Default, PreviewType::Text(state)) => match key {
                 key_code!(KeyCode::Esc) => {
                     self.tx.send(AppEventType::Quit);
                 }
@@ -72,34 +91,34 @@ impl ObjectPreviewPage {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('j') => {
-                    self.state.scroll_lines_state.scroll_forward();
+                    state.scroll_lines_state.scroll_forward();
                 }
                 key_code_char!('k') => {
-                    self.state.scroll_lines_state.scroll_backward();
+                    state.scroll_lines_state.scroll_backward();
                 }
                 key_code_char!('f') => {
-                    self.state.scroll_lines_state.scroll_page_forward();
+                    state.scroll_lines_state.scroll_page_forward();
                 }
                 key_code_char!('b') => {
-                    self.state.scroll_lines_state.scroll_page_backward();
+                    state.scroll_lines_state.scroll_page_backward();
                 }
                 key_code_char!('g') => {
-                    self.state.scroll_lines_state.scroll_to_top();
+                    state.scroll_lines_state.scroll_to_top();
                 }
                 key_code_char!('G') => {
-                    self.state.scroll_lines_state.scroll_to_end();
+                    state.scroll_lines_state.scroll_to_end();
                 }
                 key_code_char!('h') => {
-                    self.state.scroll_lines_state.scroll_left();
+                    state.scroll_lines_state.scroll_left();
                 }
                 key_code_char!('l') => {
-                    self.state.scroll_lines_state.scroll_right();
+                    state.scroll_lines_state.scroll_right();
                 }
                 key_code_char!('w') => {
-                    self.state.scroll_lines_state.toggle_wrap();
+                    state.scroll_lines_state.toggle_wrap();
                 }
                 key_code_char!('n') => {
-                    self.state.scroll_lines_state.toggle_number();
+                    state.scroll_lines_state.toggle_number();
                 }
                 key_code_char!('s') => {
                     self.download();
@@ -112,7 +131,25 @@ impl ObjectPreviewPage {
                 }
                 _ => {}
             },
-            ViewState::SaveDialog(ref mut state) => match key {
+            (ViewState::Default, PreviewType::Image(_)) => match key {
+                key_code!(KeyCode::Esc) => {
+                    self.tx.send(AppEventType::Quit);
+                }
+                key_code!(KeyCode::Backspace) => {
+                    self.tx.send(AppEventType::CloseCurrentPage);
+                }
+                key_code_char!('s') => {
+                    self.download();
+                }
+                key_code_char!('S') => {
+                    self.open_save_dialog();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
+            (ViewState::SaveDialog(state), _) => match key {
                 key_code!(KeyCode::Esc) => {
                     self.close_save_dialog();
                 }
@@ -131,11 +168,22 @@ impl ObjectPreviewPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let preview = TextPreview::new(
-            self.file_detail.name.as_str(),
-            self.file_version_id.as_deref(),
-        );
-        f.render_stateful_widget(preview, area, &mut self.state);
+        match self.preview_type {
+            PreviewType::Text(ref mut state) => {
+                let preview = TextPreview::new(
+                    self.file_detail.name.as_str(),
+                    self.file_version_id.as_deref(),
+                );
+                f.render_stateful_widget(preview, area, state);
+            }
+            PreviewType::Image(ref mut state) => {
+                let preview = ImagePreview::new(
+                    self.file_detail.name.as_str(),
+                    self.file_version_id.as_deref(),
+                );
+                f.render_stateful_widget(preview, area, state);
+            }
+        }
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
             let save_dialog = InputDialog::default().title("Save As").max_width(40);
@@ -147,8 +195,8 @@ impl ObjectPreviewPage {
     }
 
     pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match self.view_state {
-            ViewState::Default => &[
+        let helps: &[(&[&str], &str)] = match (&self.view_state, &self.preview_type) {
+            (ViewState::Default, PreviewType::Text(_)) => &[
                 (&["Esc", "Ctrl-c"], "Quit app"),
                 (&["j/k"], "Scroll forward/backward"),
                 (&["f/b"], "Scroll page forward/backward"),
@@ -160,7 +208,13 @@ impl ObjectPreviewPage {
                 (&["s"], "Download object"),
                 (&["S"], "Download object as"),
             ],
-            ViewState::SaveDialog(_) => &[
+            (ViewState::Default, PreviewType::Image(_)) => &[
+                (&["Esc", "Ctrl-c"], "Quit app"),
+                (&["Backspace"], "Close preview"),
+                (&["s"], "Download object"),
+                (&["S"], "Download object as"),
+            ],
+            (ViewState::SaveDialog(_), _) => &[
                 (&["Ctrl-c"], "Quit app"),
                 (&["Esc"], "Close save dialog"),
                 (&["Enter"], "Download object"),
@@ -171,16 +225,22 @@ impl ObjectPreviewPage {
     }
 
     pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match self.view_state {
-            ViewState::Default => &[
+        let helps: &[(&[&str], &str, usize)] = match (&self.view_state, &self.preview_type) {
+            (ViewState::Default, PreviewType::Text(_)) => &[
                 (&["Esc"], "Quit", 0),
                 (&["j/k"], "Scroll", 2),
                 (&["g/G"], "Top/End", 4),
                 (&["s/S"], "Download", 3),
-                (&["Backspace"], "Close", 2),
+                (&["Backspace"], "Close", 1),
                 (&["?"], "Help", 0),
             ],
-            ViewState::SaveDialog(_) => &[
+            (ViewState::Default, PreviewType::Image(_)) => &[
+                (&["Esc"], "Quit", 0),
+                (&["s/S"], "Download", 2),
+                (&["Backspace"], "Close", 1),
+                (&["?"], "Help", 0),
+            ],
+            (ViewState::SaveDialog(_), _) => &[
                 (&["Esc"], "Close", 2),
                 (&["Enter"], "Download", 1),
                 (&["?"], "Help", 0),
