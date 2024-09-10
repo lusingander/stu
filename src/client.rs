@@ -64,6 +64,10 @@ impl Client {
         }
     }
 
+    pub fn region(&self) -> &str {
+        &self.region
+    }
+
     pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
         let list_buckets_result = self.client.list_buckets().send().await;
         let list_buckets_output =

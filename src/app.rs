@@ -105,11 +105,18 @@ impl App {
             }
         }
 
-        if self.app_objects.get_bucket_items().len() == 1 {
+        let bucket_items_len = self.app_objects.get_bucket_items().len();
+
+        if bucket_items_len == 1 {
             // bucket name is specified, or if there is only one bucket, open it.
             // since continues to load object, is_loading is not reset.
             self.bucket_list_move_down();
         } else {
+            if bucket_items_len == 0 {
+                let (client, _) = self.unwrap_client_tx();
+                let msg = format!("No bucket found (region: {})", client.region());
+                self.tx.send(AppEventType::NotifyWarn(msg));
+            }
             self.app_view_state.is_loading = false;
         }
     }
