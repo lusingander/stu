@@ -1,4 +1,5 @@
 download_dir = './out/download'
+default_region = 'us-east-1'
 
 [preview]
 

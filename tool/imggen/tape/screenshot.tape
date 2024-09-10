@@ -14,7 +14,7 @@ Type@10ms "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
 Type@10ms "export STU_ROOT_DIR=./tool/imggen"
 Enter
-Type@10ms "./target/debug/stu --endpoint-url ${ENDPOINT_URL} --region us-east-1"
+Type@10ms "./target/debug/stu --endpoint-url ${ENDPOINT_URL}"
 Enter
 Sleep 500ms
 Screenshot ${OUTPUT_DIR}/initialize.png
