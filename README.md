@@ -110,6 +110,9 @@ The values set in this example are the default values.
 # The directory to save the downloaded objects.
 # type: string
 download_dir = "$STU_ROOT_DIR/download"
+# The default region to use if the region cannot be obtained from the command line options or AWS settings.
+# type: string
+default_region = "us-east-1"
 
 [ui.object_list]
 # The date format of a last modified in the object list.
