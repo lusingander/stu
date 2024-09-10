@@ -13,6 +13,8 @@ use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
 
 pub struct ImagePreviewState {
     protocol: Option<Box<dyn StatefulProtocol>>,
+    // to control image rendering when dialogs are overlapped...
+    render: bool,
 }
 
 impl Debug for ImagePreviewState {
@@ -25,16 +27,24 @@ impl ImagePreviewState {
     pub fn new(bytes: &[u8]) -> (Self, Option<String>) {
         match build_image_protocol(bytes) {
             Ok(protocol) => {
-                let protocol = Some(protocol);
-                let state = ImagePreviewState { protocol };
+                let state = ImagePreviewState {
+                    protocol: Some(protocol),
+                    render: true,
+                };
                 (state, None)
             }
             Err(e) => {
-                let protocol = None;
-                let state = ImagePreviewState { protocol };
+                let state = ImagePreviewState {
+                    protocol: None,
+                    render: true,
+                };
                 (state, Some(e))
             }
         }
+    }
+
+    pub fn set_render(&mut self, render: bool) {
+        self.render = render;
     }
 }
 
@@ -82,9 +92,11 @@ impl StatefulWidget for ImagePreview<'_> {
 
         block.render(area, buf);
 
-        if let Some(protocol) = &mut state.protocol {
-            let image = StatefulImage::new(None);
-            image.render(image_area, buf, protocol);
+        if state.render {
+            if let Some(protocol) = &mut state.protocol {
+                let image = StatefulImage::new(None);
+                image.render(image_area, buf, protocol);
+            }
         }
     }
 }

@@ -143,6 +143,7 @@ impl ObjectPreviewPage {
                 }
                 key_code_char!('S') => {
                     self.open_save_dialog();
+                    self.disable_image_render();
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
@@ -152,10 +153,12 @@ impl ObjectPreviewPage {
             (ViewState::SaveDialog(state), _) => match key {
                 key_code!(KeyCode::Esc) => {
                     self.close_save_dialog();
+                    self.enable_image_render();
                 }
                 key_code!(KeyCode::Enter) => {
                     let input = state.input().into();
                     self.download_as(input);
+                    // enable_image_render is called after download is completed
                 }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
@@ -258,6 +261,22 @@ impl ObjectPreviewPage {
 
     pub fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    pub fn enable_image_render(&mut self) {
+        if let PreviewType::Image(state) = &mut self.preview_type {
+            state.set_render(true);
+        }
+    }
+
+    pub fn disable_image_render(&mut self) {
+        if let PreviewType::Image(state) = &mut self.preview_type {
+            state.set_render(false);
+        }
+    }
+
+    pub fn is_image_preview(&self) -> bool {
+        matches!(self.preview_type, PreviewType::Image(_))
     }
 
     fn download(&self) {

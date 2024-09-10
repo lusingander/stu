@@ -482,6 +482,12 @@ impl App {
             }
         }
         self.app_view_state.is_loading = false;
+
+        if let Page::ObjectPreview(page) = self.page_stack.current_page() {
+            if page.is_image_preview() {
+                self.tx.send(AppEventType::PreviewRerenderImage);
+            }
+        }
     }
 
     pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {
@@ -646,6 +652,11 @@ impl App {
 
         let page = self.page_stack.current_page_mut().as_mut_object_preview();
         page.close_save_dialog();
+    }
+
+    pub fn preview_rerender_image(&mut self) {
+        let object_preview_page = self.page_stack.current_page_mut().as_mut_object_preview();
+        object_preview_page.enable_image_render();
     }
 
     pub fn copy_to_clipboard(&self, name: String, value: String) {
