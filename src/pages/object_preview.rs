@@ -55,7 +55,7 @@ impl ObjectPreviewPage {
         tx: Sender,
     ) -> Self {
         let preview_type = if infer::is_image(&object.bytes) {
-            let (state, msg) = ImagePreviewState::new(&object.bytes);
+            let (state, msg) = ImagePreviewState::new(&object.bytes, preview_config.image);
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }

@@ -24,8 +24,8 @@ impl Debug for ImagePreviewState {
 }
 
 impl ImagePreviewState {
-    pub fn new(bytes: &[u8]) -> (Self, Option<String>) {
-        match build_image_protocol(bytes) {
+    pub fn new(bytes: &[u8], enabled: bool) -> (Self, Option<String>) {
+        match build_image_protocol(bytes, enabled) {
             Ok(protocol) => {
                 let state = ImagePreviewState {
                     protocol: Some(protocol),
@@ -48,7 +48,11 @@ impl ImagePreviewState {
     }
 }
 
-fn build_image_protocol(bytes: &[u8]) -> Result<Box<dyn StatefulProtocol>, String> {
+fn build_image_protocol(bytes: &[u8], enabled: bool) -> Result<Box<dyn StatefulProtocol>, String> {
+    if !enabled {
+        return Err("Image preview is disabled".to_string());
+    }
+
     let reader = ImageReader::new(Cursor::new(bytes))
         .with_guessed_format()
         .map_err(|e| format!("Failed to guess image format: {e}"))?;
