@@ -14,7 +14,7 @@ use crate::{
 const DELIMITER: &str = "/";
 
 pub struct Client {
-    pub client: aws_sdk_s3::Client,
+    client: aws_sdk_s3::Client,
     region: String,
     bucket_region_cache: SimpleStringCache,
 }
