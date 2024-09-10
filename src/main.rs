@@ -73,10 +73,18 @@ async fn run<B: Backend>(
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
+    let default_region_fallback = config.default_region.clone();
+
     let mut app = App::new(config, tx.clone(), width, height);
 
     spawn(async move {
-        let client = Client::new(args.region, args.endpoint_url, args.profile).await;
+        let client = Client::new(
+            args.region,
+            args.endpoint_url,
+            args.profile,
+            default_region_fallback,
+        )
+        .await;
         tx.send(AppEventType::Initialize(client, args.bucket));
     });
 

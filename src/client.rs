@@ -12,7 +12,6 @@ use crate::{
 };
 
 const DELIMITER: &str = "/";
-const DEFAULT_REGION: &str = "ap-northeast-1";
 
 pub struct Client {
     pub client: aws_sdk_s3::Client,
@@ -31,10 +30,11 @@ impl Client {
         region: Option<String>,
         endpoint_url: Option<String>,
         profile: Option<String>,
+        default_region_fallback: String,
     ) -> Client {
         let region_provider = RegionProviderChain::first_try(region.map(Region::new))
             .or_default_provider()
-            .or_else(DEFAULT_REGION);
+            .or_else(Region::new(default_region_fallback));
 
         let mut config_loader =
             aws_config::defaults(BehaviorVersion::latest()).region(region_provider);

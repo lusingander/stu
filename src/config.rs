@@ -16,6 +16,8 @@ const CACHE_FILE_NAME: &str = "cache.txt";
 pub struct Config {
     #[serde(default = "default_download_dir")]
     pub download_dir: String,
+    #[serde(default = "default_default_region")]
+    pub default_region: String,
     #[serde(default)]
     pub ui: UiConfig,
     #[serde(default)]
@@ -70,8 +72,10 @@ pub struct PreviewConfig {
 impl Default for Config {
     fn default() -> Self {
         let download_dir = default_download_dir();
+        let default_region = default_default_region();
         Self {
             download_dir,
+            default_region,
             ui: UiConfig::default(),
             preview: PreviewConfig::default(),
         }
@@ -86,6 +90,10 @@ fn default_download_dir() -> String {
         }
         Err(_) => "".to_string(),
     }
+}
+
+fn default_default_region() -> String {
+    "us-east-1".to_string()
 }
 
 fn default_ui_object_list_date_format() -> String {
