@@ -67,6 +67,8 @@ impl Default for UiObjectDetailConfig {
 pub struct PreviewConfig {
     #[serde(default)]
     pub highlight: bool,
+    #[serde(default)]
+    pub image: bool,
 }
 
 impl Default for Config {

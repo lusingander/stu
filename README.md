@@ -133,9 +133,12 @@ date_width = 19
 date_format = "%Y-%m-%d %H:%M:%S"
 
 [preview]
-# Whether syntax highlighting is enabled in preview.
+# Whether syntax highlighting is enabled in the object preview.
 # type: bool
 highlight = false
+# Whether image file preview is enabled in the object preview.
+# type: bool
+image = false
 ```
 
 ## Features / Screenshots
@@ -159,11 +162,21 @@ highlight = false
 - Show object details
 - Show object versions
 - Download object
-- Preview object (text file only)
-  - syntax highlighting (by [syntect](https://github.com/trishume/syntect))
+  - Download the specified version
+- Preview object
+  - Preview the specified version
 - Copy resource name to clipboard
 
-<img src="./img/object-detail.png" width=400> <img src="./img/object-version.png" width=400> <img src="./img/object-download.png" width=400> <img src="./img/object-preview.png" width=400> <img src="./img/object-details-copy.png" width=400>
+<img src="./img/object-detail.png" width=400> <img src="./img/object-version.png" width=400> <img src="./img/object-download.png" width=400> <img src="./img/object-details-copy.png" width=400>
+
+### Object preview
+
+- syntax highlighting (by [syntect](https://github.com/trishume/syntect))
+  - It must be enabled in the [config](#config-file-format)
+- image preview (by [ratatui-image](https://github.com/benjajaja/ratatui-image))
+  - It must be enabled in the [config](#config-file-format)
+
+<img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400>
 
 ## Troubleshooting
 

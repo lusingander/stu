@@ -4,3 +4,4 @@ default_region = 'us-east-1'
 [preview]
 
 highlight = true
+image = true

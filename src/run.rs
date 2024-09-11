@@ -156,6 +156,9 @@ pub async fn run<B: Backend>(
             AppEventType::PreviewDownloadObjectAs(file_detail, input, version_id) => {
                 app.preview_download_object_as(file_detail, input, version_id);
             }
+            AppEventType::PreviewRerenderImage => {
+                app.preview_rerender_image();
+            }
             AppEventType::BucketListOpenManagementConsole => {
                 app.bucket_list_open_management_console();
             }

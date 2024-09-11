@@ -2,10 +2,10 @@ package main
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
 	"image"
 	"image/color"
-	"image/jpeg"
 	"image/png"
 	"strings"
 )
@@ -195,10 +195,11 @@ func imagePngObject() []byte {
 	return buf.Bytes()
 }
 
+//go:embed fixture/icon.jpg
+var iconImage []byte
+
 func imageJpgObject() []byte {
-	var buf bytes.Buffer
-	jpeg.Encode(&buf, dummyImage(), nil)
-	return buf.Bytes()
+	return iconImage
 }
 
 func dummyImage() image.Image {
