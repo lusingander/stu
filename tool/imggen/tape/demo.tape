@@ -69,8 +69,11 @@ Type "j"
 Sleep 500ms
 Type "j"
 Sleep 500ms
+Type "p"
+Sleep 2s
 Type "s"
 Sleep 1s
+Backspace
 Type "h"
 Sleep 1s
 Backspace

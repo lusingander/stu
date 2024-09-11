@@ -61,10 +61,25 @@ fn build_image_protocol(bytes: &[u8], enabled: bool) -> Result<Box<dyn StatefulP
         .decode()
         .map_err(|e| format!("Failed to decode image: {e}"))?;
 
+    let mut picker = build_picker()?;
+    Ok(picker.new_resize_protocol(img))
+}
+
+#[cfg(not(feature = "imggen"))]
+fn build_picker() -> Result<Picker, String> {
     let mut picker = Picker::from_termios().map_err(|e| format!("Failed to create picker: {e}"))?;
     picker.guess_protocol();
+    Ok(picker)
+}
 
-    Ok(picker.new_resize_protocol(img))
+#[cfg(feature = "imggen")]
+fn build_picker() -> Result<Picker, String> {
+    // - font size cannot be obtained with xterm.js
+    // - want to fix the protocol to iterm2
+    // so changed the settings with the imggen feature
+    let mut picker = Picker::new((10, 20));
+    picker.protocol_type = ratatui_image::picker::ProtocolType::Iterm2;
+    Ok(picker)
 }
 
 #[derive(Debug)]

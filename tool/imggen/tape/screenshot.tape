@@ -116,6 +116,11 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-version-help.png
 Type "?"
 Sleep 100ms
+Type "p"
+Sleep 500ms
+Screenshot ${OUTPUT_DIR}/object-preview-image.png
+Backspace
+Sleep 100ms
 Backspace
 Sleep 100ms
 Escape
