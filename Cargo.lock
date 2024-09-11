@@ -3058,7 +3058,7 @@ dependencies = [
 
 [[package]]
 name = "stu"
-version = "0.5.2"
+version = "0.6.0"
 dependencies = [
  "ansi-to-tui",
  "anyhow",
