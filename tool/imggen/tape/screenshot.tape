@@ -117,8 +117,9 @@ Screenshot ${OUTPUT_DIR}/object-version-help.png
 Type "?"
 Sleep 100ms
 Type "p"
-Sleep 500ms
+Sleep 1s
 Screenshot ${OUTPUT_DIR}/object-preview-image.png
+Sleep 300ms
 Backspace
 Sleep 100ms
 Backspace
