@@ -525,7 +525,10 @@ impl StatefulWidget for DetailTab {
     }
 }
 
-fn build_help_lines(versions: &[FileVersion], ui_config: &UiConfig) -> Vec<Vec<Line<'static>>> {
+fn build_version_detail_lines(
+    versions: &[FileVersion],
+    ui_config: &UiConfig,
+) -> Vec<Vec<Line<'static>>> {
     versions
         .iter()
         .map(|v| {
@@ -553,7 +556,7 @@ fn build_help_lines(versions: &[FileVersion], ui_config: &UiConfig) -> Vec<Vec<L
 
 #[derive(Debug, Default)]
 struct VersionTabState {
-    help_lines: Vec<Vec<Line<'static>>>,
+    lines: Vec<Vec<Line<'static>>>,
     selected: usize,
     offset: usize,
     height: usize,
@@ -561,15 +564,15 @@ struct VersionTabState {
 
 impl VersionTabState {
     fn new(versions: &[FileVersion], ui_config: &UiConfig) -> Self {
-        let help_lines = build_help_lines(versions, ui_config);
+        let lines = build_version_detail_lines(versions, ui_config);
         Self {
-            help_lines,
+            lines,
             ..Default::default()
         }
     }
 
     fn select_next(&mut self) {
-        if self.selected >= self.help_lines.len() - 1 {
+        if self.selected >= self.lines.len() - 1 {
             return;
         }
 
@@ -577,7 +580,7 @@ impl VersionTabState {
 
         let mut total_height = 0;
         for lines in self
-            .help_lines
+            .lines
             .iter()
             .skip(self.offset)
             .take(self.selected - self.offset + 1)
@@ -607,10 +610,10 @@ impl VersionTabState {
     }
 
     fn select_last(&mut self) {
-        self.selected = self.help_lines.len() - 1;
+        self.selected = self.lines.len() - 1;
 
         let mut total_height = 0;
-        for (i, lines) in self.help_lines.iter().enumerate().rev() {
+        for (i, lines) in self.lines.iter().enumerate().rev() {
             total_height += lines.len();
             total_height += 1; // divider
 
@@ -639,7 +642,7 @@ impl StatefulWidget for VersionTab {
 
         let mut area = area;
 
-        for (i, lines) in state.help_lines.iter().enumerate().skip(state.offset) {
+        for (i, lines) in state.lines.iter().enumerate().skip(state.offset) {
             let lines_count = lines.len() as u16;
 
             if area.height < lines_count {
