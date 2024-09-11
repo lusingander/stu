@@ -99,8 +99,8 @@ Detailed operations on each view can be displayed by pressing `?` key.
 Config is loaded from `$STU_ROOT_DIR/config.toml`.
 
 - If `STU_ROOT_DIR` environment variable is not set, `~/.stu` is used by default.
-- If the config file does not exist, the default values will be used for all items.
-- If the config file exists but some items are not set, the default values will be used for those unset items.
+- If the file does not exist, it will be created automatically at startup.
+- If no value is set, the default value will be set.
 
 #### Config file format
 
