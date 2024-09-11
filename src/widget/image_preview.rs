@@ -11,6 +11,8 @@ use ratatui::{
 };
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
 
+use crate::ui::common::format_version;
+
 pub struct ImagePreviewState {
     protocol: Option<Box<dyn StatefulProtocol>>,
     // to control image rendering when dialogs are overlapped...
@@ -102,7 +104,11 @@ impl StatefulWidget for ImagePreview<'_> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let title = if let Some(version_id) = self.file_version_id {
-            format!("Preview [{} (Version ID: {})]", self.file_name, version_id)
+            format!(
+                "Preview [{} (Version ID: {})]",
+                self.file_name,
+                format_version(version_id)
+            )
         } else {
             format!("Preview [{}]", self.file_name)
         };

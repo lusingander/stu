@@ -15,6 +15,7 @@ use syntect::{
 
 use crate::{
     object::{FileDetail, RawObject},
+    ui::common::format_version,
     util::extension_from_file_name,
     widget::{ScrollLines, ScrollLinesOptions, ScrollLinesState},
 };
@@ -114,7 +115,11 @@ impl StatefulWidget for TextPreview<'_> {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let title = if let Some(version_id) = self.file_version_id {
-            format!("Preview [{} (Version ID: {})]", self.file_name, version_id)
+            format!(
+                "Preview [{} (Version ID: {})]",
+                self.file_name,
+                format_version(version_id)
+            )
         } else {
             format!("Preview [{}]", self.file_name)
         };
