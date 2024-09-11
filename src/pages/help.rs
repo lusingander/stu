@@ -192,7 +192,7 @@ mod tests {
             "│                                                                    │",
             "│  STU - TUI application for AWS S3 written in Rust using ratatui    │",
             "│                                                                    │",
-            "│  Version: 0.6.0                                                    │",
+            "│  Version: 0.6.1                                                    │",
             "│                                                                    │",
             "│  https://github.com/lusingander/stu                                │",
             "│                                                                    │",
