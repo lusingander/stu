@@ -37,7 +37,6 @@ impl Client {
             region_builder = region_builder.profile_name(profile);
         }
         let region_provider = RegionProviderChain::first_try(region.map(Region::new))
-            .or_default_provider()
             .or_else(region_builder.build())
             .or_else(Region::new(default_region_fallback));
 
