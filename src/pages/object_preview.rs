@@ -312,12 +312,11 @@ mod tests {
 
     use super::*;
     use chrono::{DateTime, Local, NaiveDateTime};
-    use itertools::Itertools;
     use ratatui::{backend::TestBackend, buffer::Buffer, style::Color, Terminal};
 
     fn object(ss: &[&str]) -> RawObject {
         RawObject {
-            bytes: ss.iter().join("\n").as_bytes().to_vec(),
+            bytes: ss.join("\n").as_bytes().to_vec(),
         }
     }
 

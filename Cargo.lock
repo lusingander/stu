@@ -3094,7 +3094,6 @@ dependencies = [
  "humansize",
  "image",
  "infer",
- "itertools 0.13.0",
  "itsuki",
  "once_cell",
  "open",
