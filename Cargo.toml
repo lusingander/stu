@@ -15,10 +15,10 @@ exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 
 [dependencies]
 ansi-to-tui = "6.0.0"
-anyhow = "1.0.87"
-arboard = "3.4.0"
-aws-config = "1.5.5"
-aws-sdk-s3 = "1.48.0"
+anyhow = "1.0.88"
+arboard = "3.4.1"
+aws-config = "1.5.6"
+aws-sdk-s3 = "1.49.0"
 aws-smithy-types = "1.2.4"
 chrono = "0.4.38"
 clap = { version = "4.5.17", features = ["derive"] }
