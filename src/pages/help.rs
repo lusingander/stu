@@ -190,11 +190,11 @@ mod tests {
         let mut expected = Buffer::with_lines([
             "┌STU─────────────────────────────────────────────────────────────────┐",
             "│                                                                    │",
-            "│  STU - TUI application for AWS S3 written in Rust using ratatui    │",
+            "│  STU - S3 Terminal UI                                              │",
             "│                                                                    │",
-            "│  Version: 0.6.1                                                    │",
+            "│  Version: 1.2.3                                                    │",
             "│                                                                    │",
-            "│  https://github.com/lusingander/stu                                │",
+            "│  http://example.com/stu                                            │",
             "│                                                                    │",
             "│ ────────────────────────────────────────────────────────────────── │",
             "│                                                                    │",
@@ -211,7 +211,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // link
-            (3..37, [6]) => fg: Color::Blue,
+            (3..25, [6]) => fg: Color::Blue,
             // divider
             (2..68, [8]) => fg: Color::DarkGray,
         }
