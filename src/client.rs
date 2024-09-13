@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use aws_config::{meta::region::RegionProviderChain, BehaviorVersion};
+use aws_config::{default_provider::region, meta::region::RegionProviderChain, BehaviorVersion};
 use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output};
 use chrono::TimeZone;
 
@@ -32,8 +32,13 @@ impl Client {
         profile: Option<String>,
         default_region_fallback: String,
     ) -> Client {
+        let mut region_builder = region::Builder::default();
+        if let Some(profile) = &profile {
+            region_builder = region_builder.profile_name(profile);
+        }
         let region_provider = RegionProviderChain::first_try(region.map(Region::new))
             .or_default_provider()
+            .or_else(region_builder.build())
             .or_else(Region::new(default_region_fallback));
 
         let mut config_loader =
