@@ -56,9 +56,8 @@ impl Tab {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 enum ViewState {
-    #[default]
     Default,
     SaveDialog(InputDialogState),
     CopyDetailDialog(CopyDetailDialogState),
@@ -224,7 +223,7 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::new(&self.file_detail);
+            let copy_detail_dialog = CopyDetailDialog::default();
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -345,7 +344,8 @@ impl ObjectDetailPage {
     }
 
     fn open_copy_detail_dialog(&mut self) {
-        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::default());
+        self.view_state =
+            ViewState::CopyDetailDialog(CopyDetailDialogState::new(self.file_detail.clone()));
     }
 
     fn close_copy_detail_dialog(&mut self) {

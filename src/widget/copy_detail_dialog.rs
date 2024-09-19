@@ -37,12 +37,20 @@ impl ItemType {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct CopyDetailDialogState {
     selected: ItemType,
+    file_detail: FileDetail,
 }
 
 impl CopyDetailDialogState {
+    pub fn new(file_detail: FileDetail) -> Self {
+        Self {
+            selected: ItemType::default(),
+            file_detail,
+        }
+    }
+
     pub fn select_next(&mut self) {
         self.selected = self.selected.next();
     }
@@ -56,17 +64,10 @@ impl CopyDetailDialogState {
     }
 }
 
-pub struct CopyDetailDialog<'a> {
-    file_detail: &'a FileDetail,
-}
+#[derive(Debug, Default)]
+pub struct CopyDetailDialog {}
 
-impl<'a> CopyDetailDialog<'a> {
-    pub fn new(file_detail: &'a FileDetail) -> Self {
-        Self { file_detail }
-    }
-}
-
-impl StatefulWidget for CopyDetailDialog<'_> {
+impl StatefulWidget for CopyDetailDialog {
     type State = CopyDetailDialogState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
@@ -74,7 +75,7 @@ impl StatefulWidget for CopyDetailDialog<'_> {
         let list_items: Vec<ListItem> = ItemType::vars_vec()
             .iter()
             .enumerate()
-            .map(|(i, item_type)| build_list_item(i, selected, *item_type, self.file_detail))
+            .map(|(i, item_type)| build_list_item(i, selected, *item_type, &state.file_detail))
             .collect();
 
         let dialog_width = (area.width - 4).min(80);
@@ -121,9 +122,9 @@ mod tests {
 
     #[test]
     fn test_render_copy_detail_dialog() {
-        let mut state = CopyDetailDialogState::default();
         let file_detail = file_detail();
-        let copy_detail_dialog = CopyDetailDialog::new(&file_detail);
+        let mut state = CopyDetailDialogState::new(file_detail);
+        let copy_detail_dialog = CopyDetailDialog::default();
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
         copy_detail_dialog.render(buf.area, &mut buf, &mut state);
