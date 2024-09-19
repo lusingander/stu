@@ -223,9 +223,9 @@ impl ObjectDetailPage {
             f.set_cursor_position((cursor_x, cursor_y));
         }
 
-        if let ViewState::CopyDetailDialog(state) = &self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::new(*state, &self.file_detail);
-            f.render_widget(copy_detail_dialog, area);
+        if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
+            let copy_detail_dialog = CopyDetailDialog::new(&self.file_detail);
+            f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
 

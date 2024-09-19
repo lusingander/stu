@@ -4,7 +4,9 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
+    widgets::{
+        block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, WidgetRef,
+    },
 };
 
 use crate::{object::FileDetail, ui::common::calc_centered_dialog_rect, widget::Dialog};
@@ -55,19 +57,20 @@ impl CopyDetailDialogState {
 }
 
 pub struct CopyDetailDialog<'a> {
-    state: CopyDetailDialogState,
     file_detail: &'a FileDetail,
 }
 
 impl<'a> CopyDetailDialog<'a> {
-    pub fn new(state: CopyDetailDialogState, file_detail: &'a FileDetail) -> Self {
-        Self { state, file_detail }
+    pub fn new(file_detail: &'a FileDetail) -> Self {
+        Self { file_detail }
     }
 }
 
-impl Widget for CopyDetailDialog<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let selected = self.state.selected.val();
+impl StatefulWidget for CopyDetailDialog<'_> {
+    type State = CopyDetailDialogState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let selected = state.selected.val();
         let list_items: Vec<ListItem> = ItemType::vars_vec()
             .iter()
             .enumerate()
@@ -118,12 +121,12 @@ mod tests {
 
     #[test]
     fn test_render_copy_detail_dialog() {
-        let state = CopyDetailDialogState::default();
+        let mut state = CopyDetailDialogState::default();
         let file_detail = file_detail();
-        let copy_detail_dialog = CopyDetailDialog::new(state, &file_detail);
+        let copy_detail_dialog = CopyDetailDialog::new(&file_detail);
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
-        copy_detail_dialog.render(buf.area, &mut buf);
+        copy_detail_dialog.render(buf.area, &mut buf, &mut state);
 
         #[rustfmt::skip]
         let mut expected = Buffer::with_lines([
