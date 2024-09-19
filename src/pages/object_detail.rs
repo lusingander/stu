@@ -165,7 +165,7 @@ impl ObjectDetailPage {
                     self.close_copy_detail_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
-                    let (name, value) = state.selected_name_and_value(&self.file_detail);
+                    let (name, value) = state.selected_name_and_value();
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
                 key_code_char!('j') => {

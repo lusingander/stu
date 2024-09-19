@@ -25,7 +25,7 @@ enum ObjectDetailItemType {
 }
 
 impl ObjectDetailItemType {
-    pub fn name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
+    fn name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
         let (name, value) = match self {
             Self::Key => ("Key", &file_detail.key),
             Self::S3Uri => ("S3 URI", &file_detail.s3_uri),
@@ -59,8 +59,12 @@ impl ObjectDetailCopyDetailDialogState {
         self.selected = self.selected.prev();
     }
 
-    pub fn selected_name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
-        self.selected.name_and_value(file_detail)
+    pub fn name_and_value_from(&self, item_type: ObjectDetailItemType) -> (String, String) {
+        item_type.name_and_value(&self.file_detail)
+    }
+
+    pub fn selected_name_and_value(&self) -> (String, String) {
+        self.name_and_value_from(self.selected)
     }
 }
 
@@ -75,12 +79,14 @@ impl StatefulWidget for CopyDetailDialog {
         let list_items: Vec<ListItem> = ObjectDetailItemType::vars_vec()
             .iter()
             .enumerate()
-            .map(|(i, item_type)| build_list_item(i, selected, *item_type, &state.file_detail))
+            .map(|(i, item_type)| {
+                build_list_item(i, selected, state.name_and_value_from(*item_type))
+            })
             .collect();
 
         let dialog_width = (area.width - 4).min(80);
-        let dialog_height = 2 * 5 /* list */ + 2 /* border */;
-        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        let dialog_height = ObjectDetailItemType::len() * 2 + 2 /* border */;
+        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height as u16);
 
         let title = Title::from("Copy");
         let list = List::new(list_items).block(
@@ -94,13 +100,7 @@ impl StatefulWidget for CopyDetailDialog {
     }
 }
 
-fn build_list_item(
-    i: usize,
-    selected: usize,
-    item_type: ObjectDetailItemType,
-    file_detail: &FileDetail,
-) -> ListItem {
-    let (name, value) = item_type.name_and_value(file_detail);
+fn build_list_item<'a>(i: usize, selected: usize, (name, value): (String, String)) -> ListItem<'a> {
     let item = ListItem::new(vec![
         Line::from(format!("{}:", name).add_modifier(Modifier::BOLD)),
         Line::from(format!("  {}", value)),
