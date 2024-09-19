@@ -15,7 +15,7 @@ const SELECTED_COLOR: Color = Color::Cyan;
 
 #[derive(Default)]
 #[zero_indexed_enum]
-enum ItemType {
+enum ObjectDetailItemType {
     #[default]
     Key,
     S3Uri,
@@ -24,7 +24,7 @@ enum ItemType {
     Etag,
 }
 
-impl ItemType {
+impl ObjectDetailItemType {
     pub fn name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
         let (name, value) = match self {
             Self::Key => ("Key", &file_detail.key),
@@ -39,14 +39,14 @@ impl ItemType {
 
 #[derive(Debug, Clone)]
 pub struct CopyDetailDialogState {
-    selected: ItemType,
+    selected: ObjectDetailItemType,
     file_detail: FileDetail,
 }
 
 impl CopyDetailDialogState {
     pub fn new(file_detail: FileDetail) -> Self {
         Self {
-            selected: ItemType::default(),
+            selected: ObjectDetailItemType::default(),
             file_detail,
         }
     }
@@ -72,7 +72,7 @@ impl StatefulWidget for CopyDetailDialog {
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let selected = state.selected.val();
-        let list_items: Vec<ListItem> = ItemType::vars_vec()
+        let list_items: Vec<ListItem> = ObjectDetailItemType::vars_vec()
             .iter()
             .enumerate()
             .map(|(i, item_type)| build_list_item(i, selected, *item_type, &state.file_detail))
@@ -97,7 +97,7 @@ impl StatefulWidget for CopyDetailDialog {
 fn build_list_item(
     i: usize,
     selected: usize,
-    item_type: ItemType,
+    item_type: ObjectDetailItemType,
     file_detail: &FileDetail,
 ) -> ListItem {
     let (name, value) = item_type.name_and_value(file_detail);
