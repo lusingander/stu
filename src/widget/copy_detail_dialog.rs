@@ -38,12 +38,12 @@ impl ObjectDetailItemType {
 }
 
 #[derive(Debug, Clone)]
-pub struct CopyDetailDialogState {
+pub struct ObjectDetailCopyDetailDialogState {
     selected: ObjectDetailItemType,
     file_detail: FileDetail,
 }
 
-impl CopyDetailDialogState {
+impl ObjectDetailCopyDetailDialogState {
     pub fn new(file_detail: FileDetail) -> Self {
         Self {
             selected: ObjectDetailItemType::default(),
@@ -68,7 +68,7 @@ impl CopyDetailDialogState {
 pub struct CopyDetailDialog {}
 
 impl StatefulWidget for CopyDetailDialog {
-    type State = CopyDetailDialogState;
+    type State = ObjectDetailCopyDetailDialogState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let selected = state.selected.val();
@@ -123,7 +123,7 @@ mod tests {
     #[test]
     fn test_render_copy_detail_dialog() {
         let file_detail = file_detail();
-        let mut state = CopyDetailDialogState::new(file_detail);
+        let mut state = ObjectDetailCopyDetailDialogState::new(file_detail);
         let copy_detail_dialog = CopyDetailDialog::default();
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
