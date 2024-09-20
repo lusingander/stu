@@ -587,22 +587,10 @@ mod tests {
 
         terminal.draw(|f| {
             let items = vec![
-                ObjectItem::Dir {
-                    name: "dir1".to_string(),
-                },
-                ObjectItem::Dir {
-                    name: "dir2".to_string(),
-                },
-                ObjectItem::File {
-                    name: "file1".to_string(),
-                    size_byte: 1024 + 10,
-                    last_modified: parse_datetime("2024-01-02 13:01:02"),
-                },
-                ObjectItem::File {
-                    name: "file2".to_string(),
-                    size_byte: 1024 * 999,
-                    last_modified: parse_datetime("2023-12-31 09:00:00"),
-                },
+                object_dir_item("dir1"),
+                object_dir_item("dir2"),
+                object_file_item("file1", 1024 + 10, "2024-01-02 13:01:02"),
+                object_file_item("file2", 1024 * 999, "2023-12-31 09:00:00"),
             ];
             let object_key = ObjectKey {
                 bucket_name: "test-bucket".to_string(),
@@ -646,11 +634,7 @@ mod tests {
 
         terminal.draw(|f| {
             let items = (0..32)
-                .map(|i| ObjectItem::File {
-                    name: format!("file{}", i + 1),
-                    size_byte: 1024,
-                    last_modified: parse_datetime("2024-01-02 13:01:02"),
-                })
+                .map(|i| object_file_item(&format!("file{}", i + 1), 1024, "2024-01-02 13:01:02"))
                 .collect();
             let object_key = ObjectKey {
                 bucket_name: "test-bucket".to_string(),
@@ -692,22 +676,10 @@ mod tests {
 
         terminal.draw(|f| {
             let items = vec![
-                ObjectItem::Dir {
-                    name: "dir1".to_string(),
-                },
-                ObjectItem::Dir {
-                    name: "dir2".to_string(),
-                },
-                ObjectItem::File {
-                    name: "file1".to_string(),
-                    size_byte: 1024 + 10,
-                    last_modified: parse_datetime("2024-01-02 13:01:02"),
-                },
-                ObjectItem::File {
-                    name: "file2".to_string(),
-                    size_byte: 1024 * 999,
-                    last_modified: parse_datetime("2023-12-31 09:00:00"),
-                },
+                object_dir_item("dir1"),
+                object_dir_item("dir2"),
+                object_file_item("file1", 1024 + 10, "2024-01-02 13:01:02"),
+                object_file_item("file2", 1024 * 999, "2023-12-31 09:00:00"),
             ];
             let object_key = ObjectKey {
                 bucket_name: "test-bucket".to_string(),
@@ -750,23 +722,11 @@ mod tests {
     fn test_sort_items() {
         let (tx, _) = event::new();
         let items = vec![
-            ObjectItem::Dir { name: "rid".into() },
-            ObjectItem::File {
-                name: "file".into(),
-                size_byte: 1024,
-                last_modified: parse_datetime("2024-01-02 13:01:02"),
-            },
-            ObjectItem::Dir { name: "dir".into() },
-            ObjectItem::File {
-                name: "xyz".into(),
-                size_byte: 1024 * 1024,
-                last_modified: parse_datetime("2023-12-31 23:59:59"),
-            },
-            ObjectItem::File {
-                name: "abc".into(),
-                size_byte: 0,
-                last_modified: parse_datetime("-2000-01-01 00:00:00"),
-            },
+            object_dir_item("rid"),
+            object_file_item("file", 1024, "2024-01-02 13:01:02"),
+            object_dir_item("dir"),
+            object_file_item("xyz", 1024 * 1024, "2023-12-31 23:59:59"),
+            object_file_item("abc", 0, "-2000-01-01 00:00:00"),
         ];
         let object_key = ObjectKey {
             bucket_name: "test-bucket".to_string(),
@@ -813,5 +773,19 @@ mod tests {
             .unwrap()
             .and_local_timezone(Local)
             .unwrap()
+    }
+
+    fn object_dir_item(name: &str) -> ObjectItem {
+        ObjectItem::Dir {
+            name: name.to_string(),
+        }
+    }
+
+    fn object_file_item(name: &str, size_byte: usize, last_modified: &str) -> ObjectItem {
+        ObjectItem::File {
+            name: name.to_string(),
+            size_byte,
+            last_modified: parse_datetime(last_modified),
+        }
     }
 }
