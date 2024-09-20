@@ -214,8 +214,8 @@ impl Client {
             .map_or("", |s| s.as_str())
             .to_string();
         let key = key.to_owned();
-        let s3_uri = build_s3_uri(bucket, &key);
-        let arn = build_arn(bucket, &key);
+        let s3_uri = build_object_s3_uri(bucket, &key);
+        let arn = build_object_arn(bucket, &key);
         let object_url = build_object_url(&self.region, bucket, &key);
         Ok(FileDetail {
             name,
@@ -339,7 +339,7 @@ fn objects_output_to_dirs(
             let name = paths.last().unwrap().to_owned();
 
             let key = path.to_owned();
-            let s3_uri = build_s3_uri(bucket, &key);
+            let s3_uri = build_object_s3_uri(bucket, &key);
             let object_url = build_object_url(region, bucket, &key);
 
             ObjectItem::Dir {
@@ -368,8 +368,8 @@ fn objects_output_to_files(
             let last_modified = convert_datetime(file.last_modified().unwrap());
 
             let key = file.key().unwrap().to_owned();
-            let s3_uri = build_s3_uri(bucket, &key);
-            let arn = build_arn(bucket, &key);
+            let s3_uri = build_object_s3_uri(bucket, &key);
+            let arn = build_object_arn(bucket, &key);
             let object_url = build_object_url(region, bucket, &key);
             let e_tag = file.e_tag().unwrap().trim_matches('"').to_string();
 
@@ -402,11 +402,11 @@ fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono:
     chrono::Local.timestamp_nanos(nanos as i64)
 }
 
-fn build_s3_uri(bucket: &str, key: &str) -> String {
+fn build_object_s3_uri(bucket: &str, key: &str) -> String {
     format!("s3://{}/{}", bucket, key)
 }
 
-fn build_arn(bucket: &str, key: &str) -> String {
+fn build_object_arn(bucket: &str, key: &str) -> String {
     format!("arn:aws:s3:::{}/{}", bucket, key)
 }
 
