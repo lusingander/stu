@@ -61,6 +61,16 @@ Escape
 Sleep 100ms
 Type "j"
 Sleep 100ms
+Type "r"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/bucket-list-copy.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/bucket-list-copy-help.png
+Type "?"
+Sleep 100ms
+Backspace
+Sleep 100ms
 
 # open test-bucket-2
 Enter
@@ -186,6 +196,16 @@ Enter
 Sleep 500ms
 Type "j"
 Sleep 100ms
+Type "r"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-dir-copy.png
+Type "?"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-copy-help.png
+Type "?"
+Sleep 100ms
+Backspace
+Sleep 100ms
 Type "j"
 Sleep 100ms
 Enter
@@ -203,6 +223,12 @@ Type "j"
 Sleep 100ms
 Type "j"
 Sleep 100ms
+Type "r"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-file-copy.png
+Sleep 100ms
+Backspace
+Sleep 500ms
 Enter
 Sleep 500ms
 Type "p"
