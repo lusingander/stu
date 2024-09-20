@@ -147,7 +147,9 @@ impl CopyDetailDialogState {
     pub fn object_detail(file_detail: FileDetail) -> Self {
         Self::ObjectDetail(ObjectDetailItemType::default(), file_detail)
     }
+}
 
+impl CopyDetailDialogState {
     pub fn select_next(&mut self) {
         match self {
             Self::BucketList(selected, _) => *selected = selected.next(),
