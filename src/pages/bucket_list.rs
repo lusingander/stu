@@ -16,8 +16,8 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     util::split_str,
     widget::{
-        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, InputDialog,
-        InputDialogState, ScrollList, ScrollListState,
+        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, CopyDetailDialog,
+        CopyDetailDialogState, InputDialog, InputDialogState, ScrollList, ScrollListState,
     },
 };
 
@@ -43,6 +43,7 @@ enum ViewState {
     Default,
     FilterDialog,
     SortDialog,
+    CopyDetailDialog(Box<CopyDetailDialogState>),
 }
 
 impl BucketListPage {
@@ -103,6 +104,9 @@ impl BucketListPage {
                 key_code_char!('o') => {
                     self.open_sort_dialog();
                 }
+                key_code_char!('r') => {
+                    self.open_copy_detail_dialog();
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -141,6 +145,25 @@ impl BucketListPage {
                 }
                 _ => {}
             },
+            ViewState::CopyDetailDialog(ref mut state) => match key {
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                    self.close_copy_detail_dialog();
+                }
+                key_code!(KeyCode::Enter) => {
+                    let (name, value) = state.selected_name_and_value();
+                    self.tx.send(AppEventType::CopyToClipboard(name, value));
+                }
+                key_code_char!('j') => {
+                    state.select_next();
+                }
+                key_code_char!('k') => {
+                    state.select_prev();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
         }
     }
 
@@ -171,6 +194,11 @@ impl BucketListPage {
         if let ViewState::SortDialog = self.view_state {
             let sort_dialog = BucketListSortDialog::new(self.sort_dialog_state);
             f.render_widget(sort_dialog, area);
+        }
+
+        if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
+            let copy_detail_dialog = CopyDetailDialog::default();
+            f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
 
@@ -217,6 +245,12 @@ impl BucketListPage {
                 (&["j/k"], "Select item"),
                 (&["Enter"], "Apply sort"),
             ],
+            ViewState::CopyDetailDialog(_) => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc", "Backspace"], "Close copy dialog"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Copy selected value to clipboard"),
+            ],
         };
         build_helps(helps)
     }
@@ -257,6 +291,12 @@ impl BucketListPage {
                 (&["Esc"], "Close", 2),
                 (&["j/k"], "Select", 3),
                 (&["Enter"], "Sort", 1),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::CopyDetailDialog(_) => &[
+                (&["Esc"], "Close", 2),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Copy", 1),
                 (&["?"], "Help", 0),
             ],
         };
@@ -307,6 +347,16 @@ impl BucketListPage {
         self.sort_dialog_state.reset();
 
         self.sort_view_indices();
+    }
+
+    fn open_copy_detail_dialog(&mut self) {
+        let item = self.current_selected_item();
+        self.view_state =
+            ViewState::CopyDetailDialog(Box::new(CopyDetailDialogState::bucket_list(item.clone())));
+    }
+
+    fn close_copy_detail_dialog(&mut self) {
+        self.view_state = ViewState::Default;
     }
 
     fn apply_filter(&mut self) {

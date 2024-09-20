@@ -10,12 +10,32 @@ use ratatui::{
 };
 
 use crate::{
-    object::{FileDetail, ObjectItem},
+    object::{BucketItem, FileDetail, ObjectItem},
     ui::common::calc_centered_dialog_rect,
     widget::Dialog,
 };
 
 const SELECTED_COLOR: Color = Color::Cyan;
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum BucketListItemType {
+    #[default]
+    S3Uri,
+    Arn,
+    ObjectUrl,
+}
+
+impl BucketListItemType {
+    fn name_and_value(&self, bucket_item: &BucketItem) -> (String, String) {
+        let (name, value) = match self {
+            Self::S3Uri => ("S3 URI", &bucket_item.s3_uri),
+            Self::Arn => ("ARN", &bucket_item.arn),
+            Self::ObjectUrl => ("Object URL", &bucket_item.object_url),
+        };
+        (name.into(), value.into())
+    }
+}
 
 #[derive(Default)]
 #[zero_indexed_enum]
@@ -104,14 +124,18 @@ impl ObjectDetailItemType {
 }
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)] // fixme: remove this
 pub enum CopyDetailDialogState {
+    BucketList(BucketListItemType, BucketItem),
     ObjectDetail(ObjectDetailItemType, FileDetail),
     ObjectListFile(ObjectListFileItemType, ObjectItem),
     ObjectListDir(ObjectListDirItemType, ObjectItem),
 }
 
 impl CopyDetailDialogState {
+    pub fn bucket_list(bucket_item: BucketItem) -> Self {
+        Self::BucketList(BucketListItemType::default(), bucket_item)
+    }
+
     pub fn object_list_file(object_item: ObjectItem) -> Self {
         Self::ObjectListFile(ObjectListFileItemType::default(), object_item)
     }
@@ -126,6 +150,7 @@ impl CopyDetailDialogState {
 
     pub fn select_next(&mut self) {
         match self {
+            Self::BucketList(selected, _) => *selected = selected.next(),
             Self::ObjectDetail(selected, _) => *selected = selected.next(),
             Self::ObjectListFile(selected, _) => *selected = selected.next(),
             Self::ObjectListDir(selected, _) => *selected = selected.next(),
@@ -134,6 +159,7 @@ impl CopyDetailDialogState {
 
     pub fn select_prev(&mut self) {
         match self {
+            Self::BucketList(selected, _) => *selected = selected.prev(),
             Self::ObjectDetail(selected, _) => *selected = selected.prev(),
             Self::ObjectListFile(selected, _) => *selected = selected.prev(),
             Self::ObjectListDir(selected, _) => *selected = selected.prev(),
@@ -142,6 +168,7 @@ impl CopyDetailDialogState {
 
     fn selected_value(&self) -> usize {
         match self {
+            Self::BucketList(selected, _) => selected.val(),
             Self::ObjectDetail(selected, _) => selected.val(),
             Self::ObjectListFile(selected, _) => selected.val(),
             Self::ObjectListDir(selected, _) => selected.val(),
@@ -150,6 +177,7 @@ impl CopyDetailDialogState {
 
     pub fn selected_name_and_value(&self) -> (String, String) {
         match self {
+            Self::BucketList(selected, bucket_item) => selected.name_and_value(bucket_item),
             Self::ObjectDetail(selected, file_detail) => selected.name_and_value(file_detail),
             Self::ObjectListFile(selected, object_item) => selected.name_and_value(object_item),
             Self::ObjectListDir(selected, object_item) => selected.name_and_value(object_item),
@@ -158,6 +186,10 @@ impl CopyDetailDialogState {
 
     fn name_and_value_vec(&self) -> Vec<(String, String)> {
         match self {
+            Self::BucketList(_, bucket_item) => BucketListItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(bucket_item))
+                .collect(),
             Self::ObjectDetail(_, file_detail) => ObjectDetailItemType::vars_array()
                 .into_iter()
                 .map(|t| t.name_and_value(file_detail))
@@ -175,6 +207,7 @@ impl CopyDetailDialogState {
 
     fn item_type_len(&self) -> usize {
         match self {
+            Self::BucketList(_, _) => BucketListItemType::len(),
             Self::ObjectDetail(_, _) => ObjectDetailItemType::len(),
             Self::ObjectListFile(_, _) => ObjectListFileItemType::len(),
             Self::ObjectListDir(_, _) => ObjectListDirItemType::len(),
