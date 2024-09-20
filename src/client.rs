@@ -82,7 +82,15 @@ impl Client {
             .iter()
             .map(|bucket| {
                 let bucket_name = bucket.name().unwrap().to_string();
-                BucketItem { name: bucket_name }
+                let s3_uri = build_bucket_s3_uri(&bucket_name);
+                let arn = build_bucket_arn(&bucket_name);
+                let object_url = build_bucket_url(&self.region, &bucket_name);
+                BucketItem {
+                    name: bucket_name,
+                    s3_uri,
+                    arn,
+                    object_url,
+                }
             })
             .collect();
 
@@ -149,8 +157,15 @@ impl Client {
             )));
         }
 
+        let s3_uri = build_bucket_s3_uri(name);
+        let arn = build_bucket_arn(name);
+        let object_url = build_bucket_url(&self.region, name);
+
         let bucket = BucketItem {
             name: name.to_string(),
+            s3_uri,
+            arn,
+            object_url,
         };
         Ok(bucket)
     }
@@ -172,10 +187,10 @@ impl Client {
                 .await;
             let output = result.map_err(|e| AppError::new("Failed to load objects", e))?;
 
-            let dirs = objects_output_to_dirs(&output);
+            let dirs = objects_output_to_dirs(&self.region, bucket, &output);
             dirs_vec.push(dirs);
 
-            let files = objects_output_to_files(&output);
+            let files = objects_output_to_files(&self.region, bucket, &output);
             files_vec.push(files);
 
             token = output.next_continuation_token().map(String::from);
@@ -214,9 +229,9 @@ impl Client {
             .map_or("", |s| s.as_str())
             .to_string();
         let key = key.to_owned();
-        let s3_uri = self.build_s3_uri(bucket, &key);
-        let arn = self.build_arn(bucket, &key);
-        let object_url = self.build_object_url(bucket, &key);
+        let s3_uri = build_object_s3_uri(bucket, &key);
+        let arn = build_object_arn(bucket, &key);
+        let object_url = build_object_url(&self.region, bucket, &key);
         Ok(FileDetail {
             name,
             size_byte,
@@ -229,21 +244,6 @@ impl Client {
             arn,
             object_url,
         })
-    }
-
-    fn build_s3_uri(&self, bucket: &str, key: &str) -> String {
-        format!("s3://{}/{}", bucket, key)
-    }
-
-    fn build_arn(&self, bucket: &str, key: &str) -> String {
-        format!("arn:aws:s3:::{}/{}", bucket, key)
-    }
-
-    fn build_object_url(&self, bucket: &str, key: &str) -> String {
-        format!(
-            "https://{}.s3.{}.amazonaws.com/{}",
-            bucket, self.region, key
-        )
     }
 
     pub async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
@@ -340,7 +340,11 @@ impl Client {
     }
 }
 
-fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
+fn objects_output_to_dirs(
+    region: &str,
+    bucket: &str,
+    output: &ListObjectsV2Output,
+) -> Vec<ObjectItem> {
     let objects = output.common_prefixes();
     objects
         .iter()
@@ -348,12 +352,26 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let path = dir.prefix().unwrap();
             let paths = parse_path(path, true);
             let name = paths.last().unwrap().to_owned();
-            ObjectItem::Dir { name }
+
+            let key = path.to_owned();
+            let s3_uri = build_object_s3_uri(bucket, &key);
+            let object_url = build_object_url(region, bucket, &key);
+
+            ObjectItem::Dir {
+                name,
+                key,
+                s3_uri,
+                object_url,
+            }
         })
         .collect()
 }
 
-fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
+fn objects_output_to_files(
+    region: &str,
+    bucket: &str,
+    output: &ListObjectsV2Output,
+) -> Vec<ObjectItem> {
     let objects = output.contents();
     objects
         .iter()
@@ -363,10 +381,22 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let name = paths.last().unwrap().to_owned();
             let size_byte = file.size().unwrap() as usize;
             let last_modified = convert_datetime(file.last_modified().unwrap());
+
+            let key = file.key().unwrap().to_owned();
+            let s3_uri = build_object_s3_uri(bucket, &key);
+            let arn = build_object_arn(bucket, &key);
+            let object_url = build_object_url(region, bucket, &key);
+            let e_tag = file.e_tag().unwrap().trim_matches('"').to_string();
+
             ObjectItem::File {
                 name,
                 size_byte,
                 last_modified,
+                key,
+                s3_uri,
+                arn,
+                object_url,
+                e_tag,
             }
         })
         .collect()
@@ -385,4 +415,28 @@ fn parse_path(path: &str, dir: bool) -> Vec<String> {
 fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono::Local> {
     let nanos = dt.as_nanos();
     chrono::Local.timestamp_nanos(nanos as i64)
+}
+
+fn build_bucket_s3_uri(bucket: &str) -> String {
+    format!("s3://{}/", bucket)
+}
+
+fn build_bucket_arn(bucket: &str) -> String {
+    format!("arn:aws:s3:::{}", bucket)
+}
+
+fn build_bucket_url(region: &str, bucket: &str) -> String {
+    format!("https://{}.s3.{}.amazonaws.com/", bucket, region)
+}
+
+fn build_object_s3_uri(bucket: &str, key: &str) -> String {
+    format!("s3://{}/{}", bucket, key)
+}
+
+fn build_object_arn(bucket: &str, key: &str) -> String {
+    format!("arn:aws:s3:::{}/{}", bucket, key)
+}
+
+fn build_object_url(region: &str, bucket: &str, key: &str) -> String {
+    format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, key)
 }

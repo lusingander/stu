@@ -56,9 +56,8 @@ impl Tab {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 enum ViewState {
-    #[default]
     Default,
     SaveDialog(InputDialogState),
     CopyDetailDialog(CopyDetailDialogState),
@@ -165,7 +164,7 @@ impl ObjectDetailPage {
                     self.close_copy_detail_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
-                    let (name, value) = state.selected_name_and_value(&self.file_detail);
+                    let (name, value) = state.selected_name_and_value();
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
                 key_code_char!('j') => {
@@ -223,9 +222,9 @@ impl ObjectDetailPage {
             f.set_cursor_position((cursor_x, cursor_y));
         }
 
-        if let ViewState::CopyDetailDialog(state) = &self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::new(*state, &self.file_detail);
-            f.render_widget(copy_detail_dialog, area);
+        if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
+            let copy_detail_dialog = CopyDetailDialog::default();
+            f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
 
@@ -345,7 +344,9 @@ impl ObjectDetailPage {
     }
 
     fn open_copy_detail_dialog(&mut self) {
-        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::default());
+        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::object_detail(
+            self.file_detail.clone(),
+        ));
     }
 
     fn close_copy_detail_dialog(&mut self) {
@@ -1127,21 +1128,9 @@ mod tests {
 
     fn fixtures() -> (Vec<ObjectItem>, FileDetail, Vec<FileVersion>, ObjectKey) {
         let items = vec![
-            ObjectItem::File {
-                name: "file1".to_string(),
-                size_byte: 1024 + 10,
-                last_modified: parse_datetime("2024-01-02 13:01:02"),
-            },
-            ObjectItem::File {
-                name: "file2".to_string(),
-                size_byte: 1024 * 999,
-                last_modified: parse_datetime("2023-12-31 09:00:00"),
-            },
-            ObjectItem::File {
-                name: "file3".to_string(),
-                size_byte: 1024,
-                last_modified: parse_datetime("2024-01-03 12:59:59"),
-            },
+            object_file_item("file1", 1024 + 10, "2024-01-02 13:01:02"),
+            object_file_item("file2", 1024 * 999, "2023-12-31 09:00:00"),
+            object_file_item("file3", 1024, "2024-01-03 12:59:59"),
         ];
         let file_detail = FileDetail {
             name: "file1".to_string(),
@@ -1174,5 +1163,18 @@ mod tests {
             object_path: vec!["path".to_string(), "to".to_string(), "file1".to_string()],
         };
         (items, file_detail, file_versions, object_key)
+    }
+
+    fn object_file_item(name: &str, size_byte: usize, last_modified: &str) -> ObjectItem {
+        ObjectItem::File {
+            name: name.to_string(),
+            size_byte,
+            last_modified: parse_datetime(last_modified),
+            key: "".to_string(),
+            s3_uri: "".to_string(),
+            arn: "".to_string(),
+            object_url: "".to_string(),
+            e_tag: "".to_string(),
+        }
     }
 }

@@ -8,17 +8,28 @@ use chrono::{DateTime, Local};
 #[derive(Clone, Debug)]
 pub struct BucketItem {
     pub name: String,
+    pub s3_uri: String,
+    pub arn: String,
+    pub object_url: String,
 }
 
 #[derive(Clone, Debug)]
 pub enum ObjectItem {
     Dir {
         name: String,
+        key: String,
+        s3_uri: String,
+        object_url: String,
     },
     File {
         name: String,
         size_byte: usize,
         last_modified: DateTime<Local>,
+        key: String,
+        s3_uri: String,
+        arn: String,
+        object_url: String,
+        e_tag: String,
     },
 }
 

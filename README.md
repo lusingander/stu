@@ -147,15 +147,17 @@ image = false
 
 - Show list of buckets
   - filter/sort items
+- Copy resource name to clipboard
 
-<img src="./img/bucket-list.png" width=400> <img src="./img/bucket-list-filter.png" width=400> <img src="./img/bucket-list-sort.png" width=400>
+<img src="./img/bucket-list.png" width=400> <img src="./img/bucket-list-filter.png" width=400> <img src="./img/bucket-list-sort.png" width=400> <img src="./img/bucket-list-copy.png" width=400>
 
 ### Object list
 
 - Show list of objects in a hierarchy
   - filter/sort items
+- Copy resource name to clipboard
 
-<img src="./img/object-list-simple.png" width=400> <img src="./img/object-list-hierarchy.png" width=400> <img src="./img/object-list-many.png" width=400> <img src="./img/object-list-filter.png" width=400> <img src="./img/object-list-sort.png" width=400>
+<img src="./img/object-list-simple.png" width=400> <img src="./img/object-list-hierarchy.png" width=400> <img src="./img/object-list-many.png" width=400> <img src="./img/object-list-filter.png" width=400> <img src="./img/object-list-sort.png" width=400> <img src="./img/object-list-dir-copy.png" width=400> <img src="./img/object-list-file-copy.png" width=400>
 
 ### Object detail
 

@@ -16,8 +16,8 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     util::split_str,
     widget::{
-        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, InputDialog,
-        InputDialogState, ScrollList, ScrollListState,
+        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, CopyDetailDialog,
+        CopyDetailDialogState, InputDialog, InputDialogState, ScrollList, ScrollListState,
     },
 };
 
@@ -43,6 +43,7 @@ enum ViewState {
     Default,
     FilterDialog,
     SortDialog,
+    CopyDetailDialog(Box<CopyDetailDialogState>),
 }
 
 impl BucketListPage {
@@ -103,6 +104,9 @@ impl BucketListPage {
                 key_code_char!('o') => {
                     self.open_sort_dialog();
                 }
+                key_code_char!('r') => {
+                    self.open_copy_detail_dialog();
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -141,6 +145,25 @@ impl BucketListPage {
                 }
                 _ => {}
             },
+            ViewState::CopyDetailDialog(ref mut state) => match key {
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                    self.close_copy_detail_dialog();
+                }
+                key_code!(KeyCode::Enter) => {
+                    let (name, value) = state.selected_name_and_value();
+                    self.tx.send(AppEventType::CopyToClipboard(name, value));
+                }
+                key_code_char!('j') => {
+                    state.select_next();
+                }
+                key_code_char!('k') => {
+                    state.select_prev();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
         }
     }
 
@@ -172,6 +195,11 @@ impl BucketListPage {
             let sort_dialog = BucketListSortDialog::new(self.sort_dialog_state);
             f.render_widget(sort_dialog, area);
         }
+
+        if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
+            let copy_detail_dialog = CopyDetailDialog::default();
+            f.render_stateful_widget(copy_detail_dialog, area, state);
+        }
     }
 
     pub fn helps(&self) -> Vec<String> {
@@ -187,6 +215,7 @@ impl BucketListPage {
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
                         (&["o"], "Sort bucket list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
@@ -201,6 +230,7 @@ impl BucketListPage {
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
                         (&["o"], "Sort bucket list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
@@ -216,6 +246,12 @@ impl BucketListPage {
                 (&["Esc"], "Close sort dialog"),
                 (&["j/k"], "Select item"),
                 (&["Enter"], "Apply sort"),
+            ],
+            ViewState::CopyDetailDialog(_) => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc", "Backspace"], "Close copy dialog"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Copy selected value to clipboard"),
             ],
         };
         build_helps(helps)
@@ -257,6 +293,12 @@ impl BucketListPage {
                 (&["Esc"], "Close", 2),
                 (&["j/k"], "Select", 3),
                 (&["Enter"], "Sort", 1),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::CopyDetailDialog(_) => &[
+                (&["Esc"], "Close", 2),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Copy", 1),
                 (&["?"], "Help", 0),
             ],
         };
@@ -307,6 +349,16 @@ impl BucketListPage {
         self.sort_dialog_state.reset();
 
         self.sort_view_indices();
+    }
+
+    fn open_copy_detail_dialog(&mut self) {
+        let item = self.current_selected_item();
+        self.view_state =
+            ViewState::CopyDetailDialog(Box::new(CopyDetailDialogState::bucket_list(item.clone())));
+    }
+
+    fn close_copy_detail_dialog(&mut self) {
+        self.view_state = ViewState::Default;
     }
 
     fn apply_filter(&mut self) {
@@ -461,10 +513,8 @@ mod tests {
 
         terminal.draw(|f| {
             let items = ["bucket1", "bucket2", "bucket3"]
-                .iter()
-                .map(|name| BucketItem {
-                    name: name.to_string(),
-                })
+                .into_iter()
+                .map(bucket_item)
                 .collect();
             let mut page = BucketListPage::new(items, tx);
             let area = Rect::new(0, 0, 30, 10);
@@ -500,9 +550,7 @@ mod tests {
 
         terminal.draw(|f| {
             let items = (0..16)
-                .map(|i| BucketItem {
-                    name: format!("bucket{}", i + 1),
-                })
+                .map(|i| bucket_item(&format!("bucket{}", i + 1)))
                 .collect();
             let mut page = BucketListPage::new(items, tx);
             let area = Rect::new(0, 0, 30, 10);
@@ -538,10 +586,8 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
         let area = Rect::new(0, 0, 30, 10);
@@ -616,10 +662,8 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
         let area = Rect::new(0, 0, 30, 10);
@@ -662,10 +706,8 @@ mod tests {
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
 
@@ -698,10 +740,8 @@ mod tests {
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
 
@@ -731,10 +771,8 @@ mod tests {
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
 
@@ -774,5 +812,14 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn bucket_item(name: &str) -> BucketItem {
+        BucketItem {
+            name: name.to_string(),
+            s3_uri: "".to_string(),
+            arn: "".to_string(),
+            object_url: "".to_string(),
+        }
     }
 }

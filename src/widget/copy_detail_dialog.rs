@@ -4,16 +4,42 @@ use ratatui::{
     layout::Rect,
     style::{Color, Modifier, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
+    widgets::{
+        block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, WidgetRef,
+    },
 };
 
-use crate::{object::FileDetail, ui::common::calc_centered_dialog_rect, widget::Dialog};
+use crate::{
+    object::{BucketItem, FileDetail, ObjectItem},
+    ui::common::calc_centered_dialog_rect,
+    widget::Dialog,
+};
 
 const SELECTED_COLOR: Color = Color::Cyan;
 
 #[derive(Default)]
 #[zero_indexed_enum]
-enum ItemType {
+enum BucketListItemType {
+    #[default]
+    S3Uri,
+    Arn,
+    ObjectUrl,
+}
+
+impl BucketListItemType {
+    fn name_and_value(&self, bucket_item: &BucketItem) -> (String, String) {
+        let (name, value) = match self {
+            Self::S3Uri => ("S3 URI", &bucket_item.s3_uri),
+            Self::Arn => ("ARN", &bucket_item.arn),
+            Self::ObjectUrl => ("Object URL", &bucket_item.object_url),
+        };
+        (name.into(), value.into())
+    }
+}
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum ObjectListFileItemType {
     #[default]
     Key,
     S3Uri,
@@ -22,8 +48,70 @@ enum ItemType {
     Etag,
 }
 
-impl ItemType {
-    pub fn name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
+impl ObjectListFileItemType {
+    fn name_and_value(&self, object_item: &ObjectItem) -> (String, String) {
+        let (name, value) = match object_item {
+            ObjectItem::Dir { .. } => unreachable!(),
+            ObjectItem::File {
+                key,
+                s3_uri,
+                arn,
+                object_url,
+                e_tag,
+                ..
+            } => match self {
+                Self::Key => ("Key", key),
+                Self::S3Uri => ("S3 URI", s3_uri),
+                Self::Arn => ("ARN", arn),
+                Self::ObjectUrl => ("Object URL", object_url),
+                Self::Etag => ("ETag", e_tag),
+            },
+        };
+        (name.into(), value.into())
+    }
+}
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum ObjectListDirItemType {
+    #[default]
+    Key,
+    S3Uri,
+    ObjectUrl,
+}
+
+impl ObjectListDirItemType {
+    fn name_and_value(&self, object_item: &ObjectItem) -> (String, String) {
+        let (name, value) = match object_item {
+            ObjectItem::Dir {
+                key,
+                s3_uri,
+                object_url,
+                ..
+            } => match self {
+                Self::Key => ("Key", key),
+                Self::S3Uri => ("S3 URI", s3_uri),
+                Self::ObjectUrl => ("Object URL", object_url),
+            },
+            ObjectItem::File { .. } => unreachable!(),
+        };
+        (name.into(), value.into())
+    }
+}
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum ObjectDetailItemType {
+    #[default]
+    Key,
+    S3Uri,
+    Arn,
+    ObjectUrl,
+    Etag,
+}
+
+impl ObjectDetailItemType {
+    fn name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
         let (name, value) = match self {
             Self::Key => ("Key", &file_detail.key),
             Self::S3Uri => ("S3 URI", &file_detail.s3_uri),
@@ -35,48 +123,118 @@ impl ItemType {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
-pub struct CopyDetailDialogState {
-    selected: ItemType,
+#[derive(Debug)]
+pub enum CopyDetailDialogState {
+    BucketList(BucketListItemType, BucketItem),
+    ObjectDetail(ObjectDetailItemType, FileDetail),
+    ObjectListFile(ObjectListFileItemType, ObjectItem),
+    ObjectListDir(ObjectListDirItemType, ObjectItem),
+}
+
+impl CopyDetailDialogState {
+    pub fn bucket_list(bucket_item: BucketItem) -> Self {
+        Self::BucketList(BucketListItemType::default(), bucket_item)
+    }
+
+    pub fn object_list_file(object_item: ObjectItem) -> Self {
+        Self::ObjectListFile(ObjectListFileItemType::default(), object_item)
+    }
+
+    pub fn object_list_dir(object_item: ObjectItem) -> Self {
+        Self::ObjectListDir(ObjectListDirItemType::default(), object_item)
+    }
+
+    pub fn object_detail(file_detail: FileDetail) -> Self {
+        Self::ObjectDetail(ObjectDetailItemType::default(), file_detail)
+    }
 }
 
 impl CopyDetailDialogState {
     pub fn select_next(&mut self) {
-        self.selected = self.selected.next();
+        match self {
+            Self::BucketList(selected, _) => *selected = selected.next(),
+            Self::ObjectDetail(selected, _) => *selected = selected.next(),
+            Self::ObjectListFile(selected, _) => *selected = selected.next(),
+            Self::ObjectListDir(selected, _) => *selected = selected.next(),
+        }
     }
 
     pub fn select_prev(&mut self) {
-        self.selected = self.selected.prev();
+        match self {
+            Self::BucketList(selected, _) => *selected = selected.prev(),
+            Self::ObjectDetail(selected, _) => *selected = selected.prev(),
+            Self::ObjectListFile(selected, _) => *selected = selected.prev(),
+            Self::ObjectListDir(selected, _) => *selected = selected.prev(),
+        }
     }
 
-    pub fn selected_name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
-        self.selected.name_and_value(file_detail)
+    fn selected_value(&self) -> usize {
+        match self {
+            Self::BucketList(selected, _) => selected.val(),
+            Self::ObjectDetail(selected, _) => selected.val(),
+            Self::ObjectListFile(selected, _) => selected.val(),
+            Self::ObjectListDir(selected, _) => selected.val(),
+        }
+    }
+
+    pub fn selected_name_and_value(&self) -> (String, String) {
+        match self {
+            Self::BucketList(selected, bucket_item) => selected.name_and_value(bucket_item),
+            Self::ObjectDetail(selected, file_detail) => selected.name_and_value(file_detail),
+            Self::ObjectListFile(selected, object_item) => selected.name_and_value(object_item),
+            Self::ObjectListDir(selected, object_item) => selected.name_and_value(object_item),
+        }
+    }
+
+    fn name_and_value_vec(&self) -> Vec<(String, String)> {
+        match self {
+            Self::BucketList(_, bucket_item) => BucketListItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(bucket_item))
+                .collect(),
+            Self::ObjectDetail(_, file_detail) => ObjectDetailItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(file_detail))
+                .collect(),
+            Self::ObjectListFile(_, object_item) => ObjectListFileItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(object_item))
+                .collect(),
+            Self::ObjectListDir(_, object_item) => ObjectListDirItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(object_item))
+                .collect(),
+        }
+    }
+
+    fn item_type_len(&self) -> usize {
+        match self {
+            Self::BucketList(_, _) => BucketListItemType::len(),
+            Self::ObjectDetail(_, _) => ObjectDetailItemType::len(),
+            Self::ObjectListFile(_, _) => ObjectListFileItemType::len(),
+            Self::ObjectListDir(_, _) => ObjectListDirItemType::len(),
+        }
     }
 }
 
-pub struct CopyDetailDialog<'a> {
-    state: CopyDetailDialogState,
-    file_detail: &'a FileDetail,
-}
+#[derive(Debug, Default)]
+pub struct CopyDetailDialog {}
 
-impl<'a> CopyDetailDialog<'a> {
-    pub fn new(state: CopyDetailDialogState, file_detail: &'a FileDetail) -> Self {
-        Self { state, file_detail }
-    }
-}
+impl StatefulWidget for CopyDetailDialog {
+    type State = CopyDetailDialogState;
 
-impl Widget for CopyDetailDialog<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
-        let selected = self.state.selected.val();
-        let list_items: Vec<ListItem> = ItemType::vars_vec()
-            .iter()
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let selected = state.selected_value();
+        let list_items: Vec<ListItem> = state
+            .name_and_value_vec()
+            .into_iter()
             .enumerate()
-            .map(|(i, item_type)| build_list_item(i, selected, *item_type, self.file_detail))
+            .map(|(i, (name, value))| build_list_item(i, selected, (name, value)))
             .collect();
 
         let dialog_width = (area.width - 4).min(80);
-        let dialog_height = 2 * 5 /* list */ + 2 /* border */;
-        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        let dialog_height = state.item_type_len() * 2 + 2 /* border */;
+        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height as u16);
 
         let title = Title::from("Copy");
         let list = List::new(list_items).block(
@@ -90,13 +248,7 @@ impl Widget for CopyDetailDialog<'_> {
     }
 }
 
-fn build_list_item(
-    i: usize,
-    selected: usize,
-    item_type: ItemType,
-    file_detail: &FileDetail,
-) -> ListItem {
-    let (name, value) = item_type.name_and_value(file_detail);
+fn build_list_item<'a>(i: usize, selected: usize, (name, value): (String, String)) -> ListItem<'a> {
     let item = ListItem::new(vec![
         Line::from(format!("{}:", name).add_modifier(Modifier::BOLD)),
         Line::from(format!("  {}", value)),
@@ -118,12 +270,12 @@ mod tests {
 
     #[test]
     fn test_render_copy_detail_dialog() {
-        let state = CopyDetailDialogState::default();
         let file_detail = file_detail();
-        let copy_detail_dialog = CopyDetailDialog::new(state, &file_detail);
+        let mut state = CopyDetailDialogState::object_detail(file_detail);
+        let copy_detail_dialog = CopyDetailDialog::default();
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
-        copy_detail_dialog.render(buf.area, &mut buf);
+        copy_detail_dialog.render(buf.area, &mut buf, &mut state);
 
         #[rustfmt::skip]
         let mut expected = Buffer::with_lines([

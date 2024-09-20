@@ -19,8 +19,9 @@ use crate::{
     ui::common::{format_datetime, format_size_byte},
     util::split_str,
     widget::{
-        InputDialog, InputDialogState, ObjectListSortDialog, ObjectListSortDialogState,
-        ObjectListSortType, ScrollList, ScrollListState,
+        CopyDetailDialog, CopyDetailDialogState, InputDialog, InputDialogState,
+        ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType, ScrollList,
+        ScrollListState,
     },
 };
 
@@ -49,6 +50,7 @@ enum ViewState {
     Default,
     FilterDialog,
     SortDialog,
+    CopyDetailDialog(Box<CopyDetailDialogState>),
 }
 
 impl ObjectListPage {
@@ -122,6 +124,9 @@ impl ObjectListPage {
                 key_code_char!('o') => {
                     self.open_sort_dialog();
                 }
+                key_code_char!('r') => {
+                    self.open_copy_detail_dialog();
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -160,6 +165,25 @@ impl ObjectListPage {
                 }
                 _ => {}
             },
+            ViewState::CopyDetailDialog(ref mut state) => match key {
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                    self.close_copy_detail_dialog();
+                }
+                key_code!(KeyCode::Enter) => {
+                    let (name, value) = state.selected_name_and_value();
+                    self.tx.send(AppEventType::CopyToClipboard(name, value));
+                }
+                key_code_char!('j') => {
+                    state.select_next();
+                }
+                key_code_char!('k') => {
+                    state.select_prev();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
         }
     }
 
@@ -192,6 +216,11 @@ impl ObjectListPage {
             let sort_dialog = ObjectListSortDialog::new(self.sort_dialog_state);
             f.render_widget(sort_dialog, area);
         }
+
+        if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
+            let copy_detail_dialog = CopyDetailDialog::default();
+            f.render_stateful_widget(copy_detail_dialog, area, state);
+        }
     }
 
     pub fn helps(&self) -> Vec<String> {
@@ -209,6 +238,7 @@ impl ObjectListPage {
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
                         (&["o"], "Sort object list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
                         (&["x"], "Open management console in browser"),
                     ]
@@ -225,6 +255,7 @@ impl ObjectListPage {
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
                         (&["o"], "Sort object list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
                         (&["x"], "Open management console in browser"),
                     ]
@@ -240,6 +271,12 @@ impl ObjectListPage {
                 (&["Esc"], "Close sort dialog"),
                 (&["j/k"], "Select item"),
                 (&["Enter"], "Apply sort"),
+            ],
+            ViewState::CopyDetailDialog(_) => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc", "Backspace"], "Close copy dialog"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Copy selected value to clipboard"),
             ],
         };
         build_helps(helps)
@@ -283,6 +320,12 @@ impl ObjectListPage {
                 (&["Esc"], "Close", 2),
                 (&["j/k"], "Select", 3),
                 (&["Enter"], "Sort", 1),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::CopyDetailDialog(_) => &[
+                (&["Esc"], "Close", 2),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Copy", 1),
                 (&["?"], "Help", 0),
             ],
         };
@@ -333,6 +376,19 @@ impl ObjectListPage {
         self.sort_dialog_state.reset();
 
         self.sort_view_indices();
+    }
+
+    fn open_copy_detail_dialog(&mut self) {
+        let item = self.current_selected_item();
+        let dialog_state = match item {
+            ObjectItem::Dir { .. } => CopyDetailDialogState::object_list_dir(item.clone()),
+            ObjectItem::File { .. } => CopyDetailDialogState::object_list_file(item.clone()),
+        };
+        self.view_state = ViewState::CopyDetailDialog(Box::new(dialog_state));
+    }
+
+    fn close_copy_detail_dialog(&mut self) {
+        self.view_state = ViewState::Default;
     }
 
     fn apply_filter(&mut self) {
@@ -587,22 +643,10 @@ mod tests {
 
         terminal.draw(|f| {
             let items = vec![
-                ObjectItem::Dir {
-                    name: "dir1".to_string(),
-                },
-                ObjectItem::Dir {
-                    name: "dir2".to_string(),
-                },
-                ObjectItem::File {
-                    name: "file1".to_string(),
-                    size_byte: 1024 + 10,
-                    last_modified: parse_datetime("2024-01-02 13:01:02"),
-                },
-                ObjectItem::File {
-                    name: "file2".to_string(),
-                    size_byte: 1024 * 999,
-                    last_modified: parse_datetime("2023-12-31 09:00:00"),
-                },
+                object_dir_item("dir1"),
+                object_dir_item("dir2"),
+                object_file_item("file1", 1024 + 10, "2024-01-02 13:01:02"),
+                object_file_item("file2", 1024 * 999, "2023-12-31 09:00:00"),
             ];
             let object_key = ObjectKey {
                 bucket_name: "test-bucket".to_string(),
@@ -646,11 +690,7 @@ mod tests {
 
         terminal.draw(|f| {
             let items = (0..32)
-                .map(|i| ObjectItem::File {
-                    name: format!("file{}", i + 1),
-                    size_byte: 1024,
-                    last_modified: parse_datetime("2024-01-02 13:01:02"),
-                })
+                .map(|i| object_file_item(&format!("file{}", i + 1), 1024, "2024-01-02 13:01:02"))
                 .collect();
             let object_key = ObjectKey {
                 bucket_name: "test-bucket".to_string(),
@@ -692,22 +732,10 @@ mod tests {
 
         terminal.draw(|f| {
             let items = vec![
-                ObjectItem::Dir {
-                    name: "dir1".to_string(),
-                },
-                ObjectItem::Dir {
-                    name: "dir2".to_string(),
-                },
-                ObjectItem::File {
-                    name: "file1".to_string(),
-                    size_byte: 1024 + 10,
-                    last_modified: parse_datetime("2024-01-02 13:01:02"),
-                },
-                ObjectItem::File {
-                    name: "file2".to_string(),
-                    size_byte: 1024 * 999,
-                    last_modified: parse_datetime("2023-12-31 09:00:00"),
-                },
+                object_dir_item("dir1"),
+                object_dir_item("dir2"),
+                object_file_item("file1", 1024 + 10, "2024-01-02 13:01:02"),
+                object_file_item("file2", 1024 * 999, "2023-12-31 09:00:00"),
             ];
             let object_key = ObjectKey {
                 bucket_name: "test-bucket".to_string(),
@@ -750,23 +778,11 @@ mod tests {
     fn test_sort_items() {
         let (tx, _) = event::new();
         let items = vec![
-            ObjectItem::Dir { name: "rid".into() },
-            ObjectItem::File {
-                name: "file".into(),
-                size_byte: 1024,
-                last_modified: parse_datetime("2024-01-02 13:01:02"),
-            },
-            ObjectItem::Dir { name: "dir".into() },
-            ObjectItem::File {
-                name: "xyz".into(),
-                size_byte: 1024 * 1024,
-                last_modified: parse_datetime("2023-12-31 23:59:59"),
-            },
-            ObjectItem::File {
-                name: "abc".into(),
-                size_byte: 0,
-                last_modified: parse_datetime("-2000-01-01 00:00:00"),
-            },
+            object_dir_item("rid"),
+            object_file_item("file", 1024, "2024-01-02 13:01:02"),
+            object_dir_item("dir"),
+            object_file_item("xyz", 1024 * 1024, "2023-12-31 23:59:59"),
+            object_file_item("abc", 0, "-2000-01-01 00:00:00"),
         ];
         let object_key = ObjectKey {
             bucket_name: "test-bucket".to_string(),
@@ -813,5 +829,27 @@ mod tests {
             .unwrap()
             .and_local_timezone(Local)
             .unwrap()
+    }
+
+    fn object_dir_item(name: &str) -> ObjectItem {
+        ObjectItem::Dir {
+            name: name.to_string(),
+            key: "".to_string(),
+            s3_uri: "".to_string(),
+            object_url: "".to_string(),
+        }
+    }
+
+    fn object_file_item(name: &str, size_byte: usize, last_modified: &str) -> ObjectItem {
+        ObjectItem::File {
+            name: name.to_string(),
+            size_byte,
+            last_modified: parse_datetime(last_modified),
+            key: "".to_string(),
+            s3_uri: "".to_string(),
+            arn: "".to_string(),
+            object_url: "".to_string(),
+            e_tag: "".to_string(),
+        }
     }
 }
