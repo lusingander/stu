@@ -378,8 +378,11 @@ impl ObjectListPage {
 
     fn open_copy_detail_dialog(&mut self) {
         let item = self.current_selected_item();
-        self.view_state =
-            ViewState::CopyDetailDialog(Box::new(CopyDetailDialogState::object_list(item.clone())));
+        let dialog_state = match item {
+            ObjectItem::Dir { .. } => CopyDetailDialogState::object_list_dir(item.clone()),
+            ObjectItem::File { .. } => CopyDetailDialogState::object_list_file(item.clone()),
+        };
+        self.view_state = ViewState::CopyDetailDialog(Box::new(dialog_state));
     }
 
     fn close_copy_detail_dialog(&mut self) {

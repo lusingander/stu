@@ -19,7 +19,7 @@ const SELECTED_COLOR: Color = Color::Cyan;
 
 #[derive(Default)]
 #[zero_indexed_enum]
-enum ObjectListItemType {
+enum ObjectListFileItemType {
     #[default]
     Key,
     S3Uri,
@@ -28,10 +28,10 @@ enum ObjectListItemType {
     Etag,
 }
 
-impl ObjectListItemType {
+impl ObjectListFileItemType {
     fn name_and_value(&self, object_item: &ObjectItem) -> (String, String) {
         let (name, value) = match object_item {
-            ObjectItem::Dir { .. } => todo!(),
+            ObjectItem::Dir { .. } => unreachable!(),
             ObjectItem::File {
                 key,
                 s3_uri,
@@ -46,6 +46,34 @@ impl ObjectListItemType {
                 Self::ObjectUrl => ("Object URL", object_url),
                 Self::Etag => ("ETag", e_tag),
             },
+        };
+        (name.into(), value.into())
+    }
+}
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum ObjectListDirItemType {
+    #[default]
+    Key,
+    S3Uri,
+    ObjectUrl,
+}
+
+impl ObjectListDirItemType {
+    fn name_and_value(&self, object_item: &ObjectItem) -> (String, String) {
+        let (name, value) = match object_item {
+            ObjectItem::Dir {
+                key,
+                s3_uri,
+                object_url,
+                ..
+            } => match self {
+                Self::Key => ("Key", key),
+                Self::S3Uri => ("S3 URI", s3_uri),
+                Self::ObjectUrl => ("Object URL", object_url),
+            },
+            ObjectItem::File { .. } => unreachable!(),
         };
         (name.into(), value.into())
     }
@@ -76,14 +104,20 @@ impl ObjectDetailItemType {
 }
 
 #[derive(Debug)]
+#[allow(clippy::enum_variant_names)] // fixme: remove this
 pub enum CopyDetailDialogState {
     ObjectDetail(ObjectDetailItemType, FileDetail),
-    ObjectList(ObjectListItemType, ObjectItem),
+    ObjectListFile(ObjectListFileItemType, ObjectItem),
+    ObjectListDir(ObjectListDirItemType, ObjectItem),
 }
 
 impl CopyDetailDialogState {
-    pub fn object_list(object_item: ObjectItem) -> Self {
-        Self::ObjectList(ObjectListItemType::default(), object_item)
+    pub fn object_list_file(object_item: ObjectItem) -> Self {
+        Self::ObjectListFile(ObjectListFileItemType::default(), object_item)
+    }
+
+    pub fn object_list_dir(object_item: ObjectItem) -> Self {
+        Self::ObjectListDir(ObjectListDirItemType::default(), object_item)
     }
 
     pub fn object_detail(file_detail: FileDetail) -> Self {
@@ -93,28 +127,32 @@ impl CopyDetailDialogState {
     pub fn select_next(&mut self) {
         match self {
             Self::ObjectDetail(selected, _) => *selected = selected.next(),
-            Self::ObjectList(selected, _) => *selected = selected.next(),
+            Self::ObjectListFile(selected, _) => *selected = selected.next(),
+            Self::ObjectListDir(selected, _) => *selected = selected.next(),
         }
     }
 
     pub fn select_prev(&mut self) {
         match self {
             Self::ObjectDetail(selected, _) => *selected = selected.prev(),
-            Self::ObjectList(selected, _) => *selected = selected.prev(),
+            Self::ObjectListFile(selected, _) => *selected = selected.prev(),
+            Self::ObjectListDir(selected, _) => *selected = selected.prev(),
         }
     }
 
     fn selected_value(&self) -> usize {
         match self {
             Self::ObjectDetail(selected, _) => selected.val(),
-            Self::ObjectList(selected, _) => selected.val(),
+            Self::ObjectListFile(selected, _) => selected.val(),
+            Self::ObjectListDir(selected, _) => selected.val(),
         }
     }
 
     pub fn selected_name_and_value(&self) -> (String, String) {
         match self {
             Self::ObjectDetail(selected, file_detail) => selected.name_and_value(file_detail),
-            Self::ObjectList(selected, object_item) => selected.name_and_value(object_item),
+            Self::ObjectListFile(selected, object_item) => selected.name_and_value(object_item),
+            Self::ObjectListDir(selected, object_item) => selected.name_and_value(object_item),
         }
     }
 
@@ -124,7 +162,11 @@ impl CopyDetailDialogState {
                 .into_iter()
                 .map(|t| t.name_and_value(file_detail))
                 .collect(),
-            Self::ObjectList(_, object_item) => ObjectListItemType::vars_array()
+            Self::ObjectListFile(_, object_item) => ObjectListFileItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(object_item))
+                .collect(),
+            Self::ObjectListDir(_, object_item) => ObjectListDirItemType::vars_array()
                 .into_iter()
                 .map(|t| t.name_and_value(object_item))
                 .collect(),
@@ -134,7 +176,8 @@ impl CopyDetailDialogState {
     fn item_type_len(&self) -> usize {
         match self {
             Self::ObjectDetail(_, _) => ObjectDetailItemType::len(),
-            Self::ObjectList(_, _) => ObjectListItemType::len(),
+            Self::ObjectListFile(_, _) => ObjectListFileItemType::len(),
+            Self::ObjectListDir(_, _) => ObjectListDirItemType::len(),
         }
     }
 }
