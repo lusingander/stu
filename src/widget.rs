@@ -12,7 +12,7 @@ mod sort_list_dialog;
 mod text_preview;
 
 pub use bar::Bar;
-pub use copy_detail_dialog::{CopyDetailDialog, ObjectDetailCopyDetailDialogState};
+pub use copy_detail_dialog::{CopyDetailDialog, CopyDetailDialogState};
 pub use dialog::Dialog;
 pub use divider::Divider;
 pub use header::Header;

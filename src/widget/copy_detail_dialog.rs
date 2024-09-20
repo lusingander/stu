@@ -37,34 +37,52 @@ impl ObjectDetailItemType {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ObjectDetailCopyDetailDialogState {
-    selected: ObjectDetailItemType,
-    file_detail: FileDetail,
+#[derive(Debug)]
+pub enum CopyDetailDialogState {
+    ObjectDetail(ObjectDetailItemType, FileDetail),
 }
 
-impl ObjectDetailCopyDetailDialogState {
-    pub fn new(file_detail: FileDetail) -> Self {
-        Self {
-            selected: ObjectDetailItemType::default(),
-            file_detail,
-        }
+impl CopyDetailDialogState {
+    pub fn object_detail(file_detail: FileDetail) -> Self {
+        Self::ObjectDetail(ObjectDetailItemType::default(), file_detail)
     }
 
     pub fn select_next(&mut self) {
-        self.selected = self.selected.next();
+        match self {
+            Self::ObjectDetail(selected, _) => *selected = selected.next(),
+        }
     }
 
     pub fn select_prev(&mut self) {
-        self.selected = self.selected.prev();
+        match self {
+            Self::ObjectDetail(selected, _) => *selected = selected.prev(),
+        }
     }
 
-    pub fn name_and_value_from(&self, item_type: ObjectDetailItemType) -> (String, String) {
-        item_type.name_and_value(&self.file_detail)
+    fn selected_value(&self) -> usize {
+        match self {
+            Self::ObjectDetail(selected, _) => selected.val(),
+        }
     }
 
     pub fn selected_name_and_value(&self) -> (String, String) {
-        self.name_and_value_from(self.selected)
+        match self {
+            Self::ObjectDetail(selected, file_detail) => selected.name_and_value(file_detail),
+        }
+    }
+
+    fn name_and_value_iter(&self) -> impl Iterator<Item = (String, String)> + '_ {
+        match self {
+            Self::ObjectDetail(_, file_detail) => ObjectDetailItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(file_detail)),
+        }
+    }
+
+    fn item_type_len(&self) -> usize {
+        match self {
+            Self::ObjectDetail(_, _) => ObjectDetailItemType::len(),
+        }
     }
 }
 
@@ -72,20 +90,18 @@ impl ObjectDetailCopyDetailDialogState {
 pub struct CopyDetailDialog {}
 
 impl StatefulWidget for CopyDetailDialog {
-    type State = ObjectDetailCopyDetailDialogState;
+    type State = CopyDetailDialogState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let selected = state.selected.val();
-        let list_items: Vec<ListItem> = ObjectDetailItemType::vars_vec()
-            .iter()
+        let selected = state.selected_value();
+        let list_items: Vec<ListItem> = state
+            .name_and_value_iter()
             .enumerate()
-            .map(|(i, item_type)| {
-                build_list_item(i, selected, state.name_and_value_from(*item_type))
-            })
+            .map(|(i, (name, value))| build_list_item(i, selected, (name, value)))
             .collect();
 
         let dialog_width = (area.width - 4).min(80);
-        let dialog_height = ObjectDetailItemType::len() * 2 + 2 /* border */;
+        let dialog_height = state.item_type_len() * 2 + 2 /* border */;
         let area = calc_centered_dialog_rect(area, dialog_width, dialog_height as u16);
 
         let title = Title::from("Copy");
@@ -123,7 +139,7 @@ mod tests {
     #[test]
     fn test_render_copy_detail_dialog() {
         let file_detail = file_detail();
-        let mut state = ObjectDetailCopyDetailDialogState::new(file_detail);
+        let mut state = CopyDetailDialogState::object_detail(file_detail);
         let copy_detail_dialog = CopyDetailDialog::default();
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));

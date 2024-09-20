@@ -16,9 +16,8 @@ use crate::{
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
-        Bar, CopyDetailDialog, Divider, InputDialog, InputDialogState,
-        ObjectDetailCopyDetailDialogState, ScrollLines, ScrollLinesOptions, ScrollLinesState,
-        ScrollList, ScrollListState,
+        Bar, CopyDetailDialog, CopyDetailDialogState, Divider, InputDialog, InputDialogState,
+        ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
     },
 };
 
@@ -61,7 +60,7 @@ impl Tab {
 enum ViewState {
     Default,
     SaveDialog(InputDialogState),
-    CopyDetailDialog(ObjectDetailCopyDetailDialogState),
+    CopyDetailDialog(CopyDetailDialogState),
 }
 
 impl ObjectDetailPage {
@@ -345,7 +344,7 @@ impl ObjectDetailPage {
     }
 
     fn open_copy_detail_dialog(&mut self) {
-        self.view_state = ViewState::CopyDetailDialog(ObjectDetailCopyDetailDialogState::new(
+        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::object_detail(
             self.file_detail.clone(),
         ));
     }
