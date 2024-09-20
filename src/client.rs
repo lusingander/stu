@@ -214,9 +214,9 @@ impl Client {
             .map_or("", |s| s.as_str())
             .to_string();
         let key = key.to_owned();
-        let s3_uri = self.build_s3_uri(bucket, &key);
-        let arn = self.build_arn(bucket, &key);
-        let object_url = self.build_object_url(bucket, &key);
+        let s3_uri = build_s3_uri(bucket, &key);
+        let arn = build_arn(bucket, &key);
+        let object_url = build_object_url(&self.region, bucket, &key);
         Ok(FileDetail {
             name,
             size_byte,
@@ -229,21 +229,6 @@ impl Client {
             arn,
             object_url,
         })
-    }
-
-    fn build_s3_uri(&self, bucket: &str, key: &str) -> String {
-        format!("s3://{}/{}", bucket, key)
-    }
-
-    fn build_arn(&self, bucket: &str, key: &str) -> String {
-        format!("arn:aws:s3:::{}/{}", bucket, key)
-    }
-
-    fn build_object_url(&self, bucket: &str, key: &str) -> String {
-        format!(
-            "https://{}.s3.{}.amazonaws.com/{}",
-            bucket, self.region, key
-        )
     }
 
     pub async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
@@ -385,4 +370,16 @@ fn parse_path(path: &str, dir: bool) -> Vec<String> {
 fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono::Local> {
     let nanos = dt.as_nanos();
     chrono::Local.timestamp_nanos(nanos as i64)
+}
+
+fn build_s3_uri(bucket: &str, key: &str) -> String {
+    format!("s3://{}/{}", bucket, key)
+}
+
+fn build_arn(bucket: &str, key: &str) -> String {
+    format!("arn:aws:s3:::{}/{}", bucket, key)
+}
+
+fn build_object_url(region: &str, bucket: &str, key: &str) -> String {
+    format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, key)
 }
