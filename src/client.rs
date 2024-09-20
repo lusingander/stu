@@ -175,7 +175,7 @@ impl Client {
             let dirs = objects_output_to_dirs(&output);
             dirs_vec.push(dirs);
 
-            let files = objects_output_to_files(&output);
+            let files = objects_output_to_files(&self.region, bucket, &output);
             files_vec.push(files);
 
             token = output.next_continuation_token().map(String::from);
@@ -338,7 +338,11 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
         .collect()
 }
 
-fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
+fn objects_output_to_files(
+    region: &str,
+    bucket: &str,
+    output: &ListObjectsV2Output,
+) -> Vec<ObjectItem> {
     let objects = output.contents();
     objects
         .iter()
@@ -348,10 +352,22 @@ fn objects_output_to_files(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let name = paths.last().unwrap().to_owned();
             let size_byte = file.size().unwrap() as usize;
             let last_modified = convert_datetime(file.last_modified().unwrap());
+
+            let key = file.key().unwrap().to_owned();
+            let s3_uri = build_s3_uri(bucket, &key);
+            let arn = build_arn(bucket, &key);
+            let object_url = build_object_url(region, bucket, &key);
+            let e_tag = file.e_tag().unwrap().trim_matches('"').to_string();
+
             ObjectItem::File {
                 name,
                 size_byte,
                 last_modified,
+                key,
+                s3_uri,
+                arn,
+                object_url,
+                e_tag,
             }
         })
         .collect()

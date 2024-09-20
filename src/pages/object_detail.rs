@@ -1170,6 +1170,11 @@ mod tests {
             name: name.to_string(),
             size_byte,
             last_modified: parse_datetime(last_modified),
+            key: "".to_string(),
+            s3_uri: "".to_string(),
+            arn: "".to_string(),
+            object_url: "".to_string(),
+            e_tag: "".to_string(),
         }
     }
 }

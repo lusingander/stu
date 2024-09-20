@@ -19,6 +19,11 @@ pub enum ObjectItem {
         name: String,
         size_byte: usize,
         last_modified: DateTime<Local>,
+        key: String,
+        s3_uri: String,
+        arn: String,
+        object_url: String,
+        e_tag: String,
     },
 }
 
