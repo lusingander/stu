@@ -829,6 +829,9 @@ mod tests {
     fn object_dir_item(name: &str) -> ObjectItem {
         ObjectItem::Dir {
             name: name.to_string(),
+            key: "".to_string(),
+            s3_uri: "".to_string(),
+            object_url: "".to_string(),
         }
     }
 

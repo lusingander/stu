@@ -172,7 +172,7 @@ impl Client {
                 .await;
             let output = result.map_err(|e| AppError::new("Failed to load objects", e))?;
 
-            let dirs = objects_output_to_dirs(&output);
+            let dirs = objects_output_to_dirs(&self.region, bucket, &output);
             dirs_vec.push(dirs);
 
             let files = objects_output_to_files(&self.region, bucket, &output);
@@ -325,7 +325,11 @@ impl Client {
     }
 }
 
-fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
+fn objects_output_to_dirs(
+    region: &str,
+    bucket: &str,
+    output: &ListObjectsV2Output,
+) -> Vec<ObjectItem> {
     let objects = output.common_prefixes();
     objects
         .iter()
@@ -333,7 +337,17 @@ fn objects_output_to_dirs(output: &ListObjectsV2Output) -> Vec<ObjectItem> {
             let path = dir.prefix().unwrap();
             let paths = parse_path(path, true);
             let name = paths.last().unwrap().to_owned();
-            ObjectItem::Dir { name }
+
+            let key = path.to_owned();
+            let s3_uri = build_s3_uri(bucket, &key);
+            let object_url = build_object_url(region, bucket, &key);
+
+            ObjectItem::Dir {
+                name,
+                key,
+                s3_uri,
+                object_url,
+            }
         })
         .collect()
 }

@@ -14,6 +14,9 @@ pub struct BucketItem {
 pub enum ObjectItem {
     Dir {
         name: String,
+        key: String,
+        s3_uri: String,
+        object_url: String,
     },
     File {
         name: String,
