@@ -9,9 +9,47 @@ use ratatui::{
     },
 };
 
-use crate::{object::FileDetail, ui::common::calc_centered_dialog_rect, widget::Dialog};
+use crate::{
+    object::{FileDetail, ObjectItem},
+    ui::common::calc_centered_dialog_rect,
+    widget::Dialog,
+};
 
 const SELECTED_COLOR: Color = Color::Cyan;
+
+#[derive(Default)]
+#[zero_indexed_enum]
+enum ObjectListItemType {
+    #[default]
+    Key,
+    S3Uri,
+    Arn,
+    ObjectUrl,
+    Etag,
+}
+
+impl ObjectListItemType {
+    fn name_and_value(&self, object_item: &ObjectItem) -> (String, String) {
+        let (name, value) = match object_item {
+            ObjectItem::Dir { .. } => todo!(),
+            ObjectItem::File {
+                key,
+                s3_uri,
+                arn,
+                object_url,
+                e_tag,
+                ..
+            } => match self {
+                Self::Key => ("Key", key),
+                Self::S3Uri => ("S3 URI", s3_uri),
+                Self::Arn => ("ARN", arn),
+                Self::ObjectUrl => ("Object URL", object_url),
+                Self::Etag => ("ETag", e_tag),
+            },
+        };
+        (name.into(), value.into())
+    }
+}
 
 #[derive(Default)]
 #[zero_indexed_enum]
@@ -40,9 +78,14 @@ impl ObjectDetailItemType {
 #[derive(Debug)]
 pub enum CopyDetailDialogState {
     ObjectDetail(ObjectDetailItemType, FileDetail),
+    ObjectList(ObjectListItemType, ObjectItem),
 }
 
 impl CopyDetailDialogState {
+    pub fn object_list(object_item: ObjectItem) -> Self {
+        Self::ObjectList(ObjectListItemType::default(), object_item)
+    }
+
     pub fn object_detail(file_detail: FileDetail) -> Self {
         Self::ObjectDetail(ObjectDetailItemType::default(), file_detail)
     }
@@ -50,38 +93,48 @@ impl CopyDetailDialogState {
     pub fn select_next(&mut self) {
         match self {
             Self::ObjectDetail(selected, _) => *selected = selected.next(),
+            Self::ObjectList(selected, _) => *selected = selected.next(),
         }
     }
 
     pub fn select_prev(&mut self) {
         match self {
             Self::ObjectDetail(selected, _) => *selected = selected.prev(),
+            Self::ObjectList(selected, _) => *selected = selected.prev(),
         }
     }
 
     fn selected_value(&self) -> usize {
         match self {
             Self::ObjectDetail(selected, _) => selected.val(),
+            Self::ObjectList(selected, _) => selected.val(),
         }
     }
 
     pub fn selected_name_and_value(&self) -> (String, String) {
         match self {
             Self::ObjectDetail(selected, file_detail) => selected.name_and_value(file_detail),
+            Self::ObjectList(selected, object_item) => selected.name_and_value(object_item),
         }
     }
 
-    fn name_and_value_iter(&self) -> impl Iterator<Item = (String, String)> + '_ {
+    fn name_and_value_vec(&self) -> Vec<(String, String)> {
         match self {
             Self::ObjectDetail(_, file_detail) => ObjectDetailItemType::vars_array()
                 .into_iter()
-                .map(|t| t.name_and_value(file_detail)),
+                .map(|t| t.name_and_value(file_detail))
+                .collect(),
+            Self::ObjectList(_, object_item) => ObjectListItemType::vars_array()
+                .into_iter()
+                .map(|t| t.name_and_value(object_item))
+                .collect(),
         }
     }
 
     fn item_type_len(&self) -> usize {
         match self {
             Self::ObjectDetail(_, _) => ObjectDetailItemType::len(),
+            Self::ObjectList(_, _) => ObjectListItemType::len(),
         }
     }
 }
@@ -95,7 +148,8 @@ impl StatefulWidget for CopyDetailDialog {
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let selected = state.selected_value();
         let list_items: Vec<ListItem> = state
-            .name_and_value_iter()
+            .name_and_value_vec()
+            .into_iter()
             .enumerate()
             .map(|(i, (name, value))| build_list_item(i, selected, (name, value)))
             .collect();
