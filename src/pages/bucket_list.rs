@@ -215,6 +215,7 @@ impl BucketListPage {
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
                         (&["o"], "Sort bucket list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]
@@ -229,6 +230,7 @@ impl BucketListPage {
                         (&["Enter"], "Open bucket"),
                         (&["/"], "Filter bucket list"),
                         (&["o"], "Sort bucket list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh bucket list"),
                         (&["x"], "Open management console in browser"),
                     ]

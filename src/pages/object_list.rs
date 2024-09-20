@@ -238,6 +238,7 @@ impl ObjectListPage {
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
                         (&["o"], "Sort object list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
                         (&["x"], "Open management console in browser"),
                     ]
@@ -254,6 +255,7 @@ impl ObjectListPage {
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
                         (&["o"], "Sort object list"),
+                        (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
                         (&["x"], "Open management console in browser"),
                     ]
