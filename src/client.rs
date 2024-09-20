@@ -82,7 +82,15 @@ impl Client {
             .iter()
             .map(|bucket| {
                 let bucket_name = bucket.name().unwrap().to_string();
-                BucketItem { name: bucket_name }
+                let s3_uri = build_bucket_s3_uri(&bucket_name);
+                let arn = build_bucket_arn(&bucket_name);
+                let object_url = build_bucket_url(&self.region, &bucket_name);
+                BucketItem {
+                    name: bucket_name,
+                    s3_uri,
+                    arn,
+                    object_url,
+                }
             })
             .collect();
 
@@ -149,8 +157,15 @@ impl Client {
             )));
         }
 
+        let s3_uri = build_bucket_s3_uri(name);
+        let arn = build_bucket_arn(name);
+        let object_url = build_bucket_url(&self.region, name);
+
         let bucket = BucketItem {
             name: name.to_string(),
+            s3_uri,
+            arn,
+            object_url,
         };
         Ok(bucket)
     }
@@ -400,6 +415,18 @@ fn parse_path(path: &str, dir: bool) -> Vec<String> {
 fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono::Local> {
     let nanos = dt.as_nanos();
     chrono::Local.timestamp_nanos(nanos as i64)
+}
+
+fn build_bucket_s3_uri(bucket: &str) -> String {
+    format!("s3://{}/", bucket)
+}
+
+fn build_bucket_arn(bucket: &str) -> String {
+    format!("arn:aws:s3:::{}", bucket)
+}
+
+fn build_bucket_url(region: &str, bucket: &str) -> String {
+    format!("https://{}.s3.{}.amazonaws.com/", bucket, region)
 }
 
 fn build_object_s3_uri(bucket: &str, key: &str) -> String {

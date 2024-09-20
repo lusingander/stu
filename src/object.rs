@@ -8,6 +8,9 @@ use chrono::{DateTime, Local};
 #[derive(Clone, Debug)]
 pub struct BucketItem {
     pub name: String,
+    pub s3_uri: String,
+    pub arn: String,
+    pub object_url: String,
 }
 
 #[derive(Clone, Debug)]

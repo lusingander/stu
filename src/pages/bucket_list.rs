@@ -461,10 +461,8 @@ mod tests {
 
         terminal.draw(|f| {
             let items = ["bucket1", "bucket2", "bucket3"]
-                .iter()
-                .map(|name| BucketItem {
-                    name: name.to_string(),
-                })
+                .into_iter()
+                .map(bucket_item)
                 .collect();
             let mut page = BucketListPage::new(items, tx);
             let area = Rect::new(0, 0, 30, 10);
@@ -500,9 +498,7 @@ mod tests {
 
         terminal.draw(|f| {
             let items = (0..16)
-                .map(|i| BucketItem {
-                    name: format!("bucket{}", i + 1),
-                })
+                .map(|i| bucket_item(&format!("bucket{}", i + 1)))
                 .collect();
             let mut page = BucketListPage::new(items, tx);
             let area = Rect::new(0, 0, 30, 10);
@@ -538,10 +534,8 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
         let area = Rect::new(0, 0, 30, 10);
@@ -616,10 +610,8 @@ mod tests {
         let mut terminal = setup_terminal()?;
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
         let area = Rect::new(0, 0, 30, 10);
@@ -662,10 +654,8 @@ mod tests {
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
 
@@ -698,10 +688,8 @@ mod tests {
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
 
@@ -731,10 +719,8 @@ mod tests {
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
-            .iter()
-            .map(|name| BucketItem {
-                name: name.to_string(),
-            })
+            .into_iter()
+            .map(bucket_item)
             .collect();
         let mut page = BucketListPage::new(items, tx);
 
@@ -774,5 +760,14 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn bucket_item(name: &str) -> BucketItem {
+        BucketItem {
+            name: name.to_string(),
+            s3_uri: "".to_string(),
+            arn: "".to_string(),
+            object_url: "".to_string(),
+        }
     }
 }
