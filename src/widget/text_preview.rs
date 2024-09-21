@@ -46,7 +46,7 @@ impl TextPreviewState {
                     if let Some(msg) = msg {
                         warn_msg = Some(msg);
                     }
-                    s.split('\n').map(|s| Line::raw(s.to_string())).collect()
+                    s.lines().map(|s| Line::raw(s.to_string())).collect()
                 }
             };
 
