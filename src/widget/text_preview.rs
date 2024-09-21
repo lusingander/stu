@@ -46,7 +46,7 @@ impl TextPreviewState {
                     if let Some(msg) = msg {
                         warn_msg = Some(msg);
                     }
-                    s.split('\n').map(|s| Line::raw(s.to_string())).collect()
+                    s.lines().map(drop_control_chars).map(Line::raw).collect()
                 }
             };
 
@@ -66,6 +66,10 @@ fn to_preview_string(bytes: &[u8]) -> String {
     } else {
         s
     }
+}
+
+fn drop_control_chars(s: &str) -> String {
+    s.chars().filter(|c| !c.is_control()).collect()
 }
 
 fn build_highlighted_lines(
