@@ -57,68 +57,11 @@ func smallTextObject() []byte {
 	return []byte("test")
 }
 
+//go:embed fixture/medium-text.txt
+var embedMediumText []byte
+
 func mediumTextObject() []byte {
-	return []byte(`Lasciatemi morire,
-Lasciatemi morire;
-E che volete voi che mi conforte
-In così dura sorte,
-In così gran martire?
-Lasciatemi morire.
-
-O Teseo, o Teseo mio,
-sì, che mio ti vo dir che mio pur sei
-benche t'involi, hai crudo! a gl'occhi miei.
-Volgiti, Teseo mio, volgiti, Teseo, o Dio,
-volgiti in dietro a rimirar colei
-che lasciato per te la patria e'l regno
-e'n quest' arene ancora
-cibo di fere dispietate e crude,
-lasciera l'ossa ignude.
-O Teseo, o Teseo mio,
-se tu sapessi, oh Dio!
-se tu sapessi, ohime!
-come s'affanna
-la povera Ariana,
-forse, forse pentito
-rivolgeresti ancor la prora lito.
-Ma con l'aure serene
-tu te ne vai felice
-ed io qui piango:
-A te prepara Attene
-liete pompe superbe,
-ed io rimango
-cibo di fere in solitarie arene.
-Tu l'un el'altro tuo vecchio parente
-Stringerai lieto ed io
-più non vedrovi o madre o padre mio.
-
-Dove è la fede
-che tanto mi giuravi?
-Così ne'l alta sede
-tu mi ripon de gl'avi?
-Son queste le corone
-onde m'adorni il crine?
-Questi li scetri sono?
-Queste le gemme e gl'ori?
-Lasciarmi in abandono
-a fere che mi stracci e mi divori?
-Ah Teseo, ah Teseo mio,
-lascierai tu morire in van piangendo, in van gridando aita
-la misera Ariana ch'a te fidossi e ti die' gloria e vita?
-
-Ahi, che non pur risponde!
-Ahi, che piu d'aspe è sord' a miei lamenti!
-O nembi, o turbi, o venti
-sommergetelo voi dentro a quell' onde!
-Correte, orchi e balene,
-e de le membra immonde
-empiete le voragini profonde!
-Che parlo, ahi, che vaneggio?
-Misera, ohime! che chieggio?
-O Teseo, o Teseo mio,
-non son quell' io
-che i feri detti sciolse, parlò l'affanno mio, parlò il dolore,
-parlò la lingua, sì, ma non gia il core.`)
+	return embedMediumText
 }
 
 func largeTextObject() []byte {
@@ -126,67 +69,18 @@ func largeTextObject() []byte {
 	return []byte(text)
 }
 
+//go:embed fixture/small-html.html
+var embedSmallHtml []byte
+
 func smallHtmlObject() []byte {
-	html := `<!DOCTYPE html>
-<html lang="en">
-  <head>
-	<meta charset="utf-8">
-	<title>title</title>
-	<link rel="stylesheet" href="style.css">
-	<script src="script.js"></script>
-  </head>
-  <body>hello</body>
-</html>`
-	return []byte(html)
+	return embedSmallHtml
 }
+
+//go:embed fixture/rust-code.rs
+var embedRustCode []byte
 
 func rustCodeObject() []byte {
-	code := `use chrono::{DateTime, Local};
-
-pub const APP_NAME: &str = "STU";
-
-#[derive(Clone, Debug)]
-pub struct BucketItem {
-    pub name: String,
-}
-
-#[derive(Clone, Debug)]
-pub enum ObjectItem {
-    Dir {
-        name: String,
-    },
-    File {
-        name: String,
-        size_byte: usize,
-        last_modified: DateTime<Local>,
-    },
-}
-
-impl ObjectItem {
-    pub fn last_modified(&self) -> Option<DateTime<Local>> {
-        match self {
-            ObjectItem::Dir { .. } => None,
-            ObjectItem::File { last_modified, .. } => Some(*last_modified),
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;	
-	
-    #[test]
-    fn test_object_item() {
-        let obj = ObjectItem::File {
-            name: "file.txt".to_string(),
-            size_byte: 100,
-            last_modified: Local::now(),
-        };
-        assert_eq!(obj.last_modified().is_some(), true);
-    }
-}
-`
-	return []byte(code)
+	return embedRustCode
 }
 
 func imagePngObject() []byte {
@@ -196,10 +90,10 @@ func imagePngObject() []byte {
 }
 
 //go:embed fixture/icon.jpg
-var iconImage []byte
+var embedIconImage []byte
 
 func imageJpgObject() []byte {
-	return iconImage
+	return embedIconImage
 }
 
 func dummyImage() image.Image {
