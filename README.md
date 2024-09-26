@@ -6,7 +6,7 @@ S3 Terminal UI
 
 ## About
 
-STU is the TUI explorer application for Amazon S3 (AWS S3) written in Rust using [ratatui](https://github.com/ratatui-org/ratatui).
+STU is the TUI explorer application for Amazon S3 (AWS S3) written in Rust using [ratatui](https://github.com/ratatui/ratatui).
 
 <img src="./img/demo.gif">
 
