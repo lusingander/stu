@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{block::BlockExt, Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
-use crate::util::digits;
+use crate::{color::ColorTheme, util::digits};
 
 #[derive(Debug, Default)]
 enum ScrollEvent {
@@ -107,11 +107,26 @@ impl ScrollLinesState {
     }
 }
 
+#[derive(Debug, Default)]
+struct ScrollLinesColor {
+    block: Color,
+    line_number: Color,
+}
+
+impl ScrollLinesColor {
+    fn new(theme: &ColorTheme) -> Self {
+        Self {
+            block: theme.text,
+            line_number: theme.line_number,
+        }
+    }
+}
+
 // fixme: bad implementation for highlighting and displaying the number of lines :(
 #[derive(Debug, Default)]
 pub struct ScrollLines {
     block: Option<Block<'static>>,
-    line_number_color: Color,
+    color: ScrollLinesColor,
 }
 
 impl ScrollLines {
@@ -120,8 +135,8 @@ impl ScrollLines {
         self
     }
 
-    pub fn line_number_color(mut self, color: Color) -> Self {
-        self.line_number_color = color;
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = ScrollLinesColor::new(theme);
         self
     }
 }
@@ -152,11 +167,11 @@ impl StatefulWidget for ScrollLines {
             state,
             text_area_width,
             show_lines_count,
-            self.line_number_color,
+            self.color.line_number,
         );
-        let lines_paragraph = build_lines_paragraph(state, show_lines_count);
+        let lines_paragraph = build_lines_paragraph(state, show_lines_count, self.color.block);
 
-        self.block.render(area, buf);
+        self.block.map(|b| b.fg(self.color.block)).render(area, buf);
         line_numbers_paragraph.render(chunks[0], buf);
         lines_paragraph.render(chunks[1], buf);
     }
@@ -199,7 +214,11 @@ fn build_line_numbers_paragraph(
     )
 }
 
-fn build_lines_paragraph(state: &ScrollLinesState, show_lines_count: usize) -> Paragraph {
+fn build_lines_paragraph(
+    state: &ScrollLinesState,
+    show_lines_count: usize,
+    block_color: Color,
+) -> Paragraph {
     let lines_content: Vec<Line> = state
         .lines
         .iter()
@@ -211,7 +230,8 @@ fn build_lines_paragraph(state: &ScrollLinesState, show_lines_count: usize) -> P
     let lines_paragraph = Paragraph::new(lines_content).block(
         Block::default()
             .borders(Borders::NONE)
-            .padding(Padding::horizontal(1)),
+            .padding(Padding::horizontal(1))
+            .fg(block_color),
     );
 
     if state.options.wrap {
@@ -715,16 +735,18 @@ mod tests {
     }
 
     fn render_scroll_lines(state: &mut ScrollLinesState) -> Buffer {
+        let theme = ColorTheme::default();
         let scroll_lines = ScrollLines::default()
             .block(Block::bordered().title("TITLE"))
-            .line_number_color(Color::DarkGray);
+            .theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
         scroll_lines.render(buf.area, &mut buf, state);
         buf
     }
 
     fn render_scroll_lines_no_block(state: &mut ScrollLinesState) -> Buffer {
-        let scroll_lines = ScrollLines::default().line_number_color(Color::DarkGray);
+        let theme = ColorTheme::default();
+        let scroll_lines = ScrollLines::default().theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
         scroll_lines.render(buf.area, &mut buf, state);
         buf

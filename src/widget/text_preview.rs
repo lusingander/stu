@@ -3,7 +3,6 @@ use once_cell::sync::Lazy;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Color,
     text::Line,
     widgets::{Block, StatefulWidget},
 };
@@ -15,6 +14,7 @@ use syntect::{
 };
 
 use crate::{
+    color::ColorTheme,
     object::{FileDetail, RawObject},
     ui::common::format_version,
     util::extension_from_file_name,
@@ -105,19 +105,19 @@ pub struct TextPreview<'a> {
     file_name: &'a str,
     file_version_id: Option<&'a str>,
 
-    line_number_color: Color,
+    theme: &'a ColorTheme,
 }
 
 impl<'a> TextPreview<'a> {
     pub fn new(
         file_name: &'a str,
         file_version_id: Option<&'a str>,
-        line_number_color: Color,
+        theme: &'a ColorTheme,
     ) -> Self {
         Self {
             file_name,
             file_version_id,
-            line_number_color,
+            theme,
         }
     }
 }
@@ -137,7 +137,7 @@ impl StatefulWidget for TextPreview<'_> {
         };
         ScrollLines::default()
             .block(Block::bordered().title(title))
-            .line_number_color(self.line_number_color)
+            .theme(self.theme)
             .render(area, buf, &mut state.scroll_lines_state);
     }
 }
