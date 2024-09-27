@@ -12,9 +12,19 @@ pub struct Divider {
     color: Color,
 }
 
+impl Default for Divider {
+    fn default() -> Self {
+        Self {
+            char: "─",
+            color: Color::default(),
+        }
+    }
+}
+
 impl Divider {
-    pub fn new(color: Color) -> Self {
-        Self { char: "─", color }
+    pub fn color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
     }
 }
 

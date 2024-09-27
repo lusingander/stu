@@ -679,7 +679,7 @@ impl StatefulWidget for VersionTab {
             .split(area);
             area = chunks[2];
 
-            let divider = Divider::new(self.divider_color);
+            let divider = Divider::default().color(self.divider_color);
             divider.render(chunks[1], buf);
 
             let chunks =

@@ -64,7 +64,7 @@ impl HelpPage {
             APP_HOMEPAGE,
             self.theme.link,
         );
-        let divider = Divider::new(self.theme.divider);
+        let divider = Divider::default().color(self.theme.divider);
         let help = Help::new(&self.helps);
 
         f.render_widget(block, area);
