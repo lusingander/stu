@@ -4,13 +4,14 @@ use chrono::{DateTime, Local};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     text::Line,
     widgets::ListItem,
     Frame,
 };
 
 use crate::{
+    color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
@@ -25,10 +26,6 @@ use crate::{
     },
 };
 
-const SELECTED_COLOR: Color = Color::Cyan;
-const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
-const HIGHLIGHTED_ITEM_TEXT_COLOR: Color = Color::Red;
-
 #[derive(Debug)]
 pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
@@ -42,6 +39,7 @@ pub struct ObjectListPage {
     sort_dialog_state: ObjectListSortDialogState,
 
     ui_config: UiConfig,
+    theme: ColorTheme,
     tx: Sender,
 }
 
@@ -58,6 +56,7 @@ impl ObjectListPage {
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
         ui_config: UiConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         let items_len = object_items.len();
@@ -71,6 +70,7 @@ impl ObjectListPage {
             filter_input_state: InputDialogState::default(),
             sort_dialog_state: ObjectListSortDialogState::default(),
             ui_config,
+            theme,
             tx,
         }
     }
@@ -199,6 +199,7 @@ impl ObjectListPage {
             selected,
             area,
             &self.ui_config,
+            &self.theme,
         );
 
         let list = ScrollList::new(list_items);
@@ -514,6 +515,7 @@ impl ObjectListPage {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_list_items<'a>(
     current_items: &'a [ObjectItem],
     view_indices: &'a [usize],
@@ -522,6 +524,7 @@ fn build_list_items<'a>(
     selected: usize,
     area: Rect,
     ui_config: &UiConfig,
+    theme: &ColorTheme,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
     view_indices
@@ -530,7 +533,16 @@ fn build_list_items<'a>(
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, item)| build_list_item(item, idx + offset == selected, filter, area, ui_config))
+        .map(|(idx, item)| {
+            build_list_item(
+                item,
+                idx + offset == selected,
+                filter,
+                area,
+                ui_config,
+                theme,
+            )
+        })
         .collect()
 }
 
@@ -540,9 +552,10 @@ fn build_list_item<'a>(
     filter: &'a str,
     area: Rect,
     ui_config: &UiConfig,
+    theme: &ColorTheme,
 ) -> ListItem<'a> {
     let line = match item {
-        ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter),
+        ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter, theme),
         ObjectItem::File {
             name,
             size_byte,
@@ -555,20 +568,19 @@ fn build_list_item<'a>(
             filter,
             area.width,
             ui_config,
+            theme,
         ),
     };
 
     let style = if selected {
-        Style::default()
-            .bg(SELECTED_COLOR)
-            .fg(SELECTED_ITEM_TEXT_COLOR)
+        Style::default().bg(theme.selected).fg(theme.selected_text)
     } else {
         Style::default()
     };
     ListItem::new(line).style(style)
 }
 
-fn build_object_dir_line<'a>(name: &'a str, filter: &'a str) -> Line<'a> {
+fn build_object_dir_line<'a>(name: &'a str, filter: &'a str, theme: &ColorTheme) -> Line<'a> {
     if filter.is_empty() {
         Line::from(vec![" ".into(), name.bold(), "/".bold(), " ".into()])
     } else {
@@ -576,7 +588,7 @@ fn build_object_dir_line<'a>(name: &'a str, filter: &'a str) -> Line<'a> {
         Line::from(vec![
             " ".into(),
             before.bold(),
-            highlighted.fg(HIGHLIGHTED_ITEM_TEXT_COLOR).bold(),
+            highlighted.fg(theme.match_text).bold(),
             after.bold(),
             "/".bold(),
             " ".into(),
@@ -591,6 +603,7 @@ fn build_object_file_line<'a>(
     filter: &'a str,
     width: u16,
     ui_config: &UiConfig,
+    theme: &ColorTheme,
 ) -> Line<'a> {
     let size = format_size_byte(size_byte);
     let date = format_datetime(last_modified, &ui_config.object_list.date_format);
@@ -617,7 +630,7 @@ fn build_object_file_line<'a>(
         Line::from(vec![
             " ".into(),
             before.into(),
-            highlighted.fg(HIGHLIGHTED_ITEM_TEXT_COLOR),
+            highlighted.fg(theme.match_text),
             after.into(),
             "    ".into(),
             date.into(),
@@ -634,10 +647,16 @@ mod tests {
 
     use super::*;
     use chrono::NaiveDateTime;
-    use ratatui::{backend::TestBackend, buffer::Buffer, style::Modifier, Terminal};
+    use ratatui::{
+        backend::TestBackend,
+        buffer::Buffer,
+        style::{Color, Modifier},
+        Terminal,
+    };
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -653,7 +672,7 @@ mod tests {
                 object_path: vec!["path".to_string(), "to".to_string()],
             };
             let ui_config = UiConfig::default();
-            let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
+            let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -685,6 +704,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -697,7 +717,7 @@ mod tests {
                 object_path: vec!["path".to_string(), "to".to_string()],
             };
             let ui_config = UiConfig::default();
-            let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
+            let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -727,6 +747,7 @@ mod tests {
 
     #[test]
     fn test_render_with_config() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -744,7 +765,7 @@ mod tests {
             let mut ui_config = UiConfig::default();
             ui_config.object_list.date_format = "%Y/%m/%d".to_string();
             ui_config.object_list.date_width = 10;
-            let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
+            let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -776,6 +797,7 @@ mod tests {
 
     #[test]
     fn test_sort_items() {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let items = vec![
             object_dir_item("rid"),
@@ -789,7 +811,7 @@ mod tests {
             object_path: vec!["path".to_string(), "to".to_string()],
         };
         let ui_config = UiConfig::default();
-        let mut page = ObjectListPage::new(items, object_key, ui_config, tx);
+        let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('o')));
         page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc

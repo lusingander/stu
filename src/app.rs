@@ -151,6 +151,7 @@ impl App {
                 current_object_items,
                 object_key,
                 self.config.ui.clone(),
+                self.theme.clone(),
                 self.tx.clone(),
             );
             self.page_stack.push(object_list_page);
@@ -200,6 +201,7 @@ impl App {
                         current_object_items,
                         object_key,
                         self.config.ui.clone(),
+                        self.theme.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(new_object_list_page);
@@ -267,6 +269,7 @@ impl App {
                     items,
                     current_object_key,
                     self.config.ui.clone(),
+                    self.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_list_page);

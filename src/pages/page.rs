@@ -34,12 +34,14 @@ impl Page {
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
         ui_config: UiConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         Self::ObjectList(Box::new(ObjectListPage::new(
             object_items,
             object_key,
             ui_config,
+            theme,
             tx,
         )))
     }
