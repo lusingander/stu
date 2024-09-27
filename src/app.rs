@@ -535,6 +535,7 @@ impl App {
                     path,
                     current_object_key,
                     self.config.preview.clone(),
+                    self.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_preview_page);

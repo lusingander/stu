@@ -3,6 +3,7 @@ use once_cell::sync::Lazy;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
+    style::Color,
     text::Line,
     widgets::{Block, StatefulWidget},
 };
@@ -103,13 +104,20 @@ fn build_highlighted_lines(
 pub struct TextPreview<'a> {
     file_name: &'a str,
     file_version_id: Option<&'a str>,
+
+    line_number_color: Color,
 }
 
 impl<'a> TextPreview<'a> {
-    pub fn new(file_name: &'a str, file_version_id: Option<&'a str>) -> Self {
+    pub fn new(
+        file_name: &'a str,
+        file_version_id: Option<&'a str>,
+        line_number_color: Color,
+    ) -> Self {
         Self {
             file_name,
             file_version_id,
+            line_number_color,
         }
     }
 }
@@ -129,6 +137,7 @@ impl StatefulWidget for TextPreview<'_> {
         };
         ScrollLines::default()
             .block(Block::bordered().title(title))
+            .line_number_color(self.line_number_color)
             .render(area, buf, &mut state.scroll_lines_state);
     }
 }

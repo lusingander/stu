@@ -5,6 +5,7 @@ use ratatui::{
 };
 
 use crate::{
+    color::ColorTheme,
     config::PreviewConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
@@ -28,6 +29,7 @@ pub struct ObjectPreviewPage {
 
     view_state: ViewState,
 
+    theme: ColorTheme,
     tx: Sender,
 }
 
@@ -45,6 +47,7 @@ enum ViewState {
 }
 
 impl ObjectPreviewPage {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         file_detail: FileDetail,
         file_version_id: Option<String>,
@@ -52,6 +55,7 @@ impl ObjectPreviewPage {
         path: String,
         object_key: ObjectKey,
         preview_config: PreviewConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         let preview_type = if infer::is_image(&object.bytes) {
@@ -77,6 +81,7 @@ impl ObjectPreviewPage {
             path,
             object_key,
             view_state: ViewState::Default,
+            theme,
             tx,
         }
     }
@@ -176,6 +181,7 @@ impl ObjectPreviewPage {
                 let preview = TextPreview::new(
                     self.file_detail.name.as_str(),
                     self.file_version_id.as_deref(),
+                    self.theme.line_number,
                 );
                 f.render_stateful_widget(preview, area, state);
             }
@@ -322,6 +328,7 @@ mod tests {
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -347,6 +354,7 @@ mod tests {
                 file_path,
                 object_key,
                 preview_config,
+                theme,
                 tx,
             );
             let area = Rect::new(0, 0, 30, 10);
@@ -377,6 +385,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -397,6 +406,7 @@ mod tests {
                 file_path,
                 object_key,
                 preview_config,
+                theme,
                 tx,
             );
             let area = Rect::new(0, 0, 30, 10);
@@ -427,6 +437,7 @@ mod tests {
 
     #[test]
     fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -452,6 +463,7 @@ mod tests {
                 file_path,
                 object_key,
                 preview_config,
+                theme,
                 tx,
             );
             page.open_save_dialog();

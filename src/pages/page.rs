@@ -66,6 +66,7 @@ impl Page {
         )))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn of_object_preview(
         file_detail: FileDetail,
         file_version_id: Option<String>,
@@ -73,6 +74,7 @@ impl Page {
         path: String,
         object_key: ObjectKey,
         preview_config: PreviewConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
@@ -82,6 +84,7 @@ impl Page {
             path,
             object_key,
             preview_config,
+            theme,
             tx,
         )))
     }
