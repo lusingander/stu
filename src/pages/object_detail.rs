@@ -214,7 +214,7 @@ impl ObjectDetailPage {
                 f.render_stateful_widget(detail, chunks[1], state);
             }
             Tab::Version(ref mut state) => {
-                let version = VersionTab::new(self.theme.selected);
+                let version = VersionTab::new(self.theme.selected, self.theme.divider);
                 f.render_stateful_widget(version, chunks[1], state);
             }
         }
@@ -639,11 +639,15 @@ impl VersionTabState {
 #[derive(Debug)]
 struct VersionTab {
     selected_color: Color,
+    divider_color: Color,
 }
 
 impl VersionTab {
-    fn new(selected_color: Color) -> Self {
-        Self { selected_color }
+    fn new(selected_color: Color, divider_color: Color) -> Self {
+        Self {
+            selected_color,
+            divider_color,
+        }
     }
 }
 
@@ -675,7 +679,7 @@ impl StatefulWidget for VersionTab {
             .split(area);
             area = chunks[2];
 
-            let divider = Divider::default();
+            let divider = Divider::new(self.divider_color);
             divider.render(chunks[1], buf);
 
             let chunks =
