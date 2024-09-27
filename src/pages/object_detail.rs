@@ -195,7 +195,7 @@ impl ObjectDetailPage {
             &self.theme,
         );
 
-        let list = ScrollList::new(list_items);
+        let list = ScrollList::new(list_items).theme(&self.theme);
         f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
         let block = Block::bordered();

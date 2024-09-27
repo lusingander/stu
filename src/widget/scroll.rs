@@ -1,10 +1,11 @@
-use ratatui::{buffer::Buffer, layout::Rect, widgets::Widget};
+use ratatui::{buffer::Buffer, layout::Rect, style::Color, widgets::Widget};
 
 // implemented independently to calculate based on offset position
 pub struct ScrollBar {
     lines_len: usize,
     offset: usize,
     bar_char: char,
+    color: Color,
 }
 
 impl ScrollBar {
@@ -13,7 +14,13 @@ impl ScrollBar {
             lines_len,
             offset,
             bar_char: '│', // use '┃' or '║' instead...?
+            color: Color::default(),
         }
+    }
+
+    pub fn color(mut self, color: Color) -> ScrollBar {
+        self.color = color;
+        self
     }
 }
 
@@ -31,7 +38,7 @@ impl ScrollBar {
         let x = area.x;
         for h in 0..scrollbar_height {
             let y = scrollbar_top + h;
-            buf[(x, y)].set_char(self.bar_char);
+            buf[(x, y)].set_char(self.bar_char).set_fg(self.color);
         }
     }
 

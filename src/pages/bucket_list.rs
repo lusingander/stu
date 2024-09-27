@@ -181,7 +181,7 @@ impl BucketListPage {
             area,
         );
 
-        let list = ScrollList::new(list_items);
+        let list = ScrollList::new(list_items).theme(&self.theme);
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
