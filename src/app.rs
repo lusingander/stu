@@ -3,6 +3,7 @@ use tokio::spawn;
 
 use crate::{
     client::Client,
+    color::ColorTheme,
     config::Config,
     error::{AppError, Result},
     event::{
@@ -57,17 +58,19 @@ pub struct App {
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
     config: Config,
+    pub theme: ColorTheme,
     tx: Sender,
 }
 
 impl App {
-    pub fn new(config: Config, tx: Sender, width: usize, height: usize) -> App {
+    pub fn new(config: Config, theme: ColorTheme, tx: Sender, width: usize, height: usize) -> App {
         App {
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(tx.clone()),
             client: None,
             config,
+            theme,
             tx,
         }
     }

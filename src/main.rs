@@ -1,6 +1,7 @@
 mod app;
 mod cache;
 mod client;
+mod color;
 mod config;
 mod constant;
 mod error;
@@ -24,6 +25,7 @@ use tracing_subscriber::fmt::time::ChronoLocal;
 
 use crate::app::App;
 use crate::client::Client;
+use crate::color::ColorTheme;
 use crate::config::Config;
 
 /// STU - S3 Terminal UI
@@ -55,11 +57,12 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = Config::load()?;
+    let theme = ColorTheme::default();
 
     initialize_debug_log(&args, &config)?;
 
     let mut terminal = ratatui::try_init()?;
-    let ret = run(&mut terminal, args, config).await;
+    let ret = run(&mut terminal, args, config, theme).await;
 
     ratatui::try_restore()?;
 
@@ -70,12 +73,13 @@ async fn run<B: Backend>(
     terminal: &mut Terminal<B>,
     args: Args,
     config: Config,
+    theme: ColorTheme,
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
     let default_region_fallback = config.default_region.clone();
 
-    let mut app = App::new(config, tx.clone(), width, height);
+    let mut app = App::new(config, theme, tx.clone(), width, height);
 
     spawn(async move {
         let client = Client::new(
