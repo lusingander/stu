@@ -414,7 +414,7 @@ impl App {
             Page::ObjectDetail(page) => page.helps(),
             Page::ObjectPreview(page) => page.helps(),
         };
-        let help_page = Page::of_help(helps, self.tx.clone());
+        let help_page = Page::of_help(helps, self.theme.clone(), self.tx.clone());
         self.page_stack.push(help_page);
     }
 

@@ -86,8 +86,8 @@ impl Page {
         )))
     }
 
-    pub fn of_help(helps: Vec<String>, tx: Sender) -> Self {
-        Self::Help(Box::new(HelpPage::new(helps, tx)))
+    pub fn of_help(helps: Vec<String>, theme: ColorTheme, tx: Sender) -> Self {
+        Self::Help(Box::new(HelpPage::new(helps, theme, tx)))
     }
 
     pub fn as_bucket_list(&self) -> &BucketListPage {
