@@ -228,7 +228,7 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default();
+            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -691,7 +691,7 @@ impl StatefulWidget for VersionTab {
                     .padding(Padding::left(1)),
             );
             if i == state.selected {
-                let bar = Bar::new(self.selected_color);
+                let bar = Bar::default().color(self.selected_color);
                 bar.render(chunks[0], buf);
             }
             version_paragraph.render(chunks[1], buf);
