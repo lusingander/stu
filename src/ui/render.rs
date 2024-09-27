@@ -105,7 +105,7 @@ fn build_header(app: &App) -> Header {
             _ => unreachable!(),
         })
         .collect();
-    Header::new(breadcrumb)
+    Header::new(breadcrumb).theme(&app.theme)
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
