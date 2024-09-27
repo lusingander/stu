@@ -1,4 +1,5 @@
 use crate::{
+    color::ColorTheme,
     config::{PreviewConfig, UiConfig},
     event::Sender,
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
@@ -25,8 +26,8 @@ impl Page {
         Self::Initializing(Box::new(InitializingPage::new(tx)))
     }
 
-    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, tx: Sender) -> Self {
-        Self::BucketList(Box::new(BucketListPage::new(bucket_items, tx)))
+    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, theme: ColorTheme, tx: Sender) -> Self {
+        Self::BucketList(Box::new(BucketListPage::new(bucket_items, theme, tx)))
     }
 
     pub fn of_object_list(

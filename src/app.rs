@@ -98,8 +98,11 @@ impl App {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_bucket_items(buckets);
 
-                let bucket_list_page =
-                    Page::of_bucket_list(self.app_objects.get_bucket_items(), self.tx.clone());
+                let bucket_list_page = Page::of_bucket_list(
+                    self.app_objects.get_bucket_items(),
+                    self.theme.clone(),
+                    self.tx.clone(),
+                );
                 self.page_stack.pop(); // remove initializing page
                 self.page_stack.push(bucket_list_page);
             }
