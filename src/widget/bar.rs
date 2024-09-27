@@ -11,19 +11,9 @@ pub struct Bar {
     color: Color,
 }
 
-impl Default for Bar {
-    fn default() -> Self {
-        Self {
-            char: "┃",
-            color: Color::Reset,
-        }
-    }
-}
-
 impl Bar {
-    pub fn color(mut self, color: Color) -> Self {
-        self.color = color;
-        self
+    pub fn new(color: Color) -> Self {
+        Self { char: "┃", color }
     }
 }
 

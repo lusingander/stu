@@ -52,6 +52,7 @@ impl Page {
         object_key: ObjectKey,
         list_state: ScrollListState,
         ui_config: UiConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
@@ -60,6 +61,7 @@ impl Page {
             object_key,
             list_state,
             ui_config,
+            theme,
             tx,
         )))
     }

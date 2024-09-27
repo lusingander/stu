@@ -185,6 +185,7 @@ impl App {
                         current_object_key,
                         object_list_page.list_state(),
                         self.config.ui.clone(),
+                        self.theme.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
@@ -338,6 +339,7 @@ impl App {
                     map_key,
                     object_page.list_state(),
                     self.config.ui.clone(),
+                    self.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);
