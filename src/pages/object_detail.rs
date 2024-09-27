@@ -220,7 +220,10 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
-            let save_dialog = InputDialog::default().title("Save As").max_width(40);
+            let save_dialog = InputDialog::default()
+                .title("Save As")
+                .max_width(40)
+                .theme(&self.theme);
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();

@@ -206,7 +206,10 @@ impl ObjectListPage {
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
-            let filter_dialog = InputDialog::default().title("Filter").max_width(30);
+            let filter_dialog = InputDialog::default()
+                .title("Filter")
+                .max_width(30)
+                .theme(&self.theme);
             f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
