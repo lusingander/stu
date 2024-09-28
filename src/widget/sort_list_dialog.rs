@@ -179,7 +179,7 @@ impl ListSortDialogColor {
             bg: theme.bg,
             block: theme.fg,
             text: theme.fg,
-            selected: theme.selected,
+            selected: theme.dialog_selected,
         }
     }
 }

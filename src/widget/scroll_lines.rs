@@ -117,7 +117,7 @@ impl ScrollLinesColor {
     fn new(theme: &ColorTheme) -> Self {
         Self {
             block: theme.fg,
-            line_number: theme.line_number,
+            line_number: theme.preview_line_number,
         }
     }
 }

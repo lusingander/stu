@@ -126,7 +126,7 @@ fn build_short_help(app: &App, width: u16) -> Paragraph {
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
     let help = build_short_help_string(&helps, max_width);
-    Paragraph::new(help.fg(app.theme.short_help)).block(Block::default().padding(pad))
+    Paragraph::new(help.fg(app.theme.status_help)).block(Block::default().padding(pad))
 }
 
 fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> String {
@@ -136,23 +136,23 @@ fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> Strin
 }
 
 fn build_info_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    Paragraph::new(msg.fg(theme.info_status))
+    Paragraph::new(msg.fg(theme.status_info))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn build_success_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.success_status))
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.status_success))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn build_warn_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.warn_status))
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.status_warn))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
 fn build_error_status<'a>(err: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
     let err = format!("ERROR: {}", err);
-    Paragraph::new(err.add_modifier(Modifier::BOLD).fg(theme.error_status))
+    Paragraph::new(err.add_modifier(Modifier::BOLD).fg(theme.status_error))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 

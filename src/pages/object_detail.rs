@@ -450,7 +450,11 @@ fn build_list_item_from_object_item<'a>(
         }
     };
     if idx + offset == selected {
-        ListItem::new(content).style(Style::default().bg(theme.disabled).fg(theme.selected_text))
+        ListItem::new(content).style(
+            Style::default()
+                .bg(theme.list_selected_inactive_bg)
+                .fg(theme.list_selected_inactive_fg),
+        )
     } else {
         ListItem::new(content)
     }
@@ -474,7 +478,7 @@ fn build_tabs(tab: &Tab, theme: &ColorTheme) -> Tabs<'static> {
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
-                .fg(theme.selected),
+                .fg(theme.detail_selected),
         )
         .block(Block::default().borders(Borders::BOTTOM))
 }
@@ -656,7 +660,7 @@ struct VersionTabColor {
 impl VersionTabColor {
     fn new(theme: &ColorTheme) -> Self {
         Self {
-            selected: theme.selected,
+            selected: theme.detail_selected,
             divider: theme.divider,
         }
     }

@@ -576,7 +576,9 @@ fn build_list_item<'a>(
     };
 
     let style = if selected {
-        Style::default().bg(theme.selected).fg(theme.selected_text)
+        Style::default()
+            .bg(theme.list_selected_bg)
+            .fg(theme.list_selected_fg)
     } else {
         Style::default()
     };
@@ -591,7 +593,7 @@ fn build_object_dir_line<'a>(name: &'a str, filter: &'a str, theme: &ColorTheme)
         Line::from(vec![
             " ".into(),
             before.bold(),
-            highlighted.fg(theme.match_text).bold(),
+            highlighted.fg(theme.list_filter_match).bold(),
             after.bold(),
             "/".bold(),
             " ".into(),
@@ -633,7 +635,7 @@ fn build_object_file_line<'a>(
         Line::from(vec![
             " ".into(),
             before.into(),
-            highlighted.fg(theme.match_text),
+            highlighted.fg(theme.list_filter_match),
             after.into(),
             "    ".into(),
             date.into(),

@@ -4,18 +4,27 @@ use ratatui::style::Color;
 pub struct ColorTheme {
     pub bg: Color,
     pub fg: Color,
-    pub selected: Color,
-    pub selected_text: Color,
-    pub disabled: Color,
-    pub match_text: Color,
-    pub link: Color,
-    pub short_help: Color,
-    pub info_status: Color,
-    pub success_status: Color,
-    pub warn_status: Color,
-    pub error_status: Color,
-    pub line_number: Color,
+
     pub divider: Color,
+    pub link: Color,
+
+    pub list_selected_bg: Color,
+    pub list_selected_fg: Color,
+    pub list_selected_inactive_bg: Color,
+    pub list_selected_inactive_fg: Color,
+    pub list_filter_match: Color,
+
+    pub detail_selected: Color,
+
+    pub dialog_selected: Color,
+
+    pub preview_line_number: Color,
+
+    pub status_help: Color,
+    pub status_info: Color,
+    pub status_success: Color,
+    pub status_warn: Color,
+    pub status_error: Color,
 }
 
 impl Default for ColorTheme {
@@ -23,18 +32,27 @@ impl Default for ColorTheme {
         Self {
             bg: Color::Reset,
             fg: Color::Reset,
-            selected: Color::Cyan,
-            selected_text: Color::Black,
-            disabled: Color::DarkGray,
-            match_text: Color::Red,
-            link: Color::Blue,
-            short_help: Color::DarkGray,
-            info_status: Color::Blue,
-            success_status: Color::Green,
-            warn_status: Color::Yellow,
-            error_status: Color::Red,
-            line_number: Color::DarkGray,
+
             divider: Color::DarkGray,
+            link: Color::Blue,
+
+            list_selected_bg: Color::Cyan,
+            list_selected_fg: Color::Black,
+            list_selected_inactive_bg: Color::DarkGray,
+            list_selected_inactive_fg: Color::Black,
+            list_filter_match: Color::Red,
+
+            detail_selected: Color::Cyan,
+
+            dialog_selected: Color::Cyan,
+
+            preview_line_number: Color::DarkGray,
+
+            status_help: Color::DarkGray,
+            status_info: Color::Blue,
+            status_success: Color::Green,
+            status_warn: Color::Yellow,
+            status_error: Color::Red,
         }
     }
 }

@@ -493,14 +493,16 @@ fn build_list_item<'a>(
         Line::from(vec![
             " ".into(),
             before.into(),
-            highlighted.fg(theme.match_text),
+            highlighted.fg(theme.list_filter_match),
             after.into(),
             " ".into(),
         ])
     };
 
     let style = if selected {
-        Style::default().bg(theme.selected).fg(theme.selected_text)
+        Style::default()
+            .bg(theme.list_selected_bg)
+            .fg(theme.list_selected_fg)
     } else {
         Style::default()
     };
