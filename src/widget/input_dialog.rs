@@ -36,6 +36,7 @@ impl InputDialogState {
 
 #[derive(Debug, Default)]
 struct InputDialogColor {
+    bg: Color,
     block: Color,
     text: Color,
 }
@@ -43,6 +44,7 @@ struct InputDialogColor {
 impl InputDialogColor {
     fn new(theme: &ColorTheme) -> InputDialogColor {
         InputDialogColor {
+            bg: theme.bg,
             block: theme.text,
             text: theme.text,
         }
@@ -94,10 +96,11 @@ impl StatefulWidget for InputDialog {
             Block::bordered()
                 .border_type(BorderType::Rounded)
                 .title(title)
+                .bg(self.color.bg)
                 .fg(self.color.block)
                 .padding(Padding::horizontal(1)),
         );
-        let dialog = Dialog::new(Box::new(dialog_content));
+        let dialog = Dialog::new(Box::new(dialog_content), self.color.bg);
         dialog.render_ref(dialog_area, buf);
 
         // update cursor position

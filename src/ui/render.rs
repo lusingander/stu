@@ -23,6 +23,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
     ])
     .split(f.area());
 
+    render_background(f, f.area(), app);
     render_header(f, chunks[0], app);
     render_content(f, chunks[1], app);
     render_footer(f, chunks[2], app);
@@ -34,6 +35,11 @@ fn header_height(app: &App) -> u16 {
         Page::Help(_) => 0, // Hide header
         _ => 3,
     }
+}
+
+fn render_background(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default().bg(app.theme.bg);
+    f.render_widget(block, area);
 }
 
 fn render_header(f: &mut Frame, area: Rect, app: &App) {
@@ -84,7 +90,7 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
         let loading = build_loading_dialog("Loading...", &app.theme);
         let area = calc_centered_dialog_rect(f.area(), 30, 5);
-        let dialog = Dialog::new(Box::new(loading));
+        let dialog = Dialog::new(Box::new(loading), app.theme.bg);
         f.render_widget_ref(dialog, area);
     }
 }

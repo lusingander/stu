@@ -167,6 +167,7 @@ impl Widget for ObjectListSortDialog {
 
 #[derive(Debug, Default)]
 struct ListSortDialogColor {
+    bg: Color,
     block: Color,
     text: Color,
     selected: Color,
@@ -175,6 +176,7 @@ struct ListSortDialogColor {
 impl ListSortDialogColor {
     fn new(theme: &ColorTheme) -> ListSortDialogColor {
         ListSortDialogColor {
+            bg: theme.bg,
             block: theme.text,
             text: theme.text,
             selected: theme.selected,
@@ -224,9 +226,10 @@ impl Widget for ListSortDialog {
                 .border_type(BorderType::Rounded)
                 .title(title)
                 .padding(Padding::horizontal(1))
+                .bg(self.color.bg)
                 .fg(self.color.block),
         );
-        let dialog = Dialog::new(Box::new(list));
+        let dialog = Dialog::new(Box::new(list), self.color.bg);
         dialog.render_ref(area, buf);
     }
 }

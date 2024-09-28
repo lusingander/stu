@@ -218,6 +218,7 @@ impl CopyDetailDialogState {
 
 #[derive(Debug, Default)]
 struct CopyDetailDialogColor {
+    bg: Color,
     block: Color,
     text: Color,
     selected: Color,
@@ -226,6 +227,7 @@ struct CopyDetailDialogColor {
 impl CopyDetailDialogColor {
     fn new(theme: &ColorTheme) -> Self {
         Self {
+            bg: theme.bg,
             block: theme.text,
             text: theme.text,
             selected: theme.selected,
@@ -266,10 +268,11 @@ impl StatefulWidget for CopyDetailDialog {
             Block::bordered()
                 .border_type(BorderType::Rounded)
                 .title(title)
+                .bg(self.color.bg)
                 .fg(self.color.block)
                 .padding(Padding::horizontal(1)),
         );
-        let dialog = Dialog::new(Box::new(list));
+        let dialog = Dialog::new(Box::new(list), self.color.bg);
         dialog.render_ref(area, buf);
     }
 }
