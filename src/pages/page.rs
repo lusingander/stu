@@ -22,8 +22,8 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn of_initializing(tx: Sender) -> Self {
-        Self::Initializing(Box::new(InitializingPage::new(tx)))
+    pub fn of_initializing(theme: ColorTheme, tx: Sender) -> Self {
+        Self::Initializing(Box::new(InitializingPage::new(theme, tx)))
     }
 
     pub fn of_bucket_list(bucket_items: Vec<BucketItem>, theme: ColorTheme, tx: Sender) -> Self {
@@ -142,9 +142,9 @@ pub struct PageStack {
 }
 
 impl PageStack {
-    pub fn new(tx: Sender) -> PageStack {
+    pub fn new(theme: ColorTheme, tx: Sender) -> PageStack {
         PageStack {
-            stack: vec![Page::of_initializing(tx)],
+            stack: vec![Page::of_initializing(theme, tx)],
         }
     }
 

@@ -67,7 +67,7 @@ impl App {
         App {
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::default(),
-            page_stack: PageStack::new(tx.clone()),
+            page_stack: PageStack::new(theme.clone(), tx.clone()),
             client: None,
             config,
             theme,
