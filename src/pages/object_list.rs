@@ -217,7 +217,7 @@ impl ObjectListPage {
         }
 
         if let ViewState::SortDialog = self.view_state {
-            let sort_dialog = ObjectListSortDialog::new(self.sort_dialog_state);
+            let sort_dialog = ObjectListSortDialog::new(self.sort_dialog_state).theme(&self.theme);
             f.render_widget(sort_dialog, area);
         }
 
