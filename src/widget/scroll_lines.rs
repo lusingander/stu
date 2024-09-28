@@ -116,7 +116,7 @@ struct ScrollLinesColor {
 impl ScrollLinesColor {
     fn new(theme: &ColorTheme) -> Self {
         Self {
-            block: theme.text,
+            block: theme.fg,
             line_number: theme.line_number,
         }
     }

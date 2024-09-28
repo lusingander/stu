@@ -45,8 +45,8 @@ impl InputDialogColor {
     fn new(theme: &ColorTheme) -> InputDialogColor {
         InputDialogColor {
             bg: theme.bg,
-            block: theme.text,
-            text: theme.text,
+            block: theme.fg,
+            text: theme.fg,
         }
     }
 }

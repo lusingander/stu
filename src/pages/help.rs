@@ -47,7 +47,7 @@ impl HelpPage {
         let block = Block::bordered()
             .padding(Padding::horizontal(1))
             .title(APP_NAME)
-            .fg(self.theme.text);
+            .fg(self.theme.fg);
 
         let content_area = block.inner(area);
 

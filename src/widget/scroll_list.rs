@@ -121,8 +121,8 @@ struct ScrollListColor {
 impl ScrollListColor {
     fn new(theme: &ColorTheme) -> ScrollListColor {
         ScrollListColor {
-            block: theme.text,
-            bar: theme.text,
+            block: theme.fg,
+            bar: theme.fg,
         }
     }
 }

@@ -3,7 +3,7 @@ use ratatui::style::Color;
 #[derive(Debug, Clone)]
 pub struct ColorTheme {
     pub bg: Color,
-    pub text: Color,
+    pub fg: Color,
     pub selected: Color,
     pub selected_text: Color,
     pub disabled: Color,
@@ -22,7 +22,7 @@ impl Default for ColorTheme {
     fn default() -> Self {
         Self {
             bg: Color::Reset,
-            text: Color::Reset,
+            fg: Color::Reset,
             selected: Color::Cyan,
             selected_text: Color::Black,
             disabled: Color::DarkGray,

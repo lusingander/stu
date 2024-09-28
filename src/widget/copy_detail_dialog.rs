@@ -228,8 +228,8 @@ impl CopyDetailDialogColor {
     fn new(theme: &ColorTheme) -> Self {
         Self {
             bg: theme.bg,
-            block: theme.text,
-            text: theme.text,
+            block: theme.fg,
+            text: theme.fg,
             selected: theme.selected,
         }
     }

@@ -162,6 +162,6 @@ fn build_loading_dialog<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a
         Block::bordered()
             .border_type(BorderType::Rounded)
             .padding(Padding::vertical(1))
-            .fg(theme.text),
+            .fg(theme.fg),
     )
 }

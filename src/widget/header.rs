@@ -16,8 +16,8 @@ struct HeaderColor {
 impl HeaderColor {
     fn new(theme: &ColorTheme) -> HeaderColor {
         HeaderColor {
-            block: theme.text,
-            text: theme.text,
+            block: theme.fg,
+            text: theme.fg,
         }
     }
 }

@@ -31,7 +31,7 @@ impl InitializingPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let content = Block::bordered().fg(self.theme.text);
+        let content = Block::bordered().fg(self.theme.fg);
         f.render_widget(content, area);
     }
 
