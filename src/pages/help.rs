@@ -46,7 +46,8 @@ impl HelpPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let block = Block::bordered()
             .padding(Padding::horizontal(1))
-            .title(APP_NAME);
+            .title(APP_NAME)
+            .fg(self.theme.text);
 
         let content_area = block.inner(area);
 
