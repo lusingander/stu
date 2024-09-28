@@ -222,7 +222,7 @@ impl ObjectListPage {
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default();
+            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
