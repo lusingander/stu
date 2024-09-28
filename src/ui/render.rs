@@ -82,7 +82,7 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
-        let loading = build_loading_dialog("Loading...");
+        let loading = build_loading_dialog("Loading...", &app.theme);
         let area = calc_centered_dialog_rect(f.area(), 30, 5);
         let dialog = Dialog::new(Box::new(loading));
         f.render_widget_ref(dialog, area);
@@ -150,11 +150,12 @@ fn build_error_status<'a>(err: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> 
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_loading_dialog(msg: &str) -> Paragraph {
+fn build_loading_dialog<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
     let text = Line::from(msg.add_modifier(Modifier::BOLD));
     Paragraph::new(text).alignment(Alignment::Center).block(
         Block::bordered()
             .border_type(BorderType::Rounded)
-            .padding(Padding::vertical(1)),
+            .padding(Padding::vertical(1))
+            .fg(theme.text),
     )
 }
