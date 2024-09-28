@@ -15,7 +15,7 @@ impl Default for Bar {
     fn default() -> Self {
         Self {
             char: "┃",
-            color: Color::Reset,
+            color: Color::default(),
         }
     }
 }

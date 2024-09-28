@@ -1,4 +1,5 @@
 use crate::{
+    color::ColorTheme,
     config::{PreviewConfig, UiConfig},
     event::Sender,
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
@@ -21,24 +22,26 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn of_initializing(tx: Sender) -> Self {
-        Self::Initializing(Box::new(InitializingPage::new(tx)))
+    pub fn of_initializing(theme: ColorTheme, tx: Sender) -> Self {
+        Self::Initializing(Box::new(InitializingPage::new(theme, tx)))
     }
 
-    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, tx: Sender) -> Self {
-        Self::BucketList(Box::new(BucketListPage::new(bucket_items, tx)))
+    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, theme: ColorTheme, tx: Sender) -> Self {
+        Self::BucketList(Box::new(BucketListPage::new(bucket_items, theme, tx)))
     }
 
     pub fn of_object_list(
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
         ui_config: UiConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         Self::ObjectList(Box::new(ObjectListPage::new(
             object_items,
             object_key,
             ui_config,
+            theme,
             tx,
         )))
     }
@@ -49,6 +52,7 @@ impl Page {
         object_key: ObjectKey,
         list_state: ScrollListState,
         ui_config: UiConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
@@ -57,10 +61,12 @@ impl Page {
             object_key,
             list_state,
             ui_config,
+            theme,
             tx,
         )))
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn of_object_preview(
         file_detail: FileDetail,
         file_version_id: Option<String>,
@@ -68,6 +74,7 @@ impl Page {
         path: String,
         object_key: ObjectKey,
         preview_config: PreviewConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
@@ -77,12 +84,13 @@ impl Page {
             path,
             object_key,
             preview_config,
+            theme,
             tx,
         )))
     }
 
-    pub fn of_help(helps: Vec<String>, tx: Sender) -> Self {
-        Self::Help(Box::new(HelpPage::new(helps, tx)))
+    pub fn of_help(helps: Vec<String>, theme: ColorTheme, tx: Sender) -> Self {
+        Self::Help(Box::new(HelpPage::new(helps, theme, tx)))
     }
 
     pub fn as_bucket_list(&self) -> &BucketListPage {
@@ -134,9 +142,9 @@ pub struct PageStack {
 }
 
 impl PageStack {
-    pub fn new(tx: Sender) -> PageStack {
+    pub fn new(theme: ColorTheme, tx: Sender) -> PageStack {
         PageStack {
-            stack: vec![Page::of_initializing(tx)],
+            stack: vec![Page::of_initializing(theme, tx)],
         }
     }
 

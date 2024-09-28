@@ -14,6 +14,7 @@ use syntect::{
 };
 
 use crate::{
+    color::ColorTheme,
     object::{FileDetail, RawObject},
     ui::common::format_version,
     util::extension_from_file_name,
@@ -103,13 +104,20 @@ fn build_highlighted_lines(
 pub struct TextPreview<'a> {
     file_name: &'a str,
     file_version_id: Option<&'a str>,
+
+    theme: &'a ColorTheme,
 }
 
 impl<'a> TextPreview<'a> {
-    pub fn new(file_name: &'a str, file_version_id: Option<&'a str>) -> Self {
+    pub fn new(
+        file_name: &'a str,
+        file_version_id: Option<&'a str>,
+        theme: &'a ColorTheme,
+    ) -> Self {
         Self {
             file_name,
             file_version_id,
+            theme,
         }
     }
 }
@@ -129,6 +137,7 @@ impl StatefulWidget for TextPreview<'_> {
         };
         ScrollLines::default()
             .block(Block::bordered().title(title))
+            .theme(self.theme)
             .render(area, buf, &mut state.scroll_lines_state);
     }
 }

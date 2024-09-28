@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::{
+    color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
     key_code, key_code_char,
@@ -20,10 +21,6 @@ use crate::{
         ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
     },
 };
-
-const SELECTED_COLOR: Color = Color::Cyan;
-const SELECTED_ITEM_TEXT_COLOR: Color = Color::Black;
-const SELECTED_DISABLED_COLOR: Color = Color::DarkGray;
 
 #[derive(Debug)]
 pub struct ObjectDetailPage {
@@ -38,6 +35,7 @@ pub struct ObjectDetailPage {
     list_state: ScrollListState,
 
     ui_config: UiConfig,
+    theme: ColorTheme,
     tx: Sender,
 }
 
@@ -70,6 +68,7 @@ impl ObjectDetailPage {
         object_key: ObjectKey,
         list_state: ScrollListState,
         ui_config: UiConfig,
+        theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         let detail_tab_state = DetailTabState::new(&file_detail, &ui_config);
@@ -82,6 +81,7 @@ impl ObjectDetailPage {
             object_items,
             list_state,
             ui_config,
+            theme,
             tx,
         }
     }
@@ -187,35 +187,43 @@ impl ObjectDetailPage {
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
 
-        let list_items =
-            build_list_items_from_object_items(&self.object_items, offset, selected, chunks[0]);
+        let list_items = build_list_items_from_object_items(
+            &self.object_items,
+            offset,
+            selected,
+            chunks[0],
+            &self.theme,
+        );
 
-        let list = ScrollList::new(list_items);
+        let list = ScrollList::new(list_items).theme(&self.theme);
         f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
-        let block = Block::bordered();
+        let block = Block::bordered().fg(self.theme.fg);
         f.render_widget(block, chunks[1]);
 
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Min(0)])
             .margin(1)
             .split(chunks[1]);
 
-        let tabs = build_tabs(&self.tab);
+        let tabs = build_tabs(&self.tab, &self.theme);
         f.render_widget(tabs, chunks[0]);
 
         match self.tab {
             Tab::Detail(ref mut state) => {
-                let detail = DetailTab::default();
+                let detail = DetailTab::new(&self.theme);
                 f.render_stateful_widget(detail, chunks[1], state);
             }
             Tab::Version(ref mut state) => {
-                let version = VersionTab::default();
+                let version = VersionTab::new(&self.theme);
                 f.render_stateful_widget(version, chunks[1], state);
             }
         }
 
         if let ViewState::SaveDialog(state) = &mut self.view_state {
-            let save_dialog = InputDialog::default().title("Save As").max_width(40);
+            let save_dialog = InputDialog::default()
+                .title("Save As")
+                .max_width(40)
+                .theme(&self.theme);
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -223,7 +231,7 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default();
+            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -402,29 +410,33 @@ impl ObjectDetailPage {
     }
 }
 
-fn build_list_items_from_object_items(
-    current_items: &[ObjectItem],
+fn build_list_items_from_object_items<'a>(
+    current_items: &'a [ObjectItem],
     offset: usize,
     selected: usize,
     area: Rect,
-) -> Vec<ListItem> {
+    theme: &ColorTheme,
+) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
     current_items
         .iter()
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, item)| build_list_item_from_object_item(idx, item, offset, selected, area))
+        .map(|(idx, item)| {
+            build_list_item_from_object_item(idx, item, offset, selected, area, theme)
+        })
         .collect()
 }
 
-fn build_list_item_from_object_item(
+fn build_list_item_from_object_item<'a>(
     idx: usize,
-    item: &ObjectItem,
+    item: &'a ObjectItem,
     offset: usize,
     selected: usize,
     area: Rect,
-) -> ListItem {
+    theme: &ColorTheme,
+) -> ListItem<'a> {
     let content = match item {
         ObjectItem::Dir { name, .. } => {
             let content = format_dir_item(name, area.width);
@@ -440,8 +452,8 @@ fn build_list_item_from_object_item(
     if idx + offset == selected {
         ListItem::new(content).style(
             Style::default()
-                .bg(SELECTED_DISABLED_COLOR)
-                .fg(SELECTED_ITEM_TEXT_COLOR),
+                .bg(theme.list_selected_inactive_bg)
+                .fg(theme.list_selected_inactive_fg),
         )
     } else {
         ListItem::new(content)
@@ -459,14 +471,14 @@ fn format_file_item(name: &str, width: u16) -> String {
     format!(" {:<name_w$} ", name, name_w = name_w)
 }
 
-fn build_tabs(tab: &Tab) -> Tabs<'static> {
+fn build_tabs(tab: &Tab, theme: &ColorTheme) -> Tabs<'static> {
     let tabs = vec!["Detail", "Version"];
     Tabs::new(tabs)
         .select(tab.val())
         .highlight_style(
             Style::default()
                 .add_modifier(Modifier::BOLD)
-                .fg(SELECTED_COLOR),
+                .fg(theme.detail_selected),
         )
         .block(Block::default().borders(Borders::BOTTOM))
 }
@@ -514,14 +526,22 @@ impl DetailTabState {
     }
 }
 
-#[derive(Debug, Default)]
-struct DetailTab {}
+#[derive(Debug)]
+struct DetailTab<'a> {
+    theme: &'a ColorTheme,
+}
 
-impl StatefulWidget for DetailTab {
+impl<'a> DetailTab<'a> {
+    fn new(theme: &'a ColorTheme) -> Self {
+        Self { theme }
+    }
+}
+
+impl StatefulWidget for DetailTab<'_> {
     type State = DetailTabState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let scroll_lines = ScrollLines::default();
+        let scroll_lines = ScrollLines::default().theme(self.theme);
         StatefulWidget::render(scroll_lines, area, buf, &mut state.scroll_lines_state);
     }
 }
@@ -632,7 +652,32 @@ impl VersionTabState {
 }
 
 #[derive(Debug, Default)]
-struct VersionTab {}
+struct VersionTabColor {
+    selected: Color,
+    divider: Color,
+}
+
+impl VersionTabColor {
+    fn new(theme: &ColorTheme) -> Self {
+        Self {
+            selected: theme.detail_selected,
+            divider: theme.divider,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct VersionTab {
+    color: VersionTabColor,
+}
+
+impl VersionTab {
+    fn new(theme: &ColorTheme) -> Self {
+        Self {
+            color: VersionTabColor::new(theme),
+        }
+    }
+}
 
 impl StatefulWidget for VersionTab {
     type State = VersionTabState;
@@ -662,7 +707,7 @@ impl StatefulWidget for VersionTab {
             .split(area);
             area = chunks[2];
 
-            let divider = Divider::default();
+            let divider = Divider::default().color(self.color.divider);
             divider.render(chunks[1], buf);
 
             let chunks =
@@ -674,7 +719,7 @@ impl StatefulWidget for VersionTab {
                     .padding(Padding::left(1)),
             );
             if i == state.selected {
-                let bar = Bar::default().color(SELECTED_COLOR);
+                let bar = Bar::default().color(self.color.selected);
                 bar.render(chunks[0], buf);
             }
             version_paragraph.render(chunks[1], buf);
@@ -706,6 +751,7 @@ mod tests {
 
     #[test]
     fn test_render_detail_tab() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -719,6 +765,7 @@ mod tests {
                 object_key,
                 ScrollListState::new(items_len),
                 ui_config,
+                theme,
                 tx,
             );
             let area = Rect::new(0, 0, 60, 20);
@@ -772,6 +819,7 @@ mod tests {
 
     #[test]
     fn test_render_detail_tab_with_config() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -786,6 +834,7 @@ mod tests {
                 object_key,
                 ScrollListState::new(items_len),
                 ui_config,
+                theme,
                 tx,
             );
             let area = Rect::new(0, 0, 60, 20);
@@ -839,6 +888,7 @@ mod tests {
 
     #[test]
     fn test_render_version_tab() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -852,6 +902,7 @@ mod tests {
                 object_key,
                 ScrollListState::new(items_len),
                 ui_config,
+                theme,
                 tx,
             );
             page.set_versions(file_versions);
@@ -907,6 +958,7 @@ mod tests {
 
     #[test]
     fn test_render_version_tab_with_config() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -921,6 +973,7 @@ mod tests {
                 object_key,
                 ScrollListState::new(items_len),
                 ui_config,
+                theme,
                 tx,
             );
             page.set_versions(file_versions);
@@ -976,6 +1029,7 @@ mod tests {
 
     #[test]
     fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -989,6 +1043,7 @@ mod tests {
                 object_key,
                 ScrollListState::new(items_len),
                 ui_config,
+                theme,
                 tx,
             );
             page.open_save_dialog();
@@ -1041,6 +1096,7 @@ mod tests {
 
     #[test]
     fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -1054,6 +1110,7 @@ mod tests {
                 object_key,
                 ScrollListState::new(items_len),
                 ui_config,
+                theme,
                 tx,
             );
             page.open_copy_detail_dialog();

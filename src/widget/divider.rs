@@ -6,8 +6,6 @@ use ratatui::{
     widgets::Widget,
 };
 
-const DIVIDER_COLOR: Color = Color::DarkGray;
-
 #[derive(Debug)]
 pub struct Divider {
     char: &'static str,
@@ -18,8 +16,15 @@ impl Default for Divider {
     fn default() -> Self {
         Self {
             char: "─",
-            color: DIVIDER_COLOR,
+            color: Color::default(),
         }
+    }
+}
+
+impl Divider {
+    pub fn color(mut self, color: Color) -> Self {
+        self.color = color;
+        self
     }
 }
 

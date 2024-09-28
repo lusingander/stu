@@ -1,10 +1,11 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Margin, Rect},
+    style::{Color, Stylize},
     widgets::{Block, List, ListItem, Padding, StatefulWidget, Widget},
 };
 
-use crate::util::digits;
+use crate::{color::ColorTheme, util::digits};
 
 use crate::widget::ScrollBar;
 
@@ -111,14 +112,38 @@ impl ScrollListState {
     }
 }
 
+#[derive(Debug, Default)]
+struct ScrollListColor {
+    block: Color,
+    bar: Color,
+}
+
+impl ScrollListColor {
+    fn new(theme: &ColorTheme) -> ScrollListColor {
+        ScrollListColor {
+            block: theme.fg,
+            bar: theme.fg,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ScrollList<'a> {
     items: Vec<ListItem<'a>>,
+    color: ScrollListColor,
 }
 
 impl ScrollList<'_> {
     pub fn new(items: Vec<ListItem>) -> ScrollList {
-        ScrollList { items }
+        ScrollList {
+            items,
+            color: Default::default(),
+        }
+    }
+
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = ScrollListColor::new(theme);
+        self
     }
 }
 
@@ -133,7 +158,8 @@ impl StatefulWidget for ScrollList<'_> {
             Block::bordered()
                 .title(title)
                 .title_alignment(Alignment::Right)
-                .padding(Padding::horizontal(1)),
+                .padding(Padding::horizontal(1))
+                .fg(self.color.block),
         );
         Widget::render(list, area, buf);
 
@@ -141,7 +167,7 @@ impl StatefulWidget for ScrollList<'_> {
         let scrollbar_area = Rect::new(area.right(), area.top(), 1, area.height);
 
         if state.total > (scrollbar_area.height as usize) {
-            let scroll_bar = ScrollBar::new(state.total, state.offset);
+            let scroll_bar = ScrollBar::new(state.total, state.offset).color(self.color.bar);
             Widget::render(scroll_bar, scrollbar_area, buf);
         }
     }
@@ -164,11 +190,12 @@ mod tests {
 
     #[test]
     fn test_render_scroll_list_without_scroll() {
+        let theme = ColorTheme::default();
         let mut state = ScrollListState::new(5);
         let items: Vec<ListItem> = (1..=5)
             .map(|i| ListItem::new(vec![Line::from(format!("Item {}", i))]))
             .collect();
-        let scroll_list = ScrollList::new(items);
+        let scroll_list = ScrollList::new(items).theme(&theme);
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 12));
         scroll_list.render(buf.area, &mut buf, &mut state);
@@ -270,7 +297,8 @@ mod tests {
             .skip(state.offset)
             .take(show_item_count as usize)
             .collect();
-        let scroll_list = ScrollList::new(items);
+        let theme = ColorTheme::default();
+        let scroll_list = ScrollList::new(items).theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, show_item_count + 2));
         scroll_list.render(buf.area, &mut buf, state);
         buf

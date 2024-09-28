@@ -3,6 +3,7 @@ use tokio::spawn;
 
 use crate::{
     client::Client,
+    color::ColorTheme,
     config::Config,
     error::{AppError, Result},
     event::{
@@ -57,17 +58,19 @@ pub struct App {
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
     config: Config,
+    pub theme: ColorTheme,
     tx: Sender,
 }
 
 impl App {
-    pub fn new(config: Config, tx: Sender, width: usize, height: usize) -> App {
+    pub fn new(config: Config, theme: ColorTheme, tx: Sender, width: usize, height: usize) -> App {
         App {
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::default(),
-            page_stack: PageStack::new(tx.clone()),
+            page_stack: PageStack::new(theme.clone(), tx.clone()),
             client: None,
             config,
+            theme,
             tx,
         }
     }
@@ -95,8 +98,11 @@ impl App {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_bucket_items(buckets);
 
-                let bucket_list_page =
-                    Page::of_bucket_list(self.app_objects.get_bucket_items(), self.tx.clone());
+                let bucket_list_page = Page::of_bucket_list(
+                    self.app_objects.get_bucket_items(),
+                    self.theme.clone(),
+                    self.tx.clone(),
+                );
                 self.page_stack.pop(); // remove initializing page
                 self.page_stack.push(bucket_list_page);
             }
@@ -145,6 +151,7 @@ impl App {
                 current_object_items,
                 object_key,
                 self.config.ui.clone(),
+                self.theme.clone(),
                 self.tx.clone(),
             );
             self.page_stack.push(object_list_page);
@@ -178,6 +185,7 @@ impl App {
                         current_object_key,
                         object_list_page.list_state(),
                         self.config.ui.clone(),
+                        self.theme.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
@@ -194,6 +202,7 @@ impl App {
                         current_object_items,
                         object_key,
                         self.config.ui.clone(),
+                        self.theme.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(new_object_list_page);
@@ -261,6 +270,7 @@ impl App {
                     items,
                     current_object_key,
                     self.config.ui.clone(),
+                    self.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_list_page);
@@ -329,6 +339,7 @@ impl App {
                     map_key,
                     object_page.list_state(),
                     self.config.ui.clone(),
+                    self.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);
@@ -403,7 +414,7 @@ impl App {
             Page::ObjectDetail(page) => page.helps(),
             Page::ObjectPreview(page) => page.helps(),
         };
-        let help_page = Page::of_help(helps, self.tx.clone());
+        let help_page = Page::of_help(helps, self.theme.clone(), self.tx.clone());
         self.page_stack.push(help_page);
     }
 
@@ -524,6 +535,7 @@ impl App {
                     path,
                     current_object_key,
                     self.config.preview.clone(),
+                    self.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_preview_page);

@@ -1,16 +1,18 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Margin, Rect},
-    widgets::{Clear, Widget, WidgetRef},
+    style::{Color, Stylize},
+    widgets::{Block, Clear, Widget, WidgetRef},
 };
 
 pub struct Dialog<'a> {
     content: Box<dyn WidgetRef + 'a>,
+    bg: Color,
 }
 
 impl<'a> Dialog<'a> {
-    pub fn new(content: Box<dyn WidgetRef + 'a>) -> Dialog<'a> {
-        Dialog { content }
+    pub fn new(content: Box<dyn WidgetRef + 'a>, bg: Color) -> Dialog<'a> {
+        Dialog { content, bg }
     }
 }
 
@@ -22,7 +24,9 @@ impl<'a> WidgetRef for Dialog<'a> {
 
 impl<'a> Dialog<'a> {
     fn render_dialog(&self, area: Rect, buf: &mut Buffer) {
-        Clear.render(outer_rect(area, &Margin::new(1, 0)), buf);
+        let outer = outer_rect(area, &Margin::new(1, 0));
+        Clear.render(outer, buf);
+        Block::default().bg(self.bg).render(outer, buf);
         self.content.render_ref(area, buf);
     }
 }

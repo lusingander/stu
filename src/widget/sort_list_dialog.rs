@@ -7,9 +7,7 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
 };
 
-use crate::{ui::common::calc_centered_dialog_rect, widget::Dialog};
-
-const SELECTED_COLOR: Color = Color::Cyan;
+use crate::{color::ColorTheme, ui::common::calc_centered_dialog_rect, widget::Dialog};
 
 #[derive(Default)]
 #[zero_indexed_enum]
@@ -56,6 +54,7 @@ impl BucketListSortDialogState {
 pub struct BucketListSortDialog {
     state: BucketListSortDialogState,
     labels: Vec<&'static str>,
+    color: ListSortDialogColor,
 }
 
 impl BucketListSortDialog {
@@ -64,13 +63,22 @@ impl BucketListSortDialog {
             .iter()
             .map(|sort_type| sort_type.str())
             .collect();
-        Self { state, labels }
+        Self {
+            state,
+            labels,
+            color: ListSortDialogColor::default(),
+        }
+    }
+
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = ListSortDialogColor::new(theme);
+        self
     }
 }
 
 impl Widget for BucketListSortDialog {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let dialog = ListSortDialog::new(self.state.selected.val(), self.labels);
+        let dialog = ListSortDialog::new(self.state.selected.val(), self.labels, self.color);
         dialog.render(area, buf);
     }
 }
@@ -128,6 +136,7 @@ impl ObjectListSortDialogState {
 pub struct ObjectListSortDialog {
     state: ObjectListSortDialogState,
     labels: Vec<&'static str>,
+    color: ListSortDialogColor,
 }
 
 impl ObjectListSortDialog {
@@ -136,25 +145,58 @@ impl ObjectListSortDialog {
             .iter()
             .map(|sort_type| sort_type.str())
             .collect();
-        Self { state, labels }
+        Self {
+            state,
+            labels,
+            color: ListSortDialogColor::default(),
+        }
+    }
+
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = ListSortDialogColor::new(theme);
+        self
     }
 }
 
 impl Widget for ObjectListSortDialog {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let dialog = ListSortDialog::new(self.state.selected.val(), self.labels);
+        let dialog = ListSortDialog::new(self.state.selected.val(), self.labels, self.color);
         dialog.render(area, buf);
+    }
+}
+
+#[derive(Debug, Default)]
+struct ListSortDialogColor {
+    bg: Color,
+    block: Color,
+    text: Color,
+    selected: Color,
+}
+
+impl ListSortDialogColor {
+    fn new(theme: &ColorTheme) -> ListSortDialogColor {
+        ListSortDialogColor {
+            bg: theme.bg,
+            block: theme.fg,
+            text: theme.fg,
+            selected: theme.dialog_selected,
+        }
     }
 }
 
 struct ListSortDialog {
     selected: usize,
     labels: Vec<&'static str>,
+    color: ListSortDialogColor,
 }
 
 impl ListSortDialog {
-    pub fn new(selected: usize, labels: Vec<&'static str>) -> Self {
-        Self { selected, labels }
+    fn new(selected: usize, labels: Vec<&'static str>, color: ListSortDialogColor) -> Self {
+        Self {
+            selected,
+            labels,
+            color,
+        }
     }
 }
 
@@ -167,9 +209,9 @@ impl Widget for ListSortDialog {
             .map(|(i, label)| {
                 let item = ListItem::new(Line::raw(*label));
                 if i == self.selected {
-                    item.fg(SELECTED_COLOR)
+                    item.fg(self.color.selected)
                 } else {
-                    item
+                    item.fg(self.color.text)
                 }
             })
             .collect();
@@ -183,9 +225,11 @@ impl Widget for ListSortDialog {
             Block::bordered()
                 .border_type(BorderType::Rounded)
                 .title(title)
-                .padding(Padding::horizontal(1)),
+                .padding(Padding::horizontal(1))
+                .bg(self.color.bg)
+                .fg(self.color.block),
         );
-        let dialog = Dialog::new(Box::new(list));
+        let dialog = Dialog::new(Box::new(list), self.color.bg);
         dialog.render_ref(area, buf);
     }
 }

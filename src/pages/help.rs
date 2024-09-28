@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::{
+    color::ColorTheme,
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
     event::{AppEventType, Sender},
     key_code, key_code_char,
@@ -17,18 +18,17 @@ use crate::{
     widget::Divider,
 };
 
-const LINK_TEXT_COLOR: Color = Color::Blue;
-
 #[derive(Debug)]
 pub struct HelpPage {
     helps: Vec<String>,
 
+    theme: ColorTheme,
     tx: Sender,
 }
 
 impl HelpPage {
-    pub fn new(helps: Vec<String>, tx: Sender) -> Self {
-        Self { helps, tx }
+    pub fn new(helps: Vec<String>, theme: ColorTheme, tx: Sender) -> Self {
+        Self { helps, theme, tx }
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
@@ -46,7 +46,8 @@ impl HelpPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let block = Block::bordered()
             .padding(Padding::horizontal(1))
-            .title(APP_NAME);
+            .title(APP_NAME)
+            .fg(self.theme.fg);
 
         let content_area = block.inner(area);
 
@@ -57,8 +58,14 @@ impl HelpPage {
         ])
         .split(content_area);
 
-        let about = About::new(APP_NAME, APP_DESCRIPTION, APP_VERSION, APP_HOMEPAGE);
-        let divider = Divider::default();
+        let about = About::new(
+            APP_NAME,
+            APP_DESCRIPTION,
+            APP_VERSION,
+            APP_HOMEPAGE,
+            self.theme.link,
+        );
+        let divider = Divider::default().color(self.theme.divider);
         let help = Help::new(&self.helps);
 
         f.render_widget(block, area);
@@ -79,15 +86,24 @@ struct About<'a> {
     description: &'a str,
     version: &'a str,
     homepage: &'a str,
+
+    link_color: Color,
 }
 
 impl<'a> About<'a> {
-    fn new(name: &'a str, description: &'a str, version: &'a str, homepage: &'a str) -> Self {
+    fn new(
+        name: &'a str,
+        description: &'a str,
+        version: &'a str,
+        homepage: &'a str,
+        link_color: Color,
+    ) -> Self {
         Self {
             name,
             description,
             version,
             homepage,
+            link_color,
         }
     }
 }
@@ -97,7 +113,7 @@ impl Widget for About<'_> {
         let lines = vec![
             Line::from(format!("{} - {}", self.name, self.description)),
             Line::from(format!("Version: {}", self.version)),
-            Line::from(self.homepage.fg(LINK_TEXT_COLOR)),
+            Line::from(self.homepage.fg(self.link_color)),
         ];
         let content = with_empty_lines(lines);
         let paragraph = Paragraph::new(content).block(
@@ -167,6 +183,7 @@ mod tests {
 
     #[test]
     fn test_render() -> std::io::Result<()> {
+        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -180,7 +197,7 @@ mod tests {
             .iter()
             .map(|s| s.to_string())
             .collect();
-            let mut page = HelpPage::new(helps, tx);
+            let mut page = HelpPage::new(helps, theme, tx);
             let area = Rect::new(0, 0, 70, 20);
             page.render(f, area);
         })?;

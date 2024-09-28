@@ -1,18 +1,44 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Margin, Rect},
+    style::{Color, Stylize},
     widgets::{Block, Padding, Paragraph, Widget},
 };
 
-use crate::{constant::APP_NAME, util::prune_strings_to_fit_width};
+use crate::{color::ColorTheme, constant::APP_NAME, util::prune_strings_to_fit_width};
 
+#[derive(Debug, Default)]
+struct HeaderColor {
+    block: Color,
+    text: Color,
+}
+
+impl HeaderColor {
+    fn new(theme: &ColorTheme) -> HeaderColor {
+        HeaderColor {
+            block: theme.fg,
+            text: theme.fg,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct Header {
     breadcrumb: Vec<String>,
+    color: HeaderColor,
 }
 
 impl Header {
     pub fn new(breadcrumb: Vec<String>) -> Header {
-        Header { breadcrumb }
+        Header {
+            breadcrumb,
+            ..Default::default()
+        }
+    }
+
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = HeaderColor::new(theme);
+        self
     }
 }
 
@@ -31,10 +57,16 @@ impl Header {
         let pad = Padding::horizontal(1);
         let max_width = (inner_area.width - pad.left - pad.right) as usize;
 
-        let current_key_str = self.build_current_key_str(max_width);
+        let block_color = self.color.block;
+        let text_color = self.color.text;
+        let current_key_str = self.build_current_key_str(max_width).fg(text_color);
 
-        let paragraph =
-            Paragraph::new(current_key_str).block(Block::bordered().title(APP_NAME).padding(pad));
+        let paragraph = Paragraph::new(current_key_str).block(
+            Block::bordered()
+                .title(APP_NAME)
+                .fg(block_color)
+                .padding(pad),
+        );
 
         paragraph.render(area, buf);
     }
@@ -73,11 +105,12 @@ mod tests {
 
     #[test]
     fn test_render_header() {
+        let theme = ColorTheme::default();
         let breadcrumb = ["bucket", "key01", "key02", "key03"]
             .into_iter()
             .map(|s| s.to_string())
             .collect();
-        let header = Header::new(breadcrumb);
+        let header = Header::new(breadcrumb).theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 30 + 4, 3));
         header.render(buf.area, &mut buf);
 
@@ -92,11 +125,12 @@ mod tests {
 
     #[test]
     fn test_render_header_with_ellipsis() {
+        let theme = ColorTheme::default();
         let breadcrumb = ["bucket", "key01", "key02a", "key03"]
             .into_iter()
             .map(|s| s.to_string())
             .collect();
-        let header = Header::new(breadcrumb);
+        let header = Header::new(breadcrumb).theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 30 + 4, 3));
         header.render(buf.area, &mut buf);
 
@@ -111,7 +145,8 @@ mod tests {
 
     #[test]
     fn test_render_header_empty() {
-        let header = Header::new(vec![]);
+        let theme = ColorTheme::default();
+        let header = Header::new(vec![]).theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 30 + 4, 3));
         header.render(buf.area, &mut buf);
 

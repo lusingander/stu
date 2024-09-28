@@ -1,6 +1,6 @@
 use ratatui::{
     layout::{Alignment, Constraint, Layout, Rect},
-    style::{Color, Modifier, Stylize},
+    style::{Modifier, Stylize},
     text::Line,
     widgets::{Block, BorderType, Padding, Paragraph},
     Frame,
@@ -8,17 +8,12 @@ use ratatui::{
 
 use crate::{
     app::{App, Notification},
+    color::ColorTheme,
     pages::page::Page,
     ui::common::calc_centered_dialog_rect,
     util,
     widget::{Dialog, Header},
 };
-
-const SHORT_HELP_COLOR: Color = Color::DarkGray;
-const INFO_STATUS_COLOR: Color = Color::Blue;
-const SUCCESS_STATUS_COLOR: Color = Color::Green;
-const WARN_STATUS_COLOR: Color = Color::Yellow;
-const ERROR_STATUS_COLOR: Color = Color::Red;
 
 pub fn render(f: &mut Frame, app: &mut App) {
     let chunks = Layout::vertical([
@@ -28,6 +23,7 @@ pub fn render(f: &mut Frame, app: &mut App) {
     ])
     .split(f.area());
 
+    render_background(f, f.area(), app);
     render_header(f, chunks[0], app);
     render_content(f, chunks[1], app);
     render_footer(f, chunks[2], app);
@@ -39,6 +35,11 @@ fn header_height(app: &App) -> u16 {
         Page::Help(_) => 0, // Hide header
         _ => 3,
     }
+}
+
+fn render_background(f: &mut Frame, area: Rect, app: &App) {
+    let block = Block::default().bg(app.theme.bg);
+    f.render_widget(block, area);
 }
 
 fn render_header(f: &mut Frame, area: Rect, app: &App) {
@@ -63,19 +64,19 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
     match &app.app_view_state.notification {
         Notification::Info(msg) => {
-            let msg = build_info_status(msg);
+            let msg = build_info_status(msg, &app.theme);
             f.render_widget(msg, area);
         }
         Notification::Success(msg) => {
-            let msg = build_success_status(msg);
+            let msg = build_success_status(msg, &app.theme);
             f.render_widget(msg, area);
         }
         Notification::Warn(msg) => {
-            let msg = build_warn_status(msg);
+            let msg = build_warn_status(msg, &app.theme);
             f.render_widget(msg, area);
         }
         Notification::Error(msg) => {
-            let msg = build_error_status(msg);
+            let msg = build_error_status(msg, &app.theme);
             f.render_widget(msg, area);
         }
         Notification::None => {
@@ -87,9 +88,9 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.app_view_state.is_loading {
-        let loading = build_loading_dialog("Loading...");
+        let loading = build_loading_dialog("Loading...", &app.theme);
         let area = calc_centered_dialog_rect(f.area(), 30, 5);
-        let dialog = Dialog::new(Box::new(loading));
+        let dialog = Dialog::new(Box::new(loading), app.theme.bg);
         f.render_widget_ref(dialog, area);
     }
 }
@@ -110,7 +111,7 @@ fn build_header(app: &App) -> Header {
             _ => unreachable!(),
         })
         .collect();
-    Header::new(breadcrumb)
+    Header::new(breadcrumb).theme(&app.theme)
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
@@ -125,7 +126,7 @@ fn build_short_help(app: &App, width: u16) -> Paragraph {
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
     let help = build_short_help_string(&helps, max_width);
-    Paragraph::new(help.fg(SHORT_HELP_COLOR)).block(Block::default().padding(pad))
+    Paragraph::new(help.fg(app.theme.status_help)).block(Block::default().padding(pad))
 }
 
 fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> String {
@@ -134,32 +135,33 @@ fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> Strin
     ss.join(delimiter)
 }
 
-fn build_info_status(msg: &str) -> Paragraph {
-    Paragraph::new(msg.fg(INFO_STATUS_COLOR))
+fn build_info_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
+    Paragraph::new(msg.fg(theme.status_info))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_success_status(msg: &str) -> Paragraph {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(SUCCESS_STATUS_COLOR))
+fn build_success_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.status_success))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_warn_status(msg: &str) -> Paragraph {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(WARN_STATUS_COLOR))
+fn build_warn_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
+    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.status_warn))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_error_status(err: &str) -> Paragraph {
+fn build_error_status<'a>(err: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
     let err = format!("ERROR: {}", err);
-    Paragraph::new(err.add_modifier(Modifier::BOLD).fg(ERROR_STATUS_COLOR))
+    Paragraph::new(err.add_modifier(Modifier::BOLD).fg(theme.status_error))
         .block(Block::default().padding(Padding::horizontal(2)))
 }
 
-fn build_loading_dialog(msg: &str) -> Paragraph {
+fn build_loading_dialog<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
     let text = Line::from(msg.add_modifier(Modifier::BOLD));
     Paragraph::new(text).alignment(Alignment::Center).block(
         Block::bordered()
             .border_type(BorderType::Rounded)
-            .padding(Padding::vertical(1)),
+            .padding(Padding::vertical(1))
+            .fg(theme.fg),
     )
 }

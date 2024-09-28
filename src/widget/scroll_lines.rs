@@ -6,9 +6,7 @@ use ratatui::{
     widgets::{block::BlockExt, Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
-use crate::util::digits;
-
-const PREVIEW_LINE_NUMBER_COLOR: Color = Color::DarkGray;
+use crate::{color::ColorTheme, util::digits};
 
 #[derive(Debug, Default)]
 enum ScrollEvent {
@@ -109,15 +107,36 @@ impl ScrollLinesState {
     }
 }
 
+#[derive(Debug, Default)]
+struct ScrollLinesColor {
+    block: Color,
+    line_number: Color,
+}
+
+impl ScrollLinesColor {
+    fn new(theme: &ColorTheme) -> Self {
+        Self {
+            block: theme.fg,
+            line_number: theme.preview_line_number,
+        }
+    }
+}
+
 // fixme: bad implementation for highlighting and displaying the number of lines :(
 #[derive(Debug, Default)]
 pub struct ScrollLines {
     block: Option<Block<'static>>,
+    color: ScrollLinesColor,
 }
 
 impl ScrollLines {
     pub fn block(mut self, block: Block<'static>) -> Self {
         self.block = Some(block);
+        self
+    }
+
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = ScrollLinesColor::new(theme);
         self
     }
 }
@@ -144,11 +163,15 @@ impl StatefulWidget for ScrollLines {
         // handle scroll events and update the state
         handle_scroll_events(state, text_area_width, show_lines_count);
 
-        let line_numbers_paragraph =
-            build_line_numbers_paragraph(state, text_area_width, show_lines_count);
-        let lines_paragraph = build_lines_paragraph(state, show_lines_count);
+        let line_numbers_paragraph = build_line_numbers_paragraph(
+            state,
+            text_area_width,
+            show_lines_count,
+            self.color.line_number,
+        );
+        let lines_paragraph = build_lines_paragraph(state, show_lines_count, self.color.block);
 
-        self.block.render(area, buf);
+        self.block.map(|b| b.fg(self.color.block)).render(area, buf);
         line_numbers_paragraph.render(chunks[0], buf);
         lines_paragraph.render(chunks[1], buf);
     }
@@ -158,6 +181,7 @@ fn build_line_numbers_paragraph(
     state: &ScrollLinesState,
     text_area_width: usize,
     show_lines_count: usize,
+    line_number_color: Color,
 ) -> Paragraph {
     // may not be correct because the wrap of the text is calculated separately...
     let line_heights = wrapped_line_width_iter(
@@ -175,7 +199,7 @@ fn build_line_numbers_paragraph(
                 vec![Line::raw("")]
             } else {
                 let line_number = format!("{:>width$}", line, width = state.max_digits);
-                let number_line: Line = line_number.fg(PREVIEW_LINE_NUMBER_COLOR).into();
+                let number_line: Line = line_number.fg(line_number_color).into();
                 let empty_lines = (0..(line_height - 1)).map(|_| Line::raw(""));
                 std::iter::once(number_line).chain(empty_lines).collect()
             }
@@ -190,7 +214,11 @@ fn build_line_numbers_paragraph(
     )
 }
 
-fn build_lines_paragraph(state: &ScrollLinesState, show_lines_count: usize) -> Paragraph {
+fn build_lines_paragraph(
+    state: &ScrollLinesState,
+    show_lines_count: usize,
+    block_color: Color,
+) -> Paragraph {
     let lines_content: Vec<Line> = state
         .lines
         .iter()
@@ -202,7 +230,8 @@ fn build_lines_paragraph(state: &ScrollLinesState, show_lines_count: usize) -> P
     let lines_paragraph = Paragraph::new(lines_content).block(
         Block::default()
             .borders(Borders::NONE)
-            .padding(Padding::horizontal(1)),
+            .padding(Padding::horizontal(1))
+            .fg(block_color),
     );
 
     if state.options.wrap {
@@ -706,14 +735,18 @@ mod tests {
     }
 
     fn render_scroll_lines(state: &mut ScrollLinesState) -> Buffer {
-        let scroll_lines = ScrollLines::default().block(Block::bordered().title("TITLE"));
+        let theme = ColorTheme::default();
+        let scroll_lines = ScrollLines::default()
+            .block(Block::bordered().title("TITLE"))
+            .theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
         scroll_lines.render(buf.area, &mut buf, state);
         buf
     }
 
     fn render_scroll_lines_no_block(state: &mut ScrollLinesState) -> Buffer {
-        let scroll_lines = ScrollLines::default();
+        let theme = ColorTheme::default();
+        let scroll_lines = ScrollLines::default().theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
         scroll_lines.render(buf.area, &mut buf, state);
         buf

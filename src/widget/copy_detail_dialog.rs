@@ -10,12 +10,11 @@ use ratatui::{
 };
 
 use crate::{
+    color::ColorTheme,
     object::{BucketItem, FileDetail, ObjectItem},
     ui::common::calc_centered_dialog_rect,
     widget::Dialog,
 };
-
-const SELECTED_COLOR: Color = Color::Cyan;
 
 #[derive(Default)]
 #[zero_indexed_enum]
@@ -218,7 +217,35 @@ impl CopyDetailDialogState {
 }
 
 #[derive(Debug, Default)]
-pub struct CopyDetailDialog {}
+struct CopyDetailDialogColor {
+    bg: Color,
+    block: Color,
+    text: Color,
+    selected: Color,
+}
+
+impl CopyDetailDialogColor {
+    fn new(theme: &ColorTheme) -> Self {
+        Self {
+            bg: theme.bg,
+            block: theme.fg,
+            text: theme.fg,
+            selected: theme.dialog_selected,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CopyDetailDialog {
+    color: CopyDetailDialogColor,
+}
+
+impl CopyDetailDialog {
+    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+        self.color = CopyDetailDialogColor::new(theme);
+        self
+    }
+}
 
 impl StatefulWidget for CopyDetailDialog {
     type State = CopyDetailDialogState;
@@ -229,7 +256,7 @@ impl StatefulWidget for CopyDetailDialog {
             .name_and_value_vec()
             .into_iter()
             .enumerate()
-            .map(|(i, (name, value))| build_list_item(i, selected, (name, value)))
+            .map(|(i, (name, value))| self.build_list_item(i, selected, (name, value)))
             .collect();
 
         let dialog_width = (area.width - 4).min(80);
@@ -241,22 +268,31 @@ impl StatefulWidget for CopyDetailDialog {
             Block::bordered()
                 .border_type(BorderType::Rounded)
                 .title(title)
+                .bg(self.color.bg)
+                .fg(self.color.block)
                 .padding(Padding::horizontal(1)),
         );
-        let dialog = Dialog::new(Box::new(list));
+        let dialog = Dialog::new(Box::new(list), self.color.bg);
         dialog.render_ref(area, buf);
     }
 }
 
-fn build_list_item<'a>(i: usize, selected: usize, (name, value): (String, String)) -> ListItem<'a> {
-    let item = ListItem::new(vec![
-        Line::from(format!("{}:", name).add_modifier(Modifier::BOLD)),
-        Line::from(format!("  {}", value)),
-    ]);
-    if i == selected {
-        item.fg(SELECTED_COLOR)
-    } else {
-        item
+impl CopyDetailDialog {
+    fn build_list_item<'a>(
+        &self,
+        i: usize,
+        selected: usize,
+        (name, value): (String, String),
+    ) -> ListItem<'a> {
+        let item = ListItem::new(vec![
+            Line::from(format!("{}:", name).add_modifier(Modifier::BOLD)),
+            Line::from(format!("  {}", value)),
+        ]);
+        if i == selected {
+            item.fg(self.color.selected)
+        } else {
+            item.fg(self.color.text)
+        }
     }
 }
 
@@ -271,8 +307,9 @@ mod tests {
     #[test]
     fn test_render_copy_detail_dialog() {
         let file_detail = file_detail();
+        let theme = ColorTheme::default();
         let mut state = CopyDetailDialogState::object_detail(file_detail);
-        let copy_detail_dialog = CopyDetailDialog::default();
+        let copy_detail_dialog = CopyDetailDialog::default().theme(&theme);
 
         let mut buf = Buffer::empty(Rect::new(0, 0, 40, 20));
         copy_detail_dialog.render(buf.area, &mut buf, &mut state);
