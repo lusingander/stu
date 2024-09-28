@@ -66,7 +66,6 @@ impl Page {
         )))
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub fn of_object_preview(
         file_detail: FileDetail,
         file_version_id: Option<String>,

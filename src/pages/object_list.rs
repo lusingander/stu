@@ -518,7 +518,6 @@ impl ObjectListPage {
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 fn build_list_items<'a>(
     current_items: &'a [ObjectItem],
     view_indices: &'a [usize],

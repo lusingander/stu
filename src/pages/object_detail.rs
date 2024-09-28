@@ -638,8 +638,6 @@ impl VersionTabState {
             total_height += lines.len();
             total_height += 1; // divider
 
-            // https://github.com/rust-lang/rust-clippy/issues/4725
-            #[allow(clippy::comparison_chain)]
             if total_height == self.height {
                 self.offset = i;
                 break;

@@ -49,3 +49,6 @@ rstest = "0.22.0"
 
 [features]
 imggen = [] # for test
+
+[lints.clippy]
+comparison_chain = "allow" # https://github.com/rust-lang/rust-clippy/issues/4725

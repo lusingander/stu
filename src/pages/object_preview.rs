@@ -47,7 +47,6 @@ enum ViewState {
 }
 
 impl ObjectPreviewPage {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
         file_detail: FileDetail,
         file_version_id: Option<String>,
