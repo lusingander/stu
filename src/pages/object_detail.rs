@@ -198,7 +198,7 @@ impl ObjectDetailPage {
         let list = ScrollList::new(list_items).theme(&self.theme);
         f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
-        let block = Block::bordered();
+        let block = Block::bordered().fg(self.theme.text);
         f.render_widget(block, chunks[1]);
 
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Min(0)])
