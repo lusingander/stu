@@ -48,7 +48,7 @@ struct Args {
     #[arg(short, long, value_name = "NAME")]
     bucket: Option<String>,
 
-    /// Output debug logs
+    /// Enable debug logs
     #[arg(long)]
     debug: bool,
 }
