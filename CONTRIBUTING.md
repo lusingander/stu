@@ -23,7 +23,6 @@ When reporting a bug, please include the following information:
 Suggestions are welcome, but any suggestions that do not follow the project's policies are unlikely to be accepted.
 
 - Update functions (put, delete, etc.) are a low priority.
-- Support for S3 protocol compatible tools is a low priority.
 - There are no plans to support tools that are incompatible with S3.
 
 ## Pull Requests
