@@ -116,18 +116,17 @@ impl Client {
             return Ok(bucket_region);
         }
 
-        let bucket_region = self
+        let result = self
             .client
             .get_bucket_location()
             .bucket(bucket_name)
             .send()
-            .await
-            .map_err(|e| {
-                AppError::new(
-                    format!("Failed to fetch region for bucket {}", bucket_name),
-                    e,
-                )
-            })?
+            .await;
+        let output = result.map_err(|e| {
+            AppError::new(format!("Failed to fetch region for '{}'", bucket_name), e)
+        })?;
+
+        let bucket_region = output
             .location_constraint()
             .map(|loc| {
                 if loc.as_str().is_empty() {
