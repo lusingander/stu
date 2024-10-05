@@ -15,7 +15,7 @@ mod ui;
 mod util;
 mod widget;
 
-use clap::{arg, Parser};
+use clap::{arg, Parser, ValueEnum};
 use event::AppEventType;
 use file::open_or_create_append_file;
 use ratatui::{backend::Backend, Terminal};
@@ -27,6 +27,23 @@ use crate::app::App;
 use crate::client::Client;
 use crate::color::ColorTheme;
 use crate::config::Config;
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+enum PathStyle {
+    Auto,
+    Always,
+    Never,
+}
+
+impl From<PathStyle> for client::AddressingStyle {
+    fn from(style: PathStyle) -> Self {
+        match style {
+            PathStyle::Auto => client::AddressingStyle::Auto,
+            PathStyle::Always => client::AddressingStyle::Path,
+            PathStyle::Never => client::AddressingStyle::VirtualHosted,
+        }
+    }
+}
 
 /// STU - S3 Terminal UI
 #[derive(Parser)]
@@ -47,6 +64,10 @@ struct Args {
     /// Target bucket name
     #[arg(short, long, value_name = "NAME")]
     bucket: Option<String>,
+
+    /// Path style type for object paths
+    #[arg(long, value_name = "TYPE", default_value = "auto")]
+    path_style: PathStyle,
 
     /// Enable debug logs
     #[arg(long)]
@@ -87,6 +108,7 @@ async fn run<B: Backend>(
             args.endpoint_url,
             args.profile,
             default_region_fallback,
+            args.path_style.into(),
         )
         .await;
         tx.send(AppEventType::Initialize(client, args.bucket));

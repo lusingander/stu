@@ -58,6 +58,7 @@ Options:
   -e, --endpoint-url <URL>  AWS endpoint url
   -p, --profile <NAME>      AWS profile name
   -b, --bucket <NAME>       Target bucket name
+      --path-style <TYPE>   Path style type for object paths [default: auto] [possible values: auto, always, never]
       --debug               Enable debug logs
   -h, --help                Print help
   -V, --version             Print version
@@ -78,6 +79,18 @@ $ stu --endpoint-url http://localhost:12345
 # Connect by specifying environment variables
 $ AWS_ACCESS_KEY_ID=abc AWS_SECRET_ACCESS_KEY=xyz stu
 ```
+
+#### --path-style \<TYPE\>
+
+Select the address model for S3 objects.
+
+- `never` uses Virtual-Hosted Style, which is what AWS currently uses.
+  - `https://bucket.s3.region.amazonaws.com/key`
+- `always` uses Path Style, which is used when using localstack, minio, etc.
+  - `https://s3.region.amazonaws.com/bucket/key`
+- `auto` automatically determines which model to use, which is the default setting.
+
+For other S3-compatible services, which one to use depends on the service.
 
 ### Keybindings
 
