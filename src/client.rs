@@ -13,6 +13,22 @@ use crate::{
 
 const DELIMITER: &str = "/";
 
+pub enum AddressingStyle {
+    Auto,
+    Path,          // https://s3.region.amazonaws.com/bucket/key
+    VirtualHosted, // https://bucket.s3.region.amazonaws.com/key
+}
+
+impl AddressingStyle {
+    fn to_force_path_style(&self, endpoint_url: &Option<String>) -> bool {
+        match self {
+            AddressingStyle::Auto => endpoint_url.is_some(),
+            AddressingStyle::Path => true,
+            AddressingStyle::VirtualHosted => false,
+        }
+    }
+}
+
 pub struct Client {
     client: aws_sdk_s3::Client,
     region: String,
@@ -31,6 +47,7 @@ impl Client {
         endpoint_url: Option<String>,
         profile: Option<String>,
         default_region_fallback: String,
+        addressing_style: AddressingStyle,
     ) -> Client {
         let mut region_builder = region::Builder::default();
         if let Some(profile) = &profile {
@@ -50,10 +67,8 @@ impl Client {
         }
         let sdk_config = config_loader.load().await;
 
-        let mut config_builder = aws_sdk_s3::config::Builder::from(&sdk_config);
-        if endpoint_url.is_some() {
-            config_builder = config_builder.force_path_style(true);
-        }
+        let config_builder = aws_sdk_s3::config::Builder::from(&sdk_config)
+            .force_path_style(addressing_style.to_force_path_style(&endpoint_url));
         let config = config_builder.build();
 
         let client = aws_sdk_s3::Client::from_conf(config);
