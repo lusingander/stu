@@ -41,7 +41,7 @@ textwrap = "0.16.1"
 tokio = { version = "1.40.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "chrono"] }
+tracing-subscriber = { version = "0.3.18", features = ["chrono"] }
 tui-input = "0.10.1"
 
 [dev-dependencies]
