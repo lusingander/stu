@@ -74,6 +74,10 @@ impl HelpPage {
         f.render_widget(help, chunks[2]);
     }
 
+    pub fn helps(&self) -> Vec<String> {
+        Vec::new()
+    }
+
     pub fn short_helps(&self) -> Vec<(String, usize)> {
         let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0), (&["?"], "Close help", 0)];
         build_short_helps(helps)

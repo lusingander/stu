@@ -48,11 +48,12 @@ impl Page {
 
     pub fn helps(&self) -> Vec<String> {
         match self {
-            Page::Initializing(_) | Page::Help(_) => Vec::new(),
+            Page::Initializing(page) => page.helps(),
             Page::BucketList(page) => page.helps(),
             Page::ObjectList(page) => page.helps(),
             Page::ObjectDetail(page) => page.helps(),
             Page::ObjectPreview(page) => page.helps(),
+            Page::Help(page) => page.helps(),
         }
     }
 
