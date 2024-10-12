@@ -405,15 +405,10 @@ impl App {
     }
 
     pub fn open_help(&mut self) {
-        let helps = match self.page_stack.current_page() {
-            Page::Initializing(_) | Page::Help(_) => {
-                return;
-            }
-            Page::BucketList(page) => page.helps(),
-            Page::ObjectList(page) => page.helps(),
-            Page::ObjectDetail(page) => page.helps(),
-            Page::ObjectPreview(page) => page.helps(),
-        };
+        let helps = self.page_stack.current_page().helps();
+        if helps.is_empty() {
+            return;
+        }
         let help_page = Page::of_help(helps, self.theme.clone(), self.tx.clone());
         self.page_stack.push(help_page);
     }

@@ -1,3 +1,5 @@
+use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
+
 use crate::{
     color::ColorTheme,
     config::{PreviewConfig, UiConfig},
@@ -19,6 +21,51 @@ pub enum Page {
     ObjectDetail(Box<ObjectDetailPage>),
     ObjectPreview(Box<ObjectPreviewPage>),
     Help(Box<HelpPage>),
+}
+
+impl Page {
+    pub fn handle_key(&mut self, key: KeyEvent) {
+        match self {
+            Page::Initializing(page) => page.handle_key(key),
+            Page::BucketList(page) => page.handle_key(key),
+            Page::ObjectList(page) => page.handle_key(key),
+            Page::ObjectDetail(page) => page.handle_key(key),
+            Page::ObjectPreview(page) => page.handle_key(key),
+            Page::Help(page) => page.handle_key(key),
+        }
+    }
+
+    pub fn render(&mut self, f: &mut Frame, area: Rect) {
+        match self {
+            Page::Initializing(page) => page.render(f, area),
+            Page::BucketList(page) => page.render(f, area),
+            Page::ObjectList(page) => page.render(f, area),
+            Page::ObjectDetail(page) => page.render(f, area),
+            Page::ObjectPreview(page) => page.render(f, area),
+            Page::Help(page) => page.render(f, area),
+        }
+    }
+
+    pub fn helps(&self) -> Vec<String> {
+        match self {
+            Page::Initializing(_) | Page::Help(_) => Vec::new(),
+            Page::BucketList(page) => page.helps(),
+            Page::ObjectList(page) => page.helps(),
+            Page::ObjectDetail(page) => page.helps(),
+            Page::ObjectPreview(page) => page.helps(),
+        }
+    }
+
+    pub fn short_helps(&self) -> Vec<(String, usize)> {
+        match self {
+            Page::Initializing(page) => page.short_helps(),
+            Page::BucketList(page) => page.short_helps(),
+            Page::ObjectList(page) => page.short_helps(),
+            Page::ObjectDetail(page) => page.short_helps(),
+            Page::ObjectPreview(page) => page.short_helps(),
+            Page::Help(page) => page.short_helps(),
+        }
+    }
 }
 
 impl Page {

@@ -57,14 +57,7 @@ pub async fn run<B: Backend>(
                     continue;
                 }
 
-                match app.page_stack.current_page_mut() {
-                    Page::Initializing(page) => page.handle_key(key),
-                    Page::BucketList(page) => page.handle_key(key),
-                    Page::ObjectList(page) => page.handle_key(key),
-                    Page::ObjectDetail(page) => page.handle_key(key),
-                    Page::ObjectPreview(page) => page.handle_key(key),
-                    Page::Help(page) => page.handle_key(key),
-                }
+                app.page_stack.current_page_mut().handle_key(key);
             }
             AppEventType::Resize(width, height) => {
                 app.resize(width, height);

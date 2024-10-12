@@ -51,14 +51,7 @@ fn render_header(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
-    match app.page_stack.current_page_mut() {
-        Page::Initializing(page) => page.render(f, area),
-        Page::BucketList(page) => page.render(f, area),
-        Page::ObjectList(page) => page.render(f, area),
-        Page::ObjectDetail(page) => page.render(f, area),
-        Page::ObjectPreview(page) => page.render(f, area),
-        Page::Help(page) => page.render(f, area),
-    }
+    app.page_stack.current_page_mut().render(f, area);
 }
 
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
@@ -115,14 +108,7 @@ fn build_header(app: &App) -> Header {
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
-    let helps = match app.page_stack.current_page() {
-        Page::Initializing(page) => page.short_helps(),
-        Page::BucketList(page) => page.short_helps(),
-        Page::ObjectList(page) => page.short_helps(),
-        Page::ObjectDetail(page) => page.short_helps(),
-        Page::ObjectPreview(page) => page.short_helps(),
-        Page::Help(page) => page.short_helps(),
-    };
+    let helps = app.page_stack.current_page().short_helps();
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
     let help = build_short_help_string(&helps, max_width);
