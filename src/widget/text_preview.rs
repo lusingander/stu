@@ -15,6 +15,7 @@ use syntect::{
 
 use crate::{
     color::ColorTheme,
+    config::Config,
     object::{FileDetail, RawObject},
     ui::common::format_version,
     util::extension_from_file_name,
@@ -22,7 +23,12 @@ use crate::{
 };
 
 static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
-static THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
+static DEFAULT_THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
+static USER_THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
+    Config::preview_theme_dir_path()
+        .and_then(|path| ThemeSet::load_from_folder(path).map_err(Into::into))
+        .unwrap_or_default()
+});
 
 #[derive(Debug)]
 pub struct TextPreviewState {
@@ -91,10 +97,14 @@ fn build_highlighted_lines(
             let msg = format!("No syntax definition found for `.{}`", extension);
             Some(msg)
         })?;
-    let theme = &THEME_SET.themes.get(highlight_theme_name).ok_or_else(|| {
-        let msg = format!("Theme `{}` not found", highlight_theme_name);
-        Some(msg)
-    })?;
+    let theme = &DEFAULT_THEME_SET
+        .themes
+        .get(highlight_theme_name)
+        .or_else(|| USER_THEME_SET.themes.get(highlight_theme_name))
+        .ok_or_else(|| {
+            let msg = format!("Theme `{}` not found", highlight_theme_name);
+            Some(msg)
+        })?;
     let mut h = HighlightLines::new(syntax, theme);
     let s = LinesWithEndings::from(s)
         .map(|line| {
