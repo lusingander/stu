@@ -80,26 +80,31 @@ fn build_highlighted_lines(
     highlight: bool,
     highlight_theme_name: &str,
 ) -> Result<Vec<Line<'static>>, Option<String>> {
-    if highlight {
-        let extension = extension_from_file_name(file_name);
-        if let Some(syntax) = SYNTAX_SET.find_syntax_by_extension(&extension) {
-            let mut h = HighlightLines::new(syntax, &THEME_SET.themes[highlight_theme_name]);
-            let s = LinesWithEndings::from(s)
-                .map(|line| {
-                    let ranges: Vec<(syntect::highlighting::Style, &str)> =
-                        h.highlight_line(line, &SYNTAX_SET).unwrap();
-                    as_24_bit_terminal_escaped(&ranges[..], false)
-                })
-                .collect::<Vec<String>>()
-                .join("");
-            Ok(s.into_text().unwrap().into_iter().collect())
-        } else {
-            let msg = format!("No syntax definition found for `.{}`", extension);
-            Err(Some(msg))
-        }
-    } else {
-        Err(None)
+    if !highlight {
+        return Err(None);
     }
+
+    let extension = extension_from_file_name(file_name);
+    let syntax = SYNTAX_SET
+        .find_syntax_by_extension(&extension)
+        .ok_or_else(|| {
+            let msg = format!("No syntax definition found for `.{}`", extension);
+            Some(msg)
+        })?;
+    let theme = &THEME_SET.themes.get(highlight_theme_name).ok_or_else(|| {
+        let msg = format!("Theme `{}` not found", highlight_theme_name);
+        Some(msg)
+    })?;
+    let mut h = HighlightLines::new(syntax, theme);
+    let s = LinesWithEndings::from(s)
+        .map(|line| {
+            let ranges: Vec<(syntect::highlighting::Style, &str)> =
+                h.highlight_line(line, &SYNTAX_SET).unwrap();
+            as_24_bit_terminal_escaped(&ranges[..], false)
+        })
+        .collect::<Vec<String>>()
+        .join("");
+    Ok(s.into_text().unwrap().into_iter().collect())
 }
 
 #[derive(Debug)]
