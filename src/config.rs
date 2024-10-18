@@ -63,12 +63,24 @@ impl Default for UiObjectDetailConfig {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct PreviewConfig {
     #[serde(default)]
     pub highlight: bool,
+    #[serde(default = "default_preview_highlight_theme")]
+    pub highlight_theme: String,
     #[serde(default)]
     pub image: bool,
+}
+
+impl Default for PreviewConfig {
+    fn default() -> Self {
+        Self {
+            highlight: false,
+            highlight_theme: default_preview_highlight_theme(),
+            image: false,
+        }
+    }
 }
 
 impl Default for Config {
@@ -108,6 +120,10 @@ fn default_ui_object_list_date_width() -> usize {
 
 fn default_ui_object_detail_date_format() -> String {
     "%Y-%m-%d %H:%M:%S".to_string()
+}
+
+fn default_preview_highlight_theme() -> String {
+    "base16-ocean.dark".to_string()
 }
 
 impl Config {

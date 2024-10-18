@@ -34,13 +34,14 @@ impl TextPreviewState {
         file_detail: &FileDetail,
         object: &RawObject,
         highlight: bool,
+        highlight_theme_name: &str,
     ) -> (Self, Option<String>) {
         let mut warn_msg = None;
 
         let s = to_preview_string(&object.bytes);
 
         let lines: Vec<Line<'static>> =
-            match build_highlighted_lines(&s, &file_detail.name, highlight) {
+            match build_highlighted_lines(&s, &file_detail.name, highlight, highlight_theme_name) {
                 Ok(lines) => lines,
                 Err(msg) => {
                     // If there is an error, display the original text
@@ -77,11 +78,12 @@ fn build_highlighted_lines(
     s: &str,
     file_name: &str,
     highlight: bool,
+    highlight_theme_name: &str,
 ) -> Result<Vec<Line<'static>>, Option<String>> {
     if highlight {
         let extension = extension_from_file_name(file_name);
         if let Some(syntax) = SYNTAX_SET.find_syntax_by_extension(&extension) {
-            let mut h = HighlightLines::new(syntax, &THEME_SET.themes["base16-ocean.dark"]);
+            let mut h = HighlightLines::new(syntax, &THEME_SET.themes[highlight_theme_name]);
             let s = LinesWithEndings::from(s)
                 .map(|line| {
                     let ranges: Vec<(syntect::highlighting::Style, &str)> =
