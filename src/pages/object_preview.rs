@@ -64,8 +64,12 @@ impl ObjectPreviewPage {
             }
             PreviewType::Image(state)
         } else {
-            let (state, msg) =
-                TextPreviewState::new(&file_detail, &object, preview_config.highlight);
+            let (state, msg) = TextPreviewState::new(
+                &file_detail,
+                &object,
+                preview_config.highlight,
+                &preview_config.highlight_theme,
+            );
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }
