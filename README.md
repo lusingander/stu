@@ -149,6 +149,20 @@ date_format = "%Y-%m-%d %H:%M:%S"
 # Whether syntax highlighting is enabled in the object preview.
 # type: bool
 highlight = false
+# The name of the color theme to use for syntax highlighting in the object preview.
+# By default the following themes are available:
+# - base16-ocean.dark
+# - base16-eighties.dark
+# - base16-mocha.dark
+# - base16-ocean.light
+#   - https://github.com/SublimeText/Spacegray
+# - InspiredGitHub
+#   - https://github.com/sethlopez/InspiredGitHub.tmtheme
+# - Solarized (dark)
+# - Solarized (light)
+# Also, by creating `xxx.tmTheme` in `$STU_ROOT_DIR/preview_theme/`, you can use `xxx` and load it.
+# type: string
+highlight_theme = "base16-ocean.dark"
 # Whether image file preview is enabled in the object preview.
 # type: bool
 image = false
