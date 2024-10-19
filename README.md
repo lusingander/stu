@@ -150,23 +150,40 @@ date_format = "%Y-%m-%d %H:%M:%S"
 # type: bool
 highlight = false
 # The name of the color theme to use for syntax highlighting in the object preview.
-# By default the following themes are available:
-# - base16-ocean.dark
-# - base16-eighties.dark
-# - base16-mocha.dark
-# - base16-ocean.light
-#   - https://github.com/SublimeText/Spacegray
-# - InspiredGitHub
-#   - https://github.com/sethlopez/InspiredGitHub.tmtheme
-# - Solarized (dark)
-# - Solarized (light)
-# Also, by creating `xxx.tmTheme` in `$STU_ROOT_DIR/preview_theme/`, you can use `xxx` and load it.
 # type: string
 highlight_theme = "base16-ocean.dark"
 # Whether image file preview is enabled in the object preview.
 # type: bool
 image = false
 ```
+
+### Syntax highlighting
+
+In the object preview, Syntax highlighting using syntect is available. To enable this, set `preview.highlight = true` in the config file.
+
+#### Color themes
+
+You can change the color theme by specifying the theme name in `preview.highlight_theme`.
+
+By default the following themes are available:
+
+- base16-ocean.dark
+- base16-eighties.dark
+- base16-mocha.dark
+- base16-ocean.light
+  - https://github.com/SublimeText/Spacegray
+- InspiredGitHub
+  - https://github.com/sethlopez/InspiredGitHub.tmtheme
+- Solarized (dark)
+- Solarized (light)
+
+Also, by creating `xxx.tmTheme` in `$STU_ROOT_DIR/preview_theme/`, you can use `xxx` and load it.
+
+#### Syntax definitions
+
+You can add syntax definitions for file types that are not supported by default. You can use it by creating a `.sublime-syntax` file in `$STU_ROOT_DIR/preview_syntax/`.
+
+https://www.sublimetext.com/docs/syntax.html
 
 ## Features / Screenshots
 

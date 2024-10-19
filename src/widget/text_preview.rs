@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use ansi_to_tui::IntoText;
 use once_cell::sync::Lazy;
 use ratatui::{
@@ -22,7 +24,22 @@ use crate::{
     widget::{ScrollLines, ScrollLinesOptions, ScrollLinesState},
 };
 
-static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(SyntaxSet::load_defaults_newlines);
+static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
+    if let Ok(path) = Config::preview_syntax_dir_path() {
+        let path = PathBuf::from(path); // fixme: remove when function returns pathbuf directly
+        if path.exists() {
+            // SyntaxSetBuilder::build is terribly slow in debug build...
+            // To avoid unnecessary processing, we won't use the builder if the syntax directory doesn't exist...
+            let mut builder = SyntaxSet::load_defaults_newlines().into_builder();
+            builder.add_from_folder(path, true).unwrap();
+            builder.build()
+        } else {
+            SyntaxSet::load_defaults_newlines()
+        }
+    } else {
+        SyntaxSet::load_defaults_newlines()
+    }
+});
 static DEFAULT_THEME_SET: Lazy<ThemeSet> = Lazy::new(ThemeSet::load_defaults);
 static USER_THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
     Config::preview_theme_dir_path()
