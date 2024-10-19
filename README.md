@@ -167,15 +167,16 @@ You can change the color theme by specifying the theme name in `preview.highligh
 
 By default the following themes are available:
 
-- base16-ocean.dark
-- base16-eighties.dark
-- base16-mocha.dark
-- base16-ocean.light
+- `base16-ocean.dark`
+- `base16-eighties.dark`
+- `base16-mocha.dark`
+- `base16-ocean.light`
   - https://github.com/SublimeText/Spacegray
-- InspiredGitHub
+- `InspiredGitHub`
   - https://github.com/sethlopez/InspiredGitHub.tmtheme
-- Solarized (dark)
-- Solarized (light)
+- `Solarized (dark)`
+- `Solarized (light)`
+  - https://github.com/altercation/solarized
 
 Also, by creating `xxx.tmTheme` in `$STU_ROOT_DIR/preview_theme/`, you can use `xxx` and load it.
 
