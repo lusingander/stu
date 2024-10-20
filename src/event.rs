@@ -1,5 +1,6 @@
 use std::{
     fmt::{self, Debug, Formatter},
+    path::PathBuf,
     sync::mpsc,
     thread,
 };
@@ -158,11 +159,11 @@ impl CompleteLoadObjectVersionsResult {
 #[derive(Debug)]
 pub struct CompleteDownloadObjectResult {
     pub obj: RawObject,
-    pub path: String,
+    pub path: PathBuf,
 }
 
 impl CompleteDownloadObjectResult {
-    pub fn new(obj: Result<RawObject>, path: String) -> Result<CompleteDownloadObjectResult> {
+    pub fn new(obj: Result<RawObject>, path: PathBuf) -> Result<CompleteDownloadObjectResult> {
         let obj = obj?;
         Ok(CompleteDownloadObjectResult { obj, path })
     }
@@ -173,7 +174,7 @@ pub struct CompletePreviewObjectResult {
     pub obj: RawObject,
     pub file_detail: FileDetail,
     pub file_version_id: Option<String>,
-    pub path: String,
+    pub path: PathBuf,
 }
 
 impl CompletePreviewObjectResult {
@@ -181,7 +182,7 @@ impl CompletePreviewObjectResult {
         obj: Result<RawObject>,
         file_detail: FileDetail,
         file_version_id: Option<String>,
-        path: String,
+        path: PathBuf,
     ) -> Result<CompletePreviewObjectResult> {
         let obj = obj?;
         Ok(CompletePreviewObjectResult {

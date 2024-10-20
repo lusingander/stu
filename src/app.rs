@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 use tokio::spawn;
 
 use crate::{
@@ -424,7 +424,7 @@ impl App {
     }
 
     pub fn preview_download_object(&self, obj: RawObject, path: String) {
-        let result = CompleteDownloadObjectResult::new(Ok(obj), path);
+        let result = CompleteDownloadObjectResult::new(Ok(obj), PathBuf::from(path));
         self.tx.send(AppEventType::CompleteDownloadObject(result));
     }
 
@@ -480,7 +480,10 @@ impl App {
         };
         match result {
             Ok(path) => {
-                let msg = format!("Download completed successfully: {}", path);
+                let msg = format!(
+                    "Download completed successfully: {}",
+                    path.to_string_lossy()
+                );
                 self.tx.send(AppEventType::NotifySuccess(msg));
             }
             Err(e) => {
@@ -527,7 +530,7 @@ impl App {
                     file_detail,
                     file_version_id,
                     obj,
-                    path,
+                    path.to_string_lossy().into(),
                     current_object_key,
                     self.config.preview.clone(),
                     self.theme.clone(),
@@ -551,7 +554,7 @@ impl App {
         version_id: Option<String>,
         f: F,
     ) where
-        F: FnOnce(Sender, Result<RawObject>, String) + Send + 'static,
+        F: FnOnce(Sender, Result<RawObject>, PathBuf) + Send + 'static,
     {
         let object_key = match self.page_stack.current_page() {
             page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),

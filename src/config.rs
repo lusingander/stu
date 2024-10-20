@@ -135,10 +135,9 @@ impl Config {
         confy::load_path(path).context("Failed to load config file")
     }
 
-    pub fn download_file_path(&self, name: &str) -> String {
+    pub fn download_file_path(&self, name: &str) -> PathBuf {
         let dir = PathBuf::from(self.download_dir.clone());
-        let path = dir.join(name);
-        String::from(path.to_string_lossy())
+        dir.join(name)
     }
 
     pub fn error_log_path(&self) -> anyhow::Result<String> {
