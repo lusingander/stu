@@ -707,7 +707,7 @@ impl App {
 
         // cause panic if save errors
         let path = self.config.error_log_path().unwrap();
-        save_error_log(&path, e).unwrap();
+        save_error_log(path, e).unwrap();
     }
 
     pub fn dump_app(&self) {

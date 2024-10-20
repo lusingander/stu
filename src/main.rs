@@ -127,7 +127,7 @@ fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
 fn initialize_debug_log(args: &Args, config: &Config) -> anyhow::Result<()> {
     if args.debug {
         let path = config.debug_log_path()?;
-        let file = open_or_create_append_file(&path)?;
+        let file = open_or_create_append_file(path)?;
         tracing_subscriber::fmt()
             .with_ansi(false)
             .with_timer(ChronoLocal::rfc_3339())
