@@ -155,10 +155,9 @@ impl Config {
         Ok(dir.join(CACHE_FILE_NAME))
     }
 
-    pub fn preview_theme_dir_path() -> anyhow::Result<String> {
+    pub fn preview_theme_dir_path() -> anyhow::Result<PathBuf> {
         let dir = Config::get_app_base_dir()?;
-        let path = dir.join(PREVIEW_THEME_DIR);
-        Ok(String::from(path.to_string_lossy()))
+        Ok(dir.join(PREVIEW_THEME_DIR))
     }
 
     pub fn preview_syntax_dir_path() -> anyhow::Result<String> {
