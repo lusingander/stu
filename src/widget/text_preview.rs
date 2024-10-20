@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use ansi_to_tui::IntoText;
 use once_cell::sync::Lazy;
 use ratatui::{
@@ -26,7 +24,6 @@ use crate::{
 
 static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
     if let Ok(path) = Config::preview_syntax_dir_path() {
-        let path = PathBuf::from(path); // fixme: remove when function returns pathbuf directly
         if path.exists() {
             // SyntaxSetBuilder::build is terribly slow in debug build...
             // To avoid unnecessary processing, we won't use the builder if the syntax directory doesn't exist...
