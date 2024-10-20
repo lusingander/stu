@@ -145,10 +145,9 @@ impl Config {
         Ok(dir.join(ERROR_LOG_FILE_NAME))
     }
 
-    pub fn debug_log_path(&self) -> anyhow::Result<String> {
+    pub fn debug_log_path(&self) -> anyhow::Result<PathBuf> {
         let dir = Config::get_app_base_dir()?;
-        let path = dir.join(DEBUG_LOG_FILE_NAME);
-        Ok(String::from(path.to_string_lossy()))
+        Ok(dir.join(DEBUG_LOG_FILE_NAME))
     }
 
     pub fn cache_file_path() -> anyhow::Result<String> {
