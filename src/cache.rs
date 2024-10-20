@@ -1,9 +1,11 @@
-use std::collections::HashMap;
-use std::fmt;
-use std::fs::OpenOptions;
-use std::io::Read;
-use std::io::{self, Write};
-use std::sync::RwLock;
+use std::{
+    collections::HashMap,
+    fmt,
+    fs::OpenOptions,
+    io::{self, Read, Write},
+    path::PathBuf,
+    sync::RwLock,
+};
 
 pub struct SimpleStringCache {
     pub cache: RwLock<HashMap<String, String>>,
@@ -21,12 +23,12 @@ impl fmt::Debug for SimpleStringCache {
 }
 
 impl SimpleStringCache {
-    pub fn new(file_path: String) -> SimpleStringCache {
+    pub fn new(file_path: PathBuf) -> SimpleStringCache {
         let cache = HashMap::new();
 
         let cache = SimpleStringCache {
             cache: RwLock::new(cache),
-            file_path,
+            file_path: file_path.to_string_lossy().into(),
         };
 
         cache.load_from_file().unwrap();
