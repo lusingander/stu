@@ -20,8 +20,8 @@ pub fn save_binary<P: AsRef<Path>>(path: P, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
-pub fn save_error_log(path: &str, e: &AppError) -> Result<()> {
-    create_dirs(path)?;
+pub fn save_error_log<P: AsRef<Path>>(path: P, e: &AppError) -> Result<()> {
+    create_dirs(&path)?;
 
     let mut f =
         open_or_create_append_file(path).map_err(|e| AppError::new("Failed to open file", e))?;
@@ -39,7 +39,7 @@ pub fn save_error_log(path: &str, e: &AppError) -> Result<()> {
     .map_err(|e| AppError::new("Failed to write file", e))
 }
 
-pub fn open_or_create_append_file(path: &str) -> std::io::Result<File> {
+pub fn open_or_create_append_file<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
     OpenOptions::new().create(true).append(true).open(path)
 }
 
