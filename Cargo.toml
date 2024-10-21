@@ -33,6 +33,7 @@ open = "5.3.0"
 ratatui = { version = "0.28.1", features = ["unstable-widget-ref"] }
 ratatui-image = "2.0.1"
 serde = { version = "1.0.210", features = ["derive"] }
+smart-default = "0.7.1"
 syntect = { version = "5.2.0", default-features = false, features = [
     "default-fancy",
 ] }
@@ -43,6 +44,7 @@ tracing = "0.1.40"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["chrono"] }
 tui-input = "0.10.1"
+umbra = "0.1.0"
 
 [dev-dependencies]
 rstest = "0.23.0"
