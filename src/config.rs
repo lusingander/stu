@@ -131,8 +131,17 @@ fn default_preview_highlight_theme() -> String {
 impl Config {
     pub fn load() -> anyhow::Result<Config> {
         let dir = Config::get_app_base_dir()?;
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir)?;
+        }
         let path = dir.join(CONFIG_FILE_NAME);
-        confy::load_path(path).context("Failed to load config file")
+        if path.exists() {
+            let content = std::fs::read_to_string(path)?;
+            let config = toml::from_str(&content)?;
+            Ok(config)
+        } else {
+            Ok(Config::default())
+        }
     }
 
     pub fn download_file_path(&self, name: &str) -> PathBuf {
