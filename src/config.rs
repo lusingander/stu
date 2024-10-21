@@ -1,7 +1,9 @@
 use std::{env, path::PathBuf};
 
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
+use smart_default::SmartDefault;
+use umbra::optional;
 
 const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 
@@ -14,88 +16,51 @@ const PREVIEW_THEME_DIR: &str = "preview_theme";
 const PREVIEW_SYNTAX_DIR: &str = "preview_syntax";
 const CACHE_FILE_NAME: &str = "cache.txt";
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[optional(derives = ["Deserialize"])]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct Config {
-    #[serde(default = "default_download_dir")]
+    #[default(_code = "default_download_dir()")]
     pub download_dir: String,
-    #[serde(default = "default_default_region")]
+    #[default = "us-east-1"]
     pub default_region: String,
-    #[serde(default)]
+    #[nested]
     pub ui: UiConfig,
-    #[serde(default)]
+    #[nested]
     pub preview: PreviewConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default, Clone)]
+#[optional(derives = ["Deserialize"])]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct UiConfig {
-    #[serde(default)]
+    #[nested]
     pub object_list: UiObjectListConfig,
-    #[serde(default)]
+    #[nested]
     pub object_detail: UiObjectDetailConfig,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[optional(derives = ["Deserialize"])]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct UiObjectListConfig {
-    #[serde(default = "default_ui_object_list_date_format")]
+    #[default = "%Y-%m-%d %H:%M:%S"]
     pub date_format: String,
-    #[serde(default = "default_ui_object_list_date_width")]
+    #[default = 19] // // "2021-01-01 12:34:56".len()
     pub date_width: usize,
 }
 
-impl Default for UiObjectListConfig {
-    fn default() -> Self {
-        Self {
-            date_format: default_ui_object_list_date_format(),
-            date_width: default_ui_object_list_date_width(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[optional(derives = ["Deserialize"])]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct UiObjectDetailConfig {
-    #[serde(default = "default_ui_object_detail_date_format")]
+    #[default = "%Y-%m-%d %H:%M:%S"]
     pub date_format: String,
 }
 
-impl Default for UiObjectDetailConfig {
-    fn default() -> Self {
-        Self {
-            date_format: default_ui_object_detail_date_format(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[optional(derives = ["Deserialize"])]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct PreviewConfig {
-    #[serde(default)]
     pub highlight: bool,
-    #[serde(default = "default_preview_highlight_theme")]
+    #[default = "base16-ocean.dark"]
     pub highlight_theme: String,
-    #[serde(default)]
     pub image: bool,
-}
-
-impl Default for PreviewConfig {
-    fn default() -> Self {
-        Self {
-            highlight: false,
-            highlight_theme: default_preview_highlight_theme(),
-            image: false,
-        }
-    }
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        let download_dir = default_download_dir();
-        let default_region = default_default_region();
-        Self {
-            download_dir,
-            default_region,
-            ui: UiConfig::default(),
-            preview: PreviewConfig::default(),
-        }
-    }
 }
 
 fn default_download_dir() -> String {
@@ -108,31 +73,20 @@ fn default_download_dir() -> String {
     }
 }
 
-fn default_default_region() -> String {
-    "us-east-1".to_string()
-}
-
-fn default_ui_object_list_date_format() -> String {
-    "%Y-%m-%d %H:%M:%S".to_string()
-}
-
-fn default_ui_object_list_date_width() -> usize {
-    19 // "2021-01-01 12:34:56".len()
-}
-
-fn default_ui_object_detail_date_format() -> String {
-    "%Y-%m-%d %H:%M:%S".to_string()
-}
-
-fn default_preview_highlight_theme() -> String {
-    "base16-ocean.dark".to_string()
-}
-
 impl Config {
     pub fn load() -> anyhow::Result<Config> {
         let dir = Config::get_app_base_dir()?;
+        if !dir.exists() {
+            std::fs::create_dir_all(&dir)?;
+        }
         let path = dir.join(CONFIG_FILE_NAME);
-        confy::load_path(path).context("Failed to load config file")
+        if path.exists() {
+            let content = std::fs::read_to_string(path)?;
+            let config: OptionalConfig = toml::from_str(&content)?;
+            Ok(config.into())
+        } else {
+            Ok(Config::default())
+        }
     }
 
     pub fn download_file_path(&self, name: &str) -> PathBuf {
