@@ -18,9 +18,9 @@ exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 ansi-to-tui = "6.0.0"
 anyhow = "1.0.91"
 arboard = "3.4.1"
-aws-config = "1.5.8"
-aws-sdk-s3 = "1.57.0"
-aws-smithy-types = "1.2.4"
+aws-config = "1.5.9"
+aws-sdk-s3 = "1.58.0"
+aws-smithy-types = "1.2.8"
 chrono = "0.4.38"
 clap = { version = "4.5.20", features = ["derive"] }
 dirs = "5.0.1"
