@@ -5,6 +5,7 @@ use crate::{
     client::Client,
     color::ColorTheme,
     config::Config,
+    environment::Environment,
     error::{AppError, Result},
     event::{
         AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
@@ -58,18 +59,27 @@ pub struct App {
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
     config: Config,
+    env: Environment,
     pub theme: ColorTheme,
     tx: Sender,
 }
 
 impl App {
-    pub fn new(config: Config, theme: ColorTheme, tx: Sender, width: usize, height: usize) -> App {
+    pub fn new(
+        config: Config,
+        env: Environment,
+        theme: ColorTheme,
+        tx: Sender,
+        width: usize,
+        height: usize,
+    ) -> App {
         App {
             app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(theme.clone(), tx.clone()),
             client: None,
             config,
+            env,
             theme,
             tx,
         }
@@ -533,6 +543,7 @@ impl App {
                     path.to_string_lossy().into(),
                     current_object_key,
                     self.config.preview.clone(),
+                    self.env.clone(),
                     self.theme.clone(),
                     self.tx.clone(),
                 );

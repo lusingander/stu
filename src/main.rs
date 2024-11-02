@@ -4,6 +4,7 @@ mod client;
 mod color;
 mod config;
 mod constant;
+mod environment;
 mod error;
 mod event;
 mod file;
@@ -27,6 +28,7 @@ use crate::app::App;
 use crate::client::Client;
 use crate::color::ColorTheme;
 use crate::config::Config;
+use crate::environment::Environment;
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum PathStyle {
@@ -78,12 +80,13 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = Config::load()?;
+    let env = Environment::new(&config);
     let theme = ColorTheme::default();
 
     initialize_debug_log(&args, &config)?;
 
     let mut terminal = ratatui::try_init()?;
-    let ret = run(&mut terminal, args, config, theme).await;
+    let ret = run(&mut terminal, args, config, env, theme).await;
 
     ratatui::try_restore()?;
 
@@ -94,13 +97,14 @@ async fn run<B: Backend>(
     terminal: &mut Terminal<B>,
     args: Args,
     config: Config,
+    env: Environment,
     theme: ColorTheme,
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
     let default_region_fallback = config.default_region.clone();
 
-    let mut app = App::new(config, theme, tx.clone(), width, height);
+    let mut app = App::new(config, env, theme, tx.clone(), width, height);
 
     spawn(async move {
         let client = Client::new(

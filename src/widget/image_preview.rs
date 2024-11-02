@@ -14,7 +14,7 @@ use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
 use crate::ui::common::format_version;
 
 pub struct ImagePreviewState {
-    protocol: Option<Box<dyn StatefulProtocol>>,
+    protocol: Option<StatefulProtocol>,
     // to control image rendering when dialogs are overlapped...
     render: bool,
 }
@@ -25,9 +25,15 @@ impl Debug for ImagePreviewState {
     }
 }
 
+pub enum ImagePicker {
+    Disabled,
+    Ok(Picker),
+    Error(String),
+}
+
 impl ImagePreviewState {
-    pub fn new(bytes: &[u8], enabled: bool) -> (Self, Option<String>) {
-        match build_image_protocol(bytes, enabled) {
+    pub fn new(bytes: &[u8], image_picker: ImagePicker) -> (Self, Option<String>) {
+        match build_image_protocol(bytes, image_picker) {
             Ok(protocol) => {
                 let state = ImagePreviewState {
                     protocol: Some(protocol),
@@ -50,38 +56,23 @@ impl ImagePreviewState {
     }
 }
 
-fn build_image_protocol(bytes: &[u8], enabled: bool) -> Result<Box<dyn StatefulProtocol>, String> {
-    if !enabled {
-        return Err("Image preview is disabled".to_string());
+fn build_image_protocol(
+    bytes: &[u8],
+    image_picker: ImagePicker,
+) -> Result<StatefulProtocol, String> {
+    match image_picker {
+        ImagePicker::Ok(mut picker) => {
+            let reader = ImageReader::new(Cursor::new(bytes))
+                .with_guessed_format()
+                .map_err(|e| format!("Failed to guess image format: {e}"))?;
+            let img: DynamicImage = reader
+                .decode()
+                .map_err(|e| format!("Failed to decode image: {e}"))?;
+            Ok(picker.new_resize_protocol(img))
+        }
+        ImagePicker::Error(e) => Err(format!("Failed to create picker: {e}")),
+        ImagePicker::Disabled => Err("Image preview is disabled".into()),
     }
-
-    let reader = ImageReader::new(Cursor::new(bytes))
-        .with_guessed_format()
-        .map_err(|e| format!("Failed to guess image format: {e}"))?;
-
-    let img: DynamicImage = reader
-        .decode()
-        .map_err(|e| format!("Failed to decode image: {e}"))?;
-
-    let mut picker = build_picker()?;
-    Ok(picker.new_resize_protocol(img))
-}
-
-#[cfg(not(feature = "imggen"))]
-fn build_picker() -> Result<Picker, String> {
-    let mut picker = Picker::from_termios().map_err(|e| format!("Failed to create picker: {e}"))?;
-    picker.guess_protocol();
-    Ok(picker)
-}
-
-#[cfg(feature = "imggen")]
-fn build_picker() -> Result<Picker, String> {
-    // - font size cannot be obtained with xterm.js
-    // - want to fix the protocol to iterm2
-    // so changed the settings with the imggen feature
-    let mut picker = Picker::new((10, 20));
-    picker.protocol_type = ratatui_image::picker::ProtocolType::Iterm2;
-    Ok(picker)
 }
 
 #[derive(Debug)]

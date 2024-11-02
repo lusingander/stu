@@ -3,6 +3,7 @@ use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 use crate::{
     color::ColorTheme,
     config::{PreviewConfig, UiConfig},
+    environment::Environment,
     event::Sender,
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::{
@@ -121,6 +122,7 @@ impl Page {
         path: String,
         object_key: ObjectKey,
         preview_config: PreviewConfig,
+        env: Environment,
         theme: ColorTheme,
         tx: Sender,
     ) -> Self {
@@ -131,6 +133,7 @@ impl Page {
             path,
             object_key,
             preview_config,
+            env,
             theme,
             tx,
         )))

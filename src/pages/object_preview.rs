@@ -7,12 +7,13 @@ use ratatui::{
 use crate::{
     color::ColorTheme,
     config::PreviewConfig,
+    environment::{Environment, ImagePicker},
     event::{AppEventType, Sender},
     key_code, key_code_char,
     object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
     widget::{
-        ImagePreview, ImagePreviewState, InputDialog, InputDialogState, TextPreview,
+        self, ImagePreview, ImagePreviewState, InputDialog, InputDialogState, TextPreview,
         TextPreviewState,
     },
 };
@@ -54,11 +55,12 @@ impl ObjectPreviewPage {
         path: String,
         object_key: ObjectKey,
         preview_config: PreviewConfig,
+        env: Environment,
         theme: ColorTheme,
         tx: Sender,
     ) -> Self {
         let preview_type = if infer::is_image(&object.bytes) {
-            let (state, msg) = ImagePreviewState::new(&object.bytes, preview_config.image);
+            let (state, msg) = ImagePreviewState::new(&object.bytes, env.image_picker.into());
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }
@@ -318,6 +320,16 @@ impl ObjectPreviewPage {
     }
 }
 
+impl From<ImagePicker> for widget::ImagePicker {
+    fn from(value: ImagePicker) -> Self {
+        match value {
+            ImagePicker::Disabled => widget::ImagePicker::Disabled,
+            ImagePicker::Ok(picker) => widget::ImagePicker::Ok(picker),
+            ImagePicker::Error(e) => widget::ImagePicker::Error(e),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{event, set_cells};
@@ -335,6 +347,7 @@ mod tests {
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
         let theme = ColorTheme::default();
+        let env = Environment::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -360,6 +373,7 @@ mod tests {
                 file_path,
                 object_key,
                 preview_config,
+                env,
                 theme,
                 tx,
             );
@@ -392,6 +406,7 @@ mod tests {
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
         let theme = ColorTheme::default();
+        let env = Environment::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -412,6 +427,7 @@ mod tests {
                 file_path,
                 object_key,
                 preview_config,
+                env,
                 theme,
                 tx,
             );
@@ -444,6 +460,7 @@ mod tests {
     #[test]
     fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
         let theme = ColorTheme::default();
+        let env = Environment::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -469,6 +486,7 @@ mod tests {
                 file_path,
                 object_key,
                 preview_config,
+                env,
                 theme,
                 tx,
             );
