@@ -16,7 +16,7 @@ pub use copy_detail_dialog::{CopyDetailDialog, CopyDetailDialogState};
 pub use dialog::Dialog;
 pub use divider::Divider;
 pub use header::Header;
-pub use image_preview::{ImagePreview, ImagePreviewState};
+pub use image_preview::{ImagePicker, ImagePreview, ImagePreviewState};
 pub use input_dialog::{InputDialog, InputDialogState};
 pub use scroll::ScrollBar;
 pub use scroll_lines::{ScrollLines, ScrollLinesOptions, ScrollLinesState};
