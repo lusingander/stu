@@ -16,13 +16,13 @@ impl<'a> Dialog<'a> {
     }
 }
 
-impl<'a> WidgetRef for Dialog<'a> {
+impl WidgetRef for Dialog<'_> {
     fn render_ref(&self, area: Rect, buf: &mut Buffer) {
         self.render_dialog(area, buf);
     }
 }
 
-impl<'a> Dialog<'a> {
+impl Dialog<'_> {
     fn render_dialog(&self, area: Rect, buf: &mut Buffer) {
         let outer = outer_rect(area, &Margin::new(1, 0));
         Clear.render(outer, buf);
