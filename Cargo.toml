@@ -19,7 +19,7 @@ ansi-to-tui = "7.0.0"
 anyhow = "1.0.93"
 arboard = "3.4.1"
 aws-config = "1.5.10"
-aws-sdk-s3 = "1.61.0"
+aws-sdk-s3 = "1.63.0"
 aws-smithy-types = "1.2.9"
 chrono = "0.4.38"
 clap = { version = "4.5.21", features = ["derive"] }
@@ -40,11 +40,11 @@ syntect = { version = "5.2.0", default-features = false, features = [
 textwrap = "0.16.1"
 tokio = { version = "1.41.1", features = ["full"] }
 toml = "0.8.19"
-tracing = "0.1.40"
+tracing = "0.1.41"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.18", features = ["chrono"] }
-tui-input = "0.11.0"
-umbra = "0.1.0"
+tracing-subscriber = { version = "0.3.19", features = ["chrono"] }
+tui-input = "0.11.1"
+umbra = "0.2.0"
 
 [dev-dependencies]
 rstest = "0.23.0"
