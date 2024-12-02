@@ -16,7 +16,7 @@ const PREVIEW_THEME_DIR: &str = "preview_theme";
 const PREVIEW_SYNTAX_DIR: &str = "preview_syntax";
 const CACHE_FILE_NAME: &str = "cache.txt";
 
-#[optional(derives = ["Deserialize"])]
+#[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
 pub struct Config {
     #[default(_code = "default_download_dir()")]
@@ -29,7 +29,7 @@ pub struct Config {
     pub preview: PreviewConfig,
 }
 
-#[optional(derives = ["Deserialize"])]
+#[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
 pub struct UiConfig {
     #[nested]
@@ -38,7 +38,7 @@ pub struct UiConfig {
     pub object_detail: UiObjectDetailConfig,
 }
 
-#[optional(derives = ["Deserialize"])]
+#[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
 pub struct UiObjectListConfig {
     #[default = "%Y-%m-%d %H:%M:%S"]
@@ -47,14 +47,14 @@ pub struct UiObjectListConfig {
     pub date_width: usize,
 }
 
-#[optional(derives = ["Deserialize"])]
+#[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
 pub struct UiObjectDetailConfig {
     #[default = "%Y-%m-%d %H:%M:%S"]
     pub date_format: String,
 }
 
-#[optional(derives = ["Deserialize"])]
+#[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
 pub struct PreviewConfig {
     pub highlight: bool,
