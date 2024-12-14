@@ -77,16 +77,6 @@ pub fn extension_from_file_name(filename: &str) -> String {
         .unwrap_or_default()
 }
 
-pub fn split_str(s: &str, sp: &str) -> Option<(String, String, String)> {
-    s.find(sp).map(|start| {
-        let mut chars = s.chars();
-        let before = chars.by_ref().take(start).collect::<String>();
-        let matched = chars.by_ref().take(sp.chars().count()).collect::<String>();
-        let after = chars.collect::<String>();
-        (before, matched, after)
-    })
-}
-
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
@@ -165,22 +155,5 @@ mod tests {
     fn test_extension_from_file_name() {
         assert_eq!(extension_from_file_name("a.txt"), "txt");
         assert_eq!(extension_from_file_name("a.gif.txt"), "txt");
-    }
-
-    #[test]
-    fn test_split_str() {
-        fn assert(s: &str, sp: &str, expected: Option<(&str, &str, &str)>) {
-            let actual = split_str(s, sp);
-            assert_eq!(
-                actual,
-                expected.map(|(a, b, c)| (a.into(), b.into(), c.into()))
-            );
-        }
-        assert("abc", "b", Some(("a", "b", "c")));
-        assert("abc", "c", Some(("ab", "c", "")));
-        assert("abc", "a", Some(("", "a", "bc")));
-        assert("abc", "d", None);
-        assert("abc", "abc", Some(("", "abc", "")));
-        assert("abcdefg", "cd", Some(("ab", "cd", "efg")));
     }
 }
