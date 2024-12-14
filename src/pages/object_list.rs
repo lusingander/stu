@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
 use chrono::{DateTime, Local};
+use laurier::{key_code, key_code_char};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
@@ -14,7 +15,6 @@ use crate::{
     color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
-    key_code, key_code_char,
     object::{ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte},

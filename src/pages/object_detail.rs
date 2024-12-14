@@ -1,3 +1,4 @@
+use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{KeyCode, KeyEvent},
@@ -12,7 +13,6 @@ use crate::{
     color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
-    key_code, key_code_char,
     object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte, format_version},

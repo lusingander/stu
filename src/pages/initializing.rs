@@ -1,3 +1,4 @@
+use laurier::key_code;
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
@@ -9,7 +10,6 @@ use ratatui::{
 use crate::{
     color::ColorTheme,
     event::{AppEventType, Sender},
-    key_code,
     pages::util::build_short_helps,
 };
 

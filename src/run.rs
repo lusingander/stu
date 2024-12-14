@@ -1,10 +1,10 @@
+use laurier::{key_code, key_code_char};
 use ratatui::{backend::Backend, crossterm::event::KeyCode, Terminal};
 use std::io::Result;
 
 use crate::{
     app::{App, Notification},
     event::{AppEventType, Receiver},
-    key_code, key_code_char,
     pages::page::Page,
     ui,
 };

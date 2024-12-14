@@ -1,3 +1,4 @@
+use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
     crossterm::event::{KeyCode, KeyEvent},
@@ -12,7 +13,6 @@ use crate::{
     color::ColorTheme,
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
     event::{AppEventType, Sender},
-    key_code, key_code_char,
     pages::util::build_short_helps,
     util::group_strings_to_fit_width,
     widget::Divider,

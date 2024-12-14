@@ -1,3 +1,4 @@
+use laurier::{key_code, key_code_char};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
@@ -9,7 +10,6 @@ use crate::{
     config::PreviewConfig,
     environment::{Environment, ImagePicker},
     event::{AppEventType, Sender},
-    key_code, key_code_char,
     object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
     widget::{

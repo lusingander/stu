@@ -1,5 +1,6 @@
 use std::cmp::Ordering;
 
+use laurier::{key_code, key_code_char};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
@@ -12,7 +13,6 @@ use ratatui::{
 use crate::{
     color::ColorTheme,
     event::{AppEventType, Sender},
-    key_code, key_code_char,
     object::{BucketItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     util::split_str,
