@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 
-use laurier::{key_code, key_code_char};
+use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
-    style::{Style, Stylize},
+    style::Style,
     text::Line,
     widgets::ListItem,
     Frame,
@@ -15,7 +15,6 @@ use crate::{
     event::{AppEventType, Sender},
     object::{BucketItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
-    util::split_str,
     widget::{
         BucketListSortDialog, BucketListSortDialogState, BucketListSortType, CopyDetailDialog,
         CopyDetailDialogState, InputDialog, InputDialogState, ScrollList, ScrollListState,
@@ -489,14 +488,15 @@ fn build_list_item<'a>(
     let line = if filter.is_empty() {
         Line::from(vec![" ".into(), name.into(), " ".into()])
     } else {
-        let (before, highlighted, after) = split_str(name, filter).unwrap();
-        Line::from(vec![
-            " ".into(),
-            before.into(),
-            highlighted.fg(theme.list_filter_match),
-            after.into(),
-            " ".into(),
-        ])
+        let i = name.find(filter).unwrap();
+        let mut spans = highlight_matched_text(name)
+            .matched_range(i, i + filter.chars().count())
+            .not_matched_style(Style::default())
+            .matched_style(Style::default().fg(theme.list_filter_match))
+            .into_spans();
+        spans.insert(0, " ".into());
+        spans.push(" ".into());
+        Line::from(spans)
     };
 
     let style = if selected {

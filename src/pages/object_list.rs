@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 
 use chrono::{DateTime, Local};
-use laurier::{key_code, key_code_char};
+use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
     layout::Rect,
@@ -18,7 +18,6 @@ use crate::{
     object::{ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     ui::common::{format_datetime, format_size_byte},
-    util::split_str,
     widget::{
         CopyDetailDialog, CopyDetailDialogState, InputDialog, InputDialogState,
         ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType, ScrollList,
@@ -588,15 +587,16 @@ fn build_object_dir_line<'a>(name: &'a str, filter: &'a str, theme: &ColorTheme)
     if filter.is_empty() {
         Line::from(vec![" ".into(), name.bold(), "/".bold(), " ".into()])
     } else {
-        let (before, highlighted, after) = split_str(name, filter).unwrap();
-        Line::from(vec![
-            " ".into(),
-            before.bold(),
-            highlighted.fg(theme.list_filter_match).bold(),
-            after.bold(),
-            "/".bold(),
-            " ".into(),
-        ])
+        let i = name.find(filter).unwrap();
+        let mut spans = highlight_matched_text(name)
+            .matched_range(i, i + filter.chars().count())
+            .not_matched_style(Style::default().bold())
+            .matched_style(Style::default().fg(theme.list_filter_match).bold())
+            .into_spans();
+        spans.insert(0, " ".into());
+        spans.push("/".bold());
+        spans.push(" ".into());
+        Line::from(spans)
     }
 }
 
@@ -630,18 +630,19 @@ fn build_object_file_line<'a>(
             " ".into(),
         ])
     } else {
-        let (before, highlighted, after) = split_str(&name, filter).unwrap();
-        Line::from(vec![
-            " ".into(),
-            before.into(),
-            highlighted.fg(theme.list_filter_match),
-            after.into(),
-            "    ".into(),
-            date.into(),
-            "    ".into(),
-            size.into(),
-            " ".into(),
-        ])
+        let i = name.find(filter).unwrap();
+        let mut spans = highlight_matched_text(name)
+            .matched_range(i, i + filter.chars().count())
+            .not_matched_style(Style::default())
+            .matched_style(Style::default().fg(theme.list_filter_match))
+            .into_spans();
+        spans.insert(0, " ".into());
+        spans.push("    ".into());
+        spans.push(date.into());
+        spans.push("    ".into());
+        spans.push(size.into());
+        spans.push(" ".into());
+        Line::from(spans)
     }
 }
 
