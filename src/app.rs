@@ -28,33 +28,7 @@ pub enum Notification {
 }
 
 #[derive(Debug)]
-pub struct AppViewState {
-    pub notification: Notification,
-    pub is_loading: bool,
-
-    width: usize,
-    height: usize,
-}
-
-impl AppViewState {
-    fn new(width: usize, height: usize) -> AppViewState {
-        AppViewState {
-            notification: Notification::None,
-            is_loading: true,
-            width,
-            height,
-        }
-    }
-
-    pub fn reset_size(&mut self, width: usize, height: usize) {
-        self.width = width;
-        self.height = height;
-    }
-}
-
-#[derive(Debug)]
 pub struct App {
-    pub app_view_state: AppViewState,
     pub page_stack: PageStack,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
@@ -62,6 +36,11 @@ pub struct App {
     env: Environment,
     pub theme: ColorTheme,
     tx: Sender,
+
+    pub notification: Notification,
+    pub is_loading: bool,
+    width: usize,
+    height: usize,
 }
 
 impl App {
@@ -74,7 +53,6 @@ impl App {
         height: usize,
     ) -> App {
         App {
-            app_view_state: AppViewState::new(width, height),
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(theme.clone(), tx.clone()),
             client: None,
@@ -82,11 +60,16 @@ impl App {
             env,
             theme,
             tx,
+            notification: Notification::None,
+            is_loading: true,
+            width,
+            height,
         }
     }
 
     pub fn resize(&mut self, width: usize, height: usize) {
-        self.app_view_state.reset_size(width, height);
+        self.width = width;
+        self.height = height;
     }
 
     pub fn initialize(&mut self, client: Client, bucket: Option<String>) {
@@ -133,7 +116,7 @@ impl App {
                 let msg = format!("No bucket found (region: {})", client.region());
                 self.tx.send(AppEventType::NotifyWarn(msg));
             }
-            self.app_view_state.is_loading = false;
+            self.is_loading = false;
         }
     }
 
@@ -167,7 +150,7 @@ impl App {
             self.page_stack.push(object_list_page);
         } else {
             self.tx.send(AppEventType::LoadObjects);
-            self.app_view_state.is_loading = true;
+            self.is_loading = true;
         }
     }
 
@@ -175,7 +158,7 @@ impl App {
         self.app_objects.clear_all();
 
         self.tx.send(AppEventType::ReloadBuckets);
-        self.app_view_state.is_loading = true;
+        self.is_loading = true;
     }
 
     pub fn object_list_move_down(&mut self) {
@@ -201,7 +184,7 @@ impl App {
                     self.page_stack.push(object_detail_page);
                 } else {
                     self.tx.send(AppEventType::LoadObjectDetail);
-                    self.app_view_state.is_loading = true;
+                    self.is_loading = true;
                 }
             }
             ObjectItem::Dir { .. } => {
@@ -218,7 +201,7 @@ impl App {
                     self.page_stack.push(new_object_list_page);
                 } else {
                     self.tx.send(AppEventType::LoadObjects);
-                    self.app_view_state.is_loading = true;
+                    self.is_loading = true;
                 }
             }
         }
@@ -238,7 +221,7 @@ impl App {
         self.app_objects.clear_object_items_under(object_key);
 
         self.tx.send(AppEventType::ReloadObjects);
-        self.app_view_state.is_loading = true;
+        self.is_loading = true;
     }
 
     pub fn back_to_bucket_list(&mut self) {
@@ -289,7 +272,7 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
-        self.app_view_state.is_loading = false;
+        self.is_loading = false;
     }
 
     pub fn reload_objects(&self) {
@@ -358,7 +341,7 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
-        self.app_view_state.is_loading = false;
+        self.is_loading = false;
     }
 
     pub fn open_object_versions_tab(&mut self) {
@@ -375,7 +358,7 @@ impl App {
                 .send(AppEventType::CompleteLoadObjectVersions(result));
         } else {
             self.tx.send(AppEventType::LoadObjectVersions);
-            self.app_view_state.is_loading = true;
+            self.is_loading = true;
         }
     }
 
@@ -411,7 +394,7 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
-        self.app_view_state.is_loading = false;
+        self.is_loading = false;
     }
 
     pub fn open_help(&mut self) {
@@ -430,7 +413,7 @@ impl App {
     pub fn detail_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
         self.tx
             .send(AppEventType::DownloadObject(file_detail, version_id));
-        self.app_view_state.is_loading = true;
+        self.is_loading = true;
     }
 
     pub fn preview_download_object(&self, obj: RawObject, path: String) {
@@ -441,7 +424,7 @@ impl App {
     pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
         self.tx
             .send(AppEventType::PreviewObject(file_detail, version_id));
-        self.app_view_state.is_loading = true;
+        self.is_loading = true;
     }
 
     pub fn download_object(&self, file_detail: FileDetail, version_id: Option<String>) {
@@ -500,7 +483,7 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
-        self.app_view_state.is_loading = false;
+        self.is_loading = false;
 
         if let Page::ObjectPreview(page) = self.page_stack.current_page() {
             if page.is_image_preview() {
@@ -554,7 +537,7 @@ impl App {
             }
         };
         self.clear_notification();
-        self.app_view_state.is_loading = false;
+        self.is_loading = false;
     }
 
     fn download_object_and<F>(
@@ -652,7 +635,7 @@ impl App {
             input,
             version_id,
         ));
-        self.app_view_state.is_loading = true;
+        self.is_loading = true;
 
         let page = self.page_stack.current_page_mut().as_mut_object_detail();
         page.close_save_dialog();
@@ -669,7 +652,7 @@ impl App {
             input,
             version_id,
         ));
-        self.app_view_state.is_loading = true;
+        self.is_loading = true;
 
         let page = self.page_stack.current_page_mut().as_mut_object_preview();
         page.close_save_dialog();
@@ -693,24 +676,24 @@ impl App {
     }
 
     pub fn clear_notification(&mut self) {
-        self.app_view_state.notification = Notification::None;
+        self.notification = Notification::None;
     }
 
     pub fn info_notification(&mut self, msg: String) {
-        self.app_view_state.notification = Notification::Info(msg);
+        self.notification = Notification::Info(msg);
     }
 
     pub fn success_notification(&mut self, msg: String) {
-        self.app_view_state.notification = Notification::Success(msg);
+        self.notification = Notification::Success(msg);
     }
 
     pub fn warn_notification(&mut self, msg: String) {
-        self.app_view_state.notification = Notification::Warn(msg);
+        self.notification = Notification::Warn(msg);
     }
 
     pub fn error_notification(&mut self, e: AppError) {
         self.handle_error(&e);
-        self.app_view_state.notification = Notification::Error(e.msg);
+        self.notification = Notification::Error(e.msg);
     }
 
     fn handle_error(&self, e: &AppError) {

@@ -55,7 +55,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
-    match &app.app_view_state.notification {
+    match &app.notification {
         Notification::Info(msg) => {
             let msg = build_info_status(msg, &app.theme);
             f.render_widget(msg, area);
@@ -80,7 +80,7 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
-    if app.app_view_state.is_loading {
+    if app.is_loading {
         let loading = build_loading_dialog("Loading...", &app.theme);
         let area = calc_centered_dialog_rect(f.area(), 30, 5);
         let dialog = Dialog::new(Box::new(loading), app.theme.bg);

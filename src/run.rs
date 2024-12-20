@@ -30,12 +30,12 @@ pub async fn run<B: Backend>(
                     return Ok(());
                 }
 
-                if app.app_view_state.is_loading {
+                if app.is_loading {
                     // Ignore key inputs while loading (except quit)
                     continue;
                 }
 
-                if matches!(app.app_view_state.notification, Notification::Error(_)) {
+                if matches!(app.notification, Notification::Error(_)) {
                     if matches!(app.page_stack.current_page(), Page::Initializing(_)) {
                         return Ok(());
                     }
@@ -45,7 +45,7 @@ pub async fn run<B: Backend>(
                 }
 
                 if matches!(
-                    app.app_view_state.notification,
+                    app.notification,
                     Notification::Info(_) | Notification::Success(_) | Notification::Warn(_)
                 ) {
                     // Clear message and pass key input as is
