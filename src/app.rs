@@ -28,13 +28,24 @@ pub enum Notification {
 }
 
 #[derive(Debug)]
+pub struct AppContext {
+    pub config: Config,
+    pub env: Environment,
+    pub theme: ColorTheme,
+}
+
+impl AppContext {
+    pub fn new(config: Config, env: Environment, theme: ColorTheme) -> AppContext {
+        AppContext { config, env, theme }
+    }
+}
+
+#[derive(Debug)]
 pub struct App {
     pub page_stack: PageStack,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
-    config: Config,
-    env: Environment,
-    theme: ColorTheme,
+    ctx: AppContext,
     tx: Sender,
 
     notification: Notification,
@@ -44,21 +55,12 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(
-        config: Config,
-        env: Environment,
-        theme: ColorTheme,
-        tx: Sender,
-        width: usize,
-        height: usize,
-    ) -> App {
+    pub fn new(ctx: AppContext, tx: Sender, width: usize, height: usize) -> App {
         App {
             app_objects: AppObjects::default(),
-            page_stack: PageStack::new(theme.clone(), tx.clone()),
+            page_stack: PageStack::new(ctx.theme.clone(), tx.clone()),
             client: None,
-            config,
-            env,
-            theme,
+            ctx,
             tx,
             notification: Notification::None,
             is_loading: true,
@@ -93,7 +95,7 @@ impl App {
 
                 let bucket_list_page = Page::of_bucket_list(
                     self.app_objects.get_bucket_items(),
-                    self.theme.clone(),
+                    self.ctx.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.pop(); // remove initializing page
@@ -143,8 +145,8 @@ impl App {
             let object_list_page = Page::of_object_list(
                 current_object_items,
                 object_key,
-                self.config.ui.clone(),
-                self.theme.clone(),
+                self.ctx.config.ui.clone(),
+                self.ctx.theme.clone(),
                 self.tx.clone(),
             );
             self.page_stack.push(object_list_page);
@@ -177,8 +179,8 @@ impl App {
                         object_list_page.object_list(),
                         current_object_key,
                         object_list_page.list_state(),
-                        self.config.ui.clone(),
-                        self.theme.clone(),
+                        self.ctx.config.ui.clone(),
+                        self.ctx.theme.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
@@ -194,8 +196,8 @@ impl App {
                     let new_object_list_page = Page::of_object_list(
                         current_object_items,
                         object_key,
-                        self.config.ui.clone(),
-                        self.theme.clone(),
+                        self.ctx.config.ui.clone(),
+                        self.ctx.theme.clone(),
                         self.tx.clone(),
                     );
                     self.page_stack.push(new_object_list_page);
@@ -262,8 +264,8 @@ impl App {
                 let object_list_page = Page::of_object_list(
                     items,
                     current_object_key,
-                    self.config.ui.clone(),
-                    self.theme.clone(),
+                    self.ctx.config.ui.clone(),
+                    self.ctx.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_list_page);
@@ -331,8 +333,8 @@ impl App {
                     object_page.object_list(),
                     map_key,
                     object_page.list_state(),
-                    self.config.ui.clone(),
-                    self.theme.clone(),
+                    self.ctx.config.ui.clone(),
+                    self.ctx.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);
@@ -402,7 +404,7 @@ impl App {
         if helps.is_empty() {
             return;
         }
-        let help_page = Page::of_help(helps, self.theme.clone(), self.tx.clone());
+        let help_page = Page::of_help(helps, self.ctx.theme.clone(), self.tx.clone());
         self.page_stack.push(help_page);
     }
 
@@ -525,9 +527,9 @@ impl App {
                     obj,
                     path.to_string_lossy().into(),
                     current_object_key,
-                    self.config.preview.clone(),
-                    self.env.clone(),
-                    self.theme.clone(),
+                    self.ctx.config.preview.clone(),
+                    self.ctx.env.clone(),
+                    self.ctx.theme.clone(),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_preview_page);
@@ -560,6 +562,7 @@ impl App {
         let key = object_key.joined_object_path(true);
 
         let path = self
+            .ctx
             .config
             .download_file_path(save_file_name.unwrap_or(object_name));
 
@@ -676,7 +679,7 @@ impl App {
     }
 
     pub fn theme(&self) -> &ColorTheme {
-        &self.theme
+        &self.ctx.theme
     }
 
     pub fn loading(&self) -> bool {
@@ -712,7 +715,7 @@ impl App {
         tracing::error!("AppError occurred: {:?}", e);
 
         // cause panic if save errors
-        let path = self.config.error_log_path().unwrap();
+        let path = self.ctx.config.error_log_path().unwrap();
         save_error_log(path, e).unwrap();
     }
 

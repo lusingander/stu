@@ -24,7 +24,7 @@ use std::sync::Mutex;
 use tokio::spawn;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
-use crate::app::App;
+use crate::app::{App, AppContext};
 use crate::client::Client;
 use crate::color::ColorTheme;
 use crate::config::Config;
@@ -82,11 +82,12 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::load()?;
     let env = Environment::new(&config);
     let theme = ColorTheme::default();
+    let ctx = AppContext::new(config, env, theme);
 
-    initialize_debug_log(&args, &config)?;
+    initialize_debug_log(&args, &ctx.config)?;
 
     let mut terminal = ratatui::try_init()?;
-    let ret = run(&mut terminal, args, config, env, theme).await;
+    let ret = run(&mut terminal, args, ctx).await;
 
     ratatui::try_restore()?;
 
@@ -96,15 +97,13 @@ async fn main() -> anyhow::Result<()> {
 async fn run<B: Backend>(
     terminal: &mut Terminal<B>,
     args: Args,
-    config: Config,
-    env: Environment,
-    theme: ColorTheme,
+    ctx: AppContext,
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
-    let default_region_fallback = config.default_region.clone();
+    let default_region_fallback = ctx.config.default_region.clone();
 
-    let mut app = App::new(config, env, theme, tx.clone(), width, height);
+    let mut app = App::new(ctx, tx.clone(), width, height);
 
     spawn(async move {
         let client = Client::new(
