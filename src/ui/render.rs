@@ -38,7 +38,7 @@ fn header_height(app: &App) -> u16 {
 }
 
 fn render_background(f: &mut Frame, area: Rect, app: &App) {
-    let block = Block::default().bg(app.theme.bg);
+    let block = Block::default().bg(app.theme().bg);
     f.render_widget(block, area);
 }
 
@@ -57,19 +57,19 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
     match app.current_notification() {
         Notification::Info(msg) => {
-            let msg = build_info_status(msg, &app.theme);
+            let msg = build_info_status(msg, app.theme());
             f.render_widget(msg, area);
         }
         Notification::Success(msg) => {
-            let msg = build_success_status(msg, &app.theme);
+            let msg = build_success_status(msg, app.theme());
             f.render_widget(msg, area);
         }
         Notification::Warn(msg) => {
-            let msg = build_warn_status(msg, &app.theme);
+            let msg = build_warn_status(msg, app.theme());
             f.render_widget(msg, area);
         }
         Notification::Error(msg) => {
-            let msg = build_error_status(msg, &app.theme);
+            let msg = build_error_status(msg, app.theme());
             f.render_widget(msg, area);
         }
         Notification::None => {
@@ -81,9 +81,9 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.loading() {
-        let loading = build_loading_dialog("Loading...", &app.theme);
+        let loading = build_loading_dialog("Loading...", app.theme());
         let area = calc_centered_dialog_rect(f.area(), 30, 5);
-        let dialog = Dialog::new(Box::new(loading), app.theme.bg);
+        let dialog = Dialog::new(Box::new(loading), app.theme().bg);
         f.render_widget_ref(dialog, area);
     }
 }
@@ -104,7 +104,7 @@ fn build_header(app: &App) -> Header {
             _ => unreachable!(),
         })
         .collect();
-    Header::new(breadcrumb).theme(&app.theme)
+    Header::new(breadcrumb).theme(app.theme())
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
@@ -112,7 +112,7 @@ fn build_short_help(app: &App, width: u16) -> Paragraph {
     let pad = Padding::horizontal(2);
     let max_width = (width - pad.left - pad.right) as usize;
     let help = build_short_help_string(&helps, max_width);
-    Paragraph::new(help.fg(app.theme.status_help)).block(Block::default().padding(pad))
+    Paragraph::new(help.fg(app.theme().status_help)).block(Block::default().padding(pad))
 }
 
 fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> String {

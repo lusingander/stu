@@ -34,7 +34,7 @@ pub struct App {
     client: Option<Arc<Client>>,
     config: Config,
     env: Environment,
-    pub theme: ColorTheme,
+    theme: ColorTheme,
     tx: Sender,
 
     notification: Notification,
@@ -673,6 +673,10 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
+    }
+
+    pub fn theme(&self) -> &ColorTheme {
+        &self.theme
     }
 
     pub fn loading(&self) -> bool {
