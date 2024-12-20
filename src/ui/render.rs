@@ -80,7 +80,7 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
-    if app.is_loading {
+    if app.loading() {
         let loading = build_loading_dialog("Loading...", &app.theme);
         let area = calc_centered_dialog_rect(f.area(), 30, 5);
         let dialog = Dialog::new(Box::new(loading), app.theme.bg);

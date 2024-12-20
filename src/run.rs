@@ -30,7 +30,7 @@ pub async fn run<B: Backend>(
                     return Ok(());
                 }
 
-                if app.is_loading {
+                if app.loading() {
                     // Ignore key inputs while loading (except quit)
                     continue;
                 }

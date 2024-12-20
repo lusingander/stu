@@ -38,7 +38,7 @@ pub struct App {
     tx: Sender,
 
     notification: Notification,
-    pub is_loading: bool,
+    is_loading: bool,
     width: usize,
     height: usize,
 }
@@ -673,6 +673,10 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
+    }
+
+    pub fn loading(&self) -> bool {
+        self.is_loading
     }
 
     pub fn current_notification(&self) -> &Notification {
