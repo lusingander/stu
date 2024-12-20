@@ -37,7 +37,7 @@ pub struct App {
     pub theme: ColorTheme,
     tx: Sender,
 
-    pub notification: Notification,
+    notification: Notification,
     pub is_loading: bool,
     width: usize,
     height: usize,
@@ -673,6 +673,10 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
+    }
+
+    pub fn current_notification(&self) -> &Notification {
+        &self.notification
     }
 
     pub fn clear_notification(&mut self) {

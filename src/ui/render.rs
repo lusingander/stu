@@ -55,7 +55,7 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
-    match &app.notification {
+    match app.current_notification() {
         Notification::Info(msg) => {
             let msg = build_info_status(msg, &app.theme);
             f.render_widget(msg, area);

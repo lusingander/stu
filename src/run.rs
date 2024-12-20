@@ -35,7 +35,7 @@ pub async fn run<B: Backend>(
                     continue;
                 }
 
-                if matches!(app.notification, Notification::Error(_)) {
+                if matches!(app.current_notification(), Notification::Error(_)) {
                     if matches!(app.page_stack.current_page(), Page::Initializing(_)) {
                         return Ok(());
                     }
@@ -45,7 +45,7 @@ pub async fn run<B: Backend>(
                 }
 
                 if matches!(
-                    app.notification,
+                    app.current_notification(),
                     Notification::Info(_) | Notification::Success(_) | Notification::Warn(_)
                 ) {
                     // Clear message and pass key input as is
