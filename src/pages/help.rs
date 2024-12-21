@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
@@ -10,7 +12,7 @@ use ratatui::{
 };
 
 use crate::{
-    color::ColorTheme,
+    app::AppContext,
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
     event::{AppEventType, Sender},
     pages::util::build_short_helps,
@@ -22,13 +24,13 @@ use crate::{
 pub struct HelpPage {
     helps: Vec<String>,
 
-    theme: ColorTheme,
+    ctx: Rc<AppContext>,
     tx: Sender,
 }
 
 impl HelpPage {
-    pub fn new(helps: Vec<String>, theme: ColorTheme, tx: Sender) -> Self {
-        Self { helps, theme, tx }
+    pub fn new(helps: Vec<String>, ctx: Rc<AppContext>, tx: Sender) -> Self {
+        Self { helps, ctx, tx }
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
@@ -47,7 +49,7 @@ impl HelpPage {
         let block = Block::bordered()
             .padding(Padding::horizontal(1))
             .title(APP_NAME)
-            .fg(self.theme.fg);
+            .fg(self.ctx.theme.fg);
 
         let content_area = block.inner(area);
 
@@ -63,9 +65,9 @@ impl HelpPage {
             APP_DESCRIPTION,
             APP_VERSION,
             APP_HOMEPAGE,
-            self.theme.link,
+            self.ctx.theme.link,
         );
-        let divider = Divider::default().color(self.theme.divider);
+        let divider = Divider::default().color(self.ctx.theme.divider);
         let help = Help::new(&self.helps);
 
         f.render_widget(block, area);
@@ -187,7 +189,7 @@ mod tests {
 
     #[test]
     fn test_render() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -201,7 +203,7 @@ mod tests {
             .iter()
             .map(|s| s.to_string())
             .collect();
-            let mut page = HelpPage::new(helps, theme, tx);
+            let mut page = HelpPage::new(helps, ctx, tx);
             let area = Rect::new(0, 0, 70, 20);
             page.render(f, area);
         })?;

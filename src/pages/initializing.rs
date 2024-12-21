@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use laurier::key_code;
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
@@ -8,20 +10,20 @@ use ratatui::{
 };
 
 use crate::{
-    color::ColorTheme,
+    app::AppContext,
     event::{AppEventType, Sender},
     pages::util::build_short_helps,
 };
 
 #[derive(Debug)]
 pub struct InitializingPage {
-    theme: ColorTheme,
+    ctx: Rc<AppContext>,
     tx: Sender,
 }
 
 impl InitializingPage {
-    pub fn new(theme: ColorTheme, tx: Sender) -> Self {
-        Self { theme, tx }
+    pub fn new(ctx: Rc<AppContext>, tx: Sender) -> Self {
+        Self { ctx, tx }
     }
 
     pub fn handle_key(&mut self, key: KeyEvent) {
@@ -31,7 +33,7 @@ impl InitializingPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let content = Block::bordered().fg(self.theme.fg);
+        let content = Block::bordered().fg(self.ctx.theme.fg);
         f.render_widget(content, area);
     }
 
@@ -54,12 +56,12 @@ mod tests {
 
     #[test]
     fn test_render() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
-            let mut page = InitializingPage::new(theme, tx);
+            let mut page = InitializingPage::new(ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;

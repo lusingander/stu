@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
@@ -10,6 +12,7 @@ use ratatui::{
 };
 
 use crate::{
+    app::AppContext,
     color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
@@ -34,8 +37,7 @@ pub struct ObjectDetailPage {
     object_items: Vec<ObjectItem>,
     list_state: ScrollListState,
 
-    ui_config: UiConfig,
-    theme: ColorTheme,
+    ctx: Rc<AppContext>,
     tx: Sender,
 }
 
@@ -67,11 +69,10 @@ impl ObjectDetailPage {
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
         list_state: ScrollListState,
-        ui_config: UiConfig,
-        theme: ColorTheme,
+        ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
-        let detail_tab_state = DetailTabState::new(&file_detail, &ui_config);
+        let detail_tab_state = DetailTabState::new(&file_detail, &ctx.config.ui);
         Self {
             file_detail,
             file_versions: Vec::new(),
@@ -80,8 +81,7 @@ impl ObjectDetailPage {
             view_state: ViewState::Default,
             object_items,
             list_state,
-            ui_config,
-            theme,
+            ctx,
             tx,
         }
     }
@@ -192,29 +192,29 @@ impl ObjectDetailPage {
             offset,
             selected,
             chunks[0],
-            &self.theme,
+            &self.ctx.theme,
         );
 
-        let list = ScrollList::new(list_items).theme(&self.theme);
+        let list = ScrollList::new(list_items).theme(&self.ctx.theme);
         f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
-        let block = Block::bordered().fg(self.theme.fg);
+        let block = Block::bordered().fg(self.ctx.theme.fg);
         f.render_widget(block, chunks[1]);
 
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Min(0)])
             .margin(1)
             .split(chunks[1]);
 
-        let tabs = build_tabs(&self.tab, &self.theme);
+        let tabs = build_tabs(&self.tab, &self.ctx.theme);
         f.render_widget(tabs, chunks[0]);
 
         match self.tab {
             Tab::Detail(ref mut state) => {
-                let detail = DetailTab::new(&self.theme);
+                let detail = DetailTab::new(&self.ctx.theme);
                 f.render_stateful_widget(detail, chunks[1], state);
             }
             Tab::Version(ref mut state) => {
-                let version = VersionTab::new(&self.theme);
+                let version = VersionTab::new(&self.ctx.theme);
                 f.render_stateful_widget(version, chunks[1], state);
             }
         }
@@ -223,7 +223,7 @@ impl ObjectDetailPage {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
-                .theme(&self.theme);
+                .theme(&self.ctx.theme);
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -231,7 +231,7 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.theme);
+            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -332,11 +332,14 @@ impl ObjectDetailPage {
     }
 
     pub fn select_detail_tab(&mut self) {
-        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail, &self.ui_config));
+        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail, &self.ctx.config.ui));
     }
 
     pub fn select_versions_tab(&mut self) {
-        self.tab = Tab::Version(VersionTabState::new(&self.file_versions, &self.ui_config));
+        self.tab = Tab::Version(VersionTabState::new(
+            &self.file_versions,
+            &self.ctx.config.ui,
+        ));
     }
 
     pub fn set_versions(&mut self, versions: Vec<FileVersion>) {
@@ -749,21 +752,19 @@ mod tests {
 
     #[test]
     fn test_render_detail_tab() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
             let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
-            let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
                 object_key,
                 ScrollListState::new(items_len),
-                ui_config,
-                theme,
+                ctx,
                 tx,
             );
             let area = Rect::new(0, 0, 60, 20);
@@ -817,22 +818,20 @@ mod tests {
 
     #[test]
     fn test_render_detail_tab_with_config() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
             let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
-            let mut ui_config = UiConfig::default();
-            ui_config.object_detail.date_format = "%Y/%m/%d".to_string();
+            let mut ctx = AppContext::default();
+            ctx.config.ui.object_detail.date_format = "%Y/%m/%d".to_string();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
                 object_key,
                 ScrollListState::new(items_len),
-                ui_config,
-                theme,
+                Rc::new(ctx),
                 tx,
             );
             let area = Rect::new(0, 0, 60, 20);
@@ -886,21 +885,19 @@ mod tests {
 
     #[test]
     fn test_render_version_tab() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions, object_key) = fixtures();
             let items_len = items.len();
-            let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
                 object_key,
                 ScrollListState::new(items_len),
-                ui_config,
-                theme,
+                ctx,
                 tx,
             );
             page.set_versions(file_versions);
@@ -956,22 +953,20 @@ mod tests {
 
     #[test]
     fn test_render_version_tab_with_config() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
             let (items, file_detail, file_versions, object_key) = fixtures();
             let items_len = items.len();
-            let mut ui_config = UiConfig::default();
-            ui_config.object_detail.date_format = "%Y/%m/%d".to_string();
+            let mut ctx = AppContext::default();
+            ctx.config.ui.object_detail.date_format = "%Y/%m/%d".to_string();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
                 object_key,
                 ScrollListState::new(items_len),
-                ui_config,
-                theme,
+                Rc::new(ctx),
                 tx,
             );
             page.set_versions(file_versions);
@@ -1027,21 +1022,19 @@ mod tests {
 
     #[test]
     fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
             let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
-            let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
                 object_key,
                 ScrollListState::new(items_len),
-                ui_config,
-                theme,
+                ctx,
                 tx,
             );
             page.open_save_dialog();
@@ -1094,21 +1087,19 @@ mod tests {
 
     #[test]
     fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
             let (items, file_detail, _file_versions, object_key) = fixtures();
             let items_len = items.len();
-            let ui_config = UiConfig::default();
             let mut page = ObjectDetailPage::new(
                 file_detail,
                 items,
                 object_key,
                 ScrollListState::new(items_len),
-                ui_config,
-                theme,
+                ctx,
                 tx,
             );
             page.open_copy_detail_dialog();

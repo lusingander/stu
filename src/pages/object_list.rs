@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, rc::Rc};
 
 use chrono::{DateTime, Local};
 use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
@@ -12,6 +12,7 @@ use ratatui::{
 };
 
 use crate::{
+    app::AppContext,
     color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
@@ -37,8 +38,7 @@ pub struct ObjectListPage {
     filter_input_state: InputDialogState,
     sort_dialog_state: ObjectListSortDialogState,
 
-    ui_config: UiConfig,
-    theme: ColorTheme,
+    ctx: Rc<AppContext>,
     tx: Sender,
 }
 
@@ -54,8 +54,7 @@ impl ObjectListPage {
     pub fn new(
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
-        ui_config: UiConfig,
-        theme: ColorTheme,
+        ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
         let items_len = object_items.len();
@@ -68,8 +67,7 @@ impl ObjectListPage {
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
             sort_dialog_state: ObjectListSortDialogState::default(),
-            ui_config,
-            theme,
+            ctx,
             tx,
         }
     }
@@ -197,18 +195,18 @@ impl ObjectListPage {
             offset,
             selected,
             area,
-            &self.ui_config,
-            &self.theme,
+            &self.ctx.config.ui,
+            &self.ctx.theme,
         );
 
-        let list = ScrollList::new(list_items).theme(&self.theme);
+        let list = ScrollList::new(list_items).theme(&self.ctx.theme);
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
             let filter_dialog = InputDialog::default()
                 .title("Filter")
                 .max_width(30)
-                .theme(&self.theme);
+                .theme(&self.ctx.theme);
             f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
@@ -216,12 +214,13 @@ impl ObjectListPage {
         }
 
         if let ViewState::SortDialog = self.view_state {
-            let sort_dialog = ObjectListSortDialog::new(self.sort_dialog_state).theme(&self.theme);
+            let sort_dialog =
+                ObjectListSortDialog::new(self.sort_dialog_state).theme(&self.ctx.theme);
             f.render_widget(sort_dialog, area);
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.theme);
+            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -661,7 +660,7 @@ mod tests {
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -676,8 +675,7 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec!["path".to_string(), "to".to_string()],
             };
-            let ui_config = UiConfig::default();
-            let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
+            let mut page = ObjectListPage::new(items, object_key, ctx, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -709,7 +707,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -721,8 +719,7 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec!["path".to_string(), "to".to_string()],
             };
-            let ui_config = UiConfig::default();
-            let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
+            let mut page = ObjectListPage::new(items, object_key, ctx, tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -752,7 +749,6 @@ mod tests {
 
     #[test]
     fn test_render_with_config() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -767,10 +763,10 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec!["path".to_string(), "to".to_string()],
             };
-            let mut ui_config = UiConfig::default();
-            ui_config.object_list.date_format = "%Y/%m/%d".to_string();
-            ui_config.object_list.date_width = 10;
-            let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
+            let mut ctx = AppContext::default();
+            ctx.config.ui.object_list.date_format = "%Y/%m/%d".to_string();
+            ctx.config.ui.object_list.date_width = 10;
+            let mut page = ObjectListPage::new(items, object_key, Rc::new(ctx), tx);
             let area = Rect::new(0, 0, 60, 10);
             page.render(f, area);
         })?;
@@ -802,7 +798,7 @@ mod tests {
 
     #[test]
     fn test_sort_items() {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let items = vec![
             object_dir_item("rid"),
@@ -815,8 +811,7 @@ mod tests {
             bucket_name: "test-bucket".to_string(),
             object_path: vec!["path".to_string(), "to".to_string()],
         };
-        let ui_config = UiConfig::default();
-        let mut page = ObjectListPage::new(items, object_key, ui_config, theme, tx);
+        let mut page = ObjectListPage::new(items, object_key, ctx, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('o')));
         page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc

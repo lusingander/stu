@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{path::PathBuf, rc::Rc, sync::Arc};
 use tokio::spawn;
 
 use crate::{
@@ -27,7 +27,7 @@ pub enum Notification {
     Error(String),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AppContext {
     pub config: Config,
     pub env: Environment,
@@ -45,7 +45,7 @@ pub struct App {
     pub page_stack: PageStack,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
-    ctx: AppContext,
+    ctx: Rc<AppContext>,
     tx: Sender,
 
     notification: Notification,
@@ -56,9 +56,10 @@ pub struct App {
 
 impl App {
     pub fn new(ctx: AppContext, tx: Sender, width: usize, height: usize) -> App {
+        let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
-            page_stack: PageStack::new(ctx.theme.clone(), tx.clone()),
+            page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
             client: None,
             ctx,
             tx,
@@ -95,7 +96,7 @@ impl App {
 
                 let bucket_list_page = Page::of_bucket_list(
                     self.app_objects.get_bucket_items(),
-                    self.ctx.theme.clone(),
+                    Rc::clone(&self.ctx),
                     self.tx.clone(),
                 );
                 self.page_stack.pop(); // remove initializing page
@@ -145,8 +146,7 @@ impl App {
             let object_list_page = Page::of_object_list(
                 current_object_items,
                 object_key,
-                self.ctx.config.ui.clone(),
-                self.ctx.theme.clone(),
+                Rc::clone(&self.ctx),
                 self.tx.clone(),
             );
             self.page_stack.push(object_list_page);
@@ -179,8 +179,7 @@ impl App {
                         object_list_page.object_list(),
                         current_object_key,
                         object_list_page.list_state(),
-                        self.ctx.config.ui.clone(),
-                        self.ctx.theme.clone(),
+                        Rc::clone(&self.ctx),
                         self.tx.clone(),
                     );
                     self.page_stack.push(object_detail_page);
@@ -196,8 +195,7 @@ impl App {
                     let new_object_list_page = Page::of_object_list(
                         current_object_items,
                         object_key,
-                        self.ctx.config.ui.clone(),
-                        self.ctx.theme.clone(),
+                        Rc::clone(&self.ctx),
                         self.tx.clone(),
                     );
                     self.page_stack.push(new_object_list_page);
@@ -264,8 +262,7 @@ impl App {
                 let object_list_page = Page::of_object_list(
                     items,
                     current_object_key,
-                    self.ctx.config.ui.clone(),
-                    self.ctx.theme.clone(),
+                    Rc::clone(&self.ctx),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_list_page);
@@ -333,8 +330,7 @@ impl App {
                     object_page.object_list(),
                     map_key,
                     object_page.list_state(),
-                    self.ctx.config.ui.clone(),
-                    self.ctx.theme.clone(),
+                    Rc::clone(&self.ctx),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_detail_page);
@@ -404,7 +400,7 @@ impl App {
         if helps.is_empty() {
             return;
         }
-        let help_page = Page::of_help(helps, self.ctx.theme.clone(), self.tx.clone());
+        let help_page = Page::of_help(helps, Rc::clone(&self.ctx), self.tx.clone());
         self.page_stack.push(help_page);
     }
 
@@ -527,9 +523,7 @@ impl App {
                     obj,
                     path.to_string_lossy().into(),
                     current_object_key,
-                    self.ctx.config.preview.clone(),
-                    self.ctx.env.clone(),
-                    self.ctx.theme.clone(),
+                    Rc::clone(&self.ctx),
                     self.tx.clone(),
                 );
                 self.page_stack.push(object_preview_page);

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use laurier::{key_code, key_code_char};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent},
@@ -6,9 +8,8 @@ use ratatui::{
 };
 
 use crate::{
-    color::ColorTheme,
-    config::PreviewConfig,
-    environment::{Environment, ImagePicker},
+    app::AppContext,
+    environment::ImagePicker,
     event::{AppEventType, Sender},
     object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
@@ -30,7 +31,7 @@ pub struct ObjectPreviewPage {
 
     view_state: ViewState,
 
-    theme: ColorTheme,
+    ctx: Rc<AppContext>,
     tx: Sender,
 }
 
@@ -54,13 +55,12 @@ impl ObjectPreviewPage {
         object: RawObject,
         path: String,
         object_key: ObjectKey,
-        preview_config: PreviewConfig,
-        env: Environment,
-        theme: ColorTheme,
+        ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
         let preview_type = if infer::is_image(&object.bytes) {
-            let (state, msg) = ImagePreviewState::new(&object.bytes, env.image_picker.into());
+            let (state, msg) =
+                ImagePreviewState::new(&object.bytes, ctx.env.image_picker.clone().into());
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }
@@ -69,8 +69,8 @@ impl ObjectPreviewPage {
             let (state, msg) = TextPreviewState::new(
                 &file_detail,
                 &object,
-                preview_config.highlight,
-                &preview_config.highlight_theme,
+                ctx.config.preview.highlight,
+                &ctx.config.preview.highlight_theme,
             );
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
@@ -86,7 +86,7 @@ impl ObjectPreviewPage {
             path,
             object_key,
             view_state: ViewState::Default,
-            theme,
+            ctx,
             tx,
         }
     }
@@ -186,7 +186,7 @@ impl ObjectPreviewPage {
                 let preview = TextPreview::new(
                     self.file_detail.name.as_str(),
                     self.file_version_id.as_deref(),
-                    &self.theme,
+                    &self.ctx.theme,
                 );
                 f.render_stateful_widget(preview, area, state);
             }
@@ -203,7 +203,7 @@ impl ObjectPreviewPage {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
-                .theme(&self.theme);
+                .theme(&self.ctx.theme);
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -346,8 +346,7 @@ mod tests {
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
-        let env = Environment::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -365,18 +364,8 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec![file_path.clone()],
             };
-            let preview_config = PreviewConfig::default();
-            let mut page = ObjectPreviewPage::new(
-                file_detail,
-                None,
-                object,
-                file_path,
-                object_key,
-                preview_config,
-                env,
-                theme,
-                tx,
-            );
+            let mut page =
+                ObjectPreviewPage::new(file_detail, None, object, file_path, object_key, ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -405,8 +394,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
-        let env = Environment::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -419,18 +407,8 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec![file_path.clone()],
             };
-            let preview_config = PreviewConfig::default();
-            let mut page = ObjectPreviewPage::new(
-                file_detail,
-                None,
-                object,
-                file_path,
-                object_key,
-                preview_config,
-                env,
-                theme,
-                tx,
-            );
+            let mut page =
+                ObjectPreviewPage::new(file_detail, None, object, file_path, object_key, ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -459,8 +437,7 @@ mod tests {
 
     #[test]
     fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
-        let env = Environment::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -478,18 +455,8 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec![file_path.clone()],
             };
-            let preview_config = PreviewConfig::default();
-            let mut page = ObjectPreviewPage::new(
-                file_detail,
-                None,
-                object,
-                file_path,
-                object_key,
-                preview_config,
-                env,
-                theme,
-                tx,
-            );
+            let mut page =
+                ObjectPreviewPage::new(file_detail, None, object, file_path, object_key, ctx, tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);

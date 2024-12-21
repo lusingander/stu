@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, rc::Rc};
 
 use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
 use ratatui::{
@@ -11,6 +11,7 @@ use ratatui::{
 };
 
 use crate::{
+    app::AppContext,
     color::ColorTheme,
     event::{AppEventType, Sender},
     object::{BucketItem, ObjectKey},
@@ -32,7 +33,7 @@ pub struct BucketListPage {
     filter_input_state: InputDialogState,
     sort_dialog_state: BucketListSortDialogState,
 
-    theme: ColorTheme,
+    ctx: Rc<AppContext>,
     tx: Sender,
 }
 
@@ -45,7 +46,7 @@ enum ViewState {
 }
 
 impl BucketListPage {
-    pub fn new(bucket_items: Vec<BucketItem>, theme: ColorTheme, tx: Sender) -> Self {
+    pub fn new(bucket_items: Vec<BucketItem>, ctx: Rc<AppContext>, tx: Sender) -> Self {
         let items_len = bucket_items.len();
         let view_indices = (0..items_len).collect();
         Self {
@@ -55,7 +56,7 @@ impl BucketListPage {
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
             sort_dialog_state: BucketListSortDialogState::default(),
-            theme,
+            ctx,
             tx,
         }
     }
@@ -174,20 +175,20 @@ impl BucketListPage {
             &self.bucket_items,
             &self.view_indices,
             self.filter_input_state.input(),
-            &self.theme,
+            &self.ctx.theme,
             offset,
             selected,
             area,
         );
 
-        let list = ScrollList::new(list_items).theme(&self.theme);
+        let list = ScrollList::new(list_items).theme(&self.ctx.theme);
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
             let filter_dialog = InputDialog::default()
                 .title("Filter")
                 .max_width(30)
-                .theme(&self.theme);
+                .theme(&self.ctx.theme);
             f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
@@ -195,12 +196,13 @@ impl BucketListPage {
         }
 
         if let ViewState::SortDialog = self.view_state {
-            let sort_dialog = BucketListSortDialog::new(self.sort_dialog_state).theme(&self.theme);
+            let sort_dialog =
+                BucketListSortDialog::new(self.sort_dialog_state).theme(&self.ctx.theme);
             f.render_widget(sort_dialog, area);
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.theme);
+            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -518,7 +520,7 @@ mod tests {
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -527,7 +529,7 @@ mod tests {
                 .into_iter()
                 .map(bucket_item)
                 .collect();
-            let mut page = BucketListPage::new(items, theme, tx);
+            let mut page = BucketListPage::new(items, ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -556,7 +558,7 @@ mod tests {
 
     #[test]
     fn test_render_with_scroll() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -564,7 +566,7 @@ mod tests {
             let items = (0..16)
                 .map(|i| bucket_item(&format!("bucket{}", i + 1)))
                 .collect();
-            let mut page = BucketListPage::new(items, theme, tx);
+            let mut page = BucketListPage::new(items, ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -594,7 +596,7 @@ mod tests {
 
     #[test]
     fn test_render_filter_items() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -602,7 +604,7 @@ mod tests {
             .into_iter()
             .map(bucket_item)
             .collect();
-        let mut page = BucketListPage::new(items, theme, tx);
+        let mut page = BucketListPage::new(items, ctx, tx);
         let area = Rect::new(0, 0, 30, 10);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('/')));
@@ -671,7 +673,7 @@ mod tests {
 
     #[test]
     fn test_render_sort_items() -> std::io::Result<()> {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -679,7 +681,7 @@ mod tests {
             .into_iter()
             .map(bucket_item)
             .collect();
-        let mut page = BucketListPage::new(items, theme, tx);
+        let mut page = BucketListPage::new(items, ctx, tx);
         let area = Rect::new(0, 0, 30, 10);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('o')));
@@ -717,14 +719,14 @@ mod tests {
 
     #[test]
     fn test_filter_items() {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
             .into_iter()
             .map(bucket_item)
             .collect();
-        let mut page = BucketListPage::new(items, theme, tx);
+        let mut page = BucketListPage::new(items, ctx, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('/')));
         page.handle_key(KeyEvent::from(KeyCode::Char('b')));
@@ -752,14 +754,14 @@ mod tests {
 
     #[test]
     fn test_sort_items() {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
             .into_iter()
             .map(bucket_item)
             .collect();
-        let mut page = BucketListPage::new(items, theme, tx);
+        let mut page = BucketListPage::new(items, ctx, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('o')));
 
@@ -784,14 +786,14 @@ mod tests {
 
     #[test]
     fn test_filter_and_sort_items() {
-        let theme = ColorTheme::default();
+        let ctx = Rc::default();
         let (tx, _) = event::new();
 
         let items = ["foo", "bar", "baz", "qux", "foobar"]
             .into_iter()
             .map(bucket_item)
             .collect();
-        let mut page = BucketListPage::new(items, theme, tx);
+        let mut page = BucketListPage::new(items, ctx, tx);
 
         page.handle_key(KeyEvent::from(KeyCode::Char('/')));
         page.handle_key(KeyEvent::from(KeyCode::Char('b')));

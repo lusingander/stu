@@ -1,9 +1,9 @@
+use std::rc::Rc;
+
 use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 
 use crate::{
-    color::ColorTheme,
-    config::{PreviewConfig, UiConfig},
-    environment::Environment,
+    app::AppContext,
     event::Sender,
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::{
@@ -71,26 +71,24 @@ impl Page {
 }
 
 impl Page {
-    pub fn of_initializing(theme: ColorTheme, tx: Sender) -> Self {
-        Self::Initializing(Box::new(InitializingPage::new(theme, tx)))
+    pub fn of_initializing(ctx: Rc<AppContext>, tx: Sender) -> Self {
+        Self::Initializing(Box::new(InitializingPage::new(ctx, tx)))
     }
 
-    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, theme: ColorTheme, tx: Sender) -> Self {
-        Self::BucketList(Box::new(BucketListPage::new(bucket_items, theme, tx)))
+    pub fn of_bucket_list(bucket_items: Vec<BucketItem>, ctx: Rc<AppContext>, tx: Sender) -> Self {
+        Self::BucketList(Box::new(BucketListPage::new(bucket_items, ctx, tx)))
     }
 
     pub fn of_object_list(
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
-        ui_config: UiConfig,
-        theme: ColorTheme,
+        ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
         Self::ObjectList(Box::new(ObjectListPage::new(
             object_items,
             object_key,
-            ui_config,
-            theme,
+            ctx,
             tx,
         )))
     }
@@ -100,8 +98,7 @@ impl Page {
         object_items: Vec<ObjectItem>,
         object_key: ObjectKey,
         list_state: ScrollListState,
-        ui_config: UiConfig,
-        theme: ColorTheme,
+        ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
         Self::ObjectDetail(Box::new(ObjectDetailPage::new(
@@ -109,8 +106,7 @@ impl Page {
             object_items,
             object_key,
             list_state,
-            ui_config,
-            theme,
+            ctx,
             tx,
         )))
     }
@@ -121,9 +117,7 @@ impl Page {
         object: RawObject,
         path: String,
         object_key: ObjectKey,
-        preview_config: PreviewConfig,
-        env: Environment,
-        theme: ColorTheme,
+        ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
         Self::ObjectPreview(Box::new(ObjectPreviewPage::new(
@@ -132,15 +126,13 @@ impl Page {
             object,
             path,
             object_key,
-            preview_config,
-            env,
-            theme,
+            ctx,
             tx,
         )))
     }
 
-    pub fn of_help(helps: Vec<String>, theme: ColorTheme, tx: Sender) -> Self {
-        Self::Help(Box::new(HelpPage::new(helps, theme, tx)))
+    pub fn of_help(helps: Vec<String>, ctx: Rc<AppContext>, tx: Sender) -> Self {
+        Self::Help(Box::new(HelpPage::new(helps, ctx, tx)))
     }
 
     pub fn as_bucket_list(&self) -> &BucketListPage {
@@ -192,9 +184,9 @@ pub struct PageStack {
 }
 
 impl PageStack {
-    pub fn new(theme: ColorTheme, tx: Sender) -> PageStack {
+    pub fn new(ctx: Rc<AppContext>, tx: Sender) -> PageStack {
         PageStack {
-            stack: vec![Page::of_initializing(theme, tx)],
+            stack: vec![Page::of_initializing(ctx, tx)],
         }
     }
 
