@@ -7,7 +7,10 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
 };
 
-use crate::{color::ColorTheme, ui::common::calc_centered_dialog_rect, widget::Dialog};
+use crate::{
+    color::ColorTheme,
+    widget::{common::calc_centered_dialog_rect, Dialog},
+};
 
 #[derive(Default)]
 #[zero_indexed_enum]

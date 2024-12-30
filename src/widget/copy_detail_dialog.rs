@@ -12,8 +12,7 @@ use ratatui::{
 use crate::{
     color::ColorTheme,
     object::{BucketItem, FileDetail, ObjectItem},
-    ui::common::calc_centered_dialog_rect,
-    widget::Dialog,
+    widget::{common::calc_centered_dialog_rect, Dialog},
 };
 
 #[derive(Default)]

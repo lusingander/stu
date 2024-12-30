@@ -1,4 +1,5 @@
 mod bar;
+mod common;
 mod copy_detail_dialog;
 mod dialog;
 mod divider;
