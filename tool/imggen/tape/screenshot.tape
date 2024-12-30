@@ -7,6 +7,7 @@ Set Width 1000
 Set Height 600
 Set Padding 15
 Set Theme "nord"
+Set TypingSpeed 20ms
 
 Type@10ms "export AWS_ACCESS_KEY_ID=dummy"
 Enter
