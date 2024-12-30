@@ -41,11 +41,10 @@ fn render_background(f: &mut Frame, area: Rect, app: &App) {
 }
 
 fn render_header(f: &mut Frame, area: Rect, app: &App) {
-    if area.is_empty() {
-        return;
+    if !area.is_empty() {
+        let header = Header::new(app.breadcrumb()).theme(app.theme());
+        f.render_widget(header, area);
     }
-    let header = build_header(app);
-    f.render_widget(header, area);
 }
 
 fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
@@ -82,25 +81,6 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
         let dialog = LoadingDialog::default().theme(app.theme());
         f.render_widget(dialog, f.area());
     }
-}
-
-fn build_header(app: &App) -> Header {
-    let mut target_pages: Vec<&Page> = app
-        .page_stack
-        .iter()
-        .filter(|page| matches!(page, Page::BucketList(_) | Page::ObjectList(_)))
-        .collect();
-    target_pages.pop(); // Remove the last item (current page)
-
-    let breadcrumb: Vec<String> = target_pages
-        .iter()
-        .map(|page| match page {
-            Page::BucketList(page) => page.current_selected_item().name.clone(),
-            Page::ObjectList(page) => page.current_selected_item().name().into(),
-            _ => unreachable!(),
-        })
-        .collect();
-    Header::new(breadcrumb).theme(app.theme())
 }
 
 fn build_short_help(app: &App, width: u16) -> Paragraph {
