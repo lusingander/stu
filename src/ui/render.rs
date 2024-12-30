@@ -1,8 +1,7 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Layout, Rect},
+    layout::{Constraint, Layout, Rect},
     style::{Modifier, Stylize},
-    text::Line,
-    widgets::{Block, BorderType, Padding, Paragraph},
+    widgets::{Block, Padding, Paragraph},
     Frame,
 };
 
@@ -10,9 +9,8 @@ use crate::{
     app::{App, Notification},
     color::ColorTheme,
     pages::page::Page,
-    ui::common::calc_centered_dialog_rect,
     util,
-    widget::{Dialog, Header},
+    widget::{Header, LoadingDialog},
 };
 
 pub fn render(f: &mut Frame, app: &mut App) {
@@ -81,10 +79,8 @@ fn render_footer(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
     if app.loading() {
-        let loading = build_loading_dialog("Loading...", app.theme());
-        let area = calc_centered_dialog_rect(f.area(), 30, 5);
-        let dialog = Dialog::new(Box::new(loading), app.theme().bg);
-        f.render_widget_ref(dialog, area);
+        let dialog = LoadingDialog::default().theme(app.theme());
+        f.render_widget(dialog, f.area());
     }
 }
 
@@ -140,14 +136,4 @@ fn build_error_status<'a>(err: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> 
     let err = format!("ERROR: {}", err);
     Paragraph::new(err.add_modifier(Modifier::BOLD).fg(theme.status_error))
         .block(Block::default().padding(Padding::horizontal(2)))
-}
-
-fn build_loading_dialog<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    let text = Line::from(msg.add_modifier(Modifier::BOLD));
-    Paragraph::new(text).alignment(Alignment::Center).block(
-        Block::bordered()
-            .border_type(BorderType::Rounded)
-            .padding(Padding::vertical(1))
-            .fg(theme.fg),
-    )
 }
