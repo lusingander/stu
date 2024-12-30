@@ -11,6 +11,7 @@ mod scroll;
 mod scroll_lines;
 mod scroll_list;
 mod sort_list_dialog;
+mod status;
 mod text_preview;
 
 pub use bar::Bar;
@@ -28,4 +29,5 @@ pub use sort_list_dialog::{
     BucketListSortDialog, BucketListSortDialogState, BucketListSortType, ObjectListSortDialog,
     ObjectListSortDialogState, ObjectListSortType,
 };
+pub use status::{Status, StatusType};
 pub use text_preview::{TextPreview, TextPreviewState};

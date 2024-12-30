@@ -1,16 +1,14 @@
 use ratatui::{
     layout::{Constraint, Layout, Rect},
-    style::{Modifier, Stylize},
-    widgets::{Block, Padding, Paragraph},
+    style::Stylize,
+    widgets::Block,
     Frame,
 };
 
 use crate::{
     app::{App, Notification},
-    color::ColorTheme,
     pages::page::Page,
-    util,
-    widget::{Header, LoadingDialog},
+    widget::{Header, LoadingDialog, Status, StatusType},
 };
 
 pub fn render(f: &mut Frame, app: &mut App) {
@@ -52,28 +50,15 @@ fn render_content(f: &mut Frame, area: Rect, app: &mut App) {
 }
 
 fn render_footer(f: &mut Frame, area: Rect, app: &App) {
-    match app.current_notification() {
-        Notification::Info(msg) => {
-            let msg = build_info_status(msg, app.theme());
-            f.render_widget(msg, area);
-        }
-        Notification::Success(msg) => {
-            let msg = build_success_status(msg, app.theme());
-            f.render_widget(msg, area);
-        }
-        Notification::Warn(msg) => {
-            let msg = build_warn_status(msg, app.theme());
-            f.render_widget(msg, area);
-        }
-        Notification::Error(msg) => {
-            let msg = build_error_status(msg, app.theme());
-            f.render_widget(msg, area);
-        }
-        Notification::None => {
-            let help = build_short_help(app, area.width);
-            f.render_widget(help, area);
-        }
-    }
+    let status_type = match app.current_notification() {
+        Notification::Info(msg) => StatusType::Info(msg.into()),
+        Notification::Success(msg) => StatusType::Success(msg.into()),
+        Notification::Warn(msg) => StatusType::Warn(msg.into()),
+        Notification::Error(msg) => StatusType::Error(msg.into()),
+        Notification::None => StatusType::Help(app.page_stack.current_page().short_helps()),
+    };
+    let status = Status::new(status_type).theme(app.theme());
+    f.render_widget(status, area);
 }
 
 fn render_loading_dialog(f: &mut Frame, app: &App) {
@@ -81,39 +66,4 @@ fn render_loading_dialog(f: &mut Frame, app: &App) {
         let dialog = LoadingDialog::default().theme(app.theme());
         f.render_widget(dialog, f.area());
     }
-}
-
-fn build_short_help(app: &App, width: u16) -> Paragraph {
-    let helps = app.page_stack.current_page().short_helps();
-    let pad = Padding::horizontal(2);
-    let max_width = (width - pad.left - pad.right) as usize;
-    let help = build_short_help_string(&helps, max_width);
-    Paragraph::new(help.fg(app.theme().status_help)).block(Block::default().padding(pad))
-}
-
-fn build_short_help_string(helps: &[(String, usize)], max_width: usize) -> String {
-    let delimiter = ", ";
-    let ss = util::prune_strings_to_fit_width(helps, max_width, delimiter);
-    ss.join(delimiter)
-}
-
-fn build_info_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    Paragraph::new(msg.fg(theme.status_info))
-        .block(Block::default().padding(Padding::horizontal(2)))
-}
-
-fn build_success_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.status_success))
-        .block(Block::default().padding(Padding::horizontal(2)))
-}
-
-fn build_warn_status<'a>(msg: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    Paragraph::new(msg.add_modifier(Modifier::BOLD).fg(theme.status_warn))
-        .block(Block::default().padding(Padding::horizontal(2)))
-}
-
-fn build_error_status<'a>(err: &'a str, theme: &'a ColorTheme) -> Paragraph<'a> {
-    let err = format!("ERROR: {}", err);
-    Paragraph::new(err.add_modifier(Modifier::BOLD).fg(theme.status_error))
-        .block(Block::default().padding(Padding::horizontal(2)))
 }
