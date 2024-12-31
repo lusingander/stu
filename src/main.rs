@@ -12,7 +12,6 @@ mod format;
 mod macros;
 mod object;
 mod pages;
-mod render;
 mod run;
 mod util;
 mod widget;

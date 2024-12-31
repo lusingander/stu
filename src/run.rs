@@ -6,7 +6,6 @@ use crate::{
     app::{App, Notification},
     event::{AppEventType, Receiver},
     pages::page::Page,
-    render::render,
 };
 
 pub async fn run<B: Backend>(
@@ -15,7 +14,7 @@ pub async fn run<B: Backend>(
     rx: Receiver,
 ) -> Result<()> {
     loop {
-        terminal.draw(|f| render(f, app))?;
+        terminal.draw(|f| app.render(f))?;
 
         let event = rx.recv();
         tracing::debug!("event received: {:?}", event);

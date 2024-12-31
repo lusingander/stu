@@ -1,3 +1,9 @@
+use ratatui::{
+    layout::{Constraint, Layout, Rect},
+    style::Stylize,
+    widgets::Block,
+    Frame,
+};
 use std::{path::PathBuf, rc::Rc, sync::Arc};
 use tokio::spawn;
 
@@ -16,6 +22,7 @@ use crate::{
     file::{copy_to_clipboard, save_binary, save_error_log},
     object::{AppObjects, FileDetail, ObjectItem, RawObject},
     pages::page::{Page, PageStack},
+    widget::{Header, LoadingDialog, Status, StatusType},
 };
 
 #[derive(Debug)]
@@ -737,5 +744,64 @@ impl App {
 
     fn unwrap_client_tx(&self) -> (Arc<Client>, Sender) {
         (self.client.as_ref().unwrap().clone(), self.tx.clone())
+    }
+}
+
+impl App {
+    pub fn render(&mut self, f: &mut Frame) {
+        let chunks = Layout::vertical([
+            Constraint::Length(self.header_height()),
+            Constraint::Min(0),
+            Constraint::Length(2),
+        ])
+        .split(f.area());
+
+        self.render_background(f, f.area());
+        self.render_header(f, chunks[0]);
+        self.render_content(f, chunks[1]);
+        self.render_footer(f, chunks[2]);
+        self.render_loading_dialog(f);
+    }
+
+    fn header_height(&self) -> u16 {
+        match self.page_stack.current_page() {
+            Page::Help(_) => 0, // Hide header
+            _ => 3,
+        }
+    }
+
+    fn render_background(&self, f: &mut Frame, area: Rect) {
+        let block = Block::default().bg(self.theme().bg);
+        f.render_widget(block, area);
+    }
+
+    fn render_header(&self, f: &mut Frame, area: Rect) {
+        if !area.is_empty() {
+            let header = Header::new(self.breadcrumb()).theme(self.theme());
+            f.render_widget(header, area);
+        }
+    }
+
+    fn render_content(&mut self, f: &mut Frame, area: Rect) {
+        self.page_stack.current_page_mut().render(f, area);
+    }
+
+    fn render_footer(&self, f: &mut Frame, area: Rect) {
+        let status_type = match self.current_notification() {
+            Notification::Info(msg) => StatusType::Info(msg.into()),
+            Notification::Success(msg) => StatusType::Success(msg.into()),
+            Notification::Warn(msg) => StatusType::Warn(msg.into()),
+            Notification::Error(msg) => StatusType::Error(msg.into()),
+            Notification::None => StatusType::Help(self.page_stack.current_page().short_helps()),
+        };
+        let status = Status::new(status_type).theme(self.theme());
+        f.render_widget(status, area);
+    }
+
+    fn render_loading_dialog(&self, f: &mut Frame) {
+        if self.loading() {
+            let dialog = LoadingDialog::default().theme(self.theme());
+            f.render_widget(dialog, f.area());
+        }
     }
 }
