@@ -667,24 +667,6 @@ impl App {
         object_preview_page.enable_image_render();
     }
 
-    pub fn breadcrumb(&self) -> Vec<String> {
-        let mut target_pages: Vec<&Page> = self
-            .page_stack
-            .iter()
-            .filter(|page| matches!(page, Page::BucketList(_) | Page::ObjectList(_)))
-            .collect();
-        target_pages.pop(); // Remove the last item (current page)
-
-        target_pages
-            .iter()
-            .map(|page| match page {
-                Page::BucketList(page) => page.current_selected_item().name.clone(),
-                Page::ObjectList(page) => page.current_selected_item().name().into(),
-                _ => unreachable!(),
-            })
-            .collect()
-    }
-
     pub fn copy_to_clipboard(&self, name: String, value: String) {
         match copy_to_clipboard(value) {
             Ok(_) => {
@@ -695,10 +677,6 @@ impl App {
                 self.tx.send(AppEventType::NotifyError(e));
             }
         }
-    }
-
-    pub fn theme(&self) -> &ColorTheme {
-        &self.ctx.theme
     }
 
     pub fn loading(&self) -> bool {
@@ -771,13 +749,13 @@ impl App {
     }
 
     fn render_background(&self, f: &mut Frame, area: Rect) {
-        let block = Block::default().bg(self.theme().bg);
+        let block = Block::default().bg(self.ctx.theme.bg);
         f.render_widget(block, area);
     }
 
     fn render_header(&self, f: &mut Frame, area: Rect) {
         if !area.is_empty() {
-            let header = Header::new(self.breadcrumb()).theme(self.theme());
+            let header = Header::new(self.breadcrumb()).theme(&self.ctx.theme);
             f.render_widget(header, area);
         }
     }
@@ -794,14 +772,32 @@ impl App {
             Notification::Error(msg) => StatusType::Error(msg.into()),
             Notification::None => StatusType::Help(self.page_stack.current_page().short_helps()),
         };
-        let status = Status::new(status_type).theme(self.theme());
+        let status = Status::new(status_type).theme(&self.ctx.theme);
         f.render_widget(status, area);
     }
 
     fn render_loading_dialog(&self, f: &mut Frame) {
         if self.loading() {
-            let dialog = LoadingDialog::default().theme(self.theme());
+            let dialog = LoadingDialog::default().theme(&self.ctx.theme);
             f.render_widget(dialog, f.area());
         }
+    }
+
+    fn breadcrumb(&self) -> Vec<String> {
+        let mut target_pages: Vec<&Page> = self
+            .page_stack
+            .iter()
+            .filter(|page| matches!(page, Page::BucketList(_) | Page::ObjectList(_)))
+            .collect();
+        target_pages.pop(); // Remove the last item (current page)
+
+        target_pages
+            .iter()
+            .map(|page| match page {
+                Page::BucketList(page) => page.current_selected_item().name.clone(),
+                Page::ObjectList(page) => page.current_selected_item().name().into(),
+                _ => unreachable!(),
+            })
+            .collect()
     }
 }
