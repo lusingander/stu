@@ -16,8 +16,8 @@ use syntect::{
 use crate::{
     color::ColorTheme,
     config::Config,
+    format::format_version,
     object::{FileDetail, RawObject},
-    ui::common::format_version,
     util::extension_from_file_name,
     widget::{ScrollLines, ScrollLinesOptions, ScrollLinesState},
 };

@@ -16,9 +16,9 @@ use crate::{
     color::ColorTheme,
     config::UiConfig,
     event::{AppEventType, Sender},
+    format::{format_datetime, format_size_byte, format_version},
     object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
-    ui::common::{format_datetime, format_size_byte, format_version},
     widget::{
         Bar, CopyDetailDialog, CopyDetailDialogState, Divider, InputDialog, InputDialogState,
         ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,

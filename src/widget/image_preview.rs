@@ -11,7 +11,7 @@ use ratatui::{
 };
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
 
-use crate::ui::common::format_version;
+use crate::format::format_version;
 
 pub struct ImagePreviewState {
     protocol: Option<StatefulProtocol>,

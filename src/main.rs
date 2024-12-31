@@ -8,11 +8,12 @@ mod environment;
 mod error;
 mod event;
 mod file;
+mod format;
 mod macros;
 mod object;
 mod pages;
+mod render;
 mod run;
-mod ui;
 mod util;
 mod widget;
 
