@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, rc::Rc};
+use std::rc::Rc;
 
 use chrono::{DateTime, Local};
 use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
@@ -442,26 +442,35 @@ impl ObjectListPage {
         let items = &self.object_items;
         let selected = self.sort_dialog_state.selected();
 
-        #[allow(clippy::type_complexity)]
-        let sort_func: Box<dyn FnMut(&usize, &usize) -> Ordering> = match selected {
-            ObjectListSortType::Default => Box::new(|a, b| a.cmp(b)),
-            ObjectListSortType::NameAsc => Box::new(|a, b| items[*a].name().cmp(items[*b].name())),
-            ObjectListSortType::NameDesc => Box::new(|a, b| items[*b].name().cmp(items[*a].name())),
+        match selected {
+            ObjectListSortType::Default => {
+                self.view_indices.sort();
+            }
+            ObjectListSortType::NameAsc => {
+                self.view_indices
+                    .sort_by(|a, b| items[*a].name().cmp(items[*b].name()));
+            }
+            ObjectListSortType::NameDesc => {
+                self.view_indices
+                    .sort_by(|a, b| items[*b].name().cmp(items[*a].name()));
+            }
             ObjectListSortType::LastModifiedAsc => {
-                Box::new(|a, b| items[*a].last_modified().cmp(&items[*b].last_modified()))
+                self.view_indices
+                    .sort_by(|a, b| items[*a].last_modified().cmp(&items[*b].last_modified()));
             }
             ObjectListSortType::LastModifiedDesc => {
-                Box::new(|a, b| items[*b].last_modified().cmp(&items[*a].last_modified()))
+                self.view_indices
+                    .sort_by(|a, b| items[*b].last_modified().cmp(&items[*a].last_modified()));
             }
             ObjectListSortType::SizeAsc => {
-                Box::new(|a, b| items[*a].size_byte().cmp(&items[*b].size_byte()))
+                self.view_indices
+                    .sort_by(|a, b| items[*a].size_byte().cmp(&items[*b].size_byte()));
             }
             ObjectListSortType::SizeDesc => {
-                Box::new(|a, b| items[*b].size_byte().cmp(&items[*a].size_byte()))
+                self.view_indices
+                    .sort_by(|a, b| items[*b].size_byte().cmp(&items[*a].size_byte()));
             }
-        };
-
-        self.view_indices.sort_by(sort_func);
+        }
     }
 
     pub fn current_selected_item(&self) -> &ObjectItem {

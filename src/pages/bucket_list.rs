@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, rc::Rc};
+use std::rc::Rc;
 
 use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
 use ratatui::{
@@ -415,14 +415,19 @@ impl BucketListPage {
         let items = &self.bucket_items;
         let selected = self.sort_dialog_state.selected();
 
-        #[allow(clippy::type_complexity)]
-        let sort_func: Box<dyn FnMut(&usize, &usize) -> Ordering> = match selected {
-            BucketListSortType::Default => Box::new(|a, b| a.cmp(b)),
-            BucketListSortType::NameAsc => Box::new(|a, b| items[*a].name.cmp(&items[*b].name)),
-            BucketListSortType::NameDesc => Box::new(|a, b| items[*b].name.cmp(&items[*a].name)),
-        };
-
-        self.view_indices.sort_by(sort_func);
+        match selected {
+            BucketListSortType::Default => {
+                self.view_indices.sort();
+            }
+            BucketListSortType::NameAsc => {
+                self.view_indices
+                    .sort_by(|a, b| items[*a].name.cmp(&items[*b].name));
+            }
+            BucketListSortType::NameDesc => {
+                self.view_indices
+                    .sort_by(|a, b| items[*b].name.cmp(&items[*a].name));
+            }
+        }
     }
 
     pub fn current_selected_item(&self) -> &BucketItem {
