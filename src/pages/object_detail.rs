@@ -60,7 +60,7 @@ impl Tab {
 enum ViewState {
     Default,
     SaveDialog(InputDialogState),
-    CopyDetailDialog(CopyDetailDialogState),
+    CopyDetailDialog(Box<CopyDetailDialogState>),
 }
 
 impl ObjectDetailPage {
@@ -357,15 +357,15 @@ impl ObjectDetailPage {
     fn open_copy_detail_dialog(&mut self) {
         match self.tab {
             Tab::Detail(_) => {
-                self.view_state = ViewState::CopyDetailDialog(
+                self.view_state = ViewState::CopyDetailDialog(Box::new(
                     CopyDetailDialogState::object_detail(self.file_detail.clone()),
-                );
+                ));
             }
             Tab::Version(_) => {
                 let version = self.current_selected_version().unwrap().clone();
-                self.view_state = ViewState::CopyDetailDialog(
+                self.view_state = ViewState::CopyDetailDialog(Box::new(
                     CopyDetailDialogState::object_version(self.file_detail.clone(), version),
-                );
+                ));
             }
         }
     }
