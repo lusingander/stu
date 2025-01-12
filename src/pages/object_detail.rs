@@ -60,7 +60,7 @@ impl Tab {
 enum ViewState {
     Default,
     SaveDialog(InputDialogState),
-    CopyDetailDialog(CopyDetailDialogState),
+    CopyDetailDialog(Box<CopyDetailDialogState>),
 }
 
 impl ObjectDetailPage {
@@ -355,9 +355,19 @@ impl ObjectDetailPage {
     }
 
     fn open_copy_detail_dialog(&mut self) {
-        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::object_detail(
-            self.file_detail.clone(),
-        ));
+        match self.tab {
+            Tab::Detail(_) => {
+                self.view_state = ViewState::CopyDetailDialog(Box::new(
+                    CopyDetailDialogState::object_detail(self.file_detail.clone()),
+                ));
+            }
+            Tab::Version(_) => {
+                let version = self.current_selected_version().unwrap().clone();
+                self.view_state = ViewState::CopyDetailDialog(Box::new(
+                    CopyDetailDialogState::object_version(self.file_detail.clone(), version),
+                ));
+            }
+        }
     }
 
     fn close_copy_detail_dialog(&mut self) {
@@ -398,14 +408,16 @@ impl ObjectDetailPage {
             .send(AppEventType::ObjectDetailOpenManagementConsole);
     }
 
-    fn current_selected_version_id(&self) -> Option<String> {
+    fn current_selected_version(&self) -> Option<&FileVersion> {
         match &self.tab {
             Tab::Detail(_) => None,
-            Tab::Version(state) => self
-                .file_versions
-                .get(state.selected)
-                .map(|v| v.version_id.clone()),
+            Tab::Version(state) => self.file_versions.get(state.selected),
         }
+    }
+
+    fn current_selected_version_id(&self) -> Option<String> {
+        self.current_selected_version()
+            .map(|v| v.version_id.clone())
     }
 
     pub fn current_object_key(&self) -> &ObjectKey {
@@ -1158,6 +1170,88 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn test_render_copy_detail_dialog_version_tab() -> std::io::Result<()> {
+        let ctx = Rc::default();
+        let (tx, _) = event::new();
+        let mut terminal = setup_terminal()?;
+
+        let (items, file_detail, file_versions, object_key) = fixtures();
+        let items_len = items.len();
+        let mut page = ObjectDetailPage::new(
+            file_detail,
+            items,
+            object_key,
+            ScrollListState::new(items_len),
+            ctx,
+            tx,
+        );
+        page.set_versions(file_versions);
+        page.select_versions_tab();
+
+        let area = Rect::new(0, 0, 60, 20);
+
+        // Call render once to update the StatefulWidget
+        terminal.draw(|f| {
+            page.render(f, area);
+        })?;
+
+        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.open_copy_detail_dialog();
+
+        terminal.draw(|f| {
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
+            "│  file1                     ││ Detail │ Version           │",
+            "│  file2                     ││────────────────────────────│",
+            "│  file3                     ││     Version ID: 60f36bc2-0f│",
+            "│ ╭Copy──────────────────────────────────────────────────╮ │",
+            "│ │ Key:                                                 │ │",
+            "│ │   file1                                              │ │",
+            "│ │ S3 URI:                                              │ │",
+            "│ │   s3://bucket-1/file1?versionId=1c5d3bcc-2bb3-4cd5-8 │ │",
+            "│ │ ARN:                                                 │ │",
+            "│ │   arn:aws:s3:::bucket-1/file1                        │ │",
+            "│ │ Object URL:                                          │ │",
+            "│ │   https://bucket-1.s3.ap-northeast-1.amazonaws.com/f │ │",
+            "│ │ ETag:                                                │ │",
+            "│ │   6c5db847-d206-4a27-9723-713e3a6cad86               │ │",
+            "│ ╰──────────────────────────────────────────────────────╯ │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "│                            ││                            │",
+            "└────────────────────────────┘└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            // "Version" is selected
+            (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
+            // "Version ID" label
+            (33..48, [3]) => modifier: Modifier::BOLD,
+            // "Key" label
+            (4..8, [5]) => modifier: Modifier::BOLD,
+            // "S3 URI" label
+            (4..11, [7]) => modifier: Modifier::BOLD,
+            // "ARN" label
+            (4..8, [9]) => modifier: Modifier::BOLD,
+            // "Object URL" label
+            (4..15, [11]) => modifier: Modifier::BOLD,
+            // "ETag" label
+            (4..9, [13]) => modifier: Modifier::BOLD,
+            // "Key" is selected
+            (4..56, [5, 6]) => fg: Color::Cyan,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
     fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
         let backend = TestBackend::new(60, 20);
         let mut terminal = Terminal::new(backend)?;
@@ -1195,12 +1289,14 @@ mod tests {
                 version_id: "60f36bc2-0f38-47b8-9bf0-e24e334b86d5".to_string(),
                 size_byte: 1024 + 10,
                 last_modified: parse_datetime("2024-01-02 13:01:02"),
+                e_tag: "bef684de-a260-48a4-8178-8a535ecccadb".to_string(),
                 is_latest: true,
             },
             FileVersion {
                 version_id: "1c5d3bcc-2bb3-4cd5-875f-a95a6ae53f65".to_string(),
                 size_byte: 1024,
                 last_modified: parse_datetime("2024-01-01 23:59:59"),
+                e_tag: "6c5db847-d206-4a27-9723-713e3a6cad86".to_string(),
                 is_latest: false,
             },
         ];

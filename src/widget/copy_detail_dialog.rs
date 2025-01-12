@@ -11,7 +11,7 @@ use ratatui::{
 
 use crate::{
     color::ColorTheme,
-    object::{BucketItem, FileDetail, ObjectItem},
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
     widget::{common::calc_centered_dialog_rect, Dialog},
 };
 
@@ -121,10 +121,39 @@ impl ObjectDetailItemType {
     }
 }
 
+#[derive(Default)]
+#[zero_indexed_enum]
+enum ObjectVersionItemType {
+    #[default]
+    Key,
+    S3Uri,
+    Arn,
+    ObjectUrl,
+    Etag,
+}
+
+impl ObjectVersionItemType {
+    fn name_and_value(
+        &self,
+        file_detail: &FileDetail,
+        file_version: &FileVersion,
+    ) -> (String, String) {
+        let (name, value) = match self {
+            Self::Key => ("Key", &file_detail.key),
+            Self::S3Uri => ("S3 URI", &file_version.s3_uri(file_detail)),
+            Self::Arn => ("ARN", &file_detail.arn),
+            Self::ObjectUrl => ("Object URL", &file_version.object_url(file_detail)),
+            Self::Etag => ("ETag", &file_version.e_tag),
+        };
+        (name.into(), value.into())
+    }
+}
+
 #[derive(Debug)]
 pub enum CopyDetailDialogState {
     BucketList(BucketListItemType, BucketItem),
     ObjectDetail(ObjectDetailItemType, FileDetail),
+    ObjectVersion(ObjectVersionItemType, FileDetail, FileVersion),
     ObjectListFile(ObjectListFileItemType, ObjectItem),
     ObjectListDir(ObjectListDirItemType, ObjectItem),
 }
@@ -145,6 +174,10 @@ impl CopyDetailDialogState {
     pub fn object_detail(file_detail: FileDetail) -> Self {
         Self::ObjectDetail(ObjectDetailItemType::default(), file_detail)
     }
+
+    pub fn object_version(file_detail: FileDetail, file_version: FileVersion) -> Self {
+        Self::ObjectVersion(ObjectVersionItemType::default(), file_detail, file_version)
+    }
 }
 
 impl CopyDetailDialogState {
@@ -152,6 +185,7 @@ impl CopyDetailDialogState {
         match self {
             Self::BucketList(selected, _) => *selected = selected.next(),
             Self::ObjectDetail(selected, _) => *selected = selected.next(),
+            Self::ObjectVersion(selected, _, _) => *selected = selected.next(),
             Self::ObjectListFile(selected, _) => *selected = selected.next(),
             Self::ObjectListDir(selected, _) => *selected = selected.next(),
         }
@@ -161,6 +195,7 @@ impl CopyDetailDialogState {
         match self {
             Self::BucketList(selected, _) => *selected = selected.prev(),
             Self::ObjectDetail(selected, _) => *selected = selected.prev(),
+            Self::ObjectVersion(selected, _, _) => *selected = selected.prev(),
             Self::ObjectListFile(selected, _) => *selected = selected.prev(),
             Self::ObjectListDir(selected, _) => *selected = selected.prev(),
         }
@@ -170,6 +205,7 @@ impl CopyDetailDialogState {
         match self {
             Self::BucketList(selected, _) => selected.val(),
             Self::ObjectDetail(selected, _) => selected.val(),
+            Self::ObjectVersion(selected, _, _) => selected.val(),
             Self::ObjectListFile(selected, _) => selected.val(),
             Self::ObjectListDir(selected, _) => selected.val(),
         }
@@ -179,6 +215,9 @@ impl CopyDetailDialogState {
         match self {
             Self::BucketList(selected, bucket_item) => selected.name_and_value(bucket_item),
             Self::ObjectDetail(selected, file_detail) => selected.name_and_value(file_detail),
+            Self::ObjectVersion(selected, file_detail, file_version) => {
+                selected.name_and_value(file_detail, file_version)
+            }
             Self::ObjectListFile(selected, object_item) => selected.name_and_value(object_item),
             Self::ObjectListDir(selected, object_item) => selected.name_and_value(object_item),
         }
@@ -194,6 +233,12 @@ impl CopyDetailDialogState {
                 .into_iter()
                 .map(|t| t.name_and_value(file_detail))
                 .collect(),
+            Self::ObjectVersion(_, file_detail, file_version) => {
+                ObjectVersionItemType::vars_array()
+                    .into_iter()
+                    .map(|t| t.name_and_value(file_detail, file_version))
+                    .collect()
+            }
             Self::ObjectListFile(_, object_item) => ObjectListFileItemType::vars_array()
                 .into_iter()
                 .map(|t| t.name_and_value(object_item))
@@ -209,6 +254,7 @@ impl CopyDetailDialogState {
         match self {
             Self::BucketList(_, _) => BucketListItemType::len(),
             Self::ObjectDetail(_, _) => ObjectDetailItemType::len(),
+            Self::ObjectVersion(_, _, _) => ObjectVersionItemType::len(),
             Self::ObjectListFile(_, _) => ObjectListFileItemType::len(),
             Self::ObjectListDir(_, _) => ObjectListDirItemType::len(),
         }

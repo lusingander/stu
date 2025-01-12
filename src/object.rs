@@ -75,8 +75,22 @@ pub struct FileVersion {
     pub version_id: String,
     pub size_byte: usize,
     pub last_modified: DateTime<Local>,
+    pub e_tag: String,
     #[allow(dead_code)]
     pub is_latest: bool,
+}
+
+impl FileVersion {
+    pub fn s3_uri(&self, base_file_detail: &FileDetail) -> String {
+        format!("{}?versionId={}", base_file_detail.s3_uri, self.version_id)
+    }
+
+    pub fn object_url(&self, base_file_detail: &FileDetail) -> String {
+        format!(
+            "{}?versionId={}",
+            base_file_detail.object_url, self.version_id
+        )
+    }
 }
 
 #[derive(Debug, Default)]
