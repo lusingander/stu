@@ -355,9 +355,19 @@ impl ObjectDetailPage {
     }
 
     fn open_copy_detail_dialog(&mut self) {
-        self.view_state = ViewState::CopyDetailDialog(CopyDetailDialogState::object_detail(
-            self.file_detail.clone(),
-        ));
+        match self.tab {
+            Tab::Detail(_) => {
+                self.view_state = ViewState::CopyDetailDialog(
+                    CopyDetailDialogState::object_detail(self.file_detail.clone()),
+                );
+            }
+            Tab::Version(_) => {
+                let version = self.current_selected_version().unwrap().clone();
+                self.view_state = ViewState::CopyDetailDialog(
+                    CopyDetailDialogState::object_version(self.file_detail.clone(), version),
+                );
+            }
+        }
     }
 
     fn close_copy_detail_dialog(&mut self) {
@@ -398,14 +408,16 @@ impl ObjectDetailPage {
             .send(AppEventType::ObjectDetailOpenManagementConsole);
     }
 
-    fn current_selected_version_id(&self) -> Option<String> {
+    fn current_selected_version(&self) -> Option<&FileVersion> {
         match &self.tab {
             Tab::Detail(_) => None,
-            Tab::Version(state) => self
-                .file_versions
-                .get(state.selected)
-                .map(|v| v.version_id.clone()),
+            Tab::Version(state) => self.file_versions.get(state.selected),
         }
+    }
+
+    fn current_selected_version_id(&self) -> Option<String> {
+        self.current_selected_version()
+            .map(|v| v.version_id.clone())
     }
 
     pub fn current_object_key(&self) -> &ObjectKey {
@@ -1201,13 +1213,13 @@ mod tests {
             "│ │ Key:                                                 │ │",
             "│ │   file1                                              │ │",
             "│ │ S3 URI:                                              │ │",
-            "│ │   s3://bucket-1/file1                                │ │",
+            "│ │   s3://bucket-1/file1?versionId=1c5d3bcc-2bb3-4cd5-8 │ │",
             "│ │ ARN:                                                 │ │",
             "│ │   arn:aws:s3:::bucket-1/file1                        │ │",
             "│ │ Object URL:                                          │ │",
             "│ │   https://bucket-1.s3.ap-northeast-1.amazonaws.com/f │ │",
             "│ │ ETag:                                                │ │",
-            "│ │   bef684de-a260-48a4-8178-8a535ecccadb               │ │",
+            "│ │   6c5db847-d206-4a27-9723-713e3a6cad86               │ │",
             "│ ╰──────────────────────────────────────────────────────╯ │",
             "│                            ││                            │",
             "│                            ││                            │",

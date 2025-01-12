@@ -80,6 +80,19 @@ pub struct FileVersion {
     pub is_latest: bool,
 }
 
+impl FileVersion {
+    pub fn s3_uri(&self, base_file_detail: &FileDetail) -> String {
+        format!("{}?versionId={}", base_file_detail.s3_uri, self.version_id)
+    }
+
+    pub fn object_url(&self, base_file_detail: &FileDetail) -> String {
+        format!(
+            "{}?versionId={}",
+            base_file_detail.object_url, self.version_id
+        )
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct AppObjects {
     bucket_items: Vec<BucketItem>,
