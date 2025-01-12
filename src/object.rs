@@ -75,6 +75,7 @@ pub struct FileVersion {
     pub version_id: String,
     pub size_byte: usize,
     pub last_modified: DateTime<Local>,
+    pub e_tag: String,
     #[allow(dead_code)]
     pub is_latest: bool,
 }

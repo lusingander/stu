@@ -1195,12 +1195,14 @@ mod tests {
                 version_id: "60f36bc2-0f38-47b8-9bf0-e24e334b86d5".to_string(),
                 size_byte: 1024 + 10,
                 last_modified: parse_datetime("2024-01-02 13:01:02"),
+                e_tag: "bef684de-a260-48a4-8178-8a535ecccadb".to_string(),
                 is_latest: true,
             },
             FileVersion {
                 version_id: "1c5d3bcc-2bb3-4cd5-875f-a95a6ae53f65".to_string(),
                 size_byte: 1024,
                 last_modified: parse_datetime("2024-01-01 23:59:59"),
+                e_tag: "6c5db847-d206-4a27-9723-713e3a6cad86".to_string(),
                 is_latest: false,
             },
         ];
