@@ -61,7 +61,7 @@ fn build_image_protocol(
     image_picker: ImagePicker,
 ) -> Result<StatefulProtocol, String> {
     match image_picker {
-        ImagePicker::Ok(mut picker) => {
+        ImagePicker::Ok(picker) => {
             let reader = ImageReader::new(Cursor::new(bytes))
                 .with_guessed_format()
                 .map_err(|e| format!("Failed to guess image format: {e}"))?;
@@ -110,7 +110,7 @@ impl StatefulWidget for ImagePreview<'_> {
 
         if state.render {
             if let Some(protocol) = &mut state.protocol {
-                let image = StatefulImage::new(None);
+                let image = StatefulImage::default();
                 image.render(image_area, buf, protocol);
             }
         }
