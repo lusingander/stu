@@ -115,66 +115,16 @@ impl Client {
             .collect();
 
         if buckets.is_empty() {
-            return Err(AppError::msg("No buckets found"));
+            Err(AppError::msg("No buckets found"))
+        } else {
+            Ok(buckets)
         }
-
-        let mut buckets_in_region: Vec<BucketItem> = Vec::new();
-        for bucket in buckets {
-            let region = self.get_bucket_region(&bucket.name).await?;
-            if region == self.region {
-                buckets_in_region.push(bucket);
-            }
-        }
-
-        self.bucket_region_cache.write_cache().unwrap();
-
-        Ok(buckets_in_region)
-    }
-
-    async fn get_bucket_region(&self, bucket_name: &str) -> Result<String> {
-        if let Some(bucket_region) = self.bucket_region_cache.get(bucket_name) {
-            return Ok(bucket_region);
-        }
-
-        let result = self
-            .client
-            .get_bucket_location()
-            .bucket(bucket_name)
-            .send()
-            .await;
-        let output = result.map_err(|e| {
-            AppError::new(format!("Failed to fetch region for '{}'", bucket_name), e)
-        })?;
-
-        let bucket_region = output
-            .location_constraint()
-            .map(|loc| {
-                if loc.as_str().is_empty() {
-                    // location_constraint() returns Some<Unknown<UnknownVariantValue("")>> for "us-east-1" region, not None
-                    "us-east-1".to_string()
-                } else {
-                    loc.as_str().to_string()
-                }
-            })
-            .unwrap();
-
-        self.bucket_region_cache
-            .put(bucket_name.to_string(), bucket_region.to_string())
-            .unwrap();
-
-        Ok(bucket_region.to_string())
     }
 
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
-        let region = self.get_bucket_region(name).await?;
-        self.bucket_region_cache.write_cache().unwrap();
-
-        if region != self.region {
-            return Err(AppError::msg(format!(
-                "Bucket '{}' is in region '{}', expected '{}'",
-                name, region, self.region
-            )));
-        }
+        let result = self.client.head_bucket().bucket(name).send().await;
+        // Check only existence and accessibility
+        result.map_err(|e| AppError::new(format!("Failed to load bucket '{}'", name), e))?;
 
         let s3_uri = build_bucket_s3_uri(name);
         let arn = build_bucket_arn(name);
