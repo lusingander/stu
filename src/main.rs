@@ -1,5 +1,4 @@
 mod app;
-mod cache;
 mod client;
 mod color;
 mod config;
