@@ -88,7 +88,12 @@ impl Client {
     }
 
     pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
-        let list_buckets_result = self.client.list_buckets().send().await;
+        let list_buckets_result = self
+            .client
+            .list_buckets()
+            .bucket_region(&self.region)
+            .send()
+            .await;
         let list_buckets_output =
             list_buckets_result.map_err(|e| AppError::new("Failed to load buckets", e))?;
 
