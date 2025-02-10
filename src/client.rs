@@ -5,8 +5,6 @@ use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output
 use chrono::TimeZone;
 
 use crate::{
-    cache::SimpleStringCache,
-    config::Config,
     error::{AppError, Result},
     object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
 };
@@ -32,7 +30,6 @@ impl AddressingStyle {
 pub struct Client {
     client: aws_sdk_s3::Client,
     region: String,
-    bucket_region_cache: SimpleStringCache,
 }
 
 impl Debug for Client {
@@ -74,13 +71,7 @@ impl Client {
         let client = aws_sdk_s3::Client::from_conf(config);
         let region = sdk_config.region().unwrap().to_string();
 
-        let bucket_region_cache = SimpleStringCache::new(Config::cache_file_path().unwrap());
-
-        Client {
-            client,
-            region,
-            bucket_region_cache,
-        }
+        Client { client, region }
     }
 
     pub fn region(&self) -> &str {

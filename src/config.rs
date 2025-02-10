@@ -14,7 +14,6 @@ const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
 const PREVIEW_THEME_DIR: &str = "preview_theme";
 const PREVIEW_SYNTAX_DIR: &str = "preview_syntax";
-const CACHE_FILE_NAME: &str = "cache.txt";
 
 #[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
@@ -102,11 +101,6 @@ impl Config {
     pub fn debug_log_path(&self) -> anyhow::Result<PathBuf> {
         let dir = Config::get_app_base_dir()?;
         Ok(dir.join(DEBUG_LOG_FILE_NAME))
-    }
-
-    pub fn cache_file_path() -> anyhow::Result<PathBuf> {
-        let dir = Config::get_app_base_dir()?;
-        Ok(dir.join(CACHE_FILE_NAME))
     }
 
     pub fn preview_theme_dir_path() -> anyhow::Result<PathBuf> {
