@@ -376,8 +376,9 @@ mod tests {
             "                                        ",
             "                                        ",
             "                                        ",
-            "                                        ",
             "  ╭Copy──────────────────────────────╮  ",
+            "  │ Name:                            │  ",
+            "  │   file.txt                       │  ",
             "  │ Key:                             │  ",
             "  │   file.txt                       │  ",
             "  │ S3 URI:                          │  ",
@@ -392,21 +393,22 @@ mod tests {
             "                                        ",
             "                                        ",
             "                                        ",
-            "                                        ",
         ]);
         set_cells! { expected =>
+            // "Name" is bold
+            (4..9, [4]) => modifier: Modifier::BOLD,
             // "Key" is bold
-            (4..8, [5]) => modifier: Modifier::BOLD,
+            (4..8, [6]) => modifier: Modifier::BOLD,
             // "S3 URI" is bold
-            (4..11, [7]) => modifier: Modifier::BOLD,
+            (4..11, [8]) => modifier: Modifier::BOLD,
             // "ARN" is bold
-            (4..8, [9]) => modifier: Modifier::BOLD,
+            (4..8, [10]) => modifier: Modifier::BOLD,
             // "Object URL" is bold
-            (4..15, [11]) => modifier: Modifier::BOLD,
+            (4..15, [12]) => modifier: Modifier::BOLD,
             // "ETag" is bold
-            (4..9, [13]) => modifier: Modifier::BOLD,
+            (4..9, [14]) => modifier: Modifier::BOLD,
             // selected item
-            (4..36, [5, 6]) => fg: Color::Cyan,
+            (4..36, [4, 5]) => fg: Color::Cyan,
         }
 
         assert_eq!(buf, expected);

@@ -1124,8 +1124,9 @@ mod tests {
             "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
             "│  file1                     ││ Detail │ Version           │",
             "│  file2                     ││────────────────────────────│",
-            "│  file3                     ││ Name:                      │",
             "│ ╭Copy──────────────────────────────────────────────────╮ │",
+            "│ │ Name:                                                │ │",
+            "│ │   file1                                              │ │",
             "│ │ Key:                                                 │ │",
             "│ │   file1                                              │ │",
             "│ │ S3 URI:                                              │ │",
@@ -1137,7 +1138,6 @@ mod tests {
             "│ │ ETag:                                                │ │",
             "│ │   bef684de-a260-48a4-8178-8a535ecccadb               │ │",
             "│ ╰──────────────────────────────────────────────────────╯ │",
-            "│                            ││ Content-Type:              │",
             "│                            ││  text/plain                │",
             "│                            ││                            │",
             "└────────────────────────────┘└────────────────────────────┘",
@@ -1148,21 +1148,19 @@ mod tests {
             // "Detail" is selected
             (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Name" label
-            (32..37, [3]) => modifier: Modifier::BOLD,
-            // "Content-Type" label
-            (32..45, [16]) => modifier: Modifier::BOLD,
+            (4..9, [4]) => modifier: Modifier::BOLD,
             // "Key" label
-            (4..8, [5]) => modifier: Modifier::BOLD,
+            (4..8, [6]) => modifier: Modifier::BOLD,
             // "S3 URI" label
-            (4..11, [7]) => modifier: Modifier::BOLD,
+            (4..11, [8]) => modifier: Modifier::BOLD,
             // "ARN" label
-            (4..8, [9]) => modifier: Modifier::BOLD,
+            (4..8, [10]) => modifier: Modifier::BOLD,
             // "Object URL" label
-            (4..15, [11]) => modifier: Modifier::BOLD,
+            (4..15, [12]) => modifier: Modifier::BOLD,
             // "ETag" label
-            (4..9, [13]) => modifier: Modifier::BOLD,
-            // "Key" is selected
-            (4..56, [5, 6]) => fg: Color::Cyan,
+            (4..9, [14]) => modifier: Modifier::BOLD,
+            // "Name" is selected
+            (4..56, [4, 5]) => fg: Color::Cyan,
         }
 
         terminal.backend().assert_buffer(&expected);
@@ -1208,8 +1206,9 @@ mod tests {
             "┌───────────────────── 1 / 3 ┐┌────────────────────────────┐",
             "│  file1                     ││ Detail │ Version           │",
             "│  file2                     ││────────────────────────────│",
-            "│  file3                     ││     Version ID: 60f36bc2-0f│",
             "│ ╭Copy──────────────────────────────────────────────────╮ │",
+            "│ │ Name:                                                │ │",
+            "│ │   file1                                              │ │",
             "│ │ Key:                                                 │ │",
             "│ │   file1                                              │ │",
             "│ │ S3 URI:                                              │ │",
@@ -1223,7 +1222,6 @@ mod tests {
             "│ ╰──────────────────────────────────────────────────────╯ │",
             "│                            ││                            │",
             "│                            ││                            │",
-            "│                            ││                            │",
             "└────────────────────────────┘└────────────────────────────┘",
         ]);
         set_cells! { expected =>
@@ -1231,20 +1229,20 @@ mod tests {
             (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // "Version" is selected
             (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
-            // "Version ID" label
-            (33..48, [3]) => modifier: Modifier::BOLD,
+            // "Name" label
+            (4..9, [4]) => modifier: Modifier::BOLD,
             // "Key" label
-            (4..8, [5]) => modifier: Modifier::BOLD,
+            (4..8, [6]) => modifier: Modifier::BOLD,
             // "S3 URI" label
-            (4..11, [7]) => modifier: Modifier::BOLD,
+            (4..11, [8]) => modifier: Modifier::BOLD,
             // "ARN" label
-            (4..8, [9]) => modifier: Modifier::BOLD,
+            (4..8, [10]) => modifier: Modifier::BOLD,
             // "Object URL" label
-            (4..15, [11]) => modifier: Modifier::BOLD,
+            (4..15, [12]) => modifier: Modifier::BOLD,
             // "ETag" label
-            (4..9, [13]) => modifier: Modifier::BOLD,
-            // "Key" is selected
-            (4..56, [5, 6]) => fg: Color::Cyan,
+            (4..9, [14]) => modifier: Modifier::BOLD,
+            // "Name" is selected
+            (4..56, [4, 5]) => fg: Color::Cyan,
         }
 
         terminal.backend().assert_buffer(&expected);
