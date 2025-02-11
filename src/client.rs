@@ -1,7 +1,11 @@
 use std::fmt::Debug;
 
 use aws_config::{default_provider::region, meta::region::RegionProviderChain, BehaviorVersion};
-use aws_sdk_s3::{config::Region, operation::list_objects_v2::ListObjectsV2Output};
+use aws_sdk_s3::{
+    config::Region,
+    error::SdkError,
+    operation::list_objects_v2::{ListObjectsV2Error, ListObjectsV2Output},
+};
 use chrono::TimeZone;
 
 use crate::{
@@ -113,10 +117,6 @@ impl Client {
     }
 
     pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
-        let result = self.client.head_bucket().bucket(name).send().await;
-        // Check only existence and accessibility
-        result.map_err(|e| AppError::new(format!("Failed to load bucket '{}'", name), e))?;
-
         let s3_uri = build_bucket_s3_uri(name);
         let arn = build_bucket_arn(name);
         let object_url = build_bucket_url(&self.region, name);
@@ -145,6 +145,13 @@ impl Client {
                 .set_continuation_token(token)
                 .send()
                 .await;
+
+            if let Err(SdkError::ServiceError(ref e)) = result {
+                if let ListObjectsV2Error::NoSuchBucket(_) = e.err() {
+                    return Err(AppError::msg(format!("Bucket '{}' not found", bucket)));
+                }
+            }
+
             let output = result.map_err(|e| AppError::new("Failed to load objects", e))?;
 
             let dirs = objects_output_to_dirs(&self.region, bucket, &output);
