@@ -19,6 +19,7 @@ use crate::{
 #[zero_indexed_enum]
 enum BucketListItemType {
     #[default]
+    Name,
     S3Uri,
     Arn,
     ObjectUrl,
@@ -27,6 +28,7 @@ enum BucketListItemType {
 impl BucketListItemType {
     fn name_and_value(&self, bucket_item: &BucketItem) -> (String, String) {
         let (name, value) = match self {
+            Self::Name => ("Name", &bucket_item.name),
             Self::S3Uri => ("S3 URI", &bucket_item.s3_uri),
             Self::Arn => ("ARN", &bucket_item.arn),
             Self::ObjectUrl => ("Object URL", &bucket_item.object_url),
@@ -39,6 +41,7 @@ impl BucketListItemType {
 #[zero_indexed_enum]
 enum ObjectListFileItemType {
     #[default]
+    Name,
     Key,
     S3Uri,
     Arn,
@@ -51,6 +54,7 @@ impl ObjectListFileItemType {
         let (name, value) = match object_item {
             ObjectItem::Dir { .. } => unreachable!(),
             ObjectItem::File {
+                name,
                 key,
                 s3_uri,
                 arn,
@@ -58,6 +62,7 @@ impl ObjectListFileItemType {
                 e_tag,
                 ..
             } => match self {
+                Self::Name => ("Name", name),
                 Self::Key => ("Key", key),
                 Self::S3Uri => ("S3 URI", s3_uri),
                 Self::Arn => ("ARN", arn),
@@ -73,6 +78,7 @@ impl ObjectListFileItemType {
 #[zero_indexed_enum]
 enum ObjectListDirItemType {
     #[default]
+    Name,
     Key,
     S3Uri,
     ObjectUrl,
@@ -82,11 +88,13 @@ impl ObjectListDirItemType {
     fn name_and_value(&self, object_item: &ObjectItem) -> (String, String) {
         let (name, value) = match object_item {
             ObjectItem::Dir {
+                name,
                 key,
                 s3_uri,
                 object_url,
                 ..
             } => match self {
+                Self::Name => ("Name", name),
                 Self::Key => ("Key", key),
                 Self::S3Uri => ("S3 URI", s3_uri),
                 Self::ObjectUrl => ("Object URL", object_url),
@@ -101,6 +109,7 @@ impl ObjectListDirItemType {
 #[zero_indexed_enum]
 enum ObjectDetailItemType {
     #[default]
+    Name,
     Key,
     S3Uri,
     Arn,
@@ -111,6 +120,7 @@ enum ObjectDetailItemType {
 impl ObjectDetailItemType {
     fn name_and_value(&self, file_detail: &FileDetail) -> (String, String) {
         let (name, value) = match self {
+            Self::Name => ("Name", &file_detail.name),
             Self::Key => ("Key", &file_detail.key),
             Self::S3Uri => ("S3 URI", &file_detail.s3_uri),
             Self::Arn => ("ARN", &file_detail.arn),
@@ -125,6 +135,7 @@ impl ObjectDetailItemType {
 #[zero_indexed_enum]
 enum ObjectVersionItemType {
     #[default]
+    Name,
     Key,
     S3Uri,
     Arn,
@@ -139,6 +150,7 @@ impl ObjectVersionItemType {
         file_version: &FileVersion,
     ) -> (String, String) {
         let (name, value) = match self {
+            Self::Name => ("Name", &file_detail.name),
             Self::Key => ("Key", &file_detail.key),
             Self::S3Uri => ("S3 URI", &file_version.s3_uri(file_detail)),
             Self::Arn => ("ARN", &file_detail.arn),
@@ -364,8 +376,9 @@ mod tests {
             "                                        ",
             "                                        ",
             "                                        ",
-            "                                        ",
             "  ╭Copy──────────────────────────────╮  ",
+            "  │ Name:                            │  ",
+            "  │   file.txt                       │  ",
             "  │ Key:                             │  ",
             "  │   file.txt                       │  ",
             "  │ S3 URI:                          │  ",
@@ -380,21 +393,22 @@ mod tests {
             "                                        ",
             "                                        ",
             "                                        ",
-            "                                        ",
         ]);
         set_cells! { expected =>
+            // "Name" is bold
+            (4..9, [4]) => modifier: Modifier::BOLD,
             // "Key" is bold
-            (4..8, [5]) => modifier: Modifier::BOLD,
+            (4..8, [6]) => modifier: Modifier::BOLD,
             // "S3 URI" is bold
-            (4..11, [7]) => modifier: Modifier::BOLD,
+            (4..11, [8]) => modifier: Modifier::BOLD,
             // "ARN" is bold
-            (4..8, [9]) => modifier: Modifier::BOLD,
+            (4..8, [10]) => modifier: Modifier::BOLD,
             // "Object URL" is bold
-            (4..15, [11]) => modifier: Modifier::BOLD,
+            (4..15, [12]) => modifier: Modifier::BOLD,
             // "ETag" is bold
-            (4..9, [13]) => modifier: Modifier::BOLD,
+            (4..9, [14]) => modifier: Modifier::BOLD,
             // selected item
-            (4..36, [5, 6]) => fg: Color::Cyan,
+            (4..36, [4, 5]) => fg: Color::Cyan,
         }
 
         assert_eq!(buf, expected);
