@@ -245,6 +245,10 @@ To get started with contributing, please review [CONTRIBUTING.md](CONTRIBUTING.m
 
 Contributions that do not follow these guidelines may not be accepted.
 
+## Related projects
+
+- [DDV](https://github.com/lusingander/ddv) - Terminal DynamoDB Viewer ⚡️
+
 ## License
 
 MIT
