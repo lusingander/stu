@@ -85,7 +85,7 @@ impl ObjectListPage {
                 key_code!(KeyCode::Enter) if self.non_empty() => {
                     self.tx.send(AppEventType::ObjectListMoveDown);
                 }
-                key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::ObjectListMoveUp);
                 }
                 key_code!(KeyCode::Down) | key_code_char!('j') if self.non_empty() => {
@@ -163,7 +163,7 @@ impl ObjectListPage {
                 _ => {}
             },
             ViewState::CopyDetailDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.close_copy_detail_dialog();
                 }
                 key_code!(KeyCode::Enter) => {

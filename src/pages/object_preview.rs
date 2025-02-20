@@ -97,7 +97,7 @@ impl ObjectPreviewPage {
                 key_code!(KeyCode::Esc) => {
                     self.tx.send(AppEventType::Quit);
                 }
-                key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('j') => {
@@ -145,7 +145,7 @@ impl ObjectPreviewPage {
                 key_code!(KeyCode::Esc) => {
                     self.tx.send(AppEventType::Quit);
                 }
-                key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('s') => {

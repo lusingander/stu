@@ -92,7 +92,7 @@ impl ObjectDetailPage {
                 key_code!(KeyCode::Esc) => {
                     self.tx.send(AppEventType::Quit);
                 }
-                key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('h') | key_code_char!('l') => {
@@ -160,7 +160,7 @@ impl ObjectDetailPage {
                 }
             },
             ViewState::CopyDetailDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.close_copy_detail_dialog();
                 }
                 key_code!(KeyCode::Enter) => {
