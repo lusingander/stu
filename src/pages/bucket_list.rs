@@ -74,10 +74,10 @@ impl BucketListPage {
                 key_code!(KeyCode::Enter) if self.non_empty() => {
                     self.tx.send(AppEventType::BucketListMoveDown);
                 }
-                key_code_char!('j') if self.non_empty() => {
+                key_code!(KeyCode::Down) | key_code_char!('j') if self.non_empty() => {
                     self.select_next();
                 }
-                key_code_char!('k') if self.non_empty() => {
+                key_code!(KeyCode::Up) | key_code_char!('k') if self.non_empty() => {
                     self.select_prev();
                 }
                 key_code_char!('g') if self.non_empty() => {
@@ -153,10 +153,10 @@ impl BucketListPage {
                     let (name, value) = state.selected_name_and_value();
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
-                key_code_char!('j') => {
+                key_code!(KeyCode::Down) | key_code_char!('j') => {
                     state.select_next();
                 }
-                key_code_char!('k') => {
+                key_code!(KeyCode::Up) | key_code_char!('k') => {
                     state.select_prev();
                 }
                 key_code_char!('?') => {

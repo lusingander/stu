@@ -167,10 +167,10 @@ impl ObjectDetailPage {
                     let (name, value) = state.selected_name_and_value();
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
-                key_code_char!('j') => {
+                key_code!(KeyCode::Down) | key_code_char!('j') => {
                     state.select_next();
                 }
-                key_code_char!('k') => {
+                key_code!(KeyCode::Up) | key_code_char!('k') => {
                     state.select_prev();
                 }
                 key_code_char!('?') => {
