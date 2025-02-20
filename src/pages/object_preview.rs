@@ -165,7 +165,7 @@ impl ObjectPreviewPage {
                     self.close_save_dialog();
                     self.enable_image_render();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     let input = state.input().into();
                     self.download_as(input);
                     // enable_image_render is called after download is completed

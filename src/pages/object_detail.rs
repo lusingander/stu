@@ -148,7 +148,7 @@ impl ObjectDetailPage {
                 key_code!(KeyCode::Esc) => {
                     self.close_save_dialog();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     let input = state.input().into();
                     self.download_as(input);
                 }
@@ -163,7 +163,7 @@ impl ObjectDetailPage {
                 key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.close_copy_detail_dialog();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     let (name, value) = state.selected_name_and_value();
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }

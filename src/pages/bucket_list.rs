@@ -71,7 +71,7 @@ impl BucketListPage {
                         self.reset_filter();
                     }
                 }
-                key_code!(KeyCode::Enter) if self.non_empty() => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) if self.non_empty() => {
                     self.tx.send(AppEventType::BucketListMoveDown);
                 }
                 key_code!(KeyCode::Down) | key_code_char!('j') if self.non_empty() => {
@@ -116,7 +116,7 @@ impl BucketListPage {
                 key_code!(KeyCode::Esc) => {
                     self.close_filter_dialog();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     self.apply_filter();
                 }
                 key_code_char!('?') => {
@@ -137,7 +137,7 @@ impl BucketListPage {
                 key_code_char!('k') => {
                     self.select_prev_sort_item();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     self.apply_sort();
                 }
                 key_code_char!('?') => {
@@ -149,7 +149,7 @@ impl BucketListPage {
                 key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.close_copy_detail_dialog();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     let (name, value) = state.selected_name_and_value();
                     self.tx.send(AppEventType::CopyToClipboard(name, value));
                 }
