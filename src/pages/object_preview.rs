@@ -100,10 +100,10 @@ impl ObjectPreviewPage {
                 key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
-                key_code_char!('j') => {
+                key_code!(KeyCode::Down) | key_code_char!('j') => {
                     state.scroll_lines_state.scroll_forward();
                 }
-                key_code_char!('k') => {
+                key_code!(KeyCode::Up) | key_code_char!('k') => {
                     state.scroll_lines_state.scroll_backward();
                 }
                 key_code!(KeyCode::PageDown) | key_code_char!('f') => {
