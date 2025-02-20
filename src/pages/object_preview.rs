@@ -97,19 +97,19 @@ impl ObjectPreviewPage {
                 key_code!(KeyCode::Esc) => {
                     self.tx.send(AppEventType::Quit);
                 }
-                key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
-                key_code_char!('j') => {
+                key_code!(KeyCode::Down) | key_code_char!('j') => {
                     state.scroll_lines_state.scroll_forward();
                 }
-                key_code_char!('k') => {
+                key_code!(KeyCode::Up) | key_code_char!('k') => {
                     state.scroll_lines_state.scroll_backward();
                 }
-                key_code_char!('f') => {
+                key_code!(KeyCode::PageDown) | key_code_char!('f') => {
                     state.scroll_lines_state.scroll_page_forward();
                 }
-                key_code_char!('b') => {
+                key_code!(KeyCode::PageUp) | key_code_char!('b') => {
                     state.scroll_lines_state.scroll_page_backward();
                 }
                 key_code_char!('g') => {
@@ -145,7 +145,7 @@ impl ObjectPreviewPage {
                 key_code!(KeyCode::Esc) => {
                     self.tx.send(AppEventType::Quit);
                 }
-                key_code!(KeyCode::Backspace) => {
+                key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) => {
                     self.tx.send(AppEventType::CloseCurrentPage);
                 }
                 key_code_char!('s') => {
@@ -165,7 +165,7 @@ impl ObjectPreviewPage {
                     self.close_save_dialog();
                     self.enable_image_render();
                 }
-                key_code!(KeyCode::Enter) => {
+                key_code!(KeyCode::Enter) | key_code!(KeyCode::Right) => {
                     let input = state.input().into();
                     self.download_as(input);
                     // enable_image_render is called after download is completed
