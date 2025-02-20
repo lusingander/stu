@@ -106,10 +106,10 @@ impl ObjectPreviewPage {
                 key_code_char!('k') => {
                     state.scroll_lines_state.scroll_backward();
                 }
-                key_code_char!('f') => {
+                key_code!(KeyCode::PageDown) | key_code_char!('f') => {
                     state.scroll_lines_state.scroll_page_forward();
                 }
-                key_code_char!('b') => {
+                key_code!(KeyCode::PageUp) | key_code_char!('b') => {
                     state.scroll_lines_state.scroll_page_backward();
                 }
                 key_code_char!('g') => {
