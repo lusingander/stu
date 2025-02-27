@@ -16,13 +16,13 @@ exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 
 [dependencies]
 ansi-to-tui = "7.0.0"
-anyhow = "1.0.95"
+anyhow = "1.0.96"
 arboard = "3.4.1"
-aws-config = "1.5.16"
-aws-sdk-s3 = "1.76.0"
+aws-config = "1.5.17"
+aws-sdk-s3 = "1.77.0"
 aws-smithy-types = "1.2.11"
-chrono = "0.4.39"
-clap = { version = "4.5.30", features = ["derive"] }
+chrono = "0.4.40"
+clap = { version = "4.5.31", features = ["derive"] }
 dirs = "6.0.0"
 humansize = "2.1.3"
 image = "0.25.5"
@@ -33,7 +33,7 @@ once_cell = "1.20.3"
 open = "5.3.2"
 ratatui = { version = "0.29.0", features = ["unstable-widget-ref"] }
 ratatui-image = "4.2.0"
-serde = { version = "1.0.217", features = ["derive"] }
+serde = { version = "1.0.218", features = ["derive"] }
 smart-default = "0.7.1"
 syntect = { version = "5.2.0", default-features = false, features = [
     "default-fancy",
@@ -45,7 +45,7 @@ tracing = "0.1.41"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.19", features = ["chrono"] }
 tui-input = "0.11.1"
-umbra = "0.3.0"
+umbra = "0.4.0"
 
 [dev-dependencies]
 rstest = "0.24.0"
