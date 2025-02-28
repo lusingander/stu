@@ -22,6 +22,8 @@ use crate::{
     },
 };
 
+const ELLIPSIS: &str = "...";
+
 #[derive(Debug)]
 pub struct BucketListPage {
     bucket_items: Vec<BucketItem>,
@@ -481,7 +483,7 @@ fn build_list_items<'a>(
         .enumerate()
         .map(|(idx, item)| {
             let selected = idx + offset == selected;
-            build_list_item(&item.name, selected, filter, theme)
+            build_list_item(&item.name, selected, filter, area.width, theme)
         })
         .collect()
 }
@@ -490,13 +492,19 @@ fn build_list_item<'a>(
     name: &'a str,
     selected: bool,
     filter: &'a str,
+    width: u16,
     theme: &'a ColorTheme,
 ) -> ListItem<'a> {
+    let name_w = (width as usize) - 4 /* border + pad */;
+    let pad_name =
+        console::pad_str(name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
+
     let line = if filter.is_empty() {
-        Line::from(vec![" ".into(), name.into(), " ".into()])
+        Line::from(vec![" ".into(), pad_name.into(), " ".into()])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(name)
+        let mut spans = highlight_matched_text(pad_name)
+            .ellipsis(ELLIPSIS)
             .matched_range(i, i + filter.chars().count())
             .not_matched_style(Style::default())
             .matched_style(Style::default().fg(theme.list_filter_match))
