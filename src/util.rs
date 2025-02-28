@@ -5,9 +5,10 @@ pub fn prune_strings_to_fit_width(
 ) -> Vec<String> {
     let words_total_length = words_with_priority
         .iter()
-        .map(|(s, _)| s.len())
+        .map(|(s, _)| console::measure_text_width(s))
         .sum::<usize>();
-    let delimiter_total_length = words_with_priority.len().saturating_sub(1) * delimiter.len();
+    let delimiter_len = console::measure_text_width(delimiter);
+    let delimiter_total_length = words_with_priority.len().saturating_sub(1) * delimiter_len;
     let mut total_length = words_total_length + delimiter_total_length;
 
     let mut words_with_priority_with_index: Vec<(usize, &(String, usize))> =
@@ -21,8 +22,8 @@ pub fn prune_strings_to_fit_width(
             break;
         }
         prune.push(*i);
-        total_length -= s.len();
-        total_length -= delimiter.len();
+        total_length -= console::measure_text_width(s);
+        total_length -= delimiter_len;
     }
 
     words_with_priority

@@ -77,7 +77,7 @@ impl Header {
         }
 
         let current_key = self.breadcrumb.join(Self::DELIMITER);
-        if current_key.len() <= max_width {
+        if console::measure_text_width(&current_key) <= max_width {
             return current_key;
         }
 
