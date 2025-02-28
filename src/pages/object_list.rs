@@ -26,6 +26,8 @@ use crate::{
     },
 };
 
+const ELLIPSIS: &str = "...";
+
 #[derive(Debug)]
 pub struct ObjectListPage {
     object_items: Vec<ObjectItem>,
@@ -623,32 +625,34 @@ fn build_object_file_line<'a>(
     let size_w: usize = 10;
     let name_w: usize = (width as usize) - date_w - size_w - 10 /* spaces */ - 4 /* border + pad */;
 
-    let name = format!("{:<name_w$}", name, name_w = name_w);
-    let date = format!("{:<date_w$}", date, date_w = date_w);
-    let size = format!("{:>size_w$}", size, size_w = size_w);
+    let pad_name =
+        console::pad_str(name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
+    let pad_date = console::pad_str(&date, date_w, console::Alignment::Left, None).to_string();
+    let pad_size = console::pad_str(&size, size_w, console::Alignment::Right, None).to_string();
 
     if filter.is_empty() {
         Line::from(vec![
             " ".into(),
-            name.into(),
+            pad_name.into(),
             "    ".into(),
-            date.into(),
+            pad_date.into(),
             "    ".into(),
-            size.into(),
+            pad_size.into(),
             " ".into(),
         ])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(name)
+        let mut spans = highlight_matched_text(pad_name)
+            .ellipsis(ELLIPSIS)
             .matched_range(i, i + filter.chars().count())
             .not_matched_style(Style::default())
             .matched_style(Style::default().fg(theme.list_filter_match))
             .into_spans();
         spans.insert(0, " ".into());
         spans.push("    ".into());
-        spans.push(date.into());
+        spans.push(pad_date.into());
         spans.push("    ".into());
-        spans.push(size.into());
+        spans.push(pad_size.into());
         spans.push(" ".into());
         Line::from(spans)
     }
