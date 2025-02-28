@@ -566,7 +566,7 @@ fn build_list_item<'a>(
     theme: &ColorTheme,
 ) -> ListItem<'a> {
     let line = match item {
-        ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter, theme),
+        ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter, area.width, theme),
         ObjectItem::File {
             name,
             size_byte,
@@ -593,18 +593,28 @@ fn build_list_item<'a>(
     ListItem::new(line).style(style)
 }
 
-fn build_object_dir_line<'a>(name: &'a str, filter: &'a str, theme: &ColorTheme) -> Line<'a> {
+fn build_object_dir_line<'a>(
+    name: &'a str,
+    filter: &'a str,
+    width: u16,
+    theme: &ColorTheme,
+) -> Line<'a> {
+    let name = format!("{}/", name);
+    let name_w = (width as usize) - 2 /* spaces */ - 4 /* border + pad */ - 1 /* slash */;
+    let pad_name =
+        console::pad_str(&name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
+
     if filter.is_empty() {
-        Line::from(vec![" ".into(), name.bold(), "/".bold(), " ".into()])
+        Line::from(vec![" ".into(), pad_name.bold(), " ".into()])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(name)
+        let mut spans = highlight_matched_text(pad_name)
+            .ellipsis(ELLIPSIS)
             .matched_range(i, i + filter.chars().count())
             .not_matched_style(Style::default().bold())
             .matched_style(Style::default().fg(theme.list_filter_match).bold())
             .into_spans();
         spans.insert(0, " ".into());
-        spans.push("/".bold());
         spans.push(" ".into());
         Line::from(spans)
     }
@@ -708,7 +718,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // dir items
-            (3..8, [1, 2]) => modifier: Modifier::BOLD,
+            (3..56, [1, 2]) => modifier: Modifier::BOLD,
             // selected item
             (2..58, [1]) => bg: Color::Cyan, fg: Color::Black,
         }
@@ -799,7 +809,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // dir items
-            (3..8, [1, 2]) => modifier: Modifier::BOLD,
+            (3..56, [1, 2]) => modifier: Modifier::BOLD,
             // selected item
             (2..58, [1]) => bg: Color::Cyan, fg: Color::Black,
         }
