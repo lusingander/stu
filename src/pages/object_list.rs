@@ -610,7 +610,7 @@ fn build_object_dir_line<'a>(
         let i = name.find(filter).unwrap();
         let mut spans = highlight_matched_text(pad_name)
             .ellipsis(ELLIPSIS)
-            .matched_range(i, i + filter.chars().count())
+            .matched_range(i, i + filter.len())
             .not_matched_style(Style::default().bold())
             .matched_style(Style::default().fg(theme.list_filter_match).bold())
             .into_spans();
@@ -654,7 +654,7 @@ fn build_object_file_line<'a>(
         let i = name.find(filter).unwrap();
         let mut spans = highlight_matched_text(pad_name)
             .ellipsis(ELLIPSIS)
-            .matched_range(i, i + filter.chars().count())
+            .matched_range(i, i + filter.len())
             .not_matched_style(Style::default())
             .matched_style(Style::default().fg(theme.list_filter_match))
             .into_spans();

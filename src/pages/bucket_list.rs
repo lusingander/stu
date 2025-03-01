@@ -505,7 +505,7 @@ fn build_list_item<'a>(
         let i = name.find(filter).unwrap();
         let mut spans = highlight_matched_text(pad_name)
             .ellipsis(ELLIPSIS)
-            .matched_range(i, i + filter.chars().count())
+            .matched_range(i, i + filter.len())
             .not_matched_style(Style::default())
             .matched_style(Style::default().fg(theme.list_filter_match))
             .into_spans();
