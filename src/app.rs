@@ -4,7 +4,7 @@ use ratatui::{
     widgets::Block,
     Frame,
 };
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{io::BufWriter, rc::Rc, sync::Arc};
 use tokio::spawn;
 
 use crate::{
@@ -19,7 +19,7 @@ use crate::{
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
         CompleteReloadObjectsResult, Sender,
     },
-    file::{copy_to_clipboard, save_binary, save_error_log},
+    file::{copy_to_clipboard, create_binary_file, save_error_log},
     object::{AppObjects, FileDetail, ObjectItem, RawObject},
     pages::page::{Page, PageStack},
     widget::{Header, LoadingDialog, Status, StatusType},
@@ -421,9 +421,10 @@ impl App {
         self.is_loading = true;
     }
 
-    pub fn preview_download_object(&self, obj: RawObject, path: String) {
-        let result = CompleteDownloadObjectResult::new(Ok(obj), PathBuf::from(path));
-        self.tx.send(AppEventType::CompleteDownloadObject(result));
+    pub fn preview_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
+        self.tx
+            .send(AppEventType::DownloadObject(file_detail, version_id));
+        self.is_loading = true;
     }
 
     pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
@@ -436,16 +437,35 @@ impl App {
         let object_name = file_detail.name;
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(
-            &object_name,
-            size_byte,
-            None,
-            version_id,
-            |tx, obj, path| {
-                let result = CompleteDownloadObjectResult::new(obj, path);
-                tx.send(AppEventType::CompleteDownloadObject(result));
-            },
-        )
+        let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
+            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
+
+        let bucket = object_key.bucket_name.clone();
+        let key = object_key.joined_object_path(true);
+
+        let path = self.ctx.config.download_file_path(&object_name);
+        let writer = create_binary_file(&path);
+
+        let (client, tx) = self.unwrap_client_tx();
+        let loading = self.handle_loading_size(size_byte, tx.clone());
+
+        spawn(async move {
+            match writer {
+                Ok(mut writer) => {
+                    let result = client
+                        .download_object(&bucket, &key, version_id, &mut writer, loading)
+                        .await;
+                    let result = CompleteDownloadObjectResult::new(result, path);
+                    tx.send(AppEventType::CompleteDownloadObject_(result));
+                }
+                Err(e) => {
+                    tx.send(AppEventType::CompleteDownloadObject_(Err(e)));
+                }
+            }
+        });
     }
 
     pub fn download_object_as(
@@ -454,30 +474,42 @@ impl App {
         input: String,
         version_id: Option<String>,
     ) {
-        let object_name = file_detail.name;
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(
-            &object_name,
-            size_byte,
-            Some(&input),
-            version_id,
-            |tx, obj, path| {
-                let result = CompleteDownloadObjectResult::new(obj, path);
-                tx.send(AppEventType::CompleteDownloadObject(result));
-            },
-        )
+        let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
+            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
+
+        let bucket = object_key.bucket_name.clone();
+        let key = object_key.joined_object_path(true);
+
+        let path = self.ctx.config.download_file_path(&input);
+        let writer = create_binary_file(&path);
+
+        let (client, tx) = self.unwrap_client_tx();
+        let loading = self.handle_loading_size(size_byte, tx.clone());
+
+        spawn(async move {
+            match writer {
+                Ok(mut writer) => {
+                    let result = client
+                        .download_object(&bucket, &key, version_id, &mut writer, loading)
+                        .await;
+                    let result = CompleteDownloadObjectResult::new(result, path);
+                    tx.send(AppEventType::CompleteDownloadObject_(result));
+                }
+                Err(e) => {
+                    tx.send(AppEventType::CompleteDownloadObject_(Err(e)));
+                }
+            }
+        });
     }
 
     pub fn complete_download_object(&mut self, result: Result<CompleteDownloadObjectResult>) {
-        let result = match result {
-            Ok(CompleteDownloadObjectResult { obj, path }) => {
-                save_binary(&path, &obj.bytes).map(|_| path)
-            }
-            Err(e) => Err(e),
-        };
         match result {
-            Ok(path) => {
+            Ok(CompleteDownloadObjectResult { path }) => {
                 let msg = format!(
                     "Download completed successfully: {}",
                     path.to_string_lossy()
@@ -498,19 +530,32 @@ impl App {
     }
 
     pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {
-        let object_name = file_detail.name.clone();
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(
-            &object_name,
-            size_byte,
-            None,
-            version_id.clone(),
-            |tx, obj, path| {
-                let result = CompletePreviewObjectResult::new(obj, file_detail, version_id, path);
-                tx.send(AppEventType::CompletePreviewObject(result));
-            },
-        )
+        let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
+            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
+
+        let bucket = object_key.bucket_name.clone();
+        let key = object_key.joined_object_path(true);
+
+        let (client, tx) = self.unwrap_client_tx();
+        let loading = self.handle_loading_size(size_byte, tx.clone());
+
+        spawn(async move {
+            let mut bytes = Vec::with_capacity(size_byte);
+            let result = {
+                let mut writer = BufWriter::new(&mut bytes);
+                client
+                    .download_object(&bucket, &key, version_id.clone(), &mut writer, loading)
+                    .await
+            };
+            let obj = result.map(|_| RawObject { bytes });
+            let result = CompletePreviewObjectResult::new(obj, file_detail, version_id);
+            tx.send(AppEventType::CompletePreviewObject(result));
+        });
     }
 
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
@@ -522,13 +567,11 @@ impl App {
                 obj,
                 file_detail,
                 file_version_id,
-                path,
             }) => {
                 let object_preview_page = Page::of_object_preview(
                     file_detail,
                     file_version_id,
                     obj,
-                    path.to_string_lossy().into(),
                     current_object_key,
                     Rc::clone(&self.ctx),
                     self.tx.clone(),
@@ -541,40 +584,6 @@ impl App {
         };
         self.clear_notification();
         self.is_loading = false;
-    }
-
-    fn download_object_and<F>(
-        &self,
-        object_name: &str,
-        size_byte: usize,
-        save_file_name: Option<&str>,
-        version_id: Option<String>,
-        f: F,
-    ) where
-        F: FnOnce(Sender, Result<RawObject>, PathBuf) + Send + 'static,
-    {
-        let object_key = match self.page_stack.current_page() {
-            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
-            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
-            page => panic!("Invalid page: {:?}", page),
-        };
-
-        let bucket = object_key.bucket_name.clone();
-        let key = object_key.joined_object_path(true);
-
-        let path = self
-            .ctx
-            .config
-            .download_file_path(save_file_name.unwrap_or(object_name));
-
-        let (client, tx) = self.unwrap_client_tx();
-        let loading = self.handle_loading_size(size_byte, tx.clone());
-        spawn(async move {
-            let obj = client
-                .download_object(&bucket, &key, version_id, size_byte, loading)
-                .await;
-            f(tx, obj, path);
-        });
     }
 
     fn handle_loading_size(&self, total_size: usize, tx: Sender) -> Box<dyn Fn(usize) + Send> {

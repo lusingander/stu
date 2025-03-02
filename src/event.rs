@@ -31,7 +31,7 @@ pub enum AppEventType {
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
-    CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
+    CompleteDownloadObject_(Result<CompleteDownloadObjectResult>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,
@@ -44,7 +44,7 @@ pub enum AppEventType {
     OpenPreview(FileDetail, Option<String>),
     DetailDownloadObject(FileDetail, Option<String>),
     DetailDownloadObjectAs(FileDetail, String, Option<String>),
-    PreviewDownloadObject(RawObject, String),
+    PreviewDownloadObject(FileDetail, Option<String>),
     PreviewDownloadObjectAs(FileDetail, String, Option<String>),
     PreviewRerenderImage,
     BucketListOpenManagementConsole,
@@ -158,14 +158,13 @@ impl CompleteLoadObjectVersionsResult {
 
 #[derive(Debug)]
 pub struct CompleteDownloadObjectResult {
-    pub obj: RawObject,
     pub path: PathBuf,
 }
 
 impl CompleteDownloadObjectResult {
-    pub fn new(obj: Result<RawObject>, path: PathBuf) -> Result<CompleteDownloadObjectResult> {
-        let obj = obj?;
-        Ok(CompleteDownloadObjectResult { obj, path })
+    pub fn new(result: Result<()>, path: PathBuf) -> Result<CompleteDownloadObjectResult> {
+        result?;
+        Ok(CompleteDownloadObjectResult { path })
     }
 }
 
@@ -174,7 +173,6 @@ pub struct CompletePreviewObjectResult {
     pub obj: RawObject,
     pub file_detail: FileDetail,
     pub file_version_id: Option<String>,
-    pub path: PathBuf,
 }
 
 impl CompletePreviewObjectResult {
@@ -182,14 +180,12 @@ impl CompletePreviewObjectResult {
         obj: Result<RawObject>,
         file_detail: FileDetail,
         file_version_id: Option<String>,
-        path: PathBuf,
     ) -> Result<CompletePreviewObjectResult> {
         let obj = obj?;
         Ok(CompletePreviewObjectResult {
             obj,
             file_detail,
             file_version_id,
-            path,
         })
     }
 }

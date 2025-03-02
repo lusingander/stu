@@ -103,7 +103,7 @@ pub async fn run<B: Backend>(
             AppEventType::DownloadObjectAs(file_detail, input, version_id) => {
                 app.download_object_as(file_detail, input, version_id);
             }
-            AppEventType::CompleteDownloadObject(result) => {
+            AppEventType::CompleteDownloadObject_(result) => {
                 app.complete_download_object(result);
             }
             AppEventType::PreviewObject(file_detail, version_id) => {
@@ -142,8 +142,8 @@ pub async fn run<B: Backend>(
             AppEventType::DetailDownloadObjectAs(file_detail, input, version_id) => {
                 app.detail_download_object_as(file_detail, input, version_id);
             }
-            AppEventType::PreviewDownloadObject(obj, path) => {
-                app.preview_download_object(obj, path);
+            AppEventType::PreviewDownloadObject(file_detail, version_id) => {
+                app.preview_download_object(file_detail, version_id);
             }
             AppEventType::PreviewDownloadObjectAs(file_detail, input, version_id) => {
                 app.preview_download_object_as(file_detail, input, version_id);

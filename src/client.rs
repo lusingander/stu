@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    io::{BufWriter, Write},
+};
 
 use aws_config::{default_provider::region, meta::region::RegionProviderChain, BehaviorVersion};
 use aws_sdk_s3::{
@@ -10,7 +13,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
@@ -244,15 +247,16 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object<F>(
+    pub async fn download_object<W, F>(
         &self,
         bucket: &str,
         key: &str,
         version_id: Option<String>,
-        size_byte: usize,
+        writer: &mut BufWriter<W>,
         f: F,
-    ) -> Result<RawObject>
+    ) -> Result<()>
     where
+        W: std::io::Write,
         F: Fn(usize),
     {
         let mut request = self.client.get_object().bucket(bucket).key(key);
@@ -263,25 +267,26 @@ impl Client {
         let result = request.send().await;
         let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
 
-        let mut bytes: Vec<u8> = Vec::with_capacity(size_byte);
         let mut stream = output.body;
         let mut i = 0;
+        let mut total_bytes = 0;
         while let Some(buf) = stream // buf: 32 KiB
             .try_next()
             .await
             .map_err(|e| AppError::new("Failed to collect body", e))?
         {
-            bytes.extend(buf.to_vec());
+            writer.write_all(&buf).map_err(AppError::error)?;
+            total_bytes += buf.len();
 
             // suppress too many calls (32 KiB * 32 = 1 MiB)
             if i >= 32 {
-                f(bytes.len());
+                f(total_bytes);
                 i = 0;
             }
             i += 1;
         }
-
-        Ok(RawObject { bytes })
+        writer.flush().map_err(AppError::error)?;
+        Ok(())
     }
 
     pub fn open_management_console_buckets(&self) -> Result<()> {
