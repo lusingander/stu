@@ -4,7 +4,7 @@ use ratatui::{
     widgets::Block,
     Frame,
 };
-use std::{path::PathBuf, rc::Rc, sync::Arc};
+use std::{io::BufWriter, path::PathBuf, rc::Rc, sync::Arc};
 use tokio::spawn;
 
 use crate::{
@@ -421,9 +421,10 @@ impl App {
         self.is_loading = true;
     }
 
-    pub fn preview_download_object(&self, obj: RawObject, path: String) {
-        let result = CompleteDownloadObjectResult::new(Ok(obj), PathBuf::from(path));
-        self.tx.send(AppEventType::CompleteDownloadObject(result));
+    pub fn preview_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
+        self.tx
+            .send(AppEventType::DownloadObject(file_detail, version_id));
+        self.is_loading = true;
     }
 
     pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
@@ -557,19 +558,32 @@ impl App {
     }
 
     pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {
-        let object_name = file_detail.name.clone();
         let size_byte = file_detail.size_byte;
 
-        self.download_object_and(
-            &object_name,
-            size_byte,
-            None,
-            version_id.clone(),
-            |tx, obj, path| {
-                let result = CompletePreviewObjectResult::new(obj, file_detail, version_id, path);
-                tx.send(AppEventType::CompletePreviewObject(result));
-            },
-        )
+        let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
+            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
+            page => panic!("Invalid page: {:?}", page),
+        };
+
+        let bucket = object_key.bucket_name.clone();
+        let key = object_key.joined_object_path(true);
+
+        let (client, tx) = self.unwrap_client_tx();
+        let loading = self.handle_loading_size(size_byte, tx.clone());
+
+        spawn(async move {
+            let mut bytes = Vec::with_capacity(size_byte);
+            let result = {
+                let mut writer = BufWriter::new(&mut bytes);
+                client
+                    .download_object_(&bucket, &key, version_id.clone(), &mut writer, loading)
+                    .await
+            };
+            let obj = result.map(|_| RawObject { bytes });
+            let result = CompletePreviewObjectResult::new(obj, file_detail, version_id);
+            tx.send(AppEventType::CompletePreviewObject(result));
+        });
     }
 
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
@@ -581,13 +595,11 @@ impl App {
                 obj,
                 file_detail,
                 file_version_id,
-                path,
             }) => {
                 let object_preview_page = Page::of_object_preview(
                     file_detail,
                     file_version_id,
                     obj,
-                    path.to_string_lossy().into(),
                     current_object_key,
                     Rc::clone(&self.ctx),
                     self.tx.clone(),

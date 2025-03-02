@@ -26,7 +26,6 @@ pub struct ObjectPreviewPage {
     file_detail: FileDetail,
     file_version_id: Option<String>,
     object: RawObject,
-    path: String,
     object_key: ObjectKey,
 
     view_state: ViewState,
@@ -55,7 +54,6 @@ impl ObjectPreviewPage {
         file_detail: FileDetail,
         file_version_id: Option<String>,
         object: RawObject,
-        path: String,
         object_key: ObjectKey,
         ctx: Rc<AppContext>,
         tx: Sender,
@@ -88,7 +86,6 @@ impl ObjectPreviewPage {
             object,
             file_detail,
             file_version_id,
-            path,
             object_key,
             view_state: ViewState::Default,
             encoding_dialog_state,
@@ -365,10 +362,10 @@ impl ObjectPreviewPage {
     }
 
     fn download(&self) {
-        // object has been already downloaded, so send completion event to save file
-        let obj = self.object.clone();
-        let path = self.path.clone();
-        self.tx.send(AppEventType::PreviewDownloadObject(obj, path));
+        let file_detail = self.file_detail.clone();
+        let version_id = self.file_version_id.clone();
+        self.tx
+            .send(AppEventType::PreviewDownloadObject(file_detail, version_id));
     }
 
     fn download_as(&self, input: String) {
@@ -435,8 +432,7 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec![file_path.clone()],
             };
-            let mut page =
-                ObjectPreviewPage::new(file_detail, None, object, file_path, object_key, ctx, tx);
+            let mut page = ObjectPreviewPage::new(file_detail, None, object, object_key, ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -478,8 +474,7 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec![file_path.clone()],
             };
-            let mut page =
-                ObjectPreviewPage::new(file_detail, None, object, file_path, object_key, ctx, tx);
+            let mut page = ObjectPreviewPage::new(file_detail, None, object, object_key, ctx, tx);
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);
         })?;
@@ -526,8 +521,7 @@ mod tests {
                 bucket_name: "test-bucket".to_string(),
                 object_path: vec![file_path.clone()],
             };
-            let mut page =
-                ObjectPreviewPage::new(file_detail, None, object, file_path, object_key, ctx, tx);
+            let mut page = ObjectPreviewPage::new(file_detail, None, object, object_key, ctx, tx);
             page.open_save_dialog();
             let area = Rect::new(0, 0, 30, 10);
             page.render(f, area);

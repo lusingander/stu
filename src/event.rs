@@ -45,7 +45,7 @@ pub enum AppEventType {
     OpenPreview(FileDetail, Option<String>),
     DetailDownloadObject(FileDetail, Option<String>),
     DetailDownloadObjectAs(FileDetail, String, Option<String>),
-    PreviewDownloadObject(RawObject, String),
+    PreviewDownloadObject(FileDetail, Option<String>),
     PreviewDownloadObjectAs(FileDetail, String, Option<String>),
     PreviewRerenderImage,
     BucketListOpenManagementConsole,
@@ -187,7 +187,6 @@ pub struct CompletePreviewObjectResult {
     pub obj: RawObject,
     pub file_detail: FileDetail,
     pub file_version_id: Option<String>,
-    pub path: PathBuf,
 }
 
 impl CompletePreviewObjectResult {
@@ -195,14 +194,12 @@ impl CompletePreviewObjectResult {
         obj: Result<RawObject>,
         file_detail: FileDetail,
         file_version_id: Option<String>,
-        path: PathBuf,
     ) -> Result<CompletePreviewObjectResult> {
         let obj = obj?;
         Ok(CompletePreviewObjectResult {
             obj,
             file_detail,
             file_version_id,
-            path,
         })
     }
 }
