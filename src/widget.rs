@@ -30,4 +30,4 @@ pub use sort_list_dialog::{
     ObjectListSortDialogState, ObjectListSortType,
 };
 pub use status::{Status, StatusType};
-pub use text_preview::{TextPreview, TextPreviewState};
+pub use text_preview::{EncodingDialog, EncodingDialogState, TextPreview, TextPreviewState};
