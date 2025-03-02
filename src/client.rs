@@ -13,7 +13,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    object::{BucketItem, FileDetail, FileVersion, ObjectItem, RawObject},
+    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
@@ -245,46 +245,6 @@ impl Client {
             })
             .collect();
         Ok(versions)
-    }
-
-    pub async fn download_object<F>(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<String>,
-        size_byte: usize,
-        f: F,
-    ) -> Result<RawObject>
-    where
-        F: Fn(usize),
-    {
-        let mut request = self.client.get_object().bucket(bucket).key(key);
-        if let Some(version_id) = version_id {
-            request = request.version_id(version_id);
-        }
-
-        let result = request.send().await;
-        let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
-
-        let mut bytes: Vec<u8> = Vec::with_capacity(size_byte);
-        let mut stream = output.body;
-        let mut i = 0;
-        while let Some(buf) = stream // buf: 32 KiB
-            .try_next()
-            .await
-            .map_err(|e| AppError::new("Failed to collect body", e))?
-        {
-            bytes.extend(buf.to_vec());
-
-            // suppress too many calls (32 KiB * 32 = 1 MiB)
-            if i >= 32 {
-                f(bytes.len());
-                i = 0;
-            }
-            i += 1;
-        }
-
-        Ok(RawObject { bytes })
     }
 
     pub async fn download_object_<W, F>(

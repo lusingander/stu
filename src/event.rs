@@ -31,7 +31,6 @@ pub enum AppEventType {
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
-    CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     CompleteDownloadObject_(Result<CompleteDownloadObjectResult_>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
@@ -154,19 +153,6 @@ impl CompleteLoadObjectVersionsResult {
     ) -> Result<CompleteLoadObjectVersionsResult> {
         let versions = versions?;
         Ok(CompleteLoadObjectVersionsResult { versions, map_key })
-    }
-}
-
-#[derive(Debug)]
-pub struct CompleteDownloadObjectResult {
-    pub obj: RawObject,
-    pub path: PathBuf,
-}
-
-impl CompleteDownloadObjectResult {
-    pub fn new(obj: Result<RawObject>, path: PathBuf) -> Result<CompleteDownloadObjectResult> {
-        let obj = obj?;
-        Ok(CompleteDownloadObjectResult { obj, path })
     }
 }
 
