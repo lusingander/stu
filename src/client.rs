@@ -247,7 +247,7 @@ impl Client {
         Ok(versions)
     }
 
-    pub async fn download_object_<W, F>(
+    pub async fn download_object<W, F>(
         &self,
         bucket: &str,
         key: &str,

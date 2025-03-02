@@ -14,7 +14,7 @@ use crate::{
     environment::Environment,
     error::{AppError, Result},
     event::{
-        AppEventType, CompleteDownloadObjectResult_, CompleteInitializeResult,
+        AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
         CompleteReloadObjectsResult, Sender,
@@ -456,9 +456,9 @@ impl App {
             match writer {
                 Ok(mut writer) => {
                     let result = client
-                        .download_object_(&bucket, &key, version_id, &mut writer, loading)
+                        .download_object(&bucket, &key, version_id, &mut writer, loading)
                         .await;
-                    let result = CompleteDownloadObjectResult_::new(result, path);
+                    let result = CompleteDownloadObjectResult::new(result, path);
                     tx.send(AppEventType::CompleteDownloadObject_(result));
                 }
                 Err(e) => {
@@ -495,9 +495,9 @@ impl App {
             match writer {
                 Ok(mut writer) => {
                     let result = client
-                        .download_object_(&bucket, &key, version_id, &mut writer, loading)
+                        .download_object(&bucket, &key, version_id, &mut writer, loading)
                         .await;
-                    let result = CompleteDownloadObjectResult_::new(result, path);
+                    let result = CompleteDownloadObjectResult::new(result, path);
                     tx.send(AppEventType::CompleteDownloadObject_(result));
                 }
                 Err(e) => {
@@ -507,9 +507,9 @@ impl App {
         });
     }
 
-    pub fn complete_download_object_(&mut self, result: Result<CompleteDownloadObjectResult_>) {
+    pub fn complete_download_object(&mut self, result: Result<CompleteDownloadObjectResult>) {
         match result {
-            Ok(CompleteDownloadObjectResult_ { path }) => {
+            Ok(CompleteDownloadObjectResult { path }) => {
                 let msg = format!(
                     "Download completed successfully: {}",
                     path.to_string_lossy()
@@ -549,7 +549,7 @@ impl App {
             let result = {
                 let mut writer = BufWriter::new(&mut bytes);
                 client
-                    .download_object_(&bucket, &key, version_id.clone(), &mut writer, loading)
+                    .download_object(&bucket, &key, version_id.clone(), &mut writer, loading)
                     .await
             };
             let obj = result.map(|_| RawObject { bytes });
