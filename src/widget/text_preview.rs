@@ -53,28 +53,147 @@ static USER_THEME_SET: Lazy<ThemeSet> = Lazy::new(|| {
 
 #[derive(Default)]
 #[zero_indexed_enum]
-pub enum Encoding {
+pub enum EncodingType {
     #[default]
     Utf8,
-    Utf16Le,
-    Utf16Be,
+    Ibm866,
+    Iso8859_2,
+    Iso8859_3,
+    Iso8859_4,
+    Iso8859_5,
+    Iso8859_6,
+    Iso8859_7,
+    Iso8859_8,
+    Iso8859_8I,
+    Iso8859_10,
+    Iso8859_13,
+    Iso8859_14,
+    Iso8859_15,
+    Iso8859_16,
+    Koi8R,
+    Koi8U,
+    Macintosh,
+    Windows874,
+    Windows1250,
+    Windows1251,
+    Windows1252,
+    Windows1253,
+    Windows1254,
+    Windows1255,
+    Windows1256,
+    Windows1257,
+    Windows1258,
+    XMacCyrillic,
+    Gbk,
+    Gb18030,
+    Big5,
+    EucJp,
+    Iso2022Jp,
     ShiftJis,
+    EucKr,
+    Replacement,
+    Utf16Be,
+    Utf16Le,
+    XUserDefined,
 }
 
-impl Encoding {
+impl EncodingType {
     fn str(&self) -> &'static str {
         match self {
             Self::Utf8 => "UTF-8",
-            Self::Utf16Le => "UTF-16 (LE)",
-            Self::Utf16Be => "UTF-16 (BE)",
+            Self::Ibm866 => "IBM866",
+            Self::Iso8859_2 => "ISO-8859-2",
+            Self::Iso8859_3 => "ISO-8859-3",
+            Self::Iso8859_4 => "ISO-8859-4",
+            Self::Iso8859_5 => "ISO-8859-5",
+            Self::Iso8859_6 => "ISO-8859-6",
+            Self::Iso8859_7 => "ISO-8859-7",
+            Self::Iso8859_8 => "ISO-8859-8",
+            Self::Iso8859_8I => "ISO-8859-8-I",
+            Self::Iso8859_10 => "ISO-8859-10",
+            Self::Iso8859_13 => "ISO-8859-13",
+            Self::Iso8859_14 => "ISO-8859-14",
+            Self::Iso8859_15 => "ISO-8859-15",
+            Self::Iso8859_16 => "ISO-8859-16",
+            Self::Koi8R => "KOI8-R",
+            Self::Koi8U => "KOI8-U",
+            Self::Macintosh => "macintosh",
+            Self::Windows874 => "windows-874",
+            Self::Windows1250 => "windows-1250",
+            Self::Windows1251 => "windows-1251",
+            Self::Windows1252 => "windows-1252",
+            Self::Windows1253 => "windows-1253",
+            Self::Windows1254 => "windows-1254",
+            Self::Windows1255 => "windows-1255",
+            Self::Windows1256 => "windows-1256",
+            Self::Windows1257 => "windows-1257",
+            Self::Windows1258 => "windows-1258",
+            Self::XMacCyrillic => "x-mac-cyrillic",
+            Self::Gbk => "GBK",
+            Self::Gb18030 => "gb18030",
+            Self::Big5 => "Big5",
+            Self::EucJp => "EUC-JP",
+            Self::Iso2022Jp => "ISO-2022-JP",
             Self::ShiftJis => "Shift_JIS",
+            Self::EucKr => "EUC-KR",
+            Self::Replacement => "replacement",
+            Self::Utf16Be => "UTF-16BE",
+            Self::Utf16Le => "UTF-16LE",
+            Self::XUserDefined => "x-user-defined",
+        }
+    }
+}
+
+impl From<EncodingType> for &encoding_rs::Encoding {
+    fn from(value: EncodingType) -> Self {
+        match value {
+            EncodingType::Utf8 => encoding_rs::UTF_8,
+            EncodingType::Ibm866 => encoding_rs::IBM866,
+            EncodingType::Iso8859_2 => encoding_rs::ISO_8859_2,
+            EncodingType::Iso8859_3 => encoding_rs::ISO_8859_3,
+            EncodingType::Iso8859_4 => encoding_rs::ISO_8859_4,
+            EncodingType::Iso8859_5 => encoding_rs::ISO_8859_5,
+            EncodingType::Iso8859_6 => encoding_rs::ISO_8859_6,
+            EncodingType::Iso8859_7 => encoding_rs::ISO_8859_7,
+            EncodingType::Iso8859_8 => encoding_rs::ISO_8859_8,
+            EncodingType::Iso8859_8I => encoding_rs::ISO_8859_8_I,
+            EncodingType::Iso8859_10 => encoding_rs::ISO_8859_10,
+            EncodingType::Iso8859_13 => encoding_rs::ISO_8859_13,
+            EncodingType::Iso8859_14 => encoding_rs::ISO_8859_14,
+            EncodingType::Iso8859_15 => encoding_rs::ISO_8859_15,
+            EncodingType::Iso8859_16 => encoding_rs::ISO_8859_16,
+            EncodingType::Koi8R => encoding_rs::KOI8_R,
+            EncodingType::Koi8U => encoding_rs::KOI8_U,
+            EncodingType::Macintosh => encoding_rs::MACINTOSH,
+            EncodingType::Windows874 => encoding_rs::WINDOWS_874,
+            EncodingType::Windows1250 => encoding_rs::WINDOWS_1250,
+            EncodingType::Windows1251 => encoding_rs::WINDOWS_1251,
+            EncodingType::Windows1252 => encoding_rs::WINDOWS_1252,
+            EncodingType::Windows1253 => encoding_rs::WINDOWS_1253,
+            EncodingType::Windows1254 => encoding_rs::WINDOWS_1254,
+            EncodingType::Windows1255 => encoding_rs::WINDOWS_1255,
+            EncodingType::Windows1256 => encoding_rs::WINDOWS_1256,
+            EncodingType::Windows1257 => encoding_rs::WINDOWS_1257,
+            EncodingType::Windows1258 => encoding_rs::WINDOWS_1258,
+            EncodingType::XMacCyrillic => encoding_rs::X_MAC_CYRILLIC,
+            EncodingType::Gbk => encoding_rs::GBK,
+            EncodingType::Gb18030 => encoding_rs::GB18030,
+            EncodingType::Big5 => encoding_rs::BIG5,
+            EncodingType::EucJp => encoding_rs::EUC_JP,
+            EncodingType::Iso2022Jp => encoding_rs::ISO_2022_JP,
+            EncodingType::ShiftJis => encoding_rs::SHIFT_JIS,
+            EncodingType::EucKr => encoding_rs::EUC_KR,
+            EncodingType::Replacement => encoding_rs::REPLACEMENT,
+            EncodingType::Utf16Be => encoding_rs::UTF_16BE,
+            EncodingType::Utf16Le => encoding_rs::UTF_16LE,
+            EncodingType::XUserDefined => encoding_rs::X_USER_DEFINED,
         }
     }
 }
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct EncodingDialogState {
-    selected: Encoding,
+    selected: EncodingType,
 }
 
 impl EncodingDialogState {
@@ -87,10 +206,10 @@ impl EncodingDialogState {
     }
 
     pub fn reset(&mut self) {
-        self.selected = Encoding::default();
+        self.selected = EncodingType::default();
     }
 
-    pub fn selected(&self) -> Encoding {
+    pub fn selected(&self) -> EncodingType {
         self.selected
     }
 }
@@ -122,7 +241,10 @@ pub struct EncodingDialog {
 
 impl EncodingDialog {
     pub fn new(state: EncodingDialogState) -> Self {
-        let labels = Encoding::vars_vec().iter().map(Encoding::str).collect();
+        let labels = EncodingType::vars_vec()
+            .iter()
+            .map(EncodingType::str)
+            .collect();
         Self {
             state,
             labels,
@@ -173,7 +295,7 @@ impl Widget for EncodingDialog {
 #[derive(Debug)]
 pub struct TextPreviewState {
     pub scroll_lines_state: ScrollLinesState,
-    pub encoding: Encoding,
+    pub encoding: EncodingType,
 }
 
 impl TextPreviewState {
@@ -185,13 +307,13 @@ impl TextPreviewState {
     ) -> (Self, Option<String>) {
         let mut state = Self {
             scroll_lines_state: ScrollLinesState::new(vec![], ScrollLinesOptions::default()),
-            encoding: Encoding::Utf8,
+            encoding: EncodingType::Utf8,
         };
         let warn_msg = state.update_lines(file_detail, object, highlight, highlight_theme_name);
         (state, warn_msg)
     }
 
-    pub fn set_encoding(&mut self, encoding: Encoding) {
+    pub fn set_encoding(&mut self, encoding: EncodingType) {
         self.encoding = encoding;
     }
 
@@ -224,13 +346,8 @@ impl TextPreviewState {
     }
 
     fn to_preview_string(&self, bytes: &[u8]) -> String {
-        let enc = match self.encoding {
-            Encoding::Utf8 => encoding_rs::UTF_8,
-            Encoding::Utf16Le => encoding_rs::UTF_16LE,
-            Encoding::Utf16Be => encoding_rs::UTF_16BE,
-            Encoding::ShiftJis => encoding_rs::SHIFT_JIS,
-        };
-        let (s, _, _) = enc.decode(bytes);
+        let encoding: &encoding_rs::Encoding = self.encoding.into();
+        let (s, _, _) = encoding.decode(bytes);
         // tab is not rendered correctly, so replace it
         let s = s.replace('\t', "    ");
         if s.ends_with('\n') {
