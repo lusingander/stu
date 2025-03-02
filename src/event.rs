@@ -32,6 +32,7 @@ pub enum AppEventType {
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
+    CompleteDownloadObject_(Result<CompleteDownloadObjectResult_>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,
@@ -166,6 +167,18 @@ impl CompleteDownloadObjectResult {
     pub fn new(obj: Result<RawObject>, path: PathBuf) -> Result<CompleteDownloadObjectResult> {
         let obj = obj?;
         Ok(CompleteDownloadObjectResult { obj, path })
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteDownloadObjectResult_ {
+    pub path: PathBuf,
+}
+
+impl CompleteDownloadObjectResult_ {
+    pub fn new(result: Result<()>, path: PathBuf) -> Result<CompleteDownloadObjectResult_> {
+        result?;
+        Ok(CompleteDownloadObjectResult_ { path })
     }
 }
 

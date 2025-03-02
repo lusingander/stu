@@ -106,6 +106,9 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
             }
+            AppEventType::CompleteDownloadObject_(result) => {
+                app.complete_download_object_(result);
+            }
             AppEventType::PreviewObject(file_detail, version_id) => {
                 app.preview_object(file_detail, version_id);
             }

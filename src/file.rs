@@ -20,6 +20,12 @@ pub fn save_binary<P: AsRef<Path>>(path: P, bytes: &[u8]) -> Result<()> {
     Ok(())
 }
 
+pub fn create_binary_file<P: AsRef<Path>>(path: P) -> Result<BufWriter<File>> {
+    create_dirs(&path)?;
+    let f = File::create(&path).map_err(|e| AppError::new("Failed to create file", e))?;
+    Ok(BufWriter::new(f))
+}
+
 pub fn save_error_log<P: AsRef<Path>>(path: P, e: &AppError) -> Result<()> {
     create_dirs(&path)?;
 

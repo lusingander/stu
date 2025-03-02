@@ -1,4 +1,7 @@
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    io::{BufWriter, Write},
+};
 
 use aws_config::{default_provider::region, meta::region::RegionProviderChain, BehaviorVersion};
 use aws_sdk_s3::{
@@ -282,6 +285,47 @@ impl Client {
         }
 
         Ok(RawObject { bytes })
+    }
+
+    pub async fn download_object_<W, F>(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<String>,
+        writer: &mut BufWriter<W>,
+        f: F,
+    ) -> Result<()>
+    where
+        W: std::io::Write,
+        F: Fn(usize),
+    {
+        let mut request = self.client.get_object().bucket(bucket).key(key);
+        if let Some(version_id) = version_id {
+            request = request.version_id(version_id);
+        }
+
+        let result = request.send().await;
+        let output = result.map_err(|e| AppError::new("Failed to download object", e))?;
+
+        let mut stream = output.body;
+        let mut i = 0;
+        let mut total_bytes = 0;
+        while let Some(buf) = stream // buf: 32 KiB
+            .try_next()
+            .await
+            .map_err(|e| AppError::new("Failed to collect body", e))?
+        {
+            writer.write_all(&buf).map_err(AppError::error)?;
+            total_bytes += buf.len();
+
+            // suppress too many calls (32 KiB * 32 = 1 MiB)
+            if i >= 32 {
+                f(total_bytes);
+                i = 0;
+            }
+            i += 1;
+        }
+        Ok(())
     }
 
     pub fn open_management_console_buckets(&self) -> Result<()> {
