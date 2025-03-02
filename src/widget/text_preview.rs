@@ -142,6 +142,53 @@ impl EncodingType {
             Self::XUserDefined => "x-user-defined",
         }
     }
+
+    #[rustfmt::skip]
+    fn from(value: &str) -> Option<EncodingType> {
+        match value.to_lowercase().as_str() {
+            "unicode-1-1-utf-8" | "unicode11utf8" | "unicode20utf8" | "utf-8" | "utf8" | "x-unicode20utf8" => Some(EncodingType::Utf8),
+            "866" | "cp866" | "csibm866" | "ibm866" => Some(EncodingType::Ibm866),
+            "csisolatin2" | "iso-8859-2" | "iso-ir-101" | "iso8859-2" | "iso88592" | "iso_8859-2" | "iso_8859-2:1987" | "l2" | "latin2" => Some(EncodingType::Iso8859_2),
+            "csisolatin3" | "iso-8859-3" | "iso-ir-109" | "iso8859-3" | "iso88593" | "iso_8859-3" | "iso_8859-3:1988" | "l3" | "latin3" => Some(EncodingType::Iso8859_3),
+            "csisolatin4" | "iso-8859-4" | "iso-ir-110" | "iso8859-4" | "iso88594" | "iso_8859-4" | "iso_8859-4:1988" | "l4" | "latin4" => Some(EncodingType::Iso8859_4),
+            "csisolatincyrillic" | "cyrillic" | "iso-8859-5" | "iso-ir-144" | "iso8859-5" | "iso88595" | "iso_8859-5" | "iso_8859-5:1988" => Some(EncodingType::Iso8859_5),
+            "arabic" | "asmo-708" | "csiso88596e" | "csiso88596i" | "csisolatinarabic" | "ecma-114" | "iso-8859-6" | "iso-8859-6-e" | "iso-8859-6-i" | "iso-ir-127" | "iso8859-6" | "iso88596" | "iso_8859-6" | "iso_8859-6:1987" => Some(EncodingType::Iso8859_6),
+            "csisolatingreek" | "ecma-118" | "elot_928" | "greek" | "greek8" | "iso-8859-7" | "iso-ir-126" | "iso8859-7" | "iso88597" | "iso_8859-7" | "iso_8859-7:1987" | "sun_eu_greek" => Some(EncodingType::Iso8859_7),
+            "csiso88598e" | "csisolatinhebrew" | "hebrew" | "iso-8859-8" | "iso-8859-8-e" | "iso-ir-138" | "iso8859-8" | "iso88598" | "iso_8859-8" | "iso_8859-8:1988" | "visual" => Some(EncodingType::Iso8859_8),
+            "csiso88598i" | "iso-8859-8-i" | "logical" => Some(EncodingType::Iso8859_8I),
+            "csisolatin6" | "iso-8859-10" | "iso-ir-157" | "iso8859-10" | "iso885910" | "l6" | "latin6" => Some(EncodingType::Iso8859_10),
+            "iso-8859-13" | "iso8859-13" | "iso885913" => Some(EncodingType::Iso8859_13),
+            "iso-8859-14" | "iso8859-14" | "iso885914" => Some(EncodingType::Iso8859_14),
+            "csisolatin9" | "iso-8859-15" | "iso8859-15" | "iso885915" | "iso_8859-15" | "l9" => Some(EncodingType::Iso8859_15),
+            "iso-8859-16" => Some(EncodingType::Iso8859_16),
+            "cskoi8r" | "koi" | "koi8" | "koi8-r" | "koi8_r" => Some(EncodingType::Koi8R),
+            "koi8-ru" | "koi8-u" => Some(EncodingType::Koi8U),
+            "csmacintosh" | "mac" | "macintosh" | "x-mac-roman" => Some(EncodingType::Macintosh),
+            "dos-874" | "iso-8859-11" | "iso8859-11" | "iso885911" | "tis-620" | "windows-874" => Some(EncodingType::Windows874),
+            "cp1250" | "windows-1250" | "x-cp1250" => Some(EncodingType::Windows1250),
+            "cp1251" | "windows-1251" | "x-cp1251" => Some(EncodingType::Windows1251),
+            "ansi_x3.4-1968" | "ascii" | "cp1252" | "cp819" | "csisolatin1" | "ibm819" | "iso-8859-1" | "iso-ir-100" | "iso8859-1" | "iso88591" | "iso_8859-1" | "iso_8859-1:1987" | "l1" | "latin1" | "us-ascii" | "windows-1252" | "x-cp1252" => Some(EncodingType::Windows1252),
+            "cp1253" | "windows-1253" | "x-cp1253" => Some(EncodingType::Windows1253),
+            "cp1254" | "csisolatin5" | "iso-8859-9" | "iso-ir-148" | "iso8859-9" | "iso88599" | "iso_8859-9" | "iso_8859-9:1989" | "l5" | "latin5" | "windows-1254" | "x-cp1254" => Some(EncodingType::Windows1254),
+            "cp1255" | "windows-1255" | "x-cp1255" => Some(EncodingType::Windows1255),
+            "cp1256" | "windows-1256" | "x-cp1256" => Some(EncodingType::Windows1256),
+            "cp1257" | "windows-1257" | "x-cp1257" => Some(EncodingType::Windows1257),
+            "cp1258" | "windows-1258" | "x-cp1258" => Some(EncodingType::Windows1258),
+            "x-mac-cyrillic" | "x-mac-ukrainian" => Some(EncodingType::XMacCyrillic),
+            "chinese" | "csgb2312" | "csiso58gb231280" | "gb2312" | "gb_2312" | "gb_2312-80" | "gbk" | "iso-ir-58" | "x-gbk" => Some(EncodingType::Gbk),
+            "gb18030" => Some(EncodingType::Gb18030),
+            "big5" | "big5-hkscs" | "cn-big5" | "csbig5" | "x-x-big5" => Some(EncodingType::Big5),
+            "cseucpkdfmtjapanese" | "euc-jp" | "x-euc-jp" => Some(EncodingType::EucJp),
+            "csiso2022jp" | "iso-2022-jp" => Some(EncodingType::Iso2022Jp),
+            "csshiftjis" | "ms932" | "ms_kanji" | "shift-jis" | "shift_jis" | "sjis" | "windows-31j" | "x-sjis" => Some(EncodingType::ShiftJis),
+            "cseuckr" | "csksc56011987" | "euc-kr" | "iso-ir-149" | "korean" | "ks_c_5601-1987" | "ks_c_5601-1989" | "ksc5601" | "ksc_5601" | "windows-949" => Some(EncodingType::EucKr),
+            "csiso2022kr" | "hz-gb-2312" | "iso-2022-cn" | "iso-2022-cn-ext" | "iso-2022-kr" | "replacement" => Some(EncodingType::Replacement),
+            "unicodefffe" | "utf-16be" => Some(EncodingType::Utf16Be),
+            "csunicode" | "iso-10646-ucs-2" | "ucs-2" | "unicode" | "unicodefeff" | "utf-16" | "utf-16le" => Some(EncodingType::Utf16Le),
+            "x-user-defined" => Some(EncodingType::XUserDefined),
+            _ => None,
+        }
+    }
 }
 
 impl From<EncodingType> for &encoding_rs::Encoding {
@@ -191,26 +238,49 @@ impl From<EncodingType> for &encoding_rs::Encoding {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct EncodingDialogState {
-    selected: EncodingType,
+    selected: usize,
+    encodings: Vec<EncodingType>,
 }
 
 impl EncodingDialogState {
+    pub fn new(encoding_labels: &[String]) -> Self {
+        let mut encodings: Vec<_> = encoding_labels
+            .iter()
+            .filter_map(|l| EncodingType::from(l))
+            .collect();
+        if encodings.is_empty() {
+            encodings.push(EncodingType::Utf8);
+        }
+        Self {
+            selected: 0,
+            encodings,
+        }
+    }
+
     pub fn select_next(&mut self) {
-        self.selected = self.selected.next();
+        if self.selected == self.encodings.len() - 1 {
+            self.selected = 0;
+        } else {
+            self.selected += 1;
+        }
     }
 
     pub fn select_prev(&mut self) {
-        self.selected = self.selected.prev();
+        if self.selected == 0 {
+            self.selected = self.encodings.len() - 1;
+        } else {
+            self.selected -= 1;
+        }
     }
 
     pub fn reset(&mut self) {
-        self.selected = EncodingType::default();
+        self.selected = 0;
     }
 
     pub fn selected(&self) -> EncodingType {
-        self.selected
+        self.encodings[self.selected]
     }
 }
 
@@ -233,18 +303,15 @@ impl EncodingDialogColor {
     }
 }
 
-pub struct EncodingDialog {
-    state: EncodingDialogState,
+pub struct EncodingDialog<'a> {
+    state: &'a EncodingDialogState,
     labels: Vec<&'static str>,
     color: EncodingDialogColor,
 }
 
-impl EncodingDialog {
-    pub fn new(state: EncodingDialogState) -> Self {
-        let labels = EncodingType::vars_vec()
-            .iter()
-            .map(EncodingType::str)
-            .collect();
+impl<'a> EncodingDialog<'a> {
+    pub fn new(state: &'a EncodingDialogState) -> Self {
+        let labels = state.encodings.iter().map(EncodingType::str).collect();
         Self {
             state,
             labels,
@@ -258,7 +325,7 @@ impl EncodingDialog {
     }
 }
 
-impl Widget for EncodingDialog {
+impl Widget for EncodingDialog<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let list_items: Vec<ListItem> = self
             .labels
@@ -266,7 +333,7 @@ impl Widget for EncodingDialog {
             .enumerate()
             .map(|(i, label)| {
                 let item = ListItem::new(Line::raw(*label));
-                if i == self.state.selected.val() {
+                if i == self.state.selected {
                     item.fg(self.color.selected)
                 } else {
                     item.fg(self.color.text)
@@ -304,10 +371,11 @@ impl TextPreviewState {
         object: &RawObject,
         highlight: bool,
         highlight_theme_name: &str,
+        default_encoding: EncodingType,
     ) -> (Self, Option<String>) {
         let mut state = Self {
             scroll_lines_state: ScrollLinesState::new(vec![], ScrollLinesOptions::default()),
-            encoding: EncodingType::Utf8,
+            encoding: default_encoding,
         };
         let warn_msg = state.update_lines(file_detail, object, highlight, highlight_theme_name);
         (state, warn_msg)

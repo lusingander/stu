@@ -60,6 +60,8 @@ impl ObjectPreviewPage {
         ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
+        let encoding_dialog_state = EncodingDialogState::new(&ctx.config.preview.encodings);
+
         let preview_type = if infer::is_image(&object.bytes) {
             let (state, msg) =
                 ImagePreviewState::new(&object.bytes, ctx.env.image_picker.clone().into());
@@ -73,6 +75,7 @@ impl ObjectPreviewPage {
                 &object,
                 ctx.config.preview.highlight,
                 &ctx.config.preview.highlight_theme,
+                encoding_dialog_state.selected(),
             );
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
@@ -88,7 +91,7 @@ impl ObjectPreviewPage {
             path,
             object_key,
             view_state: ViewState::Default,
-            encoding_dialog_state: EncodingDialogState::default(),
+            encoding_dialog_state,
             ctx,
             tx,
         }
@@ -236,7 +239,7 @@ impl ObjectPreviewPage {
 
         if let ViewState::EncodingDialog = &mut self.view_state {
             let encoding_dialog =
-                EncodingDialog::new(self.encoding_dialog_state).theme(&self.ctx.theme);
+                EncodingDialog::new(&self.encoding_dialog_state).theme(&self.ctx.theme);
             f.render_widget(encoding_dialog, area);
         }
     }
