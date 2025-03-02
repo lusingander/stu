@@ -62,6 +62,12 @@ pub struct PreviewConfig {
     pub highlight_theme: String,
     #[default = false]
     pub image: bool,
+    #[default(vec![
+        "utf-8".into(),
+        "utf-16be".into(),
+        "utf-16le".into(),
+    ])]
+    pub encodings: Vec<String>,
 }
 
 fn default_download_dir() -> String {

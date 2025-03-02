@@ -14,8 +14,8 @@ use crate::{
     object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
     widget::{
-        self, ImagePreview, ImagePreviewState, InputDialog, InputDialogState, TextPreview,
-        TextPreviewState,
+        self, EncodingDialog, EncodingDialogState, ImagePreview, ImagePreviewState, InputDialog,
+        InputDialogState, TextPreview, TextPreviewState,
     },
 };
 
@@ -30,6 +30,7 @@ pub struct ObjectPreviewPage {
     object_key: ObjectKey,
 
     view_state: ViewState,
+    encoding_dialog_state: EncodingDialogState,
 
     ctx: Rc<AppContext>,
     tx: Sender,
@@ -46,6 +47,7 @@ enum ViewState {
     #[default]
     Default,
     SaveDialog(InputDialogState),
+    EncodingDialog,
 }
 
 impl ObjectPreviewPage {
@@ -58,6 +60,8 @@ impl ObjectPreviewPage {
         ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
+        let encoding_dialog_state = EncodingDialogState::new(&ctx.config.preview.encodings);
+
         let preview_type = if infer::is_image(&object.bytes) {
             let (state, msg) =
                 ImagePreviewState::new(&object.bytes, ctx.env.image_picker.clone().into());
@@ -71,6 +75,7 @@ impl ObjectPreviewPage {
                 &object,
                 ctx.config.preview.highlight,
                 &ctx.config.preview.highlight_theme,
+                encoding_dialog_state.selected(),
             );
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
@@ -86,6 +91,7 @@ impl ObjectPreviewPage {
             path,
             object_key,
             view_state: ViewState::Default,
+            encoding_dialog_state,
             ctx,
             tx,
         }
@@ -136,6 +142,9 @@ impl ObjectPreviewPage {
                 key_code_char!('S') => {
                     self.open_save_dialog();
                 }
+                key_code_char!('e') => {
+                    self.open_encoding_dialog();
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -177,6 +186,24 @@ impl ObjectPreviewPage {
                     state.handle_key_event(key);
                 }
             },
+            (ViewState::EncodingDialog, _) => match key {
+                key_code!(KeyCode::Esc) => {
+                    self.close_encoding_dialog();
+                }
+                key_code_char!('j') => {
+                    self.encoding_dialog_state.select_next();
+                }
+                key_code_char!('k') => {
+                    self.encoding_dialog_state.select_prev();
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.apply_encoding();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
         }
     }
 
@@ -209,6 +236,12 @@ impl ObjectPreviewPage {
             let (cursor_x, cursor_y) = state.cursor();
             f.set_cursor_position((cursor_x, cursor_y));
         }
+
+        if let ViewState::EncodingDialog = &mut self.view_state {
+            let encoding_dialog =
+                EncodingDialog::new(&self.encoding_dialog_state).theme(&self.ctx.theme);
+            f.render_widget(encoding_dialog, area);
+        }
     }
 
     pub fn helps(&self) -> Vec<String> {
@@ -236,6 +269,12 @@ impl ObjectPreviewPage {
                 (&["Esc"], "Close save dialog"),
                 (&["Enter"], "Download object"),
             ],
+            (ViewState::EncodingDialog, _) => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc"], "Close encoding dialog"),
+                (&["j/k"], "Select item"),
+                (&["Enter"], "Reopen with encoding"),
+            ],
         };
 
         build_helps(helps)
@@ -262,6 +301,12 @@ impl ObjectPreviewPage {
                 (&["Enter"], "Download", 1),
                 (&["?"], "Help", 0),
             ],
+            (ViewState::EncodingDialog, _) => &[
+                (&["Esc"], "Close", 2),
+                (&["j/k"], "Select", 3),
+                (&["Enter"], "Encode", 1),
+                (&["?"], "Help", 0),
+            ],
         };
 
         build_short_helps(helps)
@@ -275,6 +320,32 @@ impl ObjectPreviewPage {
 
     pub fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    fn open_encoding_dialog(&mut self) {
+        if let PreviewType::Text(_) = &mut self.preview_type {
+            self.view_state = ViewState::EncodingDialog;
+        }
+    }
+
+    fn close_encoding_dialog(&mut self) {
+        self.view_state = ViewState::Default;
+        self.encoding_dialog_state.reset();
+    }
+
+    fn apply_encoding(&mut self) {
+        if let ViewState::EncodingDialog = &self.view_state {
+            if let PreviewType::Text(state) = &mut self.preview_type {
+                state.set_encoding(self.encoding_dialog_state.selected());
+                state.update_lines(
+                    &self.file_detail,
+                    &self.object,
+                    self.ctx.config.preview.highlight,
+                    &self.ctx.config.preview.highlight_theme,
+                );
+            }
+        }
+        self.close_encoding_dialog();
     }
 
     pub fn enable_image_render(&mut self) {

@@ -22,7 +22,7 @@ enum ScrollEvent {
     Left,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct ScrollLinesOptions {
     pub number: bool,
     pub wrap: bool,
@@ -104,6 +104,10 @@ impl ScrollLinesState {
 
     pub fn toggle_number(&mut self) {
         self.options.number = !self.options.number;
+    }
+
+    pub fn current_options(&self) -> ScrollLinesOptions {
+        self.options
     }
 }
 

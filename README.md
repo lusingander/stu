@@ -156,6 +156,14 @@ highlight_theme = "base16-ocean.dark"
 # Whether image file preview is enabled in the object preview.
 # type: bool
 image = false
+# Array of labels for the encoding want to use.
+# Label names should be specified from https://encoding.spec.whatwg.org/#names-and-labels.
+# type: array of strings
+encodings = [
+  "utf-8",
+  "utf-16be",
+  "utf-16le",
+]
 ```
 
 ### Syntax highlighting
@@ -223,8 +231,10 @@ https://www.sublimetext.com/docs/syntax.html
   - It must be enabled in the [config](#config-file-format)
 - image preview (by [ratatui-image](https://github.com/benjajaja/ratatui-image))
   - It must be enabled in the [config](#config-file-format)
+- open with encoding
+  - Available encodings can be specified in the [config](#config-file-format).
 
-<img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400>
+<img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400> <img src="./img/object-preview-encoding.png" width=400>
 
 ## Troubleshooting
 
