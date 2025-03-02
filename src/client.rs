@@ -13,7 +13,7 @@ use chrono::TimeZone;
 
 use crate::{
     error::{AppError, Result},
-    object::{BucketItem, FileDetail, FileVersion, ObjectItem},
+    object::{BucketItem, DownloadObjectInfo, FileDetail, FileVersion, ObjectItem},
 };
 
 const DELIMITER: &str = "/";
@@ -287,6 +287,41 @@ impl Client {
         }
         writer.flush().map_err(AppError::error)?;
         Ok(())
+    }
+
+    pub async fn list_all_download_objects(
+        &self,
+        bucket: &str,
+        prefix: &str,
+    ) -> Result<Vec<DownloadObjectInfo>> {
+        let mut objs: Vec<DownloadObjectInfo> = Vec::new();
+
+        let mut token: Option<String> = None;
+        loop {
+            let result = self
+                .client
+                .list_objects_v2()
+                .bucket(bucket)
+                .prefix(prefix)
+                .set_continuation_token(token)
+                .send()
+                .await;
+            let output = result.map_err(|e| AppError::new("Failed to list download objects", e))?;
+
+            let os = output.contents().iter().map(|file| {
+                let key = file.key().unwrap().to_owned();
+                let size_byte = file.size().unwrap() as usize;
+                DownloadObjectInfo { key, size_byte }
+            });
+            objs.extend(os);
+
+            token = output.next_continuation_token().map(String::from);
+            if token.is_none() {
+                break;
+            }
+        }
+
+        Ok(objs)
     }
 
     pub fn open_management_console_buckets(&self) -> Result<()> {
