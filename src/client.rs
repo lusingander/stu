@@ -325,6 +325,7 @@ impl Client {
             }
             i += 1;
         }
+        writer.flush().map_err(AppError::error)?;
         Ok(())
     }
 
