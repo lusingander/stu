@@ -56,9 +56,11 @@ pub struct UiObjectDetailConfig {
 #[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
 pub struct PreviewConfig {
+    #[default = false]
     pub highlight: bool,
     #[default = "base16-ocean.dark"]
     pub highlight_theme: String,
+    #[default = false]
     pub image: bool,
 }
 
