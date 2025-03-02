@@ -5,3 +5,4 @@ default_region = 'us-east-1'
 
 highlight = true
 image = true
+encodings = ["utf-8", "utf-16be", "utf-16le", "sjis", "iso-2022-jp"]

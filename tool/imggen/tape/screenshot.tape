@@ -237,6 +237,12 @@ Sleep 1s
 Type@10ms "jjjjj"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-preview.png
+Sleep 100ms
+Type "e"
+Screenshot ${OUTPUT_DIR}/object-preview-encoding.png
+Sleep 100ms
+Escape
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-preview-help.png

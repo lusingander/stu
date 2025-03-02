@@ -231,8 +231,10 @@ https://www.sublimetext.com/docs/syntax.html
   - It must be enabled in the [config](#config-file-format)
 - image preview (by [ratatui-image](https://github.com/benjajaja/ratatui-image))
   - It must be enabled in the [config](#config-file-format)
+- open with encoding
+  - Available encodings can be specified in the [config](#config-file-format).
 
-<img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400>
+<img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400> <img src="./img/object-preview-encoding.png" width=400>
 
 ## Troubleshooting
 
