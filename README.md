@@ -156,6 +156,14 @@ highlight_theme = "base16-ocean.dark"
 # Whether image file preview is enabled in the object preview.
 # type: bool
 image = false
+# Array of labels for the encoding want to use.
+# Label names should be specified from https://encoding.spec.whatwg.org/#names-and-labels.
+# type: array of strings
+encodings = [
+  "utf-8",
+  "utf-16be",
+  "utf-16le",
+]
 ```
 
 ### Syntax highlighting
