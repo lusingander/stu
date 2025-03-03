@@ -38,7 +38,7 @@ impl HelpPage {
             key_code!(KeyCode::Esc) => {
                 self.tx.send(AppEventType::Quit);
             }
-            key_code!(KeyCode::Backspace) | key_code_char!('?') => {
+            key_code!(KeyCode::Backspace) | key_code!(KeyCode::Left) | key_code_char!('?') => {
                 self.tx.send(AppEventType::CloseCurrentPage);
             }
             _ => {}
