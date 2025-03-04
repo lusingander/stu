@@ -197,6 +197,9 @@ impl ObjectListPage {
                 key_code!(KeyCode::Enter) => {
                     self.download();
                 }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
                 _ => {}
             },
         }
@@ -305,7 +308,10 @@ impl ObjectListPage {
                 (&["Enter"], "Copy selected value to clipboard"),
             ],
             ViewState::DownloadConfirmDialog(_, _) => &[
-                // todo
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc", "Backspace"], "Close confirm dialog"),
+                (&["h/l"], "Select"),
+                (&["Enter"], "Confirm"),
             ],
         };
         build_helps(helps)
@@ -358,7 +364,10 @@ impl ObjectListPage {
                 (&["?"], "Help", 0),
             ],
             ViewState::DownloadConfirmDialog(_, _) => &[
-                // todo
+                (&["Esc"], "Close", 2),
+                (&["h/l"], "Select", 3),
+                (&["Enter"], "Confirm", 1),
+                (&["?"], "Help", 0),
             ],
         };
         build_short_helps(helps)
