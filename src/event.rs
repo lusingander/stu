@@ -31,7 +31,7 @@ pub enum AppEventType {
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
-    CompleteDownloadObject_(Result<CompleteDownloadObjectResult>),
+    CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,

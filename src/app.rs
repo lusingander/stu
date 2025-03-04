@@ -459,10 +459,10 @@ impl App {
                         .download_object(&bucket, &key, version_id, &mut writer, loading)
                         .await;
                     let result = CompleteDownloadObjectResult::new(result, path);
-                    tx.send(AppEventType::CompleteDownloadObject_(result));
+                    tx.send(AppEventType::CompleteDownloadObject(result));
                 }
                 Err(e) => {
-                    tx.send(AppEventType::CompleteDownloadObject_(Err(e)));
+                    tx.send(AppEventType::CompleteDownloadObject(Err(e)));
                 }
             }
         });
@@ -498,10 +498,10 @@ impl App {
                         .download_object(&bucket, &key, version_id, &mut writer, loading)
                         .await;
                     let result = CompleteDownloadObjectResult::new(result, path);
-                    tx.send(AppEventType::CompleteDownloadObject_(result));
+                    tx.send(AppEventType::CompleteDownloadObject(result));
                 }
                 Err(e) => {
-                    tx.send(AppEventType::CompleteDownloadObject_(Err(e)));
+                    tx.send(AppEventType::CompleteDownloadObject(Err(e)));
                 }
             }
         });

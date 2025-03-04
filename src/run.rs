@@ -103,7 +103,7 @@ pub async fn run<B: Backend>(
             AppEventType::DownloadObjectAs(file_detail, input, version_id) => {
                 app.download_object_as(file_detail, input, version_id);
             }
-            AppEventType::CompleteDownloadObject_(result) => {
+            AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
             }
             AppEventType::PreviewObject(file_detail, version_id) => {
