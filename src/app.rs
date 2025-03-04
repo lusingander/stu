@@ -14,13 +14,14 @@ use crate::{
     environment::Environment,
     error::{AppError, Result},
     event::{
-        AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
+        AppEventType, CompleteDownloadObjectResult, CompleteDownloadObjectsResult,
+        CompleteInitializeResult, CompleteLoadAllDownloadObjectListResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
         CompleteReloadObjectsResult, Sender,
     },
     file::{copy_to_clipboard, create_binary_file, save_error_log},
-    object::{AppObjects, FileDetail, ObjectItem, RawObject},
+    object::{AppObjects, DownloadObjectInfo, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
     widget::{Header, LoadingDialog, Status, StatusType},
 };
@@ -402,6 +403,34 @@ impl App {
         self.is_loading = false;
     }
 
+    pub fn load_all_download_objects(&self, key: ObjectKey) {
+        let bucket = key.bucket_name.clone();
+        let prefix = key.joined_object_path(false);
+
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let objects = client.list_all_download_objects(&bucket, &prefix).await;
+            let result = CompleteLoadAllDownloadObjectListResult::new(objects);
+            tx.send(AppEventType::CompleteLoadAllDownloadObjectList(result));
+        });
+    }
+
+    pub fn complete_load_all_download_objects(
+        &mut self,
+        result: Result<CompleteLoadAllDownloadObjectListResult>,
+    ) {
+        match result {
+            Ok(CompleteLoadAllDownloadObjectListResult { objs }) => {
+                let object_list_page = self.page_stack.current_page_mut().as_mut_object_list();
+                object_list_page.open_download_confirm_dialog(objs);
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::NotifyError(e));
+            }
+        }
+        self.is_loading = false;
+    }
+
     pub fn open_help(&mut self) {
         let helps = self.page_stack.current_page().helps();
         if helps.is_empty() {
@@ -430,6 +459,24 @@ impl App {
     pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
         self.tx
             .send(AppEventType::PreviewObject(file_detail, version_id));
+        self.is_loading = true;
+    }
+
+    pub fn object_list_download_object(&mut self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let key = object_list_page.current_selected_object_key();
+
+        match object_list_page.current_selected_item() {
+            ObjectItem::Dir { .. } => {
+                self.tx.send(AppEventType::LoadAllDownloadObjectList(key));
+            }
+            ObjectItem::File { .. } => {
+                // todo: impl
+                let e = AppError::msg("not implemented yet");
+                self.tx.send(AppEventType::NotifyError(e));
+                return;
+            }
+        }
         self.is_loading = true;
     }
 
@@ -527,6 +574,67 @@ impl App {
                 self.tx.send(AppEventType::PreviewRerenderImage);
             }
         }
+    }
+
+    pub fn download_objects(
+        &mut self,
+        bucket: String,
+        key: ObjectKey,
+        dir: String,
+        objs: Vec<DownloadObjectInfo>,
+    ) {
+        self.is_loading = true;
+
+        let current_dir_key = key.joined_object_path(false);
+        let mut obj_paths = Vec::with_capacity(objs.len());
+        for obj in objs {
+            let relative_path = obj.key.strip_prefix(&current_dir_key).unwrap();
+            let absolute_path = self.ctx.config.download_file_path(relative_path);
+            obj_paths.push((obj, absolute_path));
+        }
+        let download_dir = self.ctx.config.download_file_path(&dir);
+
+        let (client, tx) = self.unwrap_client_tx();
+
+        spawn(async move {
+            // fixme: parallel
+            for (obj, path) in obj_paths {
+                match create_binary_file(path) {
+                    Ok(mut writer) => {
+                        let result = client
+                            .download_object(&bucket, &obj.key, None, &mut writer, |_| {})
+                            .await;
+                        if let Err(e) = result {
+                            tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
+                            return;
+                        }
+                    }
+                    Err(e) => {
+                        tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
+                        return;
+                    }
+                }
+            }
+
+            let result = CompleteDownloadObjectsResult::new(download_dir);
+            tx.send(AppEventType::CompleteDownloadObjects(result));
+        });
+    }
+
+    pub fn complete_download_objects(&mut self, result: Result<CompleteDownloadObjectsResult>) {
+        match result {
+            Ok(CompleteDownloadObjectsResult { download_dir }) => {
+                let msg = format!(
+                    "Download completed successfully: {}",
+                    download_dir.to_string_lossy()
+                );
+                self.tx.send(AppEventType::NotifySuccess(msg));
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::NotifyError(e));
+            }
+        }
+        self.is_loading = false;
     }
 
     pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {

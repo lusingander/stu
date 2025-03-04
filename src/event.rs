@@ -10,7 +10,9 @@ use ratatui::crossterm::event::KeyEvent;
 use crate::{
     client::Client,
     error::{AppError, Result},
-    object::{BucketItem, FileDetail, FileVersion, ObjectItem, ObjectKey, RawObject},
+    object::{
+        BucketItem, DownloadObjectInfo, FileDetail, FileVersion, ObjectItem, ObjectKey, RawObject,
+    },
 };
 
 #[derive(Debug)]
@@ -29,9 +31,13 @@ pub enum AppEventType {
     CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
     LoadObjectVersions,
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
+    LoadAllDownloadObjectList(ObjectKey),
+    CompleteLoadAllDownloadObjectList(Result<CompleteLoadAllDownloadObjectListResult>),
     DownloadObject(FileDetail, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
+    DownloadObjects(String, ObjectKey, String, Vec<DownloadObjectInfo>),
+    CompleteDownloadObjects(Result<CompleteDownloadObjectsResult>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
     BucketListMoveDown,
@@ -42,6 +48,7 @@ pub enum AppEventType {
     BackToBucketList,
     OpenObjectVersionsTab,
     OpenPreview(FileDetail, Option<String>),
+    ObjectListDownloadObject,
     DetailDownloadObject(FileDetail, Option<String>),
     DetailDownloadObjectAs(FileDetail, String, Option<String>),
     PreviewDownloadObject(FileDetail, Option<String>),
@@ -157,6 +164,20 @@ impl CompleteLoadObjectVersionsResult {
 }
 
 #[derive(Debug)]
+pub struct CompleteLoadAllDownloadObjectListResult {
+    pub objs: Vec<DownloadObjectInfo>,
+}
+
+impl CompleteLoadAllDownloadObjectListResult {
+    pub fn new(
+        objs: Result<Vec<DownloadObjectInfo>>,
+    ) -> Result<CompleteLoadAllDownloadObjectListResult> {
+        let objs = objs?;
+        Ok(CompleteLoadAllDownloadObjectListResult { objs })
+    }
+}
+
+#[derive(Debug)]
 pub struct CompleteDownloadObjectResult {
     pub path: PathBuf,
 }
@@ -165,6 +186,17 @@ impl CompleteDownloadObjectResult {
     pub fn new(result: Result<()>, path: PathBuf) -> Result<CompleteDownloadObjectResult> {
         result?;
         Ok(CompleteDownloadObjectResult { path })
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteDownloadObjectsResult {
+    pub download_dir: PathBuf,
+}
+
+impl CompleteDownloadObjectsResult {
+    pub fn new(download_dir: PathBuf) -> Result<CompleteDownloadObjectsResult> {
+        Ok(CompleteDownloadObjectsResult { download_dir })
     }
 }
 
