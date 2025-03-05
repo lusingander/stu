@@ -33,7 +33,7 @@ pub enum AppEventType {
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
     LoadAllDownloadObjectList(ObjectKey),
     CompleteLoadAllDownloadObjectList(Result<CompleteLoadAllDownloadObjectListResult>),
-    DownloadObject(FileDetail, Option<String>),
+    DownloadObject(String, usize, Option<String>),
     DownloadObjectAs(FileDetail, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     DownloadObjects(String, ObjectKey, String, Vec<DownloadObjectInfo>),

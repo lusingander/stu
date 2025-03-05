@@ -445,14 +445,24 @@ impl App {
     }
 
     pub fn detail_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        self.tx
-            .send(AppEventType::DownloadObject(file_detail, version_id));
+        let object_name = file_detail.name.clone();
+        let size_byte = file_detail.size_byte;
+        self.tx.send(AppEventType::DownloadObject(
+            object_name,
+            size_byte,
+            version_id,
+        ));
         self.is_loading = true;
     }
 
     pub fn preview_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        self.tx
-            .send(AppEventType::DownloadObject(file_detail, version_id));
+        let object_name = file_detail.name.clone();
+        let size_byte = file_detail.size_byte;
+        self.tx.send(AppEventType::DownloadObject(
+            object_name,
+            size_byte,
+            version_id,
+        ));
         self.is_loading = true;
     }
 
@@ -470,21 +480,24 @@ impl App {
             ObjectItem::Dir { .. } => {
                 self.tx.send(AppEventType::LoadAllDownloadObjectList(key));
             }
-            ObjectItem::File { .. } => {
-                // todo: impl
-                let e = AppError::msg("not implemented yet");
-                self.tx.send(AppEventType::NotifyError(e));
-                return;
+            ObjectItem::File {
+                name, size_byte, ..
+            } => {
+                self.tx
+                    .send(AppEventType::DownloadObject(name.clone(), *size_byte, None));
             }
         }
         self.is_loading = true;
     }
 
-    pub fn download_object(&self, file_detail: FileDetail, version_id: Option<String>) {
-        let object_name = file_detail.name;
-        let size_byte = file_detail.size_byte;
-
+    pub fn download_object(
+        &self,
+        object_name: String,
+        size_byte: usize,
+        version_id: Option<String>,
+    ) {
         let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectList(_) => &page.as_object_list().current_selected_object_key(),
             page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
             page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
             page => panic!("Invalid page: {:?}", page),
