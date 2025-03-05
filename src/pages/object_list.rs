@@ -266,6 +266,7 @@ impl ObjectListPage {
                         (&["Backspace"], "Go back to prev folder"),
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
+                        (&["s"], "Download object"),
                         (&["o"], "Sort object list"),
                         (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
@@ -283,6 +284,7 @@ impl ObjectListPage {
                         (&["Backspace"], "Go back to prev folder"),
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
+                        (&["s"], "Download object"),
                         (&["o"], "Sort object list"),
                         (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
@@ -324,24 +326,26 @@ impl ObjectListPage {
                     &[
                         (&["Esc"], "Quit", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 7),
+                        (&["g/G"], "Top/Bottom", 8),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
-                        (&["o"], "Sort", 5),
-                        (&["R"], "Refresh", 6),
+                        (&["s"], "Download", 5),
+                        (&["o"], "Sort", 6),
+                        (&["R"], "Refresh", 7),
                         (&["?"], "Help", 0),
                     ]
                 } else {
                     &[
                         (&["Esc"], "Clear filter", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 7),
+                        (&["g/G"], "Top/Bottom", 8),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
-                        (&["o"], "Sort", 5),
-                        (&["R"], "Refresh", 6),
+                        (&["s"], "Download", 5),
+                        (&["o"], "Sort", 6),
+                        (&["R"], "Refresh", 7),
                         (&["?"], "Help", 0),
                     ]
                 }
