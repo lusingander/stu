@@ -208,7 +208,6 @@ mod tests {
             page.render(f, area);
         })?;
 
-        // fixme: should not depend on environment variables...
         #[rustfmt::skip]
         let mut expected = Buffer::with_lines([
             "┌STU─────────────────────────────────────────────────────────────────┐",
