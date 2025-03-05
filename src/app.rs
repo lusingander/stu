@@ -607,9 +607,19 @@ impl App {
         }
         let download_dir = self.ctx.config.download_file_path(&dir);
 
+        let total_count = obj_paths.len();
+        let total_size: usize = obj_paths.iter().map(|(obj, _)| obj.size_byte).sum();
+        let decimal_places = if total_size > 1_000_000_000 { 1 } else { 0 };
+        let format_opt =
+            humansize::FormatSizeOptions::from(humansize::DECIMAL).decimal_places(decimal_places);
+        let total_size_s = humansize::format_size_i(total_size, format_opt);
+
         let (client, tx) = self.unwrap_client_tx();
 
         spawn(async move {
+            let mut cur_count = 0;
+            let mut cur_size = 0;
+
             // fixme: parallel
             for (obj, path) in obj_paths {
                 match create_binary_file(path) {
@@ -621,6 +631,17 @@ impl App {
                             tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
                             return;
                         }
+
+                        cur_count += 1;
+                        cur_size += obj.size_byte;
+
+                        let cur_size_s = humansize::format_size_i(cur_size, format_opt);
+
+                        let msg = format!(
+                            "{}/{} objects downloaded ({} out of {} total)",
+                            cur_count, total_count, cur_size_s, total_size_s
+                        );
+                        tx.send(AppEventType::NotifyInfo(msg));
                     }
                     Err(e) => {
                         tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
