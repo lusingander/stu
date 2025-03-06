@@ -5,7 +5,7 @@ use ratatui::{
     Frame,
 };
 use std::{io::BufWriter, rc::Rc, sync::Arc};
-use tokio::spawn;
+use tokio::{spawn, sync::mpsc};
 
 use crate::{
     client::Client,
@@ -617,37 +617,50 @@ impl App {
         let (client, tx) = self.unwrap_client_tx();
 
         spawn(async move {
+            let (done_tx, mut done_rx) = mpsc::channel::<usize>(total_count);
+
+            for (obj, path) in obj_paths {
+                let bucket = bucket.clone();
+                let client = client.clone();
+                let tx = tx.clone();
+                let done_tx = done_tx.clone();
+
+                spawn(async move {
+                    match create_binary_file(path) {
+                        Ok(mut writer) => {
+                            let result = client
+                                .download_object(&bucket, &obj.key, None, &mut writer, |_| {})
+                                .await;
+                            if let Err(e) = result {
+                                tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
+                                return;
+                            }
+
+                            done_tx.send(obj.size_byte).await.unwrap();
+                        }
+                        Err(e) => {
+                            tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
+                        }
+                    }
+                });
+            }
+
+            drop(done_tx);
+
+            let total_size_s = total_size_s.clone();
+
             let mut cur_count = 0;
             let mut cur_size = 0;
+            while let Some(size) = done_rx.recv().await {
+                cur_count += 1;
+                cur_size += size;
 
-            // fixme: parallel
-            for (obj, path) in obj_paths {
-                match create_binary_file(path) {
-                    Ok(mut writer) => {
-                        let result = client
-                            .download_object(&bucket, &obj.key, None, &mut writer, |_| {})
-                            .await;
-                        if let Err(e) = result {
-                            tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
-                            return;
-                        }
-
-                        cur_count += 1;
-                        cur_size += obj.size_byte;
-
-                        let cur_size_s = humansize::format_size_i(cur_size, format_opt);
-
-                        let msg = format!(
-                            "{}/{} objects downloaded ({} out of {} total)",
-                            cur_count, total_count, cur_size_s, total_size_s
-                        );
-                        tx.send(AppEventType::NotifyInfo(msg));
-                    }
-                    Err(e) => {
-                        tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
-                        return;
-                    }
-                }
+                let cur_size_s = humansize::format_size_i(cur_size, format_opt);
+                let msg = format!(
+                    "{}/{} objects downloaded ({} out of {} total)",
+                    cur_count, total_count, cur_size_s, total_size_s
+                );
+                tx.send(AppEventType::NotifyInfo(msg));
             }
 
             let result = CompleteDownloadObjectsResult::new(download_dir);
