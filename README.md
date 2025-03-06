@@ -212,9 +212,11 @@ https://www.sublimetext.com/docs/syntax.html
 
 - Show list of objects in a hierarchy
   - filter/sort items
+- Download object
+  - Recursive download of selected directories
 - Copy resource name to clipboard
 
-<img src="./img/object-list-simple.png" width=400> <img src="./img/object-list-hierarchy.png" width=400> <img src="./img/object-list-many.png" width=400> <img src="./img/object-list-filter.png" width=400> <img src="./img/object-list-sort.png" width=400> <img src="./img/object-list-dir-copy.png" width=400> <img src="./img/object-list-file-copy.png" width=400>
+<img src="./img/object-list-simple.png" width=400> <img src="./img/object-list-hierarchy.png" width=400> <img src="./img/object-list-many.png" width=400> <img src="./img/object-list-filter.png" width=400> <img src="./img/object-list-sort.png" width=400> <img src="./img/object-list-dir-copy.png" width=400> <img src="./img/object-list-file-copy.png" width=400> <img src="./img/object-list-download-confirm.png" width=400>
 
 ### Object detail
 
@@ -235,7 +237,7 @@ https://www.sublimetext.com/docs/syntax.html
 - image preview (by [ratatui-image](https://github.com/benjajaja/ratatui-image))
   - It must be enabled in the [config](#config-file-format)
 - open with encoding
-  - Available encodings can be specified in the [config](#config-file-format).
+  - Available encodings can be specified in the [config](#config-file-format)
 
 <img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400> <img src="./img/object-preview-encoding.png" width=400>
 

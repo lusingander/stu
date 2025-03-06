@@ -189,6 +189,12 @@ Enter
 
 # open test-bucket-1
 Sleep 500ms
+Type "s"
+Sleep 1s
+Screenshot ${OUTPUT_DIR}/object-list-download-confirm.png
+Sleep 500ms
+Escape
+Sleep 500ms
 Type "j"
 Sleep 100ms
 Type "j"
