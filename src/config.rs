@@ -20,6 +20,8 @@ const PREVIEW_SYNTAX_DIR: &str = "preview_syntax";
 pub struct Config {
     #[default(_code = "default_download_dir()")]
     pub download_dir: String,
+    #[default = 5]
+    pub max_concurrent_requests: usize,
     #[default = "us-east-1"]
     pub default_region: String,
     #[nested]

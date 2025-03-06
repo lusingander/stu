@@ -124,6 +124,9 @@ The values set in this example are the default values.
 # The directory to save the downloaded objects.
 # type: string
 download_dir = "$STU_ROOT_DIR/download"
+# The maximum number of concurrent requests when recursive downloading objects.
+# type: usize
+max_concurrent_requests = 5
 # The default region to use if the region cannot be obtained from the command line options or AWS settings.
 # type: string
 default_region = "us-east-1"

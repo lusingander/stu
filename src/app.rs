@@ -615,6 +615,7 @@ impl App {
             humansize::FormatSizeOptions::from(humansize::DECIMAL).decimal_places(decimal_places);
         let total_size_s = humansize::format_size_i(total_size, format_opt);
 
+        let max_concurrent_requests = self.ctx.config.max_concurrent_requests;
         let (client, tx) = self.unwrap_client_tx();
 
         spawn(async move {
@@ -630,7 +631,7 @@ impl App {
                         Ok(obj.size_byte)
                     }
                 })
-                .buffered(5);
+                .buffered(max_concurrent_requests);
 
             let mut cur_count = 0;
             let mut cur_size = 0;
