@@ -17,12 +17,12 @@ use crate::{
     config::UiConfig,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
-    object::{ObjectItem, ObjectKey},
+    object::{DownloadObjectInfo, ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     widget::{
-        CopyDetailDialog, CopyDetailDialogState, InputDialog, InputDialogState,
-        ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType, ScrollList,
-        ScrollListState,
+        ConfirmDialog, ConfirmDialogState, CopyDetailDialog, CopyDetailDialogState, InputDialog,
+        InputDialogState, ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType,
+        ScrollList, ScrollListState,
     },
 };
 
@@ -50,6 +50,7 @@ enum ViewState {
     FilterDialog,
     SortDialog,
     CopyDetailDialog(Box<CopyDetailDialogState>),
+    DownloadConfirmDialog(Vec<DownloadObjectInfo>, ConfirmDialogState),
 }
 
 impl ObjectListPage {
@@ -126,6 +127,9 @@ impl ObjectListPage {
                 key_code_char!('r') => {
                     self.open_copy_detail_dialog();
                 }
+                key_code_char!('s') if self.non_empty() => {
+                    self.tx.send(AppEventType::ObjectListDownloadObject);
+                }
                 key_code_char!('?') => {
                     self.tx.send(AppEventType::OpenHelp);
                 }
@@ -183,6 +187,21 @@ impl ObjectListPage {
                 }
                 _ => {}
             },
+            ViewState::DownloadConfirmDialog(_, ref mut state) => match key {
+                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
+                    self.close_download_confirm_dialog();
+                }
+                key_code_char!('h') | key_code_char!('l') => {
+                    state.toggle();
+                }
+                key_code!(KeyCode::Enter) => {
+                    self.download();
+                }
+                key_code_char!('?') => {
+                    self.tx.send(AppEventType::OpenHelp);
+                }
+                _ => {}
+            },
         }
     }
 
@@ -225,6 +244,12 @@ impl ObjectListPage {
             let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
+
+        if let ViewState::DownloadConfirmDialog(objs, state) = &mut self.view_state {
+            let message_lines = build_download_confirm_message_lines(objs, &self.ctx.theme);
+            let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(&self.ctx.theme);
+            f.render_stateful_widget(download_confirm_dialog, area, state);
+        }
     }
 
     pub fn helps(&self) -> Vec<String> {
@@ -241,6 +266,7 @@ impl ObjectListPage {
                         (&["Backspace"], "Go back to prev folder"),
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
+                        (&["s"], "Download object"),
                         (&["o"], "Sort object list"),
                         (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
@@ -258,6 +284,7 @@ impl ObjectListPage {
                         (&["Backspace"], "Go back to prev folder"),
                         (&["~"], "Go back to bucket list"),
                         (&["/"], "Filter object list"),
+                        (&["s"], "Download object"),
                         (&["o"], "Sort object list"),
                         (&["r"], "Open copy dialog"),
                         (&["R"], "Refresh object list"),
@@ -282,6 +309,12 @@ impl ObjectListPage {
                 (&["j/k"], "Select item"),
                 (&["Enter"], "Copy selected value to clipboard"),
             ],
+            ViewState::DownloadConfirmDialog(_, _) => &[
+                (&["Ctrl-c"], "Quit app"),
+                (&["Esc", "Backspace"], "Close confirm dialog"),
+                (&["h/l"], "Select"),
+                (&["Enter"], "Confirm"),
+            ],
         };
         build_helps(helps)
     }
@@ -293,24 +326,26 @@ impl ObjectListPage {
                     &[
                         (&["Esc"], "Quit", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 7),
+                        (&["g/G"], "Top/Bottom", 8),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
-                        (&["o"], "Sort", 5),
-                        (&["R"], "Refresh", 6),
+                        (&["s"], "Download", 5),
+                        (&["o"], "Sort", 6),
+                        (&["R"], "Refresh", 7),
                         (&["?"], "Help", 0),
                     ]
                 } else {
                     &[
                         (&["Esc"], "Clear filter", 0),
                         (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 7),
+                        (&["g/G"], "Top/Bottom", 8),
                         (&["Enter"], "Open", 1),
                         (&["Backspace"], "Go back", 2),
                         (&["/"], "Filter", 4),
-                        (&["o"], "Sort", 5),
-                        (&["R"], "Refresh", 6),
+                        (&["s"], "Download", 5),
+                        (&["o"], "Sort", 6),
+                        (&["R"], "Refresh", 7),
                         (&["?"], "Help", 0),
                     ]
                 }
@@ -330,6 +365,12 @@ impl ObjectListPage {
                 (&["Esc"], "Close", 2),
                 (&["j/k"], "Select", 3),
                 (&["Enter"], "Copy", 1),
+                (&["?"], "Help", 0),
+            ],
+            ViewState::DownloadConfirmDialog(_, _) => &[
+                (&["Esc"], "Close", 2),
+                (&["h/l"], "Select", 3),
+                (&["Enter"], "Confirm", 1),
                 (&["?"], "Help", 0),
             ],
         };
@@ -472,6 +513,29 @@ impl ObjectListPage {
                 self.view_indices
                     .sort_by(|a, b| items[*b].size_byte().cmp(&items[*a].size_byte()));
             }
+        }
+    }
+
+    pub fn open_download_confirm_dialog(&mut self, objs: Vec<DownloadObjectInfo>) {
+        let dialog_state = ConfirmDialogState::default();
+        self.view_state = ViewState::DownloadConfirmDialog(objs, dialog_state);
+    }
+
+    fn close_download_confirm_dialog(&mut self) {
+        self.view_state = ViewState::Default;
+    }
+
+    fn download(&mut self) {
+        if let ViewState::DownloadConfirmDialog(objs, state) = &mut self.view_state {
+            if state.is_ok() {
+                let objs = std::mem::take(objs);
+                let bucket = self.object_key.bucket_name.clone();
+                let key = self.current_dir_object_key().clone();
+                let dir = self.current_selected_item().name().to_string();
+                self.tx
+                    .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
+            }
+            self.close_download_confirm_dialog();
         }
     }
 
@@ -666,6 +730,23 @@ fn build_object_file_line<'a>(
         spans.push(" ".into());
         Line::from(spans)
     }
+}
+
+fn build_download_confirm_message_lines<'a>(
+    objs: &[DownloadObjectInfo],
+    theme: &ColorTheme,
+) -> Vec<Line<'a>> {
+    let total_size = format_size_byte(objs.iter().map(|obj| obj.size_byte).sum());
+    let total_count = objs.len();
+    let size_message = format!("{} objects (Total size: {})", total_count, total_size);
+
+    vec![
+        Line::from("You are about to download the following files:".fg(theme.fg)),
+        Line::from(""),
+        Line::from(size_message.fg(theme.fg).bold()),
+        Line::from(""),
+        Line::from("This operation may take some time. Do you want to proceed?".fg(theme.fg)),
+    ]
 }
 
 #[cfg(test)]

@@ -93,6 +93,12 @@ impl FileVersion {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct DownloadObjectInfo {
+    pub key: String,
+    pub size_byte: usize,
+}
+
 #[derive(Debug, Default)]
 pub struct AppObjects {
     bucket_items: Vec<BucketItem>,

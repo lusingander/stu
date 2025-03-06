@@ -147,6 +147,13 @@ impl Page {
         }
     }
 
+    pub fn as_mut_object_list(&mut self) -> &mut ObjectListPage {
+        match self {
+            Self::ObjectList(page) => &mut *page,
+            page => panic!("Page is not ObjectList: {:?}", page),
+        }
+    }
+
     pub fn as_object_detail(&self) -> &ObjectDetailPage {
         match self {
             Self::ObjectDetail(page) => page,

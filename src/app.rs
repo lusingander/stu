@@ -1,3 +1,4 @@
+use futures::StreamExt;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Stylize,
@@ -14,13 +15,14 @@ use crate::{
     environment::Environment,
     error::{AppError, Result},
     event::{
-        AppEventType, CompleteDownloadObjectResult, CompleteInitializeResult,
+        AppEventType, CompleteDownloadObjectResult, CompleteDownloadObjectsResult,
+        CompleteInitializeResult, CompleteLoadAllDownloadObjectListResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
         CompleteReloadObjectsResult, Sender,
     },
     file::{copy_to_clipboard, create_binary_file, save_error_log},
-    object::{AppObjects, FileDetail, ObjectItem, RawObject},
+    object::{AppObjects, DownloadObjectInfo, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
     widget::{Header, LoadingDialog, Status, StatusType},
 };
@@ -402,6 +404,34 @@ impl App {
         self.is_loading = false;
     }
 
+    pub fn load_all_download_objects(&self, key: ObjectKey) {
+        let bucket = key.bucket_name.clone();
+        let prefix = key.joined_object_path(false);
+
+        let (client, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            let objects = client.list_all_download_objects(&bucket, &prefix).await;
+            let result = CompleteLoadAllDownloadObjectListResult::new(objects);
+            tx.send(AppEventType::CompleteLoadAllDownloadObjectList(result));
+        });
+    }
+
+    pub fn complete_load_all_download_objects(
+        &mut self,
+        result: Result<CompleteLoadAllDownloadObjectListResult>,
+    ) {
+        match result {
+            Ok(CompleteLoadAllDownloadObjectListResult { objs }) => {
+                let object_list_page = self.page_stack.current_page_mut().as_mut_object_list();
+                object_list_page.open_download_confirm_dialog(objs);
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::NotifyError(e));
+            }
+        }
+        self.is_loading = false;
+    }
+
     pub fn open_help(&mut self) {
         let helps = self.page_stack.current_page().helps();
         if helps.is_empty() {
@@ -416,14 +446,24 @@ impl App {
     }
 
     pub fn detail_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        self.tx
-            .send(AppEventType::DownloadObject(file_detail, version_id));
+        let object_name = file_detail.name.clone();
+        let size_byte = file_detail.size_byte;
+        self.tx.send(AppEventType::DownloadObject(
+            object_name,
+            size_byte,
+            version_id,
+        ));
         self.is_loading = true;
     }
 
     pub fn preview_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        self.tx
-            .send(AppEventType::DownloadObject(file_detail, version_id));
+        let object_name = file_detail.name.clone();
+        let size_byte = file_detail.size_byte;
+        self.tx.send(AppEventType::DownloadObject(
+            object_name,
+            size_byte,
+            version_id,
+        ));
         self.is_loading = true;
     }
 
@@ -433,11 +473,32 @@ impl App {
         self.is_loading = true;
     }
 
-    pub fn download_object(&self, file_detail: FileDetail, version_id: Option<String>) {
-        let object_name = file_detail.name;
-        let size_byte = file_detail.size_byte;
+    pub fn object_list_download_object(&mut self) {
+        let object_list_page = self.page_stack.current_page().as_object_list();
+        let key = object_list_page.current_selected_object_key();
 
+        match object_list_page.current_selected_item() {
+            ObjectItem::Dir { .. } => {
+                self.tx.send(AppEventType::LoadAllDownloadObjectList(key));
+            }
+            ObjectItem::File {
+                name, size_byte, ..
+            } => {
+                self.tx
+                    .send(AppEventType::DownloadObject(name.clone(), *size_byte, None));
+            }
+        }
+        self.is_loading = true;
+    }
+
+    pub fn download_object(
+        &self,
+        object_name: String,
+        size_byte: usize,
+        version_id: Option<String>,
+    ) {
         let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectList(_) => &page.as_object_list().current_selected_object_key(),
             page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
             page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
             page => panic!("Invalid page: {:?}", page),
@@ -527,6 +588,92 @@ impl App {
                 self.tx.send(AppEventType::PreviewRerenderImage);
             }
         }
+    }
+
+    pub fn download_objects(
+        &mut self,
+        bucket: String,
+        key: ObjectKey,
+        dir: String,
+        objs: Vec<DownloadObjectInfo>,
+    ) {
+        self.is_loading = true;
+
+        let current_dir_key = key.joined_object_path(false);
+        let mut obj_paths = Vec::with_capacity(objs.len());
+        for obj in objs {
+            let relative_path = obj.key.strip_prefix(&current_dir_key).unwrap();
+            let absolute_path = self.ctx.config.download_file_path(relative_path);
+            obj_paths.push((obj, absolute_path));
+        }
+        let download_dir = self.ctx.config.download_file_path(&dir);
+
+        let total_count = obj_paths.len();
+        let total_size: usize = obj_paths.iter().map(|(obj, _)| obj.size_byte).sum();
+        let decimal_places = if total_size > 1_000_000_000 { 1 } else { 0 };
+        let format_opt =
+            humansize::FormatSizeOptions::from(humansize::DECIMAL).decimal_places(decimal_places);
+        let total_size_s = humansize::format_size_i(total_size, format_opt);
+
+        let max_concurrent_requests = self.ctx.config.max_concurrent_requests;
+        let (client, tx) = self.unwrap_client_tx();
+
+        spawn(async move {
+            let mut iter = futures::stream::iter(obj_paths)
+                .map(|(obj, path)| {
+                    let bucket = bucket.clone();
+                    let client = client.clone();
+                    async move {
+                        let mut writer = create_binary_file(path)?;
+                        client
+                            .download_object(&bucket, &obj.key, None, &mut writer, |_| {})
+                            .await?;
+                        Ok(obj.size_byte)
+                    }
+                })
+                .buffered(max_concurrent_requests);
+
+            let mut cur_count = 0;
+            let mut cur_size = 0;
+            while let Some(result) = iter.next().await {
+                match result {
+                    Ok(size) => {
+                        cur_count += 1;
+                        cur_size += size;
+
+                        let cur_size_s = humansize::format_size_i(cur_size, format_opt);
+                        let msg = format!(
+                            "{}/{} objects downloaded ({} out of {} total)",
+                            cur_count, total_count, cur_size_s, total_size_s
+                        );
+                        tx.send(AppEventType::NotifyInfo(msg));
+                    }
+                    Err(e) => {
+                        tx.send(AppEventType::CompleteDownloadObjects(Err(e)));
+                        return;
+                    }
+                }
+            }
+
+            let result = CompleteDownloadObjectsResult::new(download_dir);
+            tx.send(AppEventType::CompleteDownloadObjects(result));
+        });
+    }
+
+    pub fn complete_download_objects(&mut self, result: Result<CompleteDownloadObjectsResult>) {
+        match result {
+            Ok(CompleteDownloadObjectsResult { download_dir }) => {
+                let msg = format!(
+                    "Download completed successfully: {}",
+                    download_dir.to_string_lossy()
+                );
+                self.tx.send(AppEventType::NotifySuccess(msg));
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::NotifyError(e));
+            }
+        }
+        self.is_loading = false;
     }
 
     pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {

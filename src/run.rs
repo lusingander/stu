@@ -97,14 +97,26 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObjectVersions(result) => {
                 app.complete_load_object_versions(result);
             }
-            AppEventType::DownloadObject(file_detail, version_id) => {
-                app.download_object(file_detail, version_id);
+            AppEventType::LoadAllDownloadObjectList(key) => {
+                app.load_all_download_objects(key);
+            }
+            AppEventType::CompleteLoadAllDownloadObjectList(result) => {
+                app.complete_load_all_download_objects(result);
+            }
+            AppEventType::DownloadObject(object_name, size_byte, version_id) => {
+                app.download_object(object_name, size_byte, version_id);
             }
             AppEventType::DownloadObjectAs(file_detail, input, version_id) => {
                 app.download_object_as(file_detail, input, version_id);
             }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
+            }
+            AppEventType::DownloadObjects(bucket, key, dir, objs) => {
+                app.download_objects(bucket, key, dir, objs);
+            }
+            AppEventType::CompleteDownloadObjects(result) => {
+                app.complete_download_objects(result);
             }
             AppEventType::PreviewObject(file_detail, version_id) => {
                 app.preview_object(file_detail, version_id);
@@ -135,6 +147,9 @@ pub async fn run<B: Backend>(
             }
             AppEventType::OpenPreview(file_detail, version_id) => {
                 app.open_preview(file_detail, version_id);
+            }
+            AppEventType::ObjectListDownloadObject => {
+                app.object_list_download_object();
             }
             AppEventType::DetailDownloadObject(file_detail, version_id) => {
                 app.detail_download_object(file_detail, version_id);

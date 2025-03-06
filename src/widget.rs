@@ -1,5 +1,6 @@
 mod bar;
 mod common;
+mod confirm_dialog;
 mod copy_detail_dialog;
 mod dialog;
 mod divider;
@@ -15,6 +16,7 @@ mod status;
 mod text_preview;
 
 pub use bar::Bar;
+pub use confirm_dialog::{ConfirmDialog, ConfirmDialogState};
 pub use copy_detail_dialog::{CopyDetailDialog, CopyDetailDialogState};
 pub use dialog::Dialog;
 pub use divider::Divider;

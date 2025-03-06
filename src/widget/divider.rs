@@ -26,11 +26,14 @@ impl Divider {
         self.color = color;
         self
     }
+
+    pub fn to_line(&self, width: u16) -> Line<'static> {
+        Line::from(self.char.repeat(width as usize)).fg(self.color)
+    }
 }
 
 impl Widget for Divider {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let line = Line::from(self.char.repeat(area.width as usize)).fg(self.color);
-        line.render(area, buf);
+        self.to_line(area.width).render(area, buf);
     }
 }
