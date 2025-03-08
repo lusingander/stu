@@ -8,6 +8,7 @@ mod error;
 mod event;
 mod file;
 mod format;
+mod keys;
 mod macros;
 mod object;
 mod pages;
