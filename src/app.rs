@@ -39,34 +39,24 @@ pub enum Notification {
 
 #[derive(Debug, Default)]
 pub struct AppContext {
-    pub mapper: UserEventMapper,
     pub config: Config,
     pub env: Environment,
     pub theme: ColorTheme,
 }
 
 impl AppContext {
-    pub fn new(
-        mapper: UserEventMapper,
-        config: Config,
-        env: Environment,
-        theme: ColorTheme,
-    ) -> AppContext {
-        AppContext {
-            mapper,
-            config,
-            env,
-            theme,
-        }
+    pub fn new(config: Config, env: Environment, theme: ColorTheme) -> AppContext {
+        AppContext { config, env, theme }
     }
 }
 
 #[derive(Debug)]
 pub struct App {
     pub page_stack: PageStack,
+    pub mapper: UserEventMapper,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
-    pub ctx: Rc<AppContext>,
+    ctx: Rc<AppContext>,
     tx: Sender,
 
     notification: Notification,
@@ -76,11 +66,18 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(ctx: AppContext, tx: Sender, width: usize, height: usize) -> App {
+    pub fn new(
+        mapper: UserEventMapper,
+        ctx: AppContext,
+        tx: Sender,
+        width: usize,
+        height: usize,
+    ) -> App {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
+            mapper,
             client: None,
             ctx,
             tx,

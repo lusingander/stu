@@ -25,7 +25,7 @@ pub async fn run<B: Backend>(
                 return Ok(());
             }
             AppEventType::Key(key_event) => {
-                let user_events = app.ctx.mapper.find_events(key_event);
+                let user_events = app.mapper.find_events(key_event);
 
                 handle_user_events! { user_events =>
                     UserEvent::Quit => {

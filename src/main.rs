@@ -84,12 +84,12 @@ async fn main() -> anyhow::Result<()> {
     let mapper = UserEventMapper::load(&config)?;
     let env = Environment::new(&config);
     let theme = ColorTheme::default();
-    let ctx = AppContext::new(mapper, config, env, theme);
+    let ctx = AppContext::new(config, env, theme);
 
     initialize_debug_log(&args, &ctx.config)?;
 
     let mut terminal = ratatui::try_init()?;
-    let ret = run(&mut terminal, args, ctx).await;
+    let ret = run(&mut terminal, args, mapper, ctx).await;
 
     ratatui::try_restore()?;
 
@@ -99,13 +99,14 @@ async fn main() -> anyhow::Result<()> {
 async fn run<B: Backend>(
     terminal: &mut Terminal<B>,
     args: Args,
+    mapper: UserEventMapper,
     ctx: AppContext,
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
     let (width, height) = get_frame_size(terminal);
     let default_region_fallback = ctx.config.default_region.clone();
 
-    let mut app = App::new(ctx, tx.clone(), width, height);
+    let mut app = App::new(mapper, ctx, tx.clone(), width, height);
 
     spawn(async move {
         let client = Client::new(
