@@ -1,19 +1,16 @@
 use std::rc::Rc;
 
-use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
+use laurier::highlight::highlight_matched_text;
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
-    layout::Rect,
-    style::Style,
-    text::Line,
-    widgets::ListItem,
-    Frame,
+    crossterm::event::KeyEvent, layout::Rect, style::Style, text::Line, widgets::ListItem, Frame,
 };
 
 use crate::{
     app::AppContext,
     color::ColorTheme,
     event::{AppEventType, Sender},
+    handle_user_events, handle_user_events_with_default,
+    keys::UserEvent,
     object::{BucketItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     widget::{
@@ -63,109 +60,130 @@ impl BucketListPage {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match self.view_state {
-            ViewState::Default => match key {
-                key_code!(KeyCode::Esc) => {
-                    if self.filter_input_state.input().is_empty() {
-                        self.tx.send(AppEventType::Quit);
-                    } else {
-                        self.reset_filter();
+            ViewState::Default => {
+                handle_user_events! { user_events =>
+                    UserEvent::BucketListSelect => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::BucketListMoveDown);
+                        }
+                    }
+                    UserEvent::BucketListDown => {
+                        if self.non_empty() {
+                            self.select_next();
+                        }
+                    }
+                    UserEvent::BucketListUp => {
+                        if self.non_empty() {
+                            self.select_prev();
+                        }
+                    }
+                    UserEvent::BucketListGoToTop => {
+                        if self.non_empty() {
+                            self.select_first();
+                        }
+                    }
+                    UserEvent::BucketListGoToBottom => {
+                        if self.non_empty() {
+                            self.select_last();
+                        }
+                    }
+                    UserEvent::BucketListPageDown => {
+                        if self.non_empty() {
+                            self.select_next_page();
+                        }
+                    }
+                    UserEvent::BucketListPageUp => {
+                        if self.non_empty() {
+                            self.select_prev_page();
+                        }
+                    }
+                    UserEvent::BucketListRefresh => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::BucketListRefresh);
+                        }
+                    }
+                    UserEvent::BucketListManagementConsole => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::BucketListOpenManagementConsole);
+                        }
+                    }
+                    UserEvent::BucketListFilter => {
+                        self.open_filter_dialog();
+                    }
+                    UserEvent::BucketListSort => {
+                        self.open_sort_dialog();
+                    }
+                    UserEvent::BucketListCopyDetails => {
+                        self.open_copy_detail_dialog();
+                    }
+                    UserEvent::BucketListResetFilter => {
+                        if !self.filter_input_state.input().is_empty() {
+                            self.reset_filter();
+                        }
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
                     }
                 }
-                key_code!(KeyCode::Enter) if self.non_empty() => {
-                    self.tx.send(AppEventType::BucketListMoveDown);
+            }
+            ViewState::FilterDialog => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogApply => {
+                        self.apply_filter();
+                    }
+                    UserEvent::InputDialogClose => {
+                        self.close_filter_dialog();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        self.filter_input_state.handle_key_event(key_event);
+                        self.filter_view_indices();
+                    }
                 }
-                key_code_char!('j') if self.non_empty() => {
-                    self.select_next();
+            }
+            ViewState::SortDialog => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_sort_dialog();
+                    }
+                    UserEvent::SelectDialogDown => {
+                        self.select_next_sort_item();
+                    }
+                    UserEvent::SelectDialogUp => {
+                        self.select_prev_sort_item();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        self.apply_sort();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('k') if self.non_empty() => {
-                    self.select_prev();
+            }
+            ViewState::CopyDetailDialog(ref mut state) => {
+                handle_user_events! { user_events =>
+                        UserEvent::SelectDialogClose => {
+                            self.close_copy_detail_dialog();
+                        }
+                        UserEvent::SelectDialogDown => {
+                            state.select_next();
+                        }
+                        UserEvent::SelectDialogUp => {
+                            state.select_prev();
+                        }
+                        UserEvent::SelectDialogSelect => {
+                            let (name, value) = state.selected_name_and_value();
+                            self.tx.send(AppEventType::CopyToClipboard(name, value));
+                        }
+                        UserEvent::Help => {
+                            self.tx.send(AppEventType::OpenHelp);
+                        }
                 }
-                key_code_char!('g') if self.non_empty() => {
-                    self.select_first();
-                }
-                key_code_char!('G') if self.non_empty() => {
-                    self.select_last();
-                }
-                key_code_char!('f') if self.non_empty() => {
-                    self.select_next_page();
-                }
-                key_code_char!('b') if self.non_empty() => {
-                    self.select_prev_page();
-                }
-                key_code_char!('R') if self.non_empty() => {
-                    self.tx.send(AppEventType::BucketListRefresh);
-                }
-                key_code_char!('x') if self.non_empty() => {
-                    self.tx.send(AppEventType::BucketListOpenManagementConsole);
-                }
-                key_code_char!('/') => {
-                    self.open_filter_dialog();
-                }
-                key_code_char!('o') => {
-                    self.open_sort_dialog();
-                }
-                key_code_char!('r') => {
-                    self.open_copy_detail_dialog();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::FilterDialog => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_filter_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.apply_filter();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {
-                    self.filter_input_state.handle_key_event(key);
-                    self.filter_view_indices();
-                }
-            },
-            ViewState::SortDialog => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_sort_dialog();
-                }
-                key_code_char!('j') => {
-                    self.select_next_sort_item();
-                }
-                key_code_char!('k') => {
-                    self.select_prev_sort_item();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.apply_sort();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::CopyDetailDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
-                    self.close_copy_detail_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let (name, value) = state.selected_name_and_value();
-                    self.tx.send(AppEventType::CopyToClipboard(name, value));
-                }
-                key_code_char!('j') => {
-                    state.select_next();
-                }
-                key_code_char!('k') => {
-                    state.select_prev();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
+            }
         }
     }
 
@@ -529,7 +547,9 @@ mod tests {
     use crate::{event, set_cells};
 
     use super::*;
-    use ratatui::{backend::TestBackend, buffer::Buffer, style::Color, Terminal};
+    use ratatui::{
+        backend::TestBackend, buffer::Buffer, crossterm::event::KeyCode, style::Color, Terminal,
+    };
 
     #[test]
     fn test_render_without_scroll() -> std::io::Result<()> {
@@ -620,8 +640,11 @@ mod tests {
         let mut page = BucketListPage::new(items, ctx, tx);
         let area = Rect::new(0, 0, 30, 10);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
+        page.handle_key(
+            vec![UserEvent::BucketListFilter],
+            KeyEvent::from(KeyCode::Char('/')),
+        );
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('b')));
 
         terminal.draw(|f| {
             page.render(f, area);
@@ -650,8 +673,11 @@ mod tests {
 
         terminal.backend().assert_buffer(&expected);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
-        page.handle_key(KeyEvent::from(KeyCode::Enter));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('a')));
+        page.handle_key(
+            vec![UserEvent::InputDialogApply],
+            KeyEvent::from(KeyCode::Enter),
+        );
 
         terminal.draw(|f| {
             page.render(f, area);
@@ -697,9 +723,18 @@ mod tests {
         let mut page = BucketListPage::new(items, ctx, tx);
         let area = Rect::new(0, 0, 30, 10);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.handle_key(
+            vec![UserEvent::BucketListSort],
+            KeyEvent::from(KeyCode::Char('o')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
 
         terminal.draw(|f| {
             page.render(f, area);
@@ -741,26 +776,32 @@ mod tests {
             .collect();
         let mut page = BucketListPage::new(items, ctx, tx);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
+        page.handle_key(
+            vec![UserEvent::BucketListFilter],
+            KeyEvent::from(KeyCode::Char('/')),
+        );
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('b')));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('a')));
 
         assert_eq!(page.view_indices, vec![1, 2, 4]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('r')));
 
         assert_eq!(page.view_indices, vec![1, 4]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('r')));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('r')));
 
         assert!(page.view_indices.is_empty());
 
-        page.handle_key(KeyEvent::from(KeyCode::Backspace));
-        page.handle_key(KeyEvent::from(KeyCode::Backspace));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Backspace));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Backspace));
 
         assert_eq!(page.view_indices, vec![1, 2, 4]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Esc));
+        page.handle_key(
+            vec![UserEvent::InputDialogClose],
+            KeyEvent::from(KeyCode::Esc),
+        );
 
         assert_eq!(page.view_indices, vec![0, 1, 2, 3, 4]);
     }
@@ -776,23 +817,44 @@ mod tests {
             .collect();
         let mut page = BucketListPage::new(items, ctx, tx);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(
+            vec![UserEvent::BucketListSort],
+            KeyEvent::from(KeyCode::Char('o')),
+        );
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        ); // select NameAsc
 
         assert_eq!(page.view_indices, vec![1, 2, 0, 4, 3]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameDesc
-        page.handle_key(KeyEvent::from(KeyCode::Enter));
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        ); // select NameDesc
+        page.handle_key(
+            vec![UserEvent::SelectDialogSelect],
+            KeyEvent::from(KeyCode::Enter),
+        );
 
         assert_eq!(page.view_indices, vec![3, 4, 0, 2, 1]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('k'))); // select NameAsc
+        page.handle_key(
+            vec![UserEvent::BucketListSort],
+            KeyEvent::from(KeyCode::Char('o')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogUp],
+            KeyEvent::from(KeyCode::Char('k')),
+        ); // select NameAsc
 
         assert_eq!(page.view_indices, vec![1, 2, 0, 4, 3]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Esc));
+        page.handle_key(
+            vec![UserEvent::SelectDialogClose],
+            KeyEvent::from(KeyCode::Esc),
+        );
 
         assert_eq!(page.view_indices, vec![0, 1, 2, 3, 4]);
     }
@@ -808,33 +870,66 @@ mod tests {
             .collect();
         let mut page = BucketListPage::new(items, ctx, tx);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('b')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('a')));
-        page.handle_key(KeyEvent::from(KeyCode::Enter));
+        page.handle_key(
+            vec![UserEvent::BucketListFilter],
+            KeyEvent::from(KeyCode::Char('/')),
+        );
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('b')));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('a')));
+        page.handle_key(
+            vec![UserEvent::InputDialogApply],
+            KeyEvent::from(KeyCode::Enter),
+        );
 
         assert_eq!(page.view_indices, vec![1, 2, 4]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
-        page.handle_key(KeyEvent::from(KeyCode::Enter));
+        page.handle_key(
+            vec![UserEvent::BucketListSort],
+            KeyEvent::from(KeyCode::Char('o')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogSelect],
+            KeyEvent::from(KeyCode::Enter),
+        );
 
         assert_eq!(page.view_indices, vec![4, 2, 1]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Esc));
+        page.handle_key(
+            vec![UserEvent::BucketListResetFilter],
+            KeyEvent::from(KeyCode::Esc),
+        );
 
         assert_eq!(page.view_indices, vec![3, 4, 0, 2, 1]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('/')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('f')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
-        page.handle_key(KeyEvent::from(KeyCode::Enter));
+        page.handle_key(
+            vec![UserEvent::BucketListFilter],
+            KeyEvent::from(KeyCode::Char('/')),
+        );
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('f')));
+        page.handle_key(vec![], KeyEvent::from(KeyCode::Char('o')));
+        page.handle_key(
+            vec![UserEvent::InputDialogApply],
+            KeyEvent::from(KeyCode::Enter),
+        );
 
         assert_eq!(page.view_indices, vec![4, 0]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
-        page.handle_key(KeyEvent::from(KeyCode::Esc));
+        page.handle_key(
+            vec![UserEvent::BucketListSort],
+            KeyEvent::from(KeyCode::Char('o')),
+        );
+        page.handle_key(
+            vec![UserEvent::SelectDialogClose],
+            KeyEvent::from(KeyCode::Esc),
+        );
 
         assert_eq!(page.view_indices, vec![0, 4]);
     }

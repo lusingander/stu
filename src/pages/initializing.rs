@@ -1,36 +1,21 @@
 use std::rc::Rc;
 
-use laurier::key_code;
-use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
-    layout::Rect,
-    style::Stylize,
-    widgets::Block,
-    Frame,
-};
+use ratatui::{crossterm::event::KeyEvent, layout::Rect, style::Stylize, widgets::Block, Frame};
 
-use crate::{
-    app::AppContext,
-    event::{AppEventType, Sender},
-    pages::util::build_short_helps,
-};
+use crate::{app::AppContext, event::Sender, keys::UserEvent, pages::util::build_short_helps};
 
 #[derive(Debug)]
 pub struct InitializingPage {
     ctx: Rc<AppContext>,
-    tx: Sender,
+    _tx: Sender,
 }
 
 impl InitializingPage {
     pub fn new(ctx: Rc<AppContext>, tx: Sender) -> Self {
-        Self { ctx, tx }
+        Self { ctx, _tx: tx }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
-        if let key_code!(KeyCode::Esc) = key {
-            self.tx.send(AppEventType::Quit);
-        }
-    }
+    pub fn handle_key(&mut self, _user_events: Vec<UserEvent>, _key_event: KeyEvent) {}
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content = Block::bordered().fg(self.ctx.theme.fg);

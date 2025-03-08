@@ -5,6 +5,7 @@ use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 use crate::{
     app::AppContext,
     event::Sender,
+    keys::UserEvent,
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
@@ -25,14 +26,14 @@ pub enum Page {
 }
 
 impl Page {
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_user_events(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match self {
-            Page::Initializing(page) => page.handle_key(key),
-            Page::BucketList(page) => page.handle_key(key),
-            Page::ObjectList(page) => page.handle_key(key),
-            Page::ObjectDetail(page) => page.handle_key(key),
-            Page::ObjectPreview(page) => page.handle_key(key),
-            Page::Help(page) => page.handle_key(key),
+            Page::Initializing(page) => page.handle_key(user_events, key_event),
+            Page::BucketList(page) => page.handle_key(user_events, key_event),
+            Page::ObjectList(page) => page.handle_key(user_events, key_event),
+            Page::ObjectDetail(page) => page.handle_key(user_events, key_event),
+            Page::ObjectPreview(page) => page.handle_key(user_events, key_event),
+            Page::Help(page) => page.handle_key(user_events, key_event),
         }
     }
 

@@ -1,16 +1,13 @@
 use std::rc::Rc;
 
-use laurier::{key_code, key_code_char};
-use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
-    layout::Rect,
-    Frame,
-};
+use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 
 use crate::{
     app::AppContext,
     environment::ImagePicker,
     event::{AppEventType, Sender},
+    handle_user_events, handle_user_events_with_default,
+    keys::UserEvent,
     object::{FileDetail, ObjectKey, RawObject},
     pages::util::{build_helps, build_short_helps},
     widget::{
@@ -94,113 +91,112 @@ impl ObjectPreviewPage {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match (&mut self.view_state, &mut self.preview_type) {
-            (ViewState::Default, PreviewType::Text(state)) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
+            (ViewState::Default, PreviewType::Text(state)) => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectPreviewBack => {
+                        self.tx.send(AppEventType::CloseCurrentPage);
+                    }
+                    UserEvent::ObjectPreviewDown => {
+                        state.scroll_lines_state.scroll_forward();
+                    }
+                    UserEvent::ObjectPreviewUp => {
+                        state.scroll_lines_state.scroll_backward();
+                    }
+                    UserEvent::ObjectPreviewPageDown => {
+                        state.scroll_lines_state.scroll_page_forward();
+                    }
+                    UserEvent::ObjectPreviewPageUp => {
+                        state.scroll_lines_state.scroll_page_backward();
+                    }
+                    UserEvent::ObjectPreviewGoToTop => {
+                        state.scroll_lines_state.scroll_to_top();
+                    }
+                    UserEvent::ObjectPreviewGoToBottom => {
+                        state.scroll_lines_state.scroll_to_end();
+                    }
+                    UserEvent::ObjectPreviewLeft => {
+                        state.scroll_lines_state.scroll_left();
+                    }
+                    UserEvent::ObjectPreviewRight => {
+                        state.scroll_lines_state.scroll_right();
+                    }
+                    UserEvent::ObjectPreviewToggleWrap => {
+                        state.scroll_lines_state.toggle_wrap();
+                    }
+                    UserEvent::ObjectPreviewToggleNumber => {
+                        state.scroll_lines_state.toggle_number();
+                    }
+                    UserEvent::ObjectPreviewDownload => {
+                        self.download();
+                    }
+                    UserEvent::ObjectPreviewDownloadAs => {
+                        self.open_save_dialog();
+                    }
+                    UserEvent::ObjectPreviewEncoding => {
+                        self.open_encoding_dialog();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::CloseCurrentPage);
+            }
+            (ViewState::Default, PreviewType::Image(_)) => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectPreviewBack => {
+                        self.tx.send(AppEventType::CloseCurrentPage);
+                    }
+                    UserEvent::ObjectPreviewDownload => {
+                        self.download();
+                    }
+                    UserEvent::ObjectPreviewDownloadAs => {
+                        self.open_save_dialog();
+                        self.disable_image_render();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('j') => {
-                    state.scroll_lines_state.scroll_forward();
+            }
+            (ViewState::SaveDialog(state), _) => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogClose => {
+                        self.close_save_dialog();
+                        self.enable_image_render();
+                    }
+                    UserEvent::InputDialogApply => {
+                        let input = state.input().into();
+                        self.download_as(input);
+                        // enable_image_render is called after download is completed
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        state.handle_key_event(key_event);
+                    }
                 }
-                key_code_char!('k') => {
-                    state.scroll_lines_state.scroll_backward();
+            }
+            (ViewState::EncodingDialog, _) => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_encoding_dialog();
+                    }
+                    UserEvent::SelectDialogDown => {
+                        self.encoding_dialog_state.select_next();
+                    }
+                    UserEvent::SelectDialogUp => {
+                        self.encoding_dialog_state.select_prev();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        self.apply_encoding();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('f') => {
-                    state.scroll_lines_state.scroll_page_forward();
-                }
-                key_code_char!('b') => {
-                    state.scroll_lines_state.scroll_page_backward();
-                }
-                key_code_char!('g') => {
-                    state.scroll_lines_state.scroll_to_top();
-                }
-                key_code_char!('G') => {
-                    state.scroll_lines_state.scroll_to_end();
-                }
-                key_code_char!('h') => {
-                    state.scroll_lines_state.scroll_left();
-                }
-                key_code_char!('l') => {
-                    state.scroll_lines_state.scroll_right();
-                }
-                key_code_char!('w') => {
-                    state.scroll_lines_state.toggle_wrap();
-                }
-                key_code_char!('n') => {
-                    state.scroll_lines_state.toggle_number();
-                }
-                key_code_char!('s') => {
-                    self.download();
-                }
-                key_code_char!('S') => {
-                    self.open_save_dialog();
-                }
-                key_code_char!('e') => {
-                    self.open_encoding_dialog();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            (ViewState::Default, PreviewType::Image(_)) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
-                }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::CloseCurrentPage);
-                }
-                key_code_char!('s') => {
-                    self.download();
-                }
-                key_code_char!('S') => {
-                    self.open_save_dialog();
-                    self.disable_image_render();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            (ViewState::SaveDialog(state), _) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_save_dialog();
-                    self.enable_image_render();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let input = state.input().into();
-                    self.download_as(input);
-                    // enable_image_render is called after download is completed
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {
-                    state.handle_key_event(key);
-                }
-            },
-            (ViewState::EncodingDialog, _) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_encoding_dialog();
-                }
-                key_code_char!('j') => {
-                    self.encoding_dialog_state.select_next();
-                }
-                key_code_char!('k') => {
-                    self.encoding_dialog_state.select_prev();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.apply_encoding();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
+            }
         }
     }
 

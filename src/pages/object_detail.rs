@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
-use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::KeyEvent,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
@@ -17,6 +16,8 @@ use crate::{
     config::UiConfig,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte, format_version},
+    handle_user_events, handle_user_events_with_default,
+    keys::UserEvent,
     object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
     pages::util::{build_helps, build_short_helps},
     widget::{
@@ -86,98 +87,103 @@ impl ObjectDetailPage {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match self.view_state {
-            ViewState::Default => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
-                }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::CloseCurrentPage);
-                }
-                key_code_char!('h') | key_code_char!('l') => {
-                    self.toggle_tab();
-                }
-                key_code_char!('j') => match self.tab {
-                    Tab::Detail(ref mut state) => {
-                        state.scroll_lines_state.scroll_forward();
+            ViewState::Default => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectDetailBack => {
+                        self.tx.send(AppEventType::CloseCurrentPage);
                     }
-                    Tab::Version(ref mut state) => {
+                    UserEvent::ObjectDetailRight | UserEvent::ObjectDetailLeft => {
+                        self.toggle_tab();
+                    }
+                    UserEvent::ObjectDetailDown => {
+                        match self.tab {
+                            Tab::Detail(ref mut state) => {
+                                state.scroll_lines_state.scroll_forward();
+                            }
+                            Tab::Version(ref mut state) => {
+                                state.select_next();
+                            }
+                        }
+                    }
+                    UserEvent::ObjectDetailUp => {
+                        match self.tab {
+                            Tab::Detail(ref mut state) => {
+                                state.scroll_lines_state.scroll_backward();
+                            }
+                            Tab::Version(ref mut state) => {
+                                state.select_prev();
+                            }
+                        }
+                    }
+                    UserEvent::ObjectDetailGoToTop => {
+                        if let Tab::Version(ref mut state) = self.tab {
+                            state.select_first();
+                        }
+                    }
+                    UserEvent::ObjectDetailGoToBottom => {
+                        if let Tab::Version(ref mut state) = self.tab {
+                            state.select_last();
+                        }
+                    }
+                    UserEvent::ObjectDetailDownload => {
+                        self.download();
+                    }
+                    UserEvent::ObjectDetailDownloadAs => {
+                        self.open_save_dialog();
+                    }
+                    UserEvent::ObjectDetailPreview => {
+                        self.preview();
+                    }
+                    UserEvent::ObjectDetailCopyDetails => {
+                        self.open_copy_detail_dialog();
+                    }
+                    UserEvent::ObjectDetailManagementConsole => {
+                        self.open_management_console();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                }
+            }
+            ViewState::SaveDialog(ref mut state) => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogClose => {
+                        self.close_save_dialog();
+                    }
+                    UserEvent::InputDialogApply => {
+                        let input = state.input().into();
+                        self.download_as(input);
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        state.handle_key_event(key_event);
+                    }
+                }
+            }
+            ViewState::CopyDetailDialog(ref mut state) => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_copy_detail_dialog();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        let (name, value) = state.selected_name_and_value();
+                        self.tx.send(AppEventType::CopyToClipboard(name, value));
+                    }
+                    UserEvent::SelectDialogDown => {
                         state.select_next();
                     }
-                },
-                key_code_char!('k') => match self.tab {
-                    Tab::Detail(ref mut state) => {
-                        state.scroll_lines_state.scroll_backward();
-                    }
-                    Tab::Version(ref mut state) => {
+                    UserEvent::SelectDialogUp => {
                         state.select_prev();
                     }
-                },
-                key_code_char!('g') => {
-                    if let Tab::Version(ref mut state) = self.tab {
-                        state.select_first();
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
                     }
                 }
-                key_code_char!('G') => {
-                    if let Tab::Version(ref mut state) = self.tab {
-                        state.select_last();
-                    }
-                }
-                key_code_char!('s') => {
-                    self.download();
-                }
-                key_code_char!('S') => {
-                    self.open_save_dialog();
-                }
-                key_code_char!('p') => {
-                    self.preview();
-                }
-                key_code_char!('r') => {
-                    self.open_copy_detail_dialog();
-                }
-                key_code_char!('x') => {
-                    self.open_management_console();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::SaveDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_save_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let input = state.input().into();
-                    self.download_as(input);
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {
-                    state.handle_key_event(key);
-                }
-            },
-            ViewState::CopyDetailDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
-                    self.close_copy_detail_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let (name, value) = state.selected_name_and_value();
-                    self.tx.send(AppEventType::CopyToClipboard(name, value));
-                }
-                key_code_char!('j') => {
-                    state.select_next();
-                }
-                key_code_char!('k') => {
-                    state.select_prev();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
+            }
         }
     }
 
@@ -760,7 +766,7 @@ mod tests {
 
     use super::*;
     use chrono::{DateTime, Local, NaiveDateTime};
-    use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
+    use ratatui::{backend::TestBackend, buffer::Buffer, crossterm::event::KeyCode, Terminal};
 
     #[test]
     fn test_render_detail_tab() -> std::io::Result<()> {
@@ -1194,7 +1200,10 @@ mod tests {
             page.render(f, area);
         })?;
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.handle_key(
+            vec![UserEvent::ObjectDetailDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
         page.open_copy_detail_dialog();
 
         terminal.draw(|f| {

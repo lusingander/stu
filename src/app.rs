@@ -66,7 +66,7 @@ pub struct App {
     pub page_stack: PageStack,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
-    ctx: Rc<AppContext>,
+    pub ctx: Rc<AppContext>,
     tx: Sender,
 
     notification: Notification,
