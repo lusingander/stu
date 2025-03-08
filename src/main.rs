@@ -29,6 +29,7 @@ use crate::client::Client;
 use crate::color::ColorTheme;
 use crate::config::Config;
 use crate::environment::Environment;
+use crate::keys::UserEventMapper;
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum PathStyle {
@@ -80,9 +81,10 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = Config::load()?;
+    let mapper = UserEventMapper::load(&config)?;
     let env = Environment::new(&config);
     let theme = ColorTheme::default();
-    let ctx = AppContext::new(config, env, theme);
+    let ctx = AppContext::new(mapper, config, env, theme);
 
     initialize_debug_log(&args, &ctx.config)?;
 

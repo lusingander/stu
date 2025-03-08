@@ -1,6 +1,8 @@
 use indexmap::IndexMap;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
+use crate::config::Config;
+
 const DEFAULT_KEYBINDINGS: &str = include_str!("../assets/keybindings.toml");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -74,13 +76,16 @@ pub enum UserEvent {
     SelectDialogSelect,
 }
 
+#[derive(Debug, Default)]
 pub struct UserEventMapper {
     map: IndexMap<KeyEvent, Vec<UserEvent>>,
 }
 
 impl UserEventMapper {
-    pub fn load(custom_bindings_str: &str) -> anyhow::Result<UserEventMapper> {
-        build_user_event_mapper(DEFAULT_KEYBINDINGS, custom_bindings_str)
+    pub fn load(config: &Config) -> anyhow::Result<UserEventMapper> {
+        let path = config.keybindings_file_path()?;
+        let custom_bindings_str = std::fs::read_to_string(path).unwrap_or_default();
+        build_user_event_mapper(DEFAULT_KEYBINDINGS, &custom_bindings_str)
             .map_err(|e| anyhow::anyhow!(e))
     }
 

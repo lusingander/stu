@@ -9,6 +9,7 @@ const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 
 const APP_BASE_DIR: &str = ".stu";
 const CONFIG_FILE_NAME: &str = "config.toml";
+const KEYBINDINGS_FILE_NAME: &str = "keybindings.toml";
 const ERROR_LOG_FILE_NAME: &str = "error.log";
 const DEBUG_LOG_FILE_NAME: &str = "debug.log";
 const DOWNLOAD_DIR: &str = "download";
@@ -101,6 +102,11 @@ impl Config {
     pub fn download_file_path(&self, name: &str) -> PathBuf {
         let dir = PathBuf::from(self.download_dir.clone());
         dir.join(name)
+    }
+
+    pub fn keybindings_file_path(&self) -> anyhow::Result<PathBuf> {
+        let dir = Config::get_app_base_dir()?;
+        Ok(dir.join(KEYBINDINGS_FILE_NAME))
     }
 
     pub fn error_log_path(&self) -> anyhow::Result<PathBuf> {

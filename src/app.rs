@@ -22,6 +22,7 @@ use crate::{
         CompleteReloadObjectsResult, Sender,
     },
     file::{copy_to_clipboard, create_binary_file, save_error_log},
+    keys::UserEventMapper,
     object::{AppObjects, DownloadObjectInfo, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
     widget::{Header, LoadingDialog, Status, StatusType},
@@ -38,14 +39,25 @@ pub enum Notification {
 
 #[derive(Debug, Default)]
 pub struct AppContext {
+    pub mapper: UserEventMapper,
     pub config: Config,
     pub env: Environment,
     pub theme: ColorTheme,
 }
 
 impl AppContext {
-    pub fn new(config: Config, env: Environment, theme: ColorTheme) -> AppContext {
-        AppContext { config, env, theme }
+    pub fn new(
+        mapper: UserEventMapper,
+        config: Config,
+        env: Environment,
+        theme: ColorTheme,
+    ) -> AppContext {
+        AppContext {
+            mapper,
+            config,
+            env,
+            theme,
+        }
     }
 }
 
