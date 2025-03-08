@@ -21,9 +21,6 @@ pub async fn run<B: Backend>(
         tracing::debug!("event received: {:?}", event);
 
         match event {
-            AppEventType::Quit => {
-                return Ok(());
-            }
             AppEventType::Key(key_event) => {
                 let user_events = app.mapper.find_events(key_event);
 
