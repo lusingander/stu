@@ -17,9 +17,7 @@ Type@10ms "export STU_ROOT_DIR=./tool/imggen/test_root_dir"
 Enter
 Type@10ms "./target/debug/stu --endpoint-url ${ENDPOINT_URL}"
 Enter
-Sleep 500ms
-Screenshot ${OUTPUT_DIR}/initialize.png
-Sleep 2s
+Sleep 3s
 
 # bucket list
 Type "j"
@@ -70,7 +68,7 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/bucket-list-copy-help.png
 Type "?"
 Sleep 100ms
-Backspace
+Escape
 Sleep 100ms
 
 # open test-bucket-2
@@ -155,7 +153,7 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-details-copy-help.png
 Type "?"
 Sleep 100ms
-Backspace
+Escape
 Sleep 500ms
 
 Type "S"
@@ -211,7 +209,7 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-list-copy-help.png
 Type "?"
 Sleep 100ms
-Backspace
+Escape
 Sleep 100ms
 Type "j"
 Sleep 100ms
@@ -234,7 +232,7 @@ Type "r"
 Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-list-file-copy.png
 Sleep 100ms
-Backspace
+Escape
 Sleep 500ms
 Enter
 Sleep 500ms
