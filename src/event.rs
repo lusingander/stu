@@ -64,7 +64,6 @@ pub enum AppEventType {
     NotifySuccess(String),
     NotifyWarn(String),
     NotifyError(AppError),
-    Quit,
 }
 
 #[derive(Debug)]

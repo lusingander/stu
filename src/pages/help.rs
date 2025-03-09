@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
-use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::KeyEvent,
     layout::{Constraint, Layout, Rect},
     style::{Color, Stylize},
     text::Line,
@@ -15,33 +14,33 @@ use crate::{
     app::AppContext,
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
     event::{AppEventType, Sender},
-    pages::util::build_short_helps,
-    util::group_strings_to_fit_width,
+    handle_user_events,
+    help::{
+        build_short_help_spans, group_spans_to_fit_width, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
+    keys::{UserEvent, UserEventMapper},
     widget::Divider,
 };
 
 #[derive(Debug)]
 pub struct HelpPage {
-    helps: Vec<String>,
+    helps: Vec<Spans>,
 
     ctx: Rc<AppContext>,
     tx: Sender,
 }
 
 impl HelpPage {
-    pub fn new(helps: Vec<String>, ctx: Rc<AppContext>, tx: Sender) -> Self {
+    pub fn new(helps: Vec<Spans>, ctx: Rc<AppContext>, tx: Sender) -> Self {
         Self { helps, ctx, tx }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
-        match key {
-            key_code!(KeyCode::Esc) => {
-                self.tx.send(AppEventType::Quit);
-            }
-            key_code!(KeyCode::Backspace) | key_code_char!('?') => {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, _key_event: KeyEvent) {
+        handle_user_events! { user_events =>
+            UserEvent::HelpClose => {
                 self.tx.send(AppEventType::CloseCurrentPage);
             }
-            _ => {}
         }
     }
 
@@ -76,13 +75,17 @@ impl HelpPage {
         f.render_widget(help, chunks[2]);
     }
 
-    pub fn helps(&self) -> Vec<String> {
+    pub fn helps(&self, _mapper: &UserEventMapper) -> Vec<Spans> {
         Vec::new()
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0), (&["?"], "Close help", 0)];
-        build_short_helps(helps)
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = vec![
+            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+            BuildShortHelpsItem::single(UserEvent::HelpClose, "Close help", 0),
+        ];
+        build_short_help_spans(helps, mapper)
     }
 }
 
@@ -133,11 +136,11 @@ impl Widget for About<'_> {
 
 #[derive(Debug)]
 struct Help<'a> {
-    helps: &'a [String],
+    helps: &'a [Spans],
 }
 
 impl<'a> Help<'a> {
-    fn new(helps: &'a [String]) -> Self {
+    fn new(helps: &'a [Spans]) -> Self {
         Self { helps }
     }
 }
@@ -158,13 +161,10 @@ impl Widget for Help<'_> {
     }
 }
 
-fn build_help_lines(helps: &[String], max_width: usize) -> Vec<Line> {
+fn build_help_lines(helps: &[Spans], max_width: usize) -> Vec<Line> {
     let delimiter = ",  ";
-    let word_groups = group_strings_to_fit_width(helps, max_width, delimiter);
-    let lines: Vec<Line> = word_groups
-        .iter()
-        .map(|ws| Line::from(ws.join(delimiter)))
-        .collect();
+    let word_groups = group_spans_to_fit_width(helps, max_width, delimiter);
+    let lines: Vec<Line> = word_groups.into_iter().map(Line::from).collect();
     with_empty_lines(lines)
 }
 
@@ -185,7 +185,7 @@ mod tests {
     use crate::{event, set_cells};
 
     use super::*;
-    use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
+    use ratatui::{backend::TestBackend, buffer::Buffer, text::Span, Terminal};
 
     #[test]
     fn test_render() -> std::io::Result<()> {
@@ -201,7 +201,7 @@ mod tests {
                 "<key4>: action4",
             ]
             .iter()
-            .map(|s| s.to_string())
+            .map(|s| Spans::new(vec![Span::raw(s.to_string())]))
             .collect();
             let mut page = HelpPage::new(helps, ctx, tx);
             let area = Rect::new(0, 0, 70, 20);

@@ -1,18 +1,18 @@
 use std::rc::Rc;
 
-use laurier::{key_code, key_code_char};
-use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
-    layout::Rect,
-    Frame,
-};
+use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 
 use crate::{
     app::AppContext,
     environment::ImagePicker,
     event::{AppEventType, Sender},
+    handle_user_events, handle_user_events_with_default,
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
+    keys::{UserEvent, UserEventMapper},
     object::{FileDetail, ObjectKey, RawObject},
-    pages::util::{build_helps, build_short_helps},
     widget::{
         self, EncodingDialog, EncodingDialogState, ImagePreview, ImagePreviewState, InputDialog,
         InputDialogState, TextPreview, TextPreviewState,
@@ -94,113 +94,112 @@ impl ObjectPreviewPage {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match (&mut self.view_state, &mut self.preview_type) {
-            (ViewState::Default, PreviewType::Text(state)) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
+            (ViewState::Default, PreviewType::Text(state)) => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectPreviewBack => {
+                        self.tx.send(AppEventType::CloseCurrentPage);
+                    }
+                    UserEvent::ObjectPreviewDown => {
+                        state.scroll_lines_state.scroll_forward();
+                    }
+                    UserEvent::ObjectPreviewUp => {
+                        state.scroll_lines_state.scroll_backward();
+                    }
+                    UserEvent::ObjectPreviewPageDown => {
+                        state.scroll_lines_state.scroll_page_forward();
+                    }
+                    UserEvent::ObjectPreviewPageUp => {
+                        state.scroll_lines_state.scroll_page_backward();
+                    }
+                    UserEvent::ObjectPreviewGoToTop => {
+                        state.scroll_lines_state.scroll_to_top();
+                    }
+                    UserEvent::ObjectPreviewGoToBottom => {
+                        state.scroll_lines_state.scroll_to_end();
+                    }
+                    UserEvent::ObjectPreviewLeft => {
+                        state.scroll_lines_state.scroll_left();
+                    }
+                    UserEvent::ObjectPreviewRight => {
+                        state.scroll_lines_state.scroll_right();
+                    }
+                    UserEvent::ObjectPreviewToggleWrap => {
+                        state.scroll_lines_state.toggle_wrap();
+                    }
+                    UserEvent::ObjectPreviewToggleNumber => {
+                        state.scroll_lines_state.toggle_number();
+                    }
+                    UserEvent::ObjectPreviewDownload => {
+                        self.download();
+                    }
+                    UserEvent::ObjectPreviewDownloadAs => {
+                        self.open_save_dialog();
+                    }
+                    UserEvent::ObjectPreviewEncoding => {
+                        self.open_encoding_dialog();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::CloseCurrentPage);
+            }
+            (ViewState::Default, PreviewType::Image(_)) => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectPreviewBack => {
+                        self.tx.send(AppEventType::CloseCurrentPage);
+                    }
+                    UserEvent::ObjectPreviewDownload => {
+                        self.download();
+                    }
+                    UserEvent::ObjectPreviewDownloadAs => {
+                        self.open_save_dialog();
+                        self.disable_image_render();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('j') => {
-                    state.scroll_lines_state.scroll_forward();
+            }
+            (ViewState::SaveDialog(state), _) => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogClose => {
+                        self.close_save_dialog();
+                        self.enable_image_render();
+                    }
+                    UserEvent::InputDialogApply => {
+                        let input = state.input().into();
+                        self.download_as(input);
+                        // enable_image_render is called after download is completed
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        state.handle_key_event(key_event);
+                    }
                 }
-                key_code_char!('k') => {
-                    state.scroll_lines_state.scroll_backward();
+            }
+            (ViewState::EncodingDialog, _) => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_encoding_dialog();
+                    }
+                    UserEvent::SelectDialogDown => {
+                        self.encoding_dialog_state.select_next();
+                    }
+                    UserEvent::SelectDialogUp => {
+                        self.encoding_dialog_state.select_prev();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        self.apply_encoding();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('f') => {
-                    state.scroll_lines_state.scroll_page_forward();
-                }
-                key_code_char!('b') => {
-                    state.scroll_lines_state.scroll_page_backward();
-                }
-                key_code_char!('g') => {
-                    state.scroll_lines_state.scroll_to_top();
-                }
-                key_code_char!('G') => {
-                    state.scroll_lines_state.scroll_to_end();
-                }
-                key_code_char!('h') => {
-                    state.scroll_lines_state.scroll_left();
-                }
-                key_code_char!('l') => {
-                    state.scroll_lines_state.scroll_right();
-                }
-                key_code_char!('w') => {
-                    state.scroll_lines_state.toggle_wrap();
-                }
-                key_code_char!('n') => {
-                    state.scroll_lines_state.toggle_number();
-                }
-                key_code_char!('s') => {
-                    self.download();
-                }
-                key_code_char!('S') => {
-                    self.open_save_dialog();
-                }
-                key_code_char!('e') => {
-                    self.open_encoding_dialog();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            (ViewState::Default, PreviewType::Image(_)) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
-                }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::CloseCurrentPage);
-                }
-                key_code_char!('s') => {
-                    self.download();
-                }
-                key_code_char!('S') => {
-                    self.open_save_dialog();
-                    self.disable_image_render();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            (ViewState::SaveDialog(state), _) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_save_dialog();
-                    self.enable_image_render();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let input = state.input().into();
-                    self.download_as(input);
-                    // enable_image_render is called after download is completed
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {
-                    state.handle_key_event(key);
-                }
-            },
-            (ViewState::EncodingDialog, _) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_encoding_dialog();
-                }
-                key_code_char!('j') => {
-                    self.encoding_dialog_state.select_next();
-                }
-                key_code_char!('k') => {
-                    self.encoding_dialog_state.select_prev();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.apply_encoding();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
+            }
         }
     }
 
@@ -241,72 +240,95 @@ impl ObjectPreviewPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match (&self.view_state, &self.preview_type) {
-            (ViewState::Default, PreviewType::Text(_)) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
-                (&["j/k"], "Scroll forward/backward"),
-                (&["f/b"], "Scroll page forward/backward"),
-                (&["g/G"], "Scroll to top/end"),
-                (&["h/l"], "Scroll left/right"),
-                (&["w"], "Toggle wrap"),
-                (&["n"], "Toggle number"),
-                (&["Backspace"], "Close preview"),
-                (&["s"], "Download object"),
-                (&["S"], "Download object as"),
-            ],
-            (ViewState::Default, PreviewType::Image(_)) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
-                (&["Backspace"], "Close preview"),
-                (&["s"], "Download object"),
-                (&["S"], "Download object as"),
-            ],
-            (ViewState::SaveDialog(_), _) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close save dialog"),
-                (&["Enter"], "Download object"),
-            ],
-            (ViewState::EncodingDialog, _) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close encoding dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Reopen with encoding"),
-            ],
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match (&self.view_state, &self.preview_type) {
+            (ViewState::Default, PreviewType::Text(_)) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDown, "Scroll forward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewUp, "Scroll backward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewPageDown, "Scroll page forward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewPageUp, "Scroll page backward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewGoToTop, "Scroll to top"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewGoToBottom, "Scroll to end"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewLeft, "Scroll left"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewRight, "Scroll right"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewToggleWrap, "Toggle wrap"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewToggleNumber, "Toggle number"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewBack, "Close preview"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownload, "Download object"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownloadAs, "Download object as"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewEncoding, "Open encoding dialog"),
+                ]
+            },
+            (ViewState::Default, PreviewType::Image(_)) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewBack, "Close preview"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownload, "Download object"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownloadAs, "Download object as"),
+                ]
+            },
+            (ViewState::SaveDialog(_), _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close save dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Download object"),
+                ]
+            },
+            (ViewState::EncodingDialog, _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close encoding dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Reopen with encoding"),
+                ]
+            },
         };
-
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match (&self.view_state, &self.preview_type) {
-            (ViewState::Default, PreviewType::Text(_)) => &[
-                (&["Esc"], "Quit", 0),
-                (&["j/k"], "Scroll", 2),
-                (&["g/G"], "Top/End", 4),
-                (&["s/S"], "Download", 3),
-                (&["Backspace"], "Close", 1),
-                (&["?"], "Help", 0),
-            ],
-            (ViewState::Default, PreviewType::Image(_)) => &[
-                (&["Esc"], "Quit", 0),
-                (&["s/S"], "Download", 2),
-                (&["Backspace"], "Close", 1),
-                (&["?"], "Help", 0),
-            ],
-            (ViewState::SaveDialog(_), _) => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Download", 1),
-                (&["?"], "Help", 0),
-            ],
-            (ViewState::EncodingDialog, _) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Encode", 1),
-                (&["?"], "Help", 0),
-            ],
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match (&self.view_state, &self.preview_type) {
+            (ViewState::Default, PreviewType::Text(_)) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDown, UserEvent::ObjectPreviewUp], "Scroll", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewGoToTop, UserEvent::ObjectPreviewGoToBottom], "Top/End", 5),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDownload, UserEvent::ObjectPreviewDownloadAs], "Download", 3),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewEncoding, "Encoding", 4),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewBack, "Close", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            (ViewState::Default, PreviewType::Image(_)) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDownload, UserEvent::ObjectPreviewDownloadAs], "Download", 2),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewBack, "Close", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            (ViewState::SaveDialog(_), _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Download", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+             (ViewState::EncodingDialog, _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Encode", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+             },
         };
-
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 

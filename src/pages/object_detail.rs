@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
-use laurier::{key_code, key_code_char};
 use ratatui::{
     buffer::Buffer,
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::KeyEvent,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style, Stylize},
     text::{Line, Span},
@@ -17,8 +16,13 @@ use crate::{
     config::UiConfig,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte, format_version},
+    handle_user_events, handle_user_events_with_default,
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
+    keys::{UserEvent, UserEventMapper},
     object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
-    pages::util::{build_helps, build_short_helps},
     widget::{
         Bar, CopyDetailDialog, CopyDetailDialogState, Divider, InputDialog, InputDialogState,
         ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
@@ -86,98 +90,103 @@ impl ObjectDetailPage {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match self.view_state {
-            ViewState::Default => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.tx.send(AppEventType::Quit);
-                }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::CloseCurrentPage);
-                }
-                key_code_char!('h') | key_code_char!('l') => {
-                    self.toggle_tab();
-                }
-                key_code_char!('j') => match self.tab {
-                    Tab::Detail(ref mut state) => {
-                        state.scroll_lines_state.scroll_forward();
+            ViewState::Default => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectDetailBack => {
+                        self.tx.send(AppEventType::CloseCurrentPage);
                     }
-                    Tab::Version(ref mut state) => {
+                    UserEvent::ObjectDetailRight | UserEvent::ObjectDetailLeft => {
+                        self.toggle_tab();
+                    }
+                    UserEvent::ObjectDetailDown => {
+                        match self.tab {
+                            Tab::Detail(ref mut state) => {
+                                state.scroll_lines_state.scroll_forward();
+                            }
+                            Tab::Version(ref mut state) => {
+                                state.select_next();
+                            }
+                        }
+                    }
+                    UserEvent::ObjectDetailUp => {
+                        match self.tab {
+                            Tab::Detail(ref mut state) => {
+                                state.scroll_lines_state.scroll_backward();
+                            }
+                            Tab::Version(ref mut state) => {
+                                state.select_prev();
+                            }
+                        }
+                    }
+                    UserEvent::ObjectDetailGoToTop => {
+                        if let Tab::Version(ref mut state) = self.tab {
+                            state.select_first();
+                        }
+                    }
+                    UserEvent::ObjectDetailGoToBottom => {
+                        if let Tab::Version(ref mut state) = self.tab {
+                            state.select_last();
+                        }
+                    }
+                    UserEvent::ObjectDetailDownload => {
+                        self.download();
+                    }
+                    UserEvent::ObjectDetailDownloadAs => {
+                        self.open_save_dialog();
+                    }
+                    UserEvent::ObjectDetailPreview => {
+                        self.preview();
+                    }
+                    UserEvent::ObjectDetailCopyDetails => {
+                        self.open_copy_detail_dialog();
+                    }
+                    UserEvent::ObjectDetailManagementConsole => {
+                        self.open_management_console();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                }
+            }
+            ViewState::SaveDialog(ref mut state) => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogClose => {
+                        self.close_save_dialog();
+                    }
+                    UserEvent::InputDialogApply => {
+                        let input = state.input().into();
+                        self.download_as(input);
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        state.handle_key_event(key_event);
+                    }
+                }
+            }
+            ViewState::CopyDetailDialog(ref mut state) => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_copy_detail_dialog();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        let (name, value) = state.selected_name_and_value();
+                        self.tx.send(AppEventType::CopyToClipboard(name, value));
+                    }
+                    UserEvent::SelectDialogDown => {
                         state.select_next();
                     }
-                },
-                key_code_char!('k') => match self.tab {
-                    Tab::Detail(ref mut state) => {
-                        state.scroll_lines_state.scroll_backward();
-                    }
-                    Tab::Version(ref mut state) => {
+                    UserEvent::SelectDialogUp => {
                         state.select_prev();
                     }
-                },
-                key_code_char!('g') => {
-                    if let Tab::Version(ref mut state) = self.tab {
-                        state.select_first();
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
                     }
                 }
-                key_code_char!('G') => {
-                    if let Tab::Version(ref mut state) = self.tab {
-                        state.select_last();
-                    }
-                }
-                key_code_char!('s') => {
-                    self.download();
-                }
-                key_code_char!('S') => {
-                    self.open_save_dialog();
-                }
-                key_code_char!('p') => {
-                    self.preview();
-                }
-                key_code_char!('r') => {
-                    self.open_copy_detail_dialog();
-                }
-                key_code_char!('x') => {
-                    self.open_management_console();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::SaveDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_save_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let input = state.input().into();
-                    self.download_as(input);
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {
-                    state.handle_key_event(key);
-                }
-            },
-            ViewState::CopyDetailDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
-                    self.close_copy_detail_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let (name, value) = state.selected_name_and_value();
-                    self.tx.send(AppEventType::CopyToClipboard(name, value));
-                }
-                key_code_char!('j') => {
-                    state.select_next();
-                }
-                key_code_char!('k') => {
-                    state.select_prev();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
+            }
         }
     }
 
@@ -236,84 +245,109 @@ impl ObjectDetailPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match self.view_state {
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => match self.tab {
-                Tab::Detail(_) => &[
-                    (&["Esc", "Ctrl-c"], "Quit app"),
-                    (&["h/l"], "Select tabs"),
-                    (&["Backspace"], "Close detail panel"),
-                    (&["j/k"], "Scroll forward/backward"),
-                    (&["r"], "Open copy dialog"),
-                    (&["s"], "Download object"),
-                    (&["S"], "Download object as"),
-                    (&["p"], "Preview object"),
-                    (&["x"], "Open management console in browser"),
-                ],
-                Tab::Version(_) => &[
-                    (&["Esc", "Ctrl-c"], "Quit app"),
-                    (&["h/l"], "Select tabs"),
-                    (&["j/k"], "Select version"),
-                    (&["g/G"], "Go to top/bottom"),
-                    (&["Backspace"], "Close detail panel"),
-                    (&["r"], "Open copy dialog"),
-                    (&["s"], "Download object"),
-                    (&["S"], "Download object as"),
-                    (&["p"], "Preview object"),
-                    (&["x"], "Open management console in browser"),
-                ],
+                Tab::Detail(_) => {
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailLeft, "Select next tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailRight, "Select previous tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailBack, "Close detail panel"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDown, "Scroll forward"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailUp, "Scroll backward"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownload, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownloadAs, "Download object as"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailPreview, "Preview object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailManagementConsole, "Open management console in browser"),
+                    ]
+                },
+                Tab::Version(_) => {
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailLeft, "Select next tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailRight, "Select previous tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDown, "Select next version"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailUp, "Select previous version"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailBack, "Close detail panel"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownload, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownloadAs, "Download object as"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailPreview, "Preview object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailManagementConsole, "Open management console in browser"),
+                    ]
+                },
+            }
+            ViewState::SaveDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close save dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Download object"),
+                ]
             },
-            ViewState::SaveDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close save dialog"),
-                (&["Enter"], "Download object"),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close copy dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Copy selected value to clipboard"),
-            ],
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close copy dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
+                ]
+            },
         };
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match self.view_state {
-            ViewState::Default => match self.tab {
-                Tab::Detail(_) => &[
-                    (&["Esc"], "Quit", 0),
-                    (&["h/l"], "Select tabs", 3),
-                    (&["j/k"], "Scroll", 5),
-                    (&["s/S"], "Download", 1),
-                    (&["p"], "Preview", 4),
-                    (&["Backspace"], "Close", 2),
-                    (&["?"], "Help", 0),
-                ],
-                Tab::Version(_) => &[
-                    (&["Esc"], "Quit", 0),
-                    (&["h/l"], "Select tabs", 3),
-                    (&["j/k"], "Select", 5),
-                    (&["s/S"], "Download", 1),
-                    (&["p"], "Preview", 4),
-                    (&["Backspace"], "Close", 2),
-                    (&["?"], "Help", 0),
-                ],
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
+            ViewState::Default => {
+                match self.tab {
+                    Tab::Detail(_) => {
+                        vec![
+                            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailLeft, UserEvent::ObjectDetailRight], "Select tabs", 3),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDown, UserEvent::ObjectDetailUp], "Scroll", 5),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDownload, UserEvent::ObjectDetailDownloadAs], "Download", 1),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailPreview, "Preview", 4),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailBack, "Close", 2),
+                            BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                        ]
+                    },
+                    Tab::Version(_) => {
+                        vec![
+                            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailLeft, UserEvent::ObjectDetailRight], "Select tabs", 3),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDown, UserEvent::ObjectDetailUp], "Select", 5),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDownload, UserEvent::ObjectDetailDownloadAs], "Download", 1),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailPreview, "Preview", 4),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailBack, "Close", 2),
+                            BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                        ]
+                    },
+                }
             },
-            ViewState::SaveDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Download", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Copy", 1),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::SaveDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Download", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Copy", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
         };
-
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 
@@ -760,7 +794,7 @@ mod tests {
 
     use super::*;
     use chrono::{DateTime, Local, NaiveDateTime};
-    use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
+    use ratatui::{backend::TestBackend, buffer::Buffer, crossterm::event::KeyCode, Terminal};
 
     #[test]
     fn test_render_detail_tab() -> std::io::Result<()> {
@@ -1194,7 +1228,10 @@ mod tests {
             page.render(f, area);
         })?;
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j')));
+        page.handle_key(
+            vec![UserEvent::ObjectDetailDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
         page.open_copy_detail_dialog();
 
         terminal.draw(|f| {

@@ -2,15 +2,18 @@ use ratatui::{
     buffer::Buffer,
     layout::Rect,
     style::{Color, Stylize},
-    text::Span,
+    text::Line,
     widgets::{Block, Padding, Paragraph, Widget},
 };
 
-use crate::{color::ColorTheme, util};
+use crate::{
+    color::ColorTheme,
+    help::{prune_spans_to_fit_width, SpansWithPriority},
+};
 
 #[derive(Debug)]
 pub enum StatusType {
-    Help(Vec<(String, usize)>),
+    Help(Vec<SpansWithPriority>),
     Info(String),
     Success(String),
     Warn(String),
@@ -68,21 +71,20 @@ impl Widget for Status {
 }
 
 impl Status {
-    fn build_msg(self, area: Rect, pad: Padding) -> Span<'static> {
+    fn build_msg(self, area: Rect, pad: Padding) -> Line<'static> {
         match self.status_type {
-            StatusType::Help(helps) => {
+            StatusType::Help(spans) => {
                 let max_width = (area.width - pad.left - pad.right) as usize;
                 let delimiter = ", ";
-                let ss = util::prune_strings_to_fit_width(&helps, max_width, delimiter);
-                let msg = ss.join(delimiter);
-                msg.fg(self.color.help)
+                let spans = prune_spans_to_fit_width(&spans, max_width, delimiter);
+                Line::from(spans).fg(self.color.help)
             }
-            StatusType::Info(msg) => msg.fg(self.color.info),
-            StatusType::Success(msg) => msg.fg(self.color.success).bold(),
-            StatusType::Warn(msg) => msg.fg(self.color.warn).bold(),
+            StatusType::Info(msg) => Line::from(msg).fg(self.color.info),
+            StatusType::Success(msg) => Line::from(msg).fg(self.color.success).bold(),
+            StatusType::Warn(msg) => Line::from(msg).fg(self.color.warn).bold(),
             StatusType::Error(msg) => {
                 let msg = format!("ERROR: {}", msg);
-                msg.fg(self.color.error).bold()
+                Line::from(msg).fg(self.color.error).bold()
             }
         }
     }

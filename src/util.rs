@@ -34,29 +34,6 @@ pub fn prune_strings_to_fit_width(
         .collect()
 }
 
-pub fn group_strings_to_fit_width(
-    words: &[String],
-    max_width: usize,
-    delimiter: &str,
-) -> Vec<Vec<String>> {
-    let mut groups: Vec<Vec<String>> = Vec::new();
-    let mut current_length: usize = 0;
-    let mut current_group: Vec<String> = Vec::new();
-    let delimiter_len = delimiter.len();
-    for word in words {
-        if !current_group.is_empty() && current_length + word.len() > max_width {
-            groups.push(current_group);
-            current_group = Vec::new();
-            current_length = 0;
-        }
-        current_length += word.len();
-        current_length += delimiter_len;
-        current_group.push(word.to_string());
-    }
-    groups.push(current_group);
-    groups
-}
-
 pub fn digits(n: usize) -> usize {
     if n == 0 {
         return 1;
@@ -114,31 +91,6 @@ mod tests {
             .map(|(s, n)| (s.to_owned(), n))
             .collect();
         let actual = prune_strings_to_fit_width(&words_with_priority, max_width, delimiter);
-        assert_eq!(actual, expected);
-    }
-
-    #[rstest]
-    #[case(vec![], 10, "", vec![vec![]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 2, "", vec![vec!["aaa"], vec!["bbb"], vec!["ccc"], vec!["ddd"], vec!["eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 4, "", vec![vec!["aaa"], vec!["bbb"], vec!["ccc"], vec!["ddd"], vec!["eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 6, "", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 8, "", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 9, "", vec![vec!["aaa", "bbb", "ccc"], vec!["ddd", "eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 15, "", vec![vec!["aaa", "bbb", "ccc", "ddd", "eee"]])]
-    #[case(vec!["a", "b", "cc", "d", "ee"], 3, "", vec![vec!["a", "b"], vec!["cc", "d"], vec!["ee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 7, "--", vec![vec!["aaa"], vec!["bbb"], vec!["ccc"], vec!["ddd"], vec!["eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 8, "--", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
-    #[case(vec!["aaa", "bbb", "ccc", "ddd", "eee"], 9, "--", vec![vec!["aaa", "bbb"], vec!["ccc", "ddd"], vec!["eee"]])]
-    #[case(vec!["a", "b", "c", "d", "e"], 7, "     ", vec![vec!["a", "b"], vec!["c", "d"], vec!["e"]])]
-    #[trace]
-    fn test_group_strings_to_fit_width(
-        #[case] words: Vec<&str>,
-        #[case] max_width: usize,
-        #[case] delimiter: &str,
-        #[case] expected: Vec<Vec<&str>>,
-    ) {
-        let words: Vec<String> = words.into_iter().map(|s| s.to_owned()).collect();
-        let actual = group_strings_to_fit_width(&words, max_width, delimiter);
         assert_eq!(actual, expected);
     }
 

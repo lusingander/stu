@@ -22,6 +22,7 @@ use crate::{
         CompleteReloadObjectsResult, Sender,
     },
     file::{copy_to_clipboard, create_binary_file, save_error_log},
+    keys::UserEventMapper,
     object::{AppObjects, DownloadObjectInfo, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
     widget::{Header, LoadingDialog, Status, StatusType},
@@ -52,6 +53,7 @@ impl AppContext {
 #[derive(Debug)]
 pub struct App {
     pub page_stack: PageStack,
+    pub mapper: UserEventMapper,
     app_objects: AppObjects,
     client: Option<Arc<Client>>,
     ctx: Rc<AppContext>,
@@ -64,11 +66,18 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(ctx: AppContext, tx: Sender, width: usize, height: usize) -> App {
+    pub fn new(
+        mapper: UserEventMapper,
+        ctx: AppContext,
+        tx: Sender,
+        width: usize,
+        height: usize,
+    ) -> App {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
+            mapper,
             client: None,
             ctx,
             tx,
@@ -433,7 +442,7 @@ impl App {
     }
 
     pub fn open_help(&mut self) {
-        let helps = self.page_stack.current_page().helps();
+        let helps = self.page_stack.current_page().helps(&self.mapper);
         if helps.is_empty() {
             return;
         }
@@ -926,7 +935,9 @@ impl App {
             Notification::Success(msg) => StatusType::Success(msg.into()),
             Notification::Warn(msg) => StatusType::Warn(msg.into()),
             Notification::Error(msg) => StatusType::Error(msg.into()),
-            Notification::None => StatusType::Help(self.page_stack.current_page().short_helps()),
+            Notification::None => {
+                StatusType::Help(self.page_stack.current_page().short_helps(&self.mapper))
+            }
         };
         let status = Status::new(status_type).theme(&self.ctx.theme);
         f.render_widget(status, area);

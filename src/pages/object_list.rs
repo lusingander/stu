@@ -1,9 +1,9 @@
 use std::rc::Rc;
 
 use chrono::{DateTime, Local};
-use laurier::{highlight::highlight_matched_text, key_code, key_code_char};
+use laurier::highlight::highlight_matched_text;
 use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
+    crossterm::event::KeyEvent,
     layout::Rect,
     style::{Style, Stylize},
     text::Line,
@@ -17,8 +17,13 @@ use crate::{
     config::UiConfig,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
+    handle_user_events, handle_user_events_with_default,
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
+    keys::{UserEvent, UserEventMapper},
     object::{DownloadObjectInfo, ObjectItem, ObjectKey},
-    pages::util::{build_helps, build_short_helps},
     widget::{
         ConfirmDialog, ConfirmDialogState, CopyDetailDialog, CopyDetailDialogState, InputDialog,
         InputDialogState, ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType,
@@ -75,133 +80,157 @@ impl ObjectListPage {
         }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
+    pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {
         match self.view_state {
-            ViewState::Default => match key {
-                key_code!(KeyCode::Esc) => {
-                    if self.filter_input_state.input().is_empty() {
-                        self.tx.send(AppEventType::Quit);
-                    } else {
+            ViewState::Default => {
+                handle_user_events! { user_events =>
+                    UserEvent::ObjectListSelect => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::ObjectListMoveDown);
+                        }
+                    }
+                    UserEvent::ObjectListBack => {
+                        self.tx.send(AppEventType::ObjectListMoveUp);
+                    }
+                    UserEvent::ObjectListDown => {
+                        if self.non_empty() {
+                            self.select_next();
+                        }
+                    }
+                    UserEvent::ObjectListUp => {
+                        if self.non_empty() {
+                            self.select_prev();
+                        }
+                    }
+                    UserEvent::ObjectListGoToTop => {
+                        if self.non_empty() {
+                            self.select_first();
+                        }
+                    }
+                    UserEvent::ObjectListGoToBottom => {
+                        if self.non_empty() {
+                            self.select_last();
+                        }
+                    }
+                    UserEvent::ObjectListPageDown => {
+                        if self.non_empty() {
+                            self.select_next_page();
+                        }
+                    }
+                    UserEvent::ObjectListPageUp => {
+                        if self.non_empty() {
+                            self.select_prev_page();
+                        }
+                    }
+                    UserEvent::ObjectListRefresh => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::ObjectListRefresh);
+                        }
+                    }
+                    UserEvent::ObjectListBucketList => {
+                        self.tx.send(AppEventType::BackToBucketList);
+                    }
+                    UserEvent::ObjectListManagementConsole => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::ObjectListOpenManagementConsole);
+                        }
+                    }
+                    UserEvent::ObjectListFilter => {
+                        self.open_filter_dialog();
+                    }
+                    UserEvent::ObjectListSort => {
+                        self.open_sort_dialog();
+                    }
+                    UserEvent::ObjectListCopyDetails => {
+                        if self.non_empty() {
+                            self.open_copy_detail_dialog();
+                        }
+                    }
+                    UserEvent::ObjectListDownloadObject => {
+                        if self.non_empty() {
+                            self.tx.send(AppEventType::ObjectListDownloadObject);
+                        }
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    UserEvent::ObjectListResetFilter => {
                         self.reset_filter();
                     }
                 }
-                key_code!(KeyCode::Enter) if self.non_empty() => {
-                    self.tx.send(AppEventType::ObjectListMoveDown);
+            }
+            ViewState::FilterDialog => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogApply => {
+                        self.apply_filter();
+                    }
+                    UserEvent::InputDialogClose => {
+                        self.close_filter_dialog();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        self.filter_input_state.handle_key_event(key_event);
+                        self.filter_view_indices();
+                    }
                 }
-                key_code!(KeyCode::Backspace) => {
-                    self.tx.send(AppEventType::ObjectListMoveUp);
+            }
+            ViewState::SortDialog => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_sort_dialog();
+                    }
+                    UserEvent::SelectDialogDown => {
+                        self.select_next_sort_item();
+                    }
+                    UserEvent::SelectDialogUp => {
+                        self.select_prev_sort_item();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        self.apply_sort();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('j') if self.non_empty() => {
-                    self.select_next();
+            }
+            ViewState::CopyDetailDialog(ref mut state) => {
+                handle_user_events! { user_events =>
+                        UserEvent::SelectDialogClose => {
+                            self.close_copy_detail_dialog();
+                        }
+                        UserEvent::SelectDialogDown => {
+                            state.select_next();
+                        }
+                        UserEvent::SelectDialogUp => {
+                            state.select_prev();
+                        }
+                        UserEvent::SelectDialogSelect => {
+                            let (name, value) = state.selected_name_and_value();
+                            self.tx.send(AppEventType::CopyToClipboard(name, value));
+                        }
+                        UserEvent::Help => {
+                            self.tx.send(AppEventType::OpenHelp);
+                        }
                 }
-                key_code_char!('k') if self.non_empty() => {
-                    self.select_prev();
+            }
+            ViewState::DownloadConfirmDialog(_, ref mut state) => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_download_confirm_dialog();
+                    }
+                    UserEvent::SelectDialogLeft | UserEvent::SelectDialogRight => {
+                        state.toggle();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        self.download();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
-                key_code_char!('g') if self.non_empty() => {
-                    self.select_first();
-                }
-                key_code_char!('G') if self.non_empty() => {
-                    self.select_last();
-                }
-                key_code_char!('f') if self.non_empty() => {
-                    self.select_next_page();
-                }
-                key_code_char!('b') if self.non_empty() => {
-                    self.select_prev_page();
-                }
-                key_code_char!('R') if self.non_empty() => {
-                    self.tx.send(AppEventType::ObjectListRefresh);
-                }
-                key_code_char!('~') => {
-                    self.tx.send(AppEventType::BackToBucketList);
-                }
-                key_code_char!('x') if self.non_empty() => {
-                    self.tx.send(AppEventType::ObjectListOpenManagementConsole);
-                }
-                key_code_char!('/') => {
-                    self.open_filter_dialog();
-                }
-                key_code_char!('o') => {
-                    self.open_sort_dialog();
-                }
-                key_code_char!('r') => {
-                    self.open_copy_detail_dialog();
-                }
-                key_code_char!('s') if self.non_empty() => {
-                    self.tx.send(AppEventType::ObjectListDownloadObject);
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::FilterDialog => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_filter_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.apply_filter();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {
-                    self.filter_input_state.handle_key_event(key);
-                    self.filter_view_indices();
-                }
-            },
-            ViewState::SortDialog => match key {
-                key_code!(KeyCode::Esc) => {
-                    self.close_sort_dialog();
-                }
-                key_code_char!('j') => {
-                    self.select_next_sort_item();
-                }
-                key_code_char!('k') => {
-                    self.select_prev_sort_item();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.apply_sort();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::CopyDetailDialog(ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
-                    self.close_copy_detail_dialog();
-                }
-                key_code!(KeyCode::Enter) => {
-                    let (name, value) = state.selected_name_and_value();
-                    self.tx.send(AppEventType::CopyToClipboard(name, value));
-                }
-                key_code_char!('j') => {
-                    state.select_next();
-                }
-                key_code_char!('k') => {
-                    state.select_prev();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
-            ViewState::DownloadConfirmDialog(_, ref mut state) => match key {
-                key_code!(KeyCode::Esc) | key_code!(KeyCode::Backspace) => {
-                    self.close_download_confirm_dialog();
-                }
-                key_code_char!('h') | key_code_char!('l') => {
-                    state.toggle();
-                }
-                key_code!(KeyCode::Enter) => {
-                    self.download();
-                }
-                key_code_char!('?') => {
-                    self.tx.send(AppEventType::OpenHelp);
-                }
-                _ => {}
-            },
+            }
         }
     }
 
@@ -252,129 +281,154 @@ impl ObjectListPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match self.view_state {
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => {
                 if self.filter_input_state.input().is_empty() {
-                    &[
-                        (&["Esc", "Ctrl-c"], "Quit app"),
-                        (&["j/k"], "Select item"),
-                        (&["g/G"], "Go to top/bottom"),
-                        (&["f"], "Scroll page forward"),
-                        (&["b"], "Scroll page backward"),
-                        (&["Enter"], "Open file or folder"),
-                        (&["Backspace"], "Go back to prev folder"),
-                        (&["~"], "Go back to bucket list"),
-                        (&["/"], "Filter object list"),
-                        (&["s"], "Download object"),
-                        (&["o"], "Sort object list"),
-                        (&["r"], "Open copy dialog"),
-                        (&["R"], "Refresh object list"),
-                        (&["x"], "Open management console in browser"),
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDown, "Select next item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListUp, "Select previous item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageDown, "Scroll page forward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageUp, "Scroll page backward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSelect, "Open file or folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBack, "Go back to prev folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBucketList, "Go back to bucket list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListFilter, "Filter object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSort, "Sort object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectListRefresh, "Refresh object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListManagementConsole, "Open management console in browser"),
                     ]
                 } else {
-                    &[
-                        (&["Ctrl-c"], "Quit app"),
-                        (&["Esc"], "Clear filter"),
-                        (&["j/k"], "Select item"),
-                        (&["g/G"], "Go to top/bottom"),
-                        (&["f"], "Scroll page forward"),
-                        (&["b"], "Scroll page backward"),
-                        (&["Enter"], "Open file or folder"),
-                        (&["Backspace"], "Go back to prev folder"),
-                        (&["~"], "Go back to bucket list"),
-                        (&["/"], "Filter object list"),
-                        (&["s"], "Download object"),
-                        (&["o"], "Sort object list"),
-                        (&["r"], "Open copy dialog"),
-                        (&["R"], "Refresh object list"),
-                        (&["x"], "Open management console in browser"),
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectListResetFilter, "Clear filter"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDown, "Select next item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListUp, "Select previous item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageDown, "Scroll page forward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageUp, "Scroll page backward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSelect, "Open file or folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBack, "Go back to prev folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBucketList, "Go back to bucket list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListFilter, "Filter object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSort, "Sort object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectListRefresh, "Refresh object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListManagementConsole, "Open management console in browser"),
                     ]
                 }
+            },
+            ViewState::FilterDialog => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close filter dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Apply filter"),
+                ]
+            },
+            ViewState::SortDialog => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close sort dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Apply sort"),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close copy dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
+                ]
+            },
+            ViewState::DownloadConfirmDialog(_, _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close confirm dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogRight, "Select next"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogLeft, "Select previous"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Confirm"),
+                ]
             }
-            ViewState::FilterDialog => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close filter dialog"),
-                (&["Enter"], "Apply filter"),
-            ],
-            ViewState::SortDialog => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close sort dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Apply sort"),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close copy dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Copy selected value to clipboard"),
-            ],
-            ViewState::DownloadConfirmDialog(_, _) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close confirm dialog"),
-                (&["h/l"], "Select"),
-                (&["Enter"], "Confirm"),
-            ],
         };
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match self.view_state {
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => {
                 if self.filter_input_state.input().is_empty() {
-                    &[
-                        (&["Esc"], "Quit", 0),
-                        (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 8),
-                        (&["Enter"], "Open", 1),
-                        (&["Backspace"], "Go back", 2),
-                        (&["/"], "Filter", 4),
-                        (&["s"], "Download", 5),
-                        (&["o"], "Sort", 6),
-                        (&["R"], "Refresh", 7),
-                        (&["?"], "Help", 0),
+                    vec![
+                        BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListDown, UserEvent::ObjectListUp], "Select", 3),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListGoToTop, UserEvent::ObjectListGoToBottom], "Top/Bottom", 8),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSelect, "Open", 1),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListBack, "Go back", 2),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListFilter, "Filter", 4),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListDownloadObject, "Download", 5),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSort, "Sort", 6),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListRefresh, "Refresh", 7),
+                        BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 } else {
-                    &[
-                        (&["Esc"], "Clear filter", 0),
-                        (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 8),
-                        (&["Enter"], "Open", 1),
-                        (&["Backspace"], "Go back", 2),
-                        (&["/"], "Filter", 4),
-                        (&["s"], "Download", 5),
-                        (&["o"], "Sort", 6),
-                        (&["R"], "Refresh", 7),
-                        (&["?"], "Help", 0),
+                    vec![
+                        BuildShortHelpsItem::single(UserEvent::ObjectListResetFilter, "Clear filter", 0),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListDown, UserEvent::ObjectListUp], "Select", 3),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListGoToTop, UserEvent::ObjectListGoToBottom], "Top/Bottom", 8),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSelect, "Open", 1),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListBack, "Go back", 2),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListFilter, "Filter", 4),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListDownloadObject, "Download", 5),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSort, "Sort", 6),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListRefresh, "Refresh", 7),
+                        BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 }
+            },
+            ViewState::FilterDialog => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Filter", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
             }
-            ViewState::FilterDialog => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Filter", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::SortDialog => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Sort", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Copy", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::DownloadConfirmDialog(_, _) => &[
-                (&["Esc"], "Close", 2),
-                (&["h/l"], "Select", 3),
-                (&["Enter"], "Confirm", 1),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::SortDialog => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Sort", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Copy", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::DownloadConfirmDialog(_, _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogLeft, UserEvent::SelectDialogRight], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Confirm", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
         };
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 
@@ -758,6 +812,7 @@ mod tests {
     use ratatui::{
         backend::TestBackend,
         buffer::Buffer,
+        crossterm::event::KeyCode,
         style::{Color, Modifier},
         Terminal,
     };
@@ -917,28 +972,54 @@ mod tests {
         };
         let mut page = ObjectListPage::new(items, object_key, ctx, tx);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('o')));
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameAsc
+        page.handle_key(
+            vec![UserEvent::ObjectListSort],
+            KeyEvent::from(KeyCode::Char('o')),
+        );
+        // select NameAsc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
 
         assert_eq!(page.view_indices, vec![4, 2, 1, 0, 3]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select NameDesc
+        // select NameDesc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
 
         assert_eq!(page.view_indices, vec![3, 0, 1, 2, 4]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select LastModifiedAsc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        ); // select LastModifiedAsc
 
         assert_eq!(page.view_indices, vec![0, 2, 4, 3, 1]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select LastModifiedDesc
+        // select LastModifiedDesc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
 
         assert_eq!(page.view_indices, vec![1, 3, 4, 0, 2]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select SizeAsc
+        // select SizeAsc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
 
         assert_eq!(page.view_indices, vec![0, 2, 4, 1, 3]);
 
-        page.handle_key(KeyEvent::from(KeyCode::Char('j'))); // select SizeDesc
+        // select SizeDesc
+        page.handle_key(
+            vec![UserEvent::SelectDialogDown],
+            KeyEvent::from(KeyCode::Char('j')),
+        );
 
         assert_eq!(page.view_indices, vec![3, 1, 4, 0, 2]);
     }

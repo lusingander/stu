@@ -94,18 +94,31 @@ For other S3-compatible services, which one to use depends on the service.
 
 ### Keybindings
 
+#### Default
+
 The basic key bindings are as follows:
 
-| Key                  | Description                        |
-| -------------------- | ---------------------------------- |
-| <kbd>Ctrl-C</kbd>    | Quit app                           |
-| <kbd>Esc</kbd>       | Quit app / Close dialog            |
-| <kbd>Enter</kbd>     | Confirm / Open selected item       |
-| <kbd>Backspace</kbd> | Go back to previous / Close dialog |
-| <kbd>j/k</kbd>       | Select item / Scroll               |
-| <kbd>?</kbd>         | Show help                          |
+| Key                  | Description                  |
+| -------------------- | ---------------------------- |
+| <kbd>Ctrl-C</kbd>    | Quit app                     |
+| <kbd>Enter</kbd>     | Confirm / Open selected item |
+| <kbd>Backspace</kbd> | Go back to previous          |
+| <kbd>j/k</kbd>       | Select item / Scroll         |
+| <kbd>?</kbd>         | Show help                    |
 
 Detailed operations on each view can be displayed by pressing `?` key.
+
+#### Custom keybindings
+
+You can set your own custom key bindings.
+
+Custom bindings are loaded from `$STU_ROOT_DIR/keybindings.toml`.
+
+The default key bindings are defined in [./assets/keybindings.toml](./assets/keybindings.toml). You can set key bindings for each screen action in the same format.
+
+- It is possible to set multiple key bindings for one action.
+- If you do not set key bindings for an action, the default key bindings will be assigned.
+- You can disable an action by setting `[]` as the key bindings.
 
 ### Config
 

@@ -1,10 +1,11 @@
-use laurier::{key_code, key_code_char};
-use ratatui::{backend::Backend, crossterm::event::KeyCode, Terminal};
+use ratatui::{backend::Backend, Terminal};
 use std::io::Result;
 
 use crate::{
     app::{App, Notification},
     event::{AppEventType, Receiver},
+    handle_user_events,
+    keys::UserEvent,
     pages::page::Page,
 };
 
@@ -20,13 +21,14 @@ pub async fn run<B: Backend>(
         tracing::debug!("event received: {:?}", event);
 
         match event {
-            AppEventType::Quit => {
-                return Ok(());
-            }
-            AppEventType::Key(key) => {
-                if matches!(key, key_code_char!('c', Ctrl)) {
-                    // Exit regardless of status
-                    return Ok(());
+            AppEventType::Key(key_event) => {
+                let user_events = app.mapper.find_events(key_event);
+
+                handle_user_events! { user_events =>
+                    UserEvent::Quit => {
+                        // Exit regardless of status
+                        return Ok(());
+                    }
                 }
 
                 if app.loading() {
@@ -51,12 +53,16 @@ pub async fn run<B: Backend>(
                     app.clear_notification();
                 }
 
-                if matches!(key, key_code!(KeyCode::F(12))) {
-                    app.dump_app();
-                    continue;
+                handle_user_events! { user_events =>
+                    UserEvent::DumpApp => {
+                        app.dump_app();
+                        continue;
+                    }
                 }
 
-                app.page_stack.current_page_mut().handle_key(key);
+                app.page_stack
+                    .current_page_mut()
+                    .handle_user_events(user_events, key_event);
             }
             AppEventType::Resize(width, height) => {
                 app.resize(width, height);

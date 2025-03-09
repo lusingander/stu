@@ -1,49 +1,42 @@
 use std::rc::Rc;
 
-use laurier::key_code;
-use ratatui::{
-    crossterm::event::{KeyCode, KeyEvent},
-    layout::Rect,
-    style::Stylize,
-    widgets::Block,
-    Frame,
-};
+use ratatui::{crossterm::event::KeyEvent, layout::Rect, style::Stylize, widgets::Block, Frame};
 
 use crate::{
     app::AppContext,
-    event::{AppEventType, Sender},
-    pages::util::build_short_helps,
+    event::Sender,
+    help::{build_short_help_spans, BuildShortHelpsItem, Spans, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
 };
 
 #[derive(Debug)]
 pub struct InitializingPage {
     ctx: Rc<AppContext>,
-    tx: Sender,
+    _tx: Sender,
 }
 
 impl InitializingPage {
     pub fn new(ctx: Rc<AppContext>, tx: Sender) -> Self {
-        Self { ctx, tx }
+        Self { ctx, _tx: tx }
     }
 
-    pub fn handle_key(&mut self, key: KeyEvent) {
-        if let key_code!(KeyCode::Esc) = key {
-            self.tx.send(AppEventType::Quit);
-        }
-    }
+    pub fn handle_key(&mut self, _user_events: Vec<UserEvent>, _key_event: KeyEvent) {}
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let content = Block::bordered().fg(self.ctx.theme.fg);
         f.render_widget(content, area);
     }
 
-    pub fn helps(&self) -> Vec<String> {
+    pub fn helps(&self, _mapper: &UserEventMapper) -> Vec<Spans> {
         Vec::new()
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0)];
-        build_short_helps(helps)
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = vec![
+            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+        ];
+        build_short_help_spans(helps, mapper)
     }
 }
 
