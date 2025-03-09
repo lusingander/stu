@@ -1,4 +1,7 @@
-use ratatui::text::Span;
+use ratatui::{
+    style::{Color, Stylize},
+    text::Span,
+};
 
 use crate::keys::{key_event_to_string, UserEvent, UserEventMapper};
 
@@ -134,6 +137,107 @@ pub fn prune_spans_to_fit_width(
             spans.push(Span::raw(delimiter.to_string()));
         }
         spans.extend(help);
+    }
+    spans
+}
+
+pub struct BuildHelpsItem {
+    event: UserEvent,
+    description: String,
+}
+
+impl BuildHelpsItem {
+    pub fn new(event: UserEvent, description: impl Into<String>) -> Self {
+        Self {
+            event,
+            description: description.into(),
+        }
+    }
+}
+
+pub fn build_help_spans(
+    helps: Vec<BuildHelpsItem>,
+    mapper: &UserEventMapper,
+    key_fg: Color,
+) -> Vec<Spans> {
+    helps
+        .into_iter()
+        .filter_map(|item| {
+            let keys = mapper.find_keys(item.event);
+            if keys.is_empty() {
+                None
+            } else {
+                let key_spans: Vec<Vec<Span>> = keys
+                    .into_iter()
+                    .map(|key| {
+                        vec![
+                            "<".into(),
+                            key_event_to_string(key, false).fg(key_fg).bold(),
+                            ">".into(),
+                        ]
+                    })
+                    .collect();
+                let mut spans = vec![];
+                for (i, span) in key_spans.iter().enumerate() {
+                    if i > 0 {
+                        spans.push(Span::raw(" ".to_string()));
+                    }
+                    spans.extend(span.clone());
+                }
+                spans.push(Span::raw(": ".to_string()));
+                spans.push(Span::raw(item.description));
+                Some(Spans::new(spans))
+            }
+        })
+        .collect()
+}
+
+#[derive(Debug, Clone)]
+pub struct Spans {
+    spans: Vec<Span<'static>>,
+}
+
+impl Spans {
+    pub fn new(spans: Vec<Span<'static>>) -> Self {
+        Self { spans }
+    }
+
+    fn width(&self) -> usize {
+        self.spans.iter().map(|s| s.width()).sum::<usize>()
+    }
+}
+
+pub fn group_spans_to_fit_width(
+    spanss: &[Spans],
+    max_width: usize,
+    delimiter: &str,
+) -> Vec<Vec<Span<'static>>> {
+    let mut groups: Vec<Vec<Spans>> = Vec::new();
+    let mut current_length: usize = 0;
+    let mut current_group: Vec<Spans> = Vec::new();
+    let delimiter_width = console::measure_text_width(delimiter);
+    for spans in spanss {
+        if !current_group.is_empty() && current_length + spans.width() > max_width {
+            groups.push(current_group);
+            current_group = Vec::new();
+            current_length = 0;
+        }
+        current_length += spans.width();
+        current_length += delimiter_width;
+        current_group.push(spans.clone());
+    }
+    groups.push(current_group);
+
+    let mut spans = vec![];
+    for group in groups {
+        let mut group_spans = vec![];
+        for (i, help) in group.iter().enumerate() {
+            if i > 0 {
+                group_spans.push(Span::raw(delimiter.to_string()));
+            }
+            group_spans.extend(help.spans.clone());
+        }
+        spans.push(group_spans);
     }
     spans
 }

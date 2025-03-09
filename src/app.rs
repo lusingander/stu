@@ -442,7 +442,7 @@ impl App {
     }
 
     pub fn open_help(&mut self) {
-        let helps = self.page_stack.current_page().helps();
+        let helps = self.page_stack.current_page().helps(&self.mapper);
         if helps.is_empty() {
             return;
         }

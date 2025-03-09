@@ -5,7 +5,7 @@ use ratatui::{crossterm::event::KeyEvent, layout::Rect, style::Stylize, widgets:
 use crate::{
     app::AppContext,
     event::Sender,
-    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    help::{build_short_help_spans, BuildShortHelpsItem, Spans, SpansWithPriority},
     keys::{UserEvent, UserEventMapper},
 };
 
@@ -27,7 +27,7 @@ impl InitializingPage {
         f.render_widget(content, area);
     }
 
-    pub fn helps(&self) -> Vec<String> {
+    pub fn helps(&self, _mapper: &UserEventMapper) -> Vec<Spans> {
         Vec::new()
     }
 

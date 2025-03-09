@@ -18,10 +18,12 @@ use crate::{
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
     handle_user_events, handle_user_events_with_default,
-    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
     keys::{UserEvent, UserEventMapper},
     object::{DownloadObjectInfo, ObjectItem, ObjectKey},
-    pages::util::build_helps,
     widget::{
         ConfirmDialog, ConfirmDialogState, CopyDetailDialog, CopyDetailDialogState, InputDialog,
         InputDialogState, ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType,
@@ -279,71 +281,87 @@ impl ObjectListPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match self.view_state {
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => {
                 if self.filter_input_state.input().is_empty() {
-                    &[
-                        (&["Esc", "Ctrl-c"], "Quit app"),
-                        (&["j/k"], "Select item"),
-                        (&["g/G"], "Go to top/bottom"),
-                        (&["f"], "Scroll page forward"),
-                        (&["b"], "Scroll page backward"),
-                        (&["Enter"], "Open file or folder"),
-                        (&["Backspace"], "Go back to prev folder"),
-                        (&["~"], "Go back to bucket list"),
-                        (&["/"], "Filter object list"),
-                        (&["s"], "Download object"),
-                        (&["o"], "Sort object list"),
-                        (&["r"], "Open copy dialog"),
-                        (&["R"], "Refresh object list"),
-                        (&["x"], "Open management console in browser"),
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDown, "Select next item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListUp, "Select previous item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageDown, "Scroll page forward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageUp, "Scroll page backward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSelect, "Open file or folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBack, "Go back to prev folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBucketList, "Go back to bucket list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListFilter, "Filter object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSort, "Sort object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectListRefresh, "Refresh object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListManagementConsole, "Open management console in browser"),
                     ]
                 } else {
-                    &[
-                        (&["Ctrl-c"], "Quit app"),
-                        (&["Esc"], "Clear filter"),
-                        (&["j/k"], "Select item"),
-                        (&["g/G"], "Go to top/bottom"),
-                        (&["f"], "Scroll page forward"),
-                        (&["b"], "Scroll page backward"),
-                        (&["Enter"], "Open file or folder"),
-                        (&["Backspace"], "Go back to prev folder"),
-                        (&["~"], "Go back to bucket list"),
-                        (&["/"], "Filter object list"),
-                        (&["s"], "Download object"),
-                        (&["o"], "Sort object list"),
-                        (&["r"], "Open copy dialog"),
-                        (&["R"], "Refresh object list"),
-                        (&["x"], "Open management console in browser"),
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectListResetFilter, "Clear filter"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDown, "Select next item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListUp, "Select previous item"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::ObjectListGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageDown, "Scroll page forward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListPageUp, "Scroll page backward"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSelect, "Open file or folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBack, "Go back to prev folder"),
+                        BuildHelpsItem::new(UserEvent::ObjectListBucketList, "Go back to bucket list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListFilter, "Filter object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectListSort, "Sort object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectListRefresh, "Refresh object list"),
+                        BuildHelpsItem::new(UserEvent::ObjectListManagementConsole, "Open management console in browser"),
                     ]
                 }
+            },
+            ViewState::FilterDialog => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close filter dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Apply filter"),
+                ]
+            },
+            ViewState::SortDialog => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close sort dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Apply sort"),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close copy dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
+                ]
+            },
+            ViewState::DownloadConfirmDialog(_, _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close confirm dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogRight, "Select next"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogLeft, "Select previous"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Confirm"),
+                ]
             }
-            ViewState::FilterDialog => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close filter dialog"),
-                (&["Enter"], "Apply filter"),
-            ],
-            ViewState::SortDialog => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close sort dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Apply sort"),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close copy dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Copy selected value to clipboard"),
-            ],
-            ViewState::DownloadConfirmDialog(_, _) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close confirm dialog"),
-                (&["h/l"], "Select"),
-                (&["Enter"], "Confirm"),
-            ],
         };
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {

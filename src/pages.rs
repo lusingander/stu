@@ -6,5 +6,3 @@ pub mod initializing;
 pub mod object_detail;
 pub mod object_list;
 pub mod object_preview;
-
-mod util;

@@ -17,10 +17,12 @@ use crate::{
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte, format_version},
     handle_user_events, handle_user_events_with_default,
-    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
     keys::{UserEvent, UserEventMapper},
     object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
-    pages::util::build_helps,
     widget::{
         Bar, CopyDetailDialog, CopyDetailDialogState, Divider, InputDialog, InputDialogState,
         ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
@@ -243,46 +245,61 @@ impl ObjectDetailPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match self.view_state {
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => match self.tab {
-                Tab::Detail(_) => &[
-                    (&["Esc", "Ctrl-c"], "Quit app"),
-                    (&["h/l"], "Select tabs"),
-                    (&["Backspace"], "Close detail panel"),
-                    (&["j/k"], "Scroll forward/backward"),
-                    (&["r"], "Open copy dialog"),
-                    (&["s"], "Download object"),
-                    (&["S"], "Download object as"),
-                    (&["p"], "Preview object"),
-                    (&["x"], "Open management console in browser"),
-                ],
-                Tab::Version(_) => &[
-                    (&["Esc", "Ctrl-c"], "Quit app"),
-                    (&["h/l"], "Select tabs"),
-                    (&["j/k"], "Select version"),
-                    (&["g/G"], "Go to top/bottom"),
-                    (&["Backspace"], "Close detail panel"),
-                    (&["r"], "Open copy dialog"),
-                    (&["s"], "Download object"),
-                    (&["S"], "Download object as"),
-                    (&["p"], "Preview object"),
-                    (&["x"], "Open management console in browser"),
-                ],
+                Tab::Detail(_) => {
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailLeft, "Select next tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailRight, "Select previous tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailBack, "Close detail panel"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDown, "Scroll forward"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailUp, "Scroll backward"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownload, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownloadAs, "Download object as"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailPreview, "Preview object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailManagementConsole, "Open management console in browser"),
+                    ]
+                },
+                Tab::Version(_) => {
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailLeft, "Select next tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailRight, "Select previous tab"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDown, "Select next version"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailUp, "Select previous version"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailBack, "Close detail panel"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownload, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailDownloadAs, "Download object as"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailPreview, "Preview object"),
+                        BuildHelpsItem::new(UserEvent::ObjectDetailManagementConsole, "Open management console in browser"),
+                    ]
+                },
+            }
+            ViewState::SaveDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close save dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Download object"),
+                ]
             },
-            ViewState::SaveDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close save dialog"),
-                (&["Enter"], "Download object"),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close copy dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Copy selected value to clipboard"),
-            ],
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close copy dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
+                ]
+            },
         };
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {

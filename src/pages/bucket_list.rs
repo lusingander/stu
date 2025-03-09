@@ -10,10 +10,12 @@ use crate::{
     color::ColorTheme,
     event::{AppEventType, Sender},
     handle_user_events, handle_user_events_with_default,
-    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
     keys::{UserEvent, UserEventMapper},
     object::{BucketItem, ObjectKey},
-    pages::util::build_helps,
     widget::{
         BucketListSortDialog, BucketListSortDialogState, BucketListSortType, CopyDetailDialog,
         CopyDetailDialogState, InputDialog, InputDialogState, ScrollList, ScrollListState,
@@ -228,59 +230,72 @@ impl BucketListPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match self.view_state {
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => {
                 if self.filter_input_state.input().is_empty() {
-                    &[
-                        (&["Esc", "Ctrl-c"], "Quit app"),
-                        (&["j/k"], "Select item"),
-                        (&["g/G"], "Go to top/bottom"),
-                        (&["f"], "Scroll page forward"),
-                        (&["b"], "Scroll page backward"),
-                        (&["Enter"], "Open bucket"),
-                        (&["/"], "Filter bucket list"),
-                        (&["o"], "Sort bucket list"),
-                        (&["r"], "Open copy dialog"),
-                        (&["R"], "Refresh bucket list"),
-                        (&["x"], "Open management console in browser"),
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::BucketListDown, "Select next item"),
+                        BuildHelpsItem::new(UserEvent::BucketListUp, "Select previous item"),
+                        BuildHelpsItem::new(UserEvent::BucketListGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::BucketListGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::BucketListPageDown, "Scroll page forward"),
+                        BuildHelpsItem::new(UserEvent::BucketListPageUp, "Scroll page backward"),
+                        BuildHelpsItem::new(UserEvent::BucketListSelect, "Open bucket"),
+                        BuildHelpsItem::new(UserEvent::BucketListFilter, "Filter bucket list"),
+                        BuildHelpsItem::new(UserEvent::BucketListSort, "Sort bucket list"),
+                        BuildHelpsItem::new(UserEvent::BucketListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::BucketListRefresh, "Refresh bucket list"),
+                        BuildHelpsItem::new(UserEvent::BucketListManagementConsole, "Open management console in browser"),
                     ]
                 } else {
-                    &[
-                        (&["Ctrl-c"], "Quit app"),
-                        (&["Esc"], "Clear filter"),
-                        (&["j/k"], "Select item"),
-                        (&["g/G"], "Go to top/bottom"),
-                        (&["f"], "Scroll page forward"),
-                        (&["b"], "Scroll page backward"),
-                        (&["Enter"], "Open bucket"),
-                        (&["/"], "Filter bucket list"),
-                        (&["o"], "Sort bucket list"),
-                        (&["r"], "Open copy dialog"),
-                        (&["R"], "Refresh bucket list"),
-                        (&["x"], "Open management console in browser"),
+                    vec![
+                        BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                        BuildHelpsItem::new(UserEvent::BucketListResetFilter, "Clear filter"),
+                        BuildHelpsItem::new(UserEvent::BucketListDown, "Select next item"),
+                        BuildHelpsItem::new(UserEvent::BucketListUp, "Select previous item"),
+                        BuildHelpsItem::new(UserEvent::BucketListGoToTop, "Go to top"),
+                        BuildHelpsItem::new(UserEvent::BucketListGoToBottom, "Go to bottom"),
+                        BuildHelpsItem::new(UserEvent::BucketListPageDown, "Scroll page forward"),
+                        BuildHelpsItem::new(UserEvent::BucketListPageUp, "Scroll page backward"),
+                        BuildHelpsItem::new(UserEvent::BucketListSelect, "Open bucket"),
+                        BuildHelpsItem::new(UserEvent::BucketListFilter, "Filter bucket list"),
+                        BuildHelpsItem::new(UserEvent::BucketListSort, "Sort bucket list"),
+                        BuildHelpsItem::new(UserEvent::BucketListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::BucketListRefresh, "Refresh bucket list"),
+                        BuildHelpsItem::new(UserEvent::BucketListManagementConsole, "Open management console in browser"),
                     ]
                 }
-            }
-            ViewState::FilterDialog => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close filter dialog"),
-                (&["Enter"], "Apply filter"),
-            ],
-            ViewState::SortDialog => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close sort dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Apply sort"),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc", "Backspace"], "Close copy dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Copy selected value to clipboard"),
-            ],
+            },
+            ViewState::FilterDialog => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close filter dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Apply filter"),
+                ]
+            },
+            ViewState::SortDialog => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close sort dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Apply sort"),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close copy dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
+                ]
+            },
         };
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {

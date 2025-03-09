@@ -5,7 +5,7 @@ use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 use crate::{
     app::AppContext,
     event::Sender,
-    help::SpansWithPriority,
+    help::{Spans, SpansWithPriority},
     keys::{UserEvent, UserEventMapper},
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::{
@@ -49,14 +49,15 @@ impl Page {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        // todo: no need to generate spans every time
         match self {
-            Page::Initializing(page) => page.helps(),
-            Page::BucketList(page) => page.helps(),
-            Page::ObjectList(page) => page.helps(),
-            Page::ObjectDetail(page) => page.helps(),
-            Page::ObjectPreview(page) => page.helps(),
-            Page::Help(page) => page.helps(),
+            Page::Initializing(page) => page.helps(mapper),
+            Page::BucketList(page) => page.helps(mapper),
+            Page::ObjectList(page) => page.helps(mapper),
+            Page::ObjectDetail(page) => page.helps(mapper),
+            Page::ObjectPreview(page) => page.helps(mapper),
+            Page::Help(page) => page.helps(mapper),
         }
     }
 
@@ -132,7 +133,7 @@ impl Page {
         )))
     }
 
-    pub fn of_help(helps: Vec<String>, ctx: Rc<AppContext>, tx: Sender) -> Self {
+    pub fn of_help(helps: Vec<Spans>, ctx: Rc<AppContext>, tx: Sender) -> Self {
         Self::Help(Box::new(HelpPage::new(helps, ctx, tx)))
     }
 

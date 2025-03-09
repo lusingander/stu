@@ -7,10 +7,12 @@ use crate::{
     environment::ImagePicker,
     event::{AppEventType, Sender},
     handle_user_events, handle_user_events_with_default,
-    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    help::{
+        build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
+        SpansWithPriority,
+    },
     keys::{UserEvent, UserEventMapper},
     object::{FileDetail, ObjectKey, RawObject},
-    pages::util::build_helps,
     widget::{
         self, EncodingDialog, EncodingDialogState, ImagePreview, ImagePreviewState, InputDialog,
         InputDialogState, TextPreview, TextPreviewState,
@@ -238,40 +240,54 @@ impl ObjectPreviewPage {
         }
     }
 
-    pub fn helps(&self) -> Vec<String> {
-        let helps: &[(&[&str], &str)] = match (&self.view_state, &self.preview_type) {
-            (ViewState::Default, PreviewType::Text(_)) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
-                (&["j/k"], "Scroll forward/backward"),
-                (&["f/b"], "Scroll page forward/backward"),
-                (&["g/G"], "Scroll to top/end"),
-                (&["h/l"], "Scroll left/right"),
-                (&["w"], "Toggle wrap"),
-                (&["n"], "Toggle number"),
-                (&["Backspace"], "Close preview"),
-                (&["s"], "Download object"),
-                (&["S"], "Download object as"),
-            ],
-            (ViewState::Default, PreviewType::Image(_)) => &[
-                (&["Esc", "Ctrl-c"], "Quit app"),
-                (&["Backspace"], "Close preview"),
-                (&["s"], "Download object"),
-                (&["S"], "Download object as"),
-            ],
-            (ViewState::SaveDialog(_), _) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close save dialog"),
-                (&["Enter"], "Download object"),
-            ],
-            (ViewState::EncodingDialog, _) => &[
-                (&["Ctrl-c"], "Quit app"),
-                (&["Esc"], "Close encoding dialog"),
-                (&["j/k"], "Select item"),
-                (&["Enter"], "Reopen with encoding"),
-            ],
+    pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
+        #[rustfmt::skip]
+        let helps = match (&self.view_state, &self.preview_type) {
+            (ViewState::Default, PreviewType::Text(_)) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDown, "Scroll forward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewUp, "Scroll backward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewPageDown, "Scroll page forward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewPageUp, "Scroll page backward"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewGoToTop, "Scroll to top"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewGoToBottom, "Scroll to end"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewLeft, "Scroll left"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewRight, "Scroll right"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewToggleWrap, "Toggle wrap"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewToggleNumber, "Toggle number"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewBack, "Close preview"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownload, "Download object"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownloadAs, "Download object as"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewEncoding, "Open encoding dialog"),
+                ]
+            },
+            (ViewState::Default, PreviewType::Image(_)) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewBack, "Close preview"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownload, "Download object"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewDownloadAs, "Download object as"),
+                ]
+            },
+            (ViewState::SaveDialog(_), _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close save dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Download object"),
+                ]
+            },
+            (ViewState::EncodingDialog, _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close encoding dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogDown, "Select next item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogUp, "Select previous item"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Reopen with encoding"),
+                ]
+            },
         };
-
-        build_helps(helps)
+        build_help_spans(helps, mapper, self.ctx.theme.fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
