@@ -1,6 +1,9 @@
 download_dir = './out/download'
 default_region = 'us-east-1'
 
+[ui.help]
+max_help_width = 80
+
 [preview]
 
 highlight = true
