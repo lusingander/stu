@@ -38,6 +38,8 @@ pub struct UiConfig {
     pub object_list: UiObjectListConfig,
     #[nested]
     pub object_detail: UiObjectDetailConfig,
+    #[nested]
+    pub help: UiHelpConfig,
 }
 
 #[optional(derives = [Deserialize])]
@@ -54,6 +56,13 @@ pub struct UiObjectListConfig {
 pub struct UiObjectDetailConfig {
     #[default = "%Y-%m-%d %H:%M:%S"]
     pub date_format: String,
+}
+
+#[optional(derives = [Deserialize])]
+#[derive(Debug, Clone, SmartDefault)]
+pub struct UiHelpConfig {
+    #[default = 100]
+    pub max_help_width: usize,
 }
 
 #[optional(derives = [Deserialize])]

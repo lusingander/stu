@@ -67,7 +67,7 @@ impl HelpPage {
             self.ctx.theme.link,
         );
         let divider = Divider::default().color(self.ctx.theme.divider);
-        let help = Help::new(&self.helps);
+        let help = Help::new(&self.helps, self.ctx.config.ui.help.max_help_width);
 
         f.render_widget(block, area);
         f.render_widget(about, chunks[0]);
@@ -137,18 +137,18 @@ impl Widget for About<'_> {
 #[derive(Debug)]
 struct Help<'a> {
     helps: &'a [Spans],
+    max_width: usize,
 }
 
 impl<'a> Help<'a> {
-    fn new(helps: &'a [Spans]) -> Self {
-        Self { helps }
+    fn new(helps: &'a [Spans], max_width: usize) -> Self {
+        Self { helps, max_width }
     }
 }
 
 impl Widget for Help<'_> {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let max_help_width: usize = 80;
-        let max_width = max_help_width.min(area.width as usize) - 2;
+        let max_width = self.max_width.min(area.width as usize) - 2;
 
         let help = build_help_lines(self.helps, max_width);
 

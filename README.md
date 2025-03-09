@@ -162,6 +162,11 @@ date_width = 19
 # type: string
 date_format = "%Y-%m-%d %H:%M:%S"
 
+[ui.help]
+# The maximum width of the keybindings display area in the help.
+# type: usize
+max_help_width = 100
+
 [preview]
 # Whether syntax highlighting is enabled in the object preview.
 # type: bool
