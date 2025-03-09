@@ -299,7 +299,7 @@ impl ObjectDetailPage {
                 ]
             },
         };
-        build_help_spans(helps, mapper, self.ctx.theme.fg)
+        build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {

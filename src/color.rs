@@ -20,6 +20,8 @@ pub struct ColorTheme {
 
     pub preview_line_number: Color,
 
+    pub help_key_fg: Color,
+
     pub status_help: Color,
     pub status_info: Color,
     pub status_success: Color,
@@ -47,6 +49,8 @@ impl Default for ColorTheme {
             dialog_selected: Color::Cyan,
 
             preview_line_number: Color::DarkGray,
+
+            help_key_fg: Color::Yellow,
 
             status_help: Color::DarkGray,
             status_info: Color::Blue,

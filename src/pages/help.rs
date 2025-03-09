@@ -162,8 +162,7 @@ impl Widget for Help<'_> {
 }
 
 fn build_help_lines(helps: &[Spans], max_width: usize) -> Vec<Line> {
-    let delimiter = ",  ";
-    let word_groups = group_spans_to_fit_width(helps, max_width, delimiter);
+    let word_groups = group_spans_to_fit_width(helps, max_width, "  ");
     let lines: Vec<Line> = word_groups.into_iter().map(Line::from).collect();
     with_empty_lines(lines)
 }
@@ -220,7 +219,7 @@ mod tests {
             "│                                                                    │",
             "│ ────────────────────────────────────────────────────────────────── │",
             "│                                                                    │",
-            "│  <key1>: action1,  <key2>: action2,  <key3>: action3               │",
+            "│  <key1>: action1  <key2>: action2  <key3>: action3                 │",
             "│                                                                    │",
             "│  <key4>: action4                                                   │",
             "│                                                                    │",
