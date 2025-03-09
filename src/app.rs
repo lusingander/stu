@@ -935,7 +935,9 @@ impl App {
             Notification::Success(msg) => StatusType::Success(msg.into()),
             Notification::Warn(msg) => StatusType::Warn(msg.into()),
             Notification::Error(msg) => StatusType::Error(msg.into()),
-            Notification::None => StatusType::Help(self.page_stack.current_page().short_helps()),
+            Notification::None => {
+                StatusType::Help(self.page_stack.current_page().short_helps(&self.mapper))
+            }
         };
         let status = Status::new(status_type).theme(&self.ctx.theme);
         f.render_widget(status, area);

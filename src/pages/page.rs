@@ -5,7 +5,8 @@ use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 use crate::{
     app::AppContext,
     event::Sender,
-    keys::UserEvent,
+    help::SpansWithPriority,
+    keys::{UserEvent, UserEventMapper},
     object::{BucketItem, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::{
         bucket_list::BucketListPage, help::HelpPage, initializing::InitializingPage,
@@ -59,14 +60,15 @@ impl Page {
         }
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        // todo: no need to generate spans every time
         match self {
-            Page::Initializing(page) => page.short_helps(),
-            Page::BucketList(page) => page.short_helps(),
-            Page::ObjectList(page) => page.short_helps(),
-            Page::ObjectDetail(page) => page.short_helps(),
-            Page::ObjectPreview(page) => page.short_helps(),
-            Page::Help(page) => page.short_helps(),
+            Page::Initializing(page) => page.short_helps(mapper),
+            Page::BucketList(page) => page.short_helps(mapper),
+            Page::ObjectList(page) => page.short_helps(mapper),
+            Page::ObjectDetail(page) => page.short_helps(mapper),
+            Page::ObjectPreview(page) => page.short_helps(mapper),
+            Page::Help(page) => page.short_helps(mapper),
         }
     }
 }

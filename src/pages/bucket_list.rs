@@ -10,9 +10,10 @@ use crate::{
     color::ColorTheme,
     event::{AppEventType, Sender},
     handle_user_events, handle_user_events_with_default,
-    keys::UserEvent,
+    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
     object::{BucketItem, ObjectKey},
-    pages::util::{build_helps, build_short_helps},
+    pages::util::build_helps,
     widget::{
         BucketListSortDialog, BucketListSortDialogState, BucketListSortType, CopyDetailDialog,
         CopyDetailDialogState, InputDialog, InputDialogState, ScrollList, ScrollListState,
@@ -282,52 +283,59 @@ impl BucketListPage {
         build_helps(helps)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match self.view_state {
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => {
                 if self.filter_input_state.input().is_empty() {
-                    &[
-                        (&["Esc"], "Quit", 0),
-                        (&["j/k"], "Select", 1),
-                        (&["g/G"], "Top/Bottom", 6),
-                        (&["Enter"], "Open", 2),
-                        (&["/"], "Filter", 3),
-                        (&["o"], "Sort", 4),
-                        (&["R"], "Refresh", 5),
-                        (&["?"], "Help", 0),
+                    vec![
+                        BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListDown, UserEvent::BucketListUp], "Select", 1),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListGoToTop, UserEvent::BucketListGoToBottom], "Top/Bottom", 6),
+                        BuildShortHelpsItem::single(UserEvent::BucketListSelect, "Open", 2),
+                        BuildShortHelpsItem::single(UserEvent::BucketListFilter, "Filter", 3),
+                        BuildShortHelpsItem::single(UserEvent::BucketListSort, "Sort", 4),
+                        BuildShortHelpsItem::single(UserEvent::BucketListRefresh, "Refresh", 5),
+                        BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 } else {
-                    &[
-                        (&["Esc"], "Clear filter", 0),
-                        (&["j/k"], "Select", 1),
-                        (&["g/G"], "Top/Bottom", 6),
-                        (&["Enter"], "Open", 2),
-                        (&["/"], "Filter", 3),
-                        (&["o"], "Sort", 4),
-                        (&["R"], "Refresh", 5),
-                        (&["?"], "Help", 0),
+                    vec![
+                        BuildShortHelpsItem::single(UserEvent::BucketListResetFilter, "Clear filter", 0),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListDown, UserEvent::BucketListUp], "Select", 1),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListGoToTop, UserEvent::BucketListGoToBottom], "Top/Bottom", 6),
+                        BuildShortHelpsItem::single(UserEvent::BucketListSelect, "Open", 2),
+                        BuildShortHelpsItem::single(UserEvent::BucketListFilter, "Filter", 3),
+                        BuildShortHelpsItem::single(UserEvent::BucketListSort, "Sort", 4),
+                        BuildShortHelpsItem::single(UserEvent::BucketListRefresh, "Refresh", 5),
+                        BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 }
             }
-            ViewState::FilterDialog => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Filter", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::SortDialog => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Sort", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Copy", 1),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::FilterDialog => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Filter", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::SortDialog => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Sort", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Copy", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
         };
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 

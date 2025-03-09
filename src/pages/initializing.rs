@@ -2,7 +2,12 @@ use std::rc::Rc;
 
 use ratatui::{crossterm::event::KeyEvent, layout::Rect, style::Stylize, widgets::Block, Frame};
 
-use crate::{app::AppContext, event::Sender, keys::UserEvent, pages::util::build_short_helps};
+use crate::{
+    app::AppContext,
+    event::Sender,
+    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
+};
 
 #[derive(Debug)]
 pub struct InitializingPage {
@@ -26,9 +31,12 @@ impl InitializingPage {
         Vec::new()
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0)];
-        build_short_helps(helps)
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = vec![
+            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+        ];
+        build_short_help_spans(helps, mapper)
     }
 }
 

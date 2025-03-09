@@ -7,9 +7,10 @@ use crate::{
     environment::ImagePicker,
     event::{AppEventType, Sender},
     handle_user_events, handle_user_events_with_default,
-    keys::UserEvent,
+    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
     object::{FileDetail, ObjectKey, RawObject},
-    pages::util::{build_helps, build_short_helps},
+    pages::util::build_helps,
     widget::{
         self, EncodingDialog, EncodingDialogState, ImagePreview, ImagePreviewState, InputDialog,
         InputDialogState, TextPreview, TextPreviewState,
@@ -273,36 +274,45 @@ impl ObjectPreviewPage {
         build_helps(helps)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match (&self.view_state, &self.preview_type) {
-            (ViewState::Default, PreviewType::Text(_)) => &[
-                (&["Esc"], "Quit", 0),
-                (&["j/k"], "Scroll", 2),
-                (&["g/G"], "Top/End", 4),
-                (&["s/S"], "Download", 3),
-                (&["Backspace"], "Close", 1),
-                (&["?"], "Help", 0),
-            ],
-            (ViewState::Default, PreviewType::Image(_)) => &[
-                (&["Esc"], "Quit", 0),
-                (&["s/S"], "Download", 2),
-                (&["Backspace"], "Close", 1),
-                (&["?"], "Help", 0),
-            ],
-            (ViewState::SaveDialog(_), _) => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Download", 1),
-                (&["?"], "Help", 0),
-            ],
-            (ViewState::EncodingDialog, _) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Encode", 1),
-                (&["?"], "Help", 0),
-            ],
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match (&self.view_state, &self.preview_type) {
+            (ViewState::Default, PreviewType::Text(_)) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDown, UserEvent::ObjectPreviewUp], "Scroll", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewGoToTop, UserEvent::ObjectPreviewGoToBottom], "Top/End", 5),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDownload, UserEvent::ObjectPreviewDownloadAs], "Download", 3),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewEncoding, "Encoding", 4),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewBack, "Close", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            (ViewState::Default, PreviewType::Image(_)) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                    BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDownload, UserEvent::ObjectPreviewDownloadAs], "Download", 2),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewBack, "Close", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            (ViewState::SaveDialog(_), _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Download", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+             (ViewState::EncodingDialog, _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Encode", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+             },
         };
-
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 

@@ -15,8 +15,8 @@ use crate::{
     constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
     event::{AppEventType, Sender},
     handle_user_events,
-    keys::UserEvent,
-    pages::util::build_short_helps,
+    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
     util::group_strings_to_fit_width,
     widget::Divider,
 };
@@ -77,9 +77,13 @@ impl HelpPage {
         Vec::new()
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = &[(&["Esc"], "Quit", 0), (&["?"], "Close help", 0)];
-        build_short_helps(helps)
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = vec![
+            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+            BuildShortHelpsItem::single(UserEvent::HelpClose, "Close help", 0),
+        ];
+        build_short_help_spans(helps, mapper)
     }
 }
 

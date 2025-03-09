@@ -18,9 +18,10 @@ use crate::{
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
     handle_user_events, handle_user_events_with_default,
-    keys::UserEvent,
+    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
     object::{DownloadObjectInfo, ObjectItem, ObjectKey},
-    pages::util::{build_helps, build_short_helps},
+    pages::util::build_helps,
     widget::{
         ConfirmDialog, ConfirmDialogState, CopyDetailDialog, CopyDetailDialogState, InputDialog,
         InputDialogState, ObjectListSortDialog, ObjectListSortDialogState, ObjectListSortType,
@@ -345,62 +346,71 @@ impl ObjectListPage {
         build_helps(helps)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match self.view_state {
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
             ViewState::Default => {
                 if self.filter_input_state.input().is_empty() {
-                    &[
-                        (&["Esc"], "Quit", 0),
-                        (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 8),
-                        (&["Enter"], "Open", 1),
-                        (&["Backspace"], "Go back", 2),
-                        (&["/"], "Filter", 4),
-                        (&["s"], "Download", 5),
-                        (&["o"], "Sort", 6),
-                        (&["R"], "Refresh", 7),
-                        (&["?"], "Help", 0),
+                    vec![
+                        BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListDown, UserEvent::ObjectListUp], "Select", 3),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListGoToTop, UserEvent::ObjectListGoToBottom], "Top/Bottom", 8),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSelect, "Open", 1),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListBack, "Go back", 2),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListFilter, "Filter", 4),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListDownloadObject, "Download", 5),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSort, "Sort", 6),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListRefresh, "Refresh", 7),
+                        BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 } else {
-                    &[
-                        (&["Esc"], "Clear filter", 0),
-                        (&["j/k"], "Select", 3),
-                        (&["g/G"], "Top/Bottom", 8),
-                        (&["Enter"], "Open", 1),
-                        (&["Backspace"], "Go back", 2),
-                        (&["/"], "Filter", 4),
-                        (&["s"], "Download", 5),
-                        (&["o"], "Sort", 6),
-                        (&["R"], "Refresh", 7),
-                        (&["?"], "Help", 0),
+                    vec![
+                        BuildShortHelpsItem::single(UserEvent::ObjectListResetFilter, "Clear filter", 0),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListDown, UserEvent::ObjectListUp], "Select", 3),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListGoToTop, UserEvent::ObjectListGoToBottom], "Top/Bottom", 8),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSelect, "Open", 1),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListBack, "Go back", 2),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListFilter, "Filter", 4),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListDownloadObject, "Download", 5),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListSort, "Sort", 6),
+                        BuildShortHelpsItem::single(UserEvent::ObjectListRefresh, "Refresh", 7),
+                        BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 }
+            },
+            ViewState::FilterDialog => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Filter", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
             }
-            ViewState::FilterDialog => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Filter", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::SortDialog => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Sort", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Copy", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::DownloadConfirmDialog(_, _) => &[
-                (&["Esc"], "Close", 2),
-                (&["h/l"], "Select", 3),
-                (&["Enter"], "Confirm", 1),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::SortDialog => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Sort", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Copy", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::DownloadConfirmDialog(_, _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogLeft, UserEvent::SelectDialogRight], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Confirm", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
         };
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 

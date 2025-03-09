@@ -17,9 +17,10 @@ use crate::{
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte, format_version},
     handle_user_events, handle_user_events_with_default,
-    keys::UserEvent,
+    help::{build_short_help_spans, BuildShortHelpsItem, SpansWithPriority},
+    keys::{UserEvent, UserEventMapper},
     object::{FileDetail, FileVersion, ObjectItem, ObjectKey},
-    pages::util::{build_helps, build_short_helps},
+    pages::util::build_helps,
     widget::{
         Bar, CopyDetailDialog, CopyDetailDialogState, Divider, InputDialog, InputDialogState,
         ScrollLines, ScrollLinesOptions, ScrollLinesState, ScrollList, ScrollListState,
@@ -284,42 +285,52 @@ impl ObjectDetailPage {
         build_helps(helps)
     }
 
-    pub fn short_helps(&self) -> Vec<(String, usize)> {
-        let helps: &[(&[&str], &str, usize)] = match self.view_state {
-            ViewState::Default => match self.tab {
-                Tab::Detail(_) => &[
-                    (&["Esc"], "Quit", 0),
-                    (&["h/l"], "Select tabs", 3),
-                    (&["j/k"], "Scroll", 5),
-                    (&["s/S"], "Download", 1),
-                    (&["p"], "Preview", 4),
-                    (&["Backspace"], "Close", 2),
-                    (&["?"], "Help", 0),
-                ],
-                Tab::Version(_) => &[
-                    (&["Esc"], "Quit", 0),
-                    (&["h/l"], "Select tabs", 3),
-                    (&["j/k"], "Select", 5),
-                    (&["s/S"], "Download", 1),
-                    (&["p"], "Preview", 4),
-                    (&["Backspace"], "Close", 2),
-                    (&["?"], "Help", 0),
-                ],
+    pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
+        #[rustfmt::skip]
+        let helps = match self.view_state {
+            ViewState::Default => {
+                match self.tab {
+                    Tab::Detail(_) => {
+                        vec![
+                            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailLeft, UserEvent::ObjectDetailRight], "Select tabs", 3),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDown, UserEvent::ObjectDetailUp], "Scroll", 5),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDownload, UserEvent::ObjectDetailDownloadAs], "Download", 1),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailPreview, "Preview", 4),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailBack, "Close", 2),
+                            BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                        ]
+                    },
+                    Tab::Version(_) => {
+                        vec![
+                            BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailLeft, UserEvent::ObjectDetailRight], "Select tabs", 3),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDown, UserEvent::ObjectDetailUp], "Select", 5),
+                            BuildShortHelpsItem::group(vec![UserEvent::ObjectDetailDownload, UserEvent::ObjectDetailDownloadAs], "Download", 1),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailPreview, "Preview", 4),
+                            BuildShortHelpsItem::single(UserEvent::ObjectDetailBack, "Close", 2),
+                            BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                        ]
+                    },
+                }
             },
-            ViewState::SaveDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["Enter"], "Download", 1),
-                (&["?"], "Help", 0),
-            ],
-            ViewState::CopyDetailDialog(_) => &[
-                (&["Esc"], "Close", 2),
-                (&["j/k"], "Select", 3),
-                (&["Enter"], "Copy", 1),
-                (&["?"], "Help", 0),
-            ],
+            ViewState::SaveDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Download", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::CopyDetailDialog(_) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogDown, UserEvent::SelectDialogUp], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Copy", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
         };
-
-        build_short_helps(helps)
+        build_short_help_spans(helps, mapper)
     }
 }
 

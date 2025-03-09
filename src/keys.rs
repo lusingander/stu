@@ -320,3 +320,102 @@ fn parse_key_code_with_modifiers(
     };
     Ok(KeyEvent::new(c, modifiers))
 }
+
+pub fn key_event_to_string(key: KeyEvent, short: bool) -> String {
+    if let KeyCode::Char(c) = key.code {
+        if key.modifiers == KeyModifiers::SHIFT {
+            return c.to_ascii_uppercase().into();
+        }
+    }
+
+    let char;
+    let key_code = match key.code {
+        KeyCode::Backspace => {
+            if short {
+                "BS"
+            } else {
+                "Backspace"
+            }
+        }
+        KeyCode::Enter => "Enter",
+        KeyCode::Left => "Left",
+        KeyCode::Right => "Right",
+        KeyCode::Up => "Up",
+        KeyCode::Down => "Down",
+        KeyCode::Home => "Home",
+        KeyCode::End => "End",
+        KeyCode::PageUp => "PageUp",
+        KeyCode::PageDown => "PageDown",
+        KeyCode::Tab => "Tab",
+        KeyCode::BackTab => "BackTab",
+        KeyCode::Delete => {
+            if short {
+                "Del"
+            } else {
+                "Delete"
+            }
+        }
+        KeyCode::Insert => {
+            if short {
+                "Ins"
+            } else {
+                "Insert"
+            }
+        }
+        KeyCode::F(n) => {
+            char = format!("F{n}");
+            &char
+        }
+        KeyCode::Char(' ') => "Space",
+        KeyCode::Char(c) => {
+            char = c.to_string();
+            &char
+        }
+        KeyCode::Esc => "Esc",
+        KeyCode::Null => "",
+        KeyCode::CapsLock => "",
+        KeyCode::Menu => "",
+        KeyCode::ScrollLock => "",
+        KeyCode::Media(_) => "",
+        KeyCode::NumLock => "",
+        KeyCode::PrintScreen => "",
+        KeyCode::Pause => "",
+        KeyCode::KeypadBegin => "",
+        KeyCode::Modifier(_) => "",
+    };
+
+    let mut modifiers = Vec::with_capacity(3);
+
+    if key.modifiers.intersects(KeyModifiers::CONTROL) {
+        if short {
+            modifiers.push("C");
+        } else {
+            modifiers.push("Ctrl");
+        }
+    }
+
+    if key.modifiers.intersects(KeyModifiers::SHIFT) {
+        if short {
+            modifiers.push("S");
+        } else {
+            modifiers.push("Shift");
+        }
+    }
+
+    if key.modifiers.intersects(KeyModifiers::ALT) {
+        if short {
+            modifiers.push("A");
+        } else {
+            modifiers.push("Alt");
+        }
+    }
+
+    let mut key = modifiers.join("-");
+
+    if !key.is_empty() {
+        key.push('-');
+    }
+    key.push_str(key_code);
+
+    key
+}
