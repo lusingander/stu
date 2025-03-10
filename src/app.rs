@@ -528,6 +528,7 @@ impl App {
         self.is_loading = true;
 
         match self.page_stack.current_page_mut() {
+            Page::ObjectList(page) => page.close_save_dialog(),
             Page::ObjectDetail(page) => page.close_save_dialog(),
             Page::ObjectPreview(page) => page.close_save_dialog(),
             _ => {}
@@ -536,6 +537,7 @@ impl App {
 
     pub fn download_object_as(&self, size_byte: usize, input: String, version_id: Option<String>) {
         let object_key = match self.page_stack.current_page() {
+            page @ Page::ObjectList(_) => &page.as_object_list().current_selected_object_key(),
             page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
             page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
             page => panic!("Invalid page: {:?}", page),

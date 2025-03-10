@@ -56,6 +56,7 @@ enum ViewState {
     SortDialog,
     CopyDetailDialog(Box<CopyDetailDialogState>),
     DownloadConfirmDialog(Vec<DownloadObjectInfo>, ConfirmDialogState),
+    SaveDialog(InputDialogState),
 }
 
 impl ObjectListPage {
@@ -151,6 +152,11 @@ impl ObjectListPage {
                             self.start_download();
                         }
                     }
+                    UserEvent::ObjectListDownloadObjectAs => {
+                        if self.non_empty() {
+                            self.start_download_as();
+                        }
+                    }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
                     }
@@ -231,6 +237,23 @@ impl ObjectListPage {
                     }
                 }
             }
+            ViewState::SaveDialog(ref mut state) => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogClose => {
+                        self.close_save_dialog();
+                    }
+                    UserEvent::InputDialogApply => {
+                        let input = state.input().into();
+                        self.download_as(input);
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        state.handle_key_event(key_event);
+                    }
+                }
+            }
         }
     }
 
@@ -279,6 +302,17 @@ impl ObjectListPage {
             let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(&self.ctx.theme);
             f.render_stateful_widget(download_confirm_dialog, area, state);
         }
+
+        if let ViewState::SaveDialog(state) = &mut self.view_state {
+            let save_dialog = InputDialog::default()
+                .title("Save As")
+                .max_width(40)
+                .theme(&self.ctx.theme);
+            f.render_stateful_widget(save_dialog, area, state);
+
+            let (cursor_x, cursor_y) = state.cursor();
+            f.set_cursor_position((cursor_x, cursor_y));
+        }
     }
 
     pub fn helps(&self, mapper: &UserEventMapper) -> Vec<Spans> {
@@ -299,6 +333,7 @@ impl ObjectListPage {
                         BuildHelpsItem::new(UserEvent::ObjectListBucketList, "Go back to bucket list"),
                         BuildHelpsItem::new(UserEvent::ObjectListFilter, "Filter object list"),
                         BuildHelpsItem::new(UserEvent::ObjectListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDownloadObjectAs, "Download object as"),
                         BuildHelpsItem::new(UserEvent::ObjectListSort, "Sort object list"),
                         BuildHelpsItem::new(UserEvent::ObjectListCopyDetails, "Open copy dialog"),
                         BuildHelpsItem::new(UserEvent::ObjectListRefresh, "Refresh object list"),
@@ -319,6 +354,7 @@ impl ObjectListPage {
                         BuildHelpsItem::new(UserEvent::ObjectListBucketList, "Go back to bucket list"),
                         BuildHelpsItem::new(UserEvent::ObjectListFilter, "Filter object list"),
                         BuildHelpsItem::new(UserEvent::ObjectListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::ObjectListDownloadObjectAs, "Download object as"),
                         BuildHelpsItem::new(UserEvent::ObjectListSort, "Sort object list"),
                         BuildHelpsItem::new(UserEvent::ObjectListCopyDetails, "Open copy dialog"),
                         BuildHelpsItem::new(UserEvent::ObjectListRefresh, "Refresh object list"),
@@ -360,6 +396,9 @@ impl ObjectListPage {
                     BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Confirm"),
                 ]
             }
+            ViewState::SaveDialog(_) => {
+                vec![] // todo
+            }
         };
         build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
     }
@@ -376,7 +415,7 @@ impl ObjectListPage {
                         BuildShortHelpsItem::single(UserEvent::ObjectListSelect, "Open", 1),
                         BuildShortHelpsItem::single(UserEvent::ObjectListBack, "Go back", 2),
                         BuildShortHelpsItem::single(UserEvent::ObjectListFilter, "Filter", 4),
-                        BuildShortHelpsItem::single(UserEvent::ObjectListDownloadObject, "Download", 5),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListDownloadObject, UserEvent::ObjectListDownloadObjectAs], "Download", 5),
                         BuildShortHelpsItem::single(UserEvent::ObjectListSort, "Sort", 6),
                         BuildShortHelpsItem::single(UserEvent::ObjectListRefresh, "Refresh", 7),
                         BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
@@ -389,7 +428,7 @@ impl ObjectListPage {
                         BuildShortHelpsItem::single(UserEvent::ObjectListSelect, "Open", 1),
                         BuildShortHelpsItem::single(UserEvent::ObjectListBack, "Go back", 2),
                         BuildShortHelpsItem::single(UserEvent::ObjectListFilter, "Filter", 4),
-                        BuildShortHelpsItem::single(UserEvent::ObjectListDownloadObject, "Download", 5),
+                        BuildShortHelpsItem::group(vec![UserEvent::ObjectListDownloadObject, UserEvent::ObjectListDownloadObjectAs], "Download", 5),
                         BuildShortHelpsItem::single(UserEvent::ObjectListSort, "Sort", 6),
                         BuildShortHelpsItem::single(UserEvent::ObjectListRefresh, "Refresh", 7),
                         BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
@@ -427,6 +466,9 @@ impl ObjectListPage {
                     BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                 ]
             },
+            ViewState::SaveDialog(_) => {
+                vec![] // todo
+            }
         };
         build_short_help_spans(helps, mapper)
     }
@@ -598,6 +640,20 @@ impl ObjectListPage {
         }
     }
 
+    fn start_download_as(&mut self) {
+        match self.current_selected_item() {
+            ObjectItem::Dir { .. } => {
+                // fixme: implement correctly
+                let key = self.current_selected_object_key();
+                self.tx
+                    .send(AppEventType::StartLoadAllDownloadObjectList(key));
+            }
+            ObjectItem::File { .. } => {
+                self.open_save_dialog();
+            }
+        }
+    }
+
     fn download(&mut self) {
         if let ViewState::DownloadConfirmDialog(objs, state) = &mut self.view_state {
             if state.is_ok() {
@@ -610,6 +666,27 @@ impl ObjectListPage {
             }
             self.close_download_confirm_dialog();
         }
+    }
+
+    fn download_as(&self, input: String) {
+        let input: String = input.trim().into();
+        if input.is_empty() {
+            return;
+        }
+
+        self.tx.send(AppEventType::StartDownloadObjectAs(
+            self.current_selected_item().size_byte().unwrap(),
+            input,
+            None,
+        ));
+    }
+
+    pub fn open_save_dialog(&mut self) {
+        self.view_state = ViewState::SaveDialog(InputDialogState::default());
+    }
+
+    pub fn close_save_dialog(&mut self) {
+        self.view_state = ViewState::Default;
     }
 
     pub fn current_selected_item(&self) -> &ObjectItem {

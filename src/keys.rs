@@ -33,6 +33,7 @@ pub enum UserEvent {
     ObjectListBack,
     ObjectListBucketList,
     ObjectListDownloadObject,
+    ObjectListDownloadObjectAs,
     ObjectListFilter,
     ObjectListSort,
     ObjectListCopyDetails,
@@ -143,6 +144,7 @@ fn build_user_event_mapper(
     set_event_to_map(&mut map, &bindings, "object_list", "back", UserEvent::ObjectListBack)?;
     set_event_to_map(&mut map, &bindings, "object_list", "bucket_list", UserEvent::ObjectListBucketList)?;
     set_event_to_map(&mut map, &bindings, "object_list", "download", UserEvent::ObjectListDownloadObject)?;
+    set_event_to_map(&mut map, &bindings, "object_list", "download_as", UserEvent::ObjectListDownloadObjectAs)?;
     set_event_to_map(&mut map, &bindings, "object_list", "filter", UserEvent::ObjectListFilter)?;
     set_event_to_map(&mut map, &bindings, "object_list", "sort", UserEvent::ObjectListSort)?;
     set_event_to_map(&mut map, &bindings, "object_list", "copy_details", UserEvent::ObjectListCopyDetails)?;
