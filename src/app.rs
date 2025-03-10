@@ -530,14 +530,24 @@ impl App {
         });
     }
 
-    pub fn download_object_as(
-        &self,
-        file_detail: FileDetail,
+    pub fn start_download_object_as(
+        &mut self,
+        size_byte: usize,
         input: String,
         version_id: Option<String>,
     ) {
-        let size_byte = file_detail.size_byte;
+        self.tx
+            .send(AppEventType::DownloadObjectAs(size_byte, input, version_id));
+        self.is_loading = true;
 
+        match self.page_stack.current_page_mut() {
+            Page::ObjectDetail(page) => page.close_save_dialog(),
+            Page::ObjectPreview(page) => page.close_save_dialog(),
+            _ => {}
+        }
+    }
+
+    pub fn download_object_as(&self, size_byte: usize, input: String, version_id: Option<String>) {
         let object_key = match self.page_stack.current_page() {
             page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
             page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
@@ -783,40 +793,6 @@ impl App {
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }
-    }
-
-    pub fn detail_download_object_as(
-        &mut self,
-        file_detail: FileDetail,
-        input: String,
-        version_id: Option<String>,
-    ) {
-        self.tx.send(AppEventType::DownloadObjectAs(
-            file_detail,
-            input,
-            version_id,
-        ));
-        self.is_loading = true;
-
-        let page = self.page_stack.current_page_mut().as_mut_object_detail();
-        page.close_save_dialog();
-    }
-
-    pub fn preview_download_object_as(
-        &mut self,
-        file_detail: FileDetail,
-        input: String,
-        version_id: Option<String>,
-    ) {
-        self.tx.send(AppEventType::DownloadObjectAs(
-            file_detail,
-            input,
-            version_id,
-        ));
-        self.is_loading = true;
-
-        let page = self.page_stack.current_page_mut().as_mut_object_preview();
-        page.close_save_dialog();
     }
 
     pub fn preview_rerender_image(&mut self) {

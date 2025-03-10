@@ -422,12 +422,10 @@ impl ObjectDetailPage {
             return;
         }
 
-        let file_detail = self.file_detail.clone();
-        let version_id = self.current_selected_version_id();
-        self.tx.send(AppEventType::DetailDownloadObjectAs(
-            file_detail,
+        self.tx.send(AppEventType::StartDownloadObjectAs(
+            self.file_detail.size_byte,
             input,
-            version_id,
+            self.current_selected_version_id(),
         ));
     }
 

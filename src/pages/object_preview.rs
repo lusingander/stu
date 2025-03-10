@@ -397,12 +397,10 @@ impl ObjectPreviewPage {
             return;
         }
 
-        let file_detail = self.file_detail.clone();
-        let version_id = self.file_version_id.clone();
-        self.tx.send(AppEventType::PreviewDownloadObjectAs(
-            file_detail,
+        self.tx.send(AppEventType::StartDownloadObjectAs(
+            self.file_detail.size_byte,
             input,
-            version_id,
+            self.file_version_id.clone(),
         ));
     }
 

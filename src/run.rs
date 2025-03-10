@@ -115,8 +115,11 @@ pub async fn run<B: Backend>(
             AppEventType::DownloadObject(object_name, size_byte, version_id) => {
                 app.download_object(object_name, size_byte, version_id);
             }
-            AppEventType::DownloadObjectAs(file_detail, input, version_id) => {
-                app.download_object_as(file_detail, input, version_id);
+            AppEventType::StartDownloadObjectAs(size_byte, input, version_id) => {
+                app.start_download_object_as(size_byte, input, version_id);
+            }
+            AppEventType::DownloadObjectAs(size_byte, input, version_id) => {
+                app.download_object_as(size_byte, input, version_id);
             }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);
@@ -159,12 +162,6 @@ pub async fn run<B: Backend>(
             }
             AppEventType::ObjectListDownloadObject => {
                 app.object_list_download_object();
-            }
-            AppEventType::DetailDownloadObjectAs(file_detail, input, version_id) => {
-                app.detail_download_object_as(file_detail, input, version_id);
-            }
-            AppEventType::PreviewDownloadObjectAs(file_detail, input, version_id) => {
-                app.preview_download_object_as(file_detail, input, version_id);
             }
             AppEventType::PreviewRerenderImage => {
                 app.preview_rerender_image();
