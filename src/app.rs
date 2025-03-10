@@ -5,7 +5,7 @@ use ratatui::{
     widgets::Block,
     Frame,
 };
-use std::{io::BufWriter, rc::Rc, sync::Arc};
+use std::{io::BufWriter, path::PathBuf, rc::Rc, sync::Arc};
 use tokio::spawn;
 
 use crate::{
@@ -413,19 +413,20 @@ impl App {
         self.is_loading = false;
     }
 
-    pub fn start_load_all_download_objects(&mut self, key: ObjectKey) {
-        self.tx.send(AppEventType::LoadAllDownloadObjectList(key));
+    pub fn start_load_all_download_objects(&mut self, key: ObjectKey, download_as: bool) {
+        self.tx
+            .send(AppEventType::LoadAllDownloadObjectList(key, download_as));
         self.is_loading = true;
     }
 
-    pub fn load_all_download_objects(&self, key: ObjectKey) {
+    pub fn load_all_download_objects(&self, key: ObjectKey, download_as: bool) {
         let bucket = key.bucket_name.clone();
         let prefix = key.joined_object_path(false);
 
         let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
             let objects = client.list_all_download_objects(&bucket, &prefix).await;
-            let result = CompleteLoadAllDownloadObjectListResult::new(objects);
+            let result = CompleteLoadAllDownloadObjectListResult::new(objects, download_as);
             tx.send(AppEventType::CompleteLoadAllDownloadObjectList(result));
         });
     }
@@ -435,9 +436,9 @@ impl App {
         result: Result<CompleteLoadAllDownloadObjectListResult>,
     ) {
         match result {
-            Ok(CompleteLoadAllDownloadObjectListResult { objs }) => {
+            Ok(CompleteLoadAllDownloadObjectListResult { objs, download_as }) => {
                 let object_list_page = self.page_stack.current_page_mut().as_mut_object_list();
-                object_list_page.open_download_confirm_dialog(objs);
+                object_list_page.open_download_confirm_dialog(objs, download_as);
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -599,10 +600,11 @@ impl App {
     ) {
         self.is_loading = true;
 
-        let current_dir_key = key.joined_object_path(false);
+        let current_selected_dir_key = key.joined_object_path(false);
         let mut obj_paths = Vec::with_capacity(objs.len());
         for obj in objs {
-            let relative_path = obj.key.strip_prefix(&current_dir_key).unwrap();
+            let relative_path =
+                PathBuf::from(&dir).join(obj.key.strip_prefix(&current_selected_dir_key).unwrap());
             let absolute_path = self.ctx.config.download_file_path(relative_path);
             obj_paths.push((obj, absolute_path));
         }

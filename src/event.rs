@@ -31,8 +31,8 @@ pub enum AppEventType {
     CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
     LoadObjectVersions,
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
-    StartLoadAllDownloadObjectList(ObjectKey),
-    LoadAllDownloadObjectList(ObjectKey),
+    StartLoadAllDownloadObjectList(ObjectKey, bool),
+    LoadAllDownloadObjectList(ObjectKey, bool),
     CompleteLoadAllDownloadObjectList(Result<CompleteLoadAllDownloadObjectListResult>),
     StartDownloadObject(String, usize, Option<String>),
     DownloadObject(String, usize, Option<String>),
@@ -163,14 +163,16 @@ impl CompleteLoadObjectVersionsResult {
 #[derive(Debug)]
 pub struct CompleteLoadAllDownloadObjectListResult {
     pub objs: Vec<DownloadObjectInfo>,
+    pub download_as: bool,
 }
 
 impl CompleteLoadAllDownloadObjectListResult {
     pub fn new(
         objs: Result<Vec<DownloadObjectInfo>>,
+        download_as: bool,
     ) -> Result<CompleteLoadAllDownloadObjectListResult> {
         let objs = objs?;
-        Ok(CompleteLoadAllDownloadObjectListResult { objs })
+        Ok(CompleteLoadAllDownloadObjectListResult { objs, download_as })
     }
 }
 

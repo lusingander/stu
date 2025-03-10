@@ -55,8 +55,8 @@ enum ViewState {
     FilterDialog,
     SortDialog,
     CopyDetailDialog(Box<CopyDetailDialogState>),
-    DownloadConfirmDialog(Vec<DownloadObjectInfo>, ConfirmDialogState),
-    SaveDialog(InputDialogState),
+    DownloadConfirmDialog(Vec<DownloadObjectInfo>, ConfirmDialogState, bool),
+    SaveDialog(InputDialogState, Option<Vec<DownloadObjectInfo>>),
 }
 
 impl ObjectListPage {
@@ -221,7 +221,7 @@ impl ObjectListPage {
                         }
                 }
             }
-            ViewState::DownloadConfirmDialog(_, ref mut state) => {
+            ViewState::DownloadConfirmDialog(_, ref mut state, _) => {
                 handle_user_events! { user_events =>
                     UserEvent::SelectDialogClose => {
                         self.close_download_confirm_dialog();
@@ -237,7 +237,7 @@ impl ObjectListPage {
                     }
                 }
             }
-            ViewState::SaveDialog(ref mut state) => {
+            ViewState::SaveDialog(ref mut state, _) => {
                 handle_user_events_with_default! { user_events =>
                     UserEvent::InputDialogClose => {
                         self.close_save_dialog();
@@ -297,13 +297,13 @@ impl ObjectListPage {
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
 
-        if let ViewState::DownloadConfirmDialog(objs, state) = &mut self.view_state {
+        if let ViewState::DownloadConfirmDialog(objs, state, _) = &mut self.view_state {
             let message_lines = build_download_confirm_message_lines(objs, &self.ctx.theme);
             let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(&self.ctx.theme);
             f.render_stateful_widget(download_confirm_dialog, area, state);
         }
 
-        if let ViewState::SaveDialog(state) = &mut self.view_state {
+        if let ViewState::SaveDialog(state, _) = &mut self.view_state {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
@@ -387,7 +387,7 @@ impl ObjectListPage {
                     BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
                 ]
             },
-            ViewState::DownloadConfirmDialog(_, _) => {
+            ViewState::DownloadConfirmDialog(_, _, _) => {
                 vec![
                     BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
                     BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close confirm dialog"),
@@ -396,7 +396,7 @@ impl ObjectListPage {
                     BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Confirm"),
                 ]
             }
-            ViewState::SaveDialog(_) => {
+            ViewState::SaveDialog(_, _) => {
                 vec![] // todo
             }
         };
@@ -458,7 +458,7 @@ impl ObjectListPage {
                     BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                 ]
             },
-            ViewState::DownloadConfirmDialog(_, _) => {
+            ViewState::DownloadConfirmDialog(_, _, _) => {
                 vec![
                     BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
                     BuildShortHelpsItem::group(vec![UserEvent::SelectDialogLeft, UserEvent::SelectDialogRight], "Select", 3),
@@ -466,7 +466,7 @@ impl ObjectListPage {
                     BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                 ]
             },
-            ViewState::SaveDialog(_) => {
+            ViewState::SaveDialog(_, _) => {
                 vec![] // todo
             }
         };
@@ -612,9 +612,13 @@ impl ObjectListPage {
         }
     }
 
-    pub fn open_download_confirm_dialog(&mut self, objs: Vec<DownloadObjectInfo>) {
+    pub fn open_download_confirm_dialog(
+        &mut self,
+        objs: Vec<DownloadObjectInfo>,
+        download_as: bool,
+    ) {
         let dialog_state = ConfirmDialogState::default();
-        self.view_state = ViewState::DownloadConfirmDialog(objs, dialog_state);
+        self.view_state = ViewState::DownloadConfirmDialog(objs, dialog_state, download_as);
     }
 
     fn close_download_confirm_dialog(&mut self) {
@@ -626,7 +630,7 @@ impl ObjectListPage {
             ObjectItem::Dir { .. } => {
                 let key = self.current_selected_object_key();
                 self.tx
-                    .send(AppEventType::StartLoadAllDownloadObjectList(key));
+                    .send(AppEventType::StartLoadAllDownloadObjectList(key, false));
             }
             ObjectItem::File {
                 name, size_byte, ..
@@ -643,23 +647,28 @@ impl ObjectListPage {
     fn start_download_as(&mut self) {
         match self.current_selected_item() {
             ObjectItem::Dir { .. } => {
-                // fixme: implement correctly
                 let key = self.current_selected_object_key();
                 self.tx
-                    .send(AppEventType::StartLoadAllDownloadObjectList(key));
+                    .send(AppEventType::StartLoadAllDownloadObjectList(key, true));
             }
             ObjectItem::File { .. } => {
-                self.open_save_dialog();
+                self.open_save_dialog(None);
             }
         }
     }
 
     fn download(&mut self) {
-        if let ViewState::DownloadConfirmDialog(objs, state) = &mut self.view_state {
+        if let ViewState::DownloadConfirmDialog(objs, state, download_as) = &mut self.view_state {
             if state.is_ok() {
+                if *download_as {
+                    let objs = std::mem::take(objs);
+                    self.open_save_dialog(Some(objs));
+                    return;
+                }
+
                 let objs = std::mem::take(objs);
                 let bucket = self.object_key.bucket_name.clone();
-                let key = self.current_dir_object_key().clone();
+                let key = self.current_selected_object_key();
                 let dir = self.current_selected_item().name().to_string();
                 self.tx
                     .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
@@ -668,21 +677,36 @@ impl ObjectListPage {
         }
     }
 
-    fn download_as(&self, input: String) {
-        let input: String = input.trim().into();
-        if input.is_empty() {
-            return;
-        }
+    fn download_as(&mut self, input: String) {
+        if let ViewState::SaveDialog(_, objs) = &mut self.view_state {
+            let input: String = input.trim().into();
+            if input.is_empty() {
+                return;
+            }
 
-        self.tx.send(AppEventType::StartDownloadObjectAs(
-            self.current_selected_item().size_byte().unwrap(),
-            input,
-            None,
-        ));
+            match std::mem::take(objs) {
+                Some(objs) => {
+                    let bucket = self.object_key.bucket_name.clone();
+                    let key = self.current_selected_object_key();
+                    let dir = input;
+                    self.tx
+                        .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
+
+                    self.close_save_dialog();
+                }
+                None => {
+                    self.tx.send(AppEventType::StartDownloadObjectAs(
+                        self.current_selected_item().size_byte().unwrap(),
+                        input,
+                        None,
+                    ));
+                }
+            }
+        }
     }
 
-    pub fn open_save_dialog(&mut self) {
-        self.view_state = ViewState::SaveDialog(InputDialogState::default());
+    pub fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>) {
+        self.view_state = ViewState::SaveDialog(InputDialogState::default(), objs);
     }
 
     pub fn close_save_dialog(&mut self) {
