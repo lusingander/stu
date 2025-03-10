@@ -397,7 +397,11 @@ impl ObjectListPage {
                 ]
             }
             ViewState::SaveDialog(_, _) => {
-                vec![] // todo
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close save dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Download object"),
+                ]
             }
         };
         build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
@@ -467,7 +471,11 @@ impl ObjectListPage {
                 ]
             },
             ViewState::SaveDialog(_, _) => {
-                vec![] // todo
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Download", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
             }
         };
         build_short_help_spans(helps, mapper)
