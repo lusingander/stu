@@ -103,6 +103,9 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteLoadObjectVersions(result) => {
                 app.complete_load_object_versions(result);
             }
+            AppEventType::StartLoadAllDownloadObjectList(key) => {
+                app.start_load_all_download_objects(key);
+            }
             AppEventType::LoadAllDownloadObjectList(key) => {
                 app.load_all_download_objects(key);
             }
@@ -159,9 +162,6 @@ pub async fn run<B: Backend>(
             }
             AppEventType::OpenPreview(file_detail, version_id) => {
                 app.open_preview(file_detail, version_id);
-            }
-            AppEventType::ObjectListDownloadObject => {
-                app.object_list_download_object();
             }
             AppEventType::PreviewRerenderImage => {
                 app.preview_rerender_image();

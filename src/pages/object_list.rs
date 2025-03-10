@@ -148,7 +148,7 @@ impl ObjectListPage {
                     }
                     UserEvent::ObjectListDownloadObject => {
                         if self.non_empty() {
-                            self.tx.send(AppEventType::ObjectListDownloadObject);
+                            self.start_download();
                         }
                     }
                     UserEvent::Help => {
@@ -577,6 +577,25 @@ impl ObjectListPage {
 
     fn close_download_confirm_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    fn start_download(&self) {
+        match self.current_selected_item() {
+            ObjectItem::Dir { .. } => {
+                let key = self.current_selected_object_key();
+                self.tx
+                    .send(AppEventType::StartLoadAllDownloadObjectList(key));
+            }
+            ObjectItem::File {
+                name, size_byte, ..
+            } => {
+                self.tx.send(AppEventType::StartDownloadObject(
+                    name.clone(),
+                    *size_byte,
+                    None,
+                ));
+            }
+        }
     }
 
     fn download(&mut self) {

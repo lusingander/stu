@@ -413,6 +413,11 @@ impl App {
         self.is_loading = false;
     }
 
+    pub fn start_load_all_download_objects(&mut self, key: ObjectKey) {
+        self.tx.send(AppEventType::LoadAllDownloadObjectList(key));
+        self.is_loading = true;
+    }
+
     pub fn load_all_download_objects(&self, key: ObjectKey) {
         let bucket = key.bucket_name.clone();
         let prefix = key.joined_object_path(false);
@@ -457,24 +462,6 @@ impl App {
     pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
         self.tx
             .send(AppEventType::PreviewObject(file_detail, version_id));
-        self.is_loading = true;
-    }
-
-    pub fn object_list_download_object(&mut self) {
-        let object_list_page = self.page_stack.current_page().as_object_list();
-        let key = object_list_page.current_selected_object_key();
-
-        match object_list_page.current_selected_item() {
-            ObjectItem::Dir { .. } => {
-                self.tx.send(AppEventType::LoadAllDownloadObjectList(key));
-            }
-            ObjectItem::File {
-                name, size_byte, ..
-            } => {
-                self.tx
-                    .send(AppEventType::DownloadObject(name.clone(), *size_byte, None));
-            }
-        }
         self.is_loading = true;
     }
 
