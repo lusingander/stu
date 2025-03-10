@@ -187,10 +187,15 @@ Enter
 
 # open test-bucket-1
 Sleep 500ms
-Type "s"
+Type "S"
 Sleep 1s
 Screenshot ${OUTPUT_DIR}/object-list-download-confirm.png
 Sleep 500ms
+Enter
+Sleep 100ms
+Type "baaar"
+Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-list-download.png
 Escape
 Sleep 500ms
 Type "j"
@@ -243,8 +248,8 @@ Sleep 100ms
 Screenshot ${OUTPUT_DIR}/object-preview.png
 Sleep 100ms
 Type "e"
-Screenshot ${OUTPUT_DIR}/object-preview-encoding.png
 Sleep 100ms
+Screenshot ${OUTPUT_DIR}/object-preview-encoding.png
 Escape
 Sleep 100ms
 Type "?"

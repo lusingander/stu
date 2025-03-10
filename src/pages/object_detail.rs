@@ -409,10 +409,11 @@ impl ObjectDetailPage {
     }
 
     fn download(&self) {
-        let file_detail = self.file_detail.clone();
-        let version_id = self.current_selected_version_id();
-        self.tx
-            .send(AppEventType::DetailDownloadObject(file_detail, version_id));
+        self.tx.send(AppEventType::StartDownloadObject(
+            self.file_detail.name.clone(),
+            self.file_detail.size_byte,
+            self.current_selected_version_id(),
+        ));
     }
 
     fn download_as(&self, input: String) {
@@ -421,12 +422,10 @@ impl ObjectDetailPage {
             return;
         }
 
-        let file_detail = self.file_detail.clone();
-        let version_id = self.current_selected_version_id();
-        self.tx.send(AppEventType::DetailDownloadObjectAs(
-            file_detail,
+        self.tx.send(AppEventType::StartDownloadObjectAs(
+            self.file_detail.size_byte,
             input,
-            version_id,
+            self.current_selected_version_id(),
         ));
     }
 

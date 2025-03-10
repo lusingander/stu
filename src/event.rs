@@ -31,10 +31,13 @@ pub enum AppEventType {
     CompleteLoadObjectDetail(Result<CompleteLoadObjectDetailResult>),
     LoadObjectVersions,
     CompleteLoadObjectVersions(Result<CompleteLoadObjectVersionsResult>),
-    LoadAllDownloadObjectList(ObjectKey),
+    StartLoadAllDownloadObjectList(ObjectKey, bool),
+    LoadAllDownloadObjectList(ObjectKey, bool),
     CompleteLoadAllDownloadObjectList(Result<CompleteLoadAllDownloadObjectListResult>),
+    StartDownloadObject(String, usize, Option<String>),
     DownloadObject(String, usize, Option<String>),
-    DownloadObjectAs(FileDetail, String, Option<String>),
+    StartDownloadObjectAs(usize, String, Option<String>),
+    DownloadObjectAs(usize, String, Option<String>),
     CompleteDownloadObject(Result<CompleteDownloadObjectResult>),
     DownloadObjects(String, ObjectKey, String, Vec<DownloadObjectInfo>),
     CompleteDownloadObjects(Result<CompleteDownloadObjectsResult>),
@@ -48,11 +51,6 @@ pub enum AppEventType {
     BackToBucketList,
     OpenObjectVersionsTab,
     OpenPreview(FileDetail, Option<String>),
-    ObjectListDownloadObject,
-    DetailDownloadObject(FileDetail, Option<String>),
-    DetailDownloadObjectAs(FileDetail, String, Option<String>),
-    PreviewDownloadObject(FileDetail, Option<String>),
-    PreviewDownloadObjectAs(FileDetail, String, Option<String>),
     PreviewRerenderImage,
     BucketListOpenManagementConsole,
     ObjectListOpenManagementConsole,
@@ -165,14 +163,16 @@ impl CompleteLoadObjectVersionsResult {
 #[derive(Debug)]
 pub struct CompleteLoadAllDownloadObjectListResult {
     pub objs: Vec<DownloadObjectInfo>,
+    pub download_as: bool,
 }
 
 impl CompleteLoadAllDownloadObjectListResult {
     pub fn new(
         objs: Result<Vec<DownloadObjectInfo>>,
+        download_as: bool,
     ) -> Result<CompleteLoadAllDownloadObjectListResult> {
         let objs = objs?;
-        Ok(CompleteLoadAllDownloadObjectListResult { objs })
+        Ok(CompleteLoadAllDownloadObjectListResult { objs, download_as })
     }
 }
 
