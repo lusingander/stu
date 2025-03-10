@@ -1,4 +1,7 @@
-use std::{env, path::PathBuf};
+use std::{
+    env,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use serde::Deserialize;
@@ -108,7 +111,7 @@ impl Config {
         }
     }
 
-    pub fn download_file_path(&self, name: &str) -> PathBuf {
+    pub fn download_file_path<P: AsRef<Path>>(&self, name: P) -> PathBuf {
         let dir = PathBuf::from(self.download_dir.clone());
         dir.join(name)
     }
