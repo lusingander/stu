@@ -454,28 +454,6 @@ impl App {
         self.page_stack.pop();
     }
 
-    pub fn detail_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        let object_name = file_detail.name.clone();
-        let size_byte = file_detail.size_byte;
-        self.tx.send(AppEventType::DownloadObject(
-            object_name,
-            size_byte,
-            version_id,
-        ));
-        self.is_loading = true;
-    }
-
-    pub fn preview_download_object(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        let object_name = file_detail.name.clone();
-        let size_byte = file_detail.size_byte;
-        self.tx.send(AppEventType::DownloadObject(
-            object_name,
-            size_byte,
-            version_id,
-        ));
-        self.is_loading = true;
-    }
-
     pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
         self.tx
             .send(AppEventType::PreviewObject(file_detail, version_id));
@@ -497,6 +475,20 @@ impl App {
                     .send(AppEventType::DownloadObject(name.clone(), *size_byte, None));
             }
         }
+        self.is_loading = true;
+    }
+
+    pub fn start_download_object(
+        &mut self,
+        object_name: String,
+        size_byte: usize,
+        version_id: Option<String>,
+    ) {
+        self.tx.send(AppEventType::DownloadObject(
+            object_name,
+            size_byte,
+            version_id,
+        ));
         self.is_loading = true;
     }
 

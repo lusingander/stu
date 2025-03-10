@@ -384,10 +384,11 @@ impl ObjectPreviewPage {
     }
 
     fn download(&self) {
-        let file_detail = self.file_detail.clone();
-        let version_id = self.file_version_id.clone();
-        self.tx
-            .send(AppEventType::PreviewDownloadObject(file_detail, version_id));
+        self.tx.send(AppEventType::StartDownloadObject(
+            self.file_detail.name.clone(),
+            self.file_detail.size_byte,
+            self.file_version_id.clone(),
+        ));
     }
 
     fn download_as(&self, input: String) {
