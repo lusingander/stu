@@ -384,7 +384,7 @@ impl ObjectDetailPage {
         self.view_state = ViewState::SaveDialog(InputDialogState::default());
     }
 
-    pub fn close_save_dialog(&mut self) {
+    fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
     }
 
@@ -416,7 +416,7 @@ impl ObjectDetailPage {
         ));
     }
 
-    fn download_as(&self, input: String) {
+    fn download_as(&mut self, input: String) {
         let input: String = input.trim().into();
         if input.is_empty() {
             return;
@@ -427,6 +427,8 @@ impl ObjectDetailPage {
             input,
             self.current_selected_version_id(),
         ));
+
+        self.close_save_dialog();
     }
 
     fn preview(&self) {

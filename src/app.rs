@@ -527,13 +527,6 @@ impl App {
         self.tx
             .send(AppEventType::DownloadObjectAs(size_byte, input, version_id));
         self.is_loading = true;
-
-        match self.page_stack.current_page_mut() {
-            Page::ObjectList(page) => page.close_save_dialog(),
-            Page::ObjectDetail(page) => page.close_save_dialog(),
-            Page::ObjectPreview(page) => page.close_save_dialog(),
-            _ => {}
-        }
     }
 
     pub fn download_object_as(&self, size_byte: usize, input: String, version_id: Option<String>) {

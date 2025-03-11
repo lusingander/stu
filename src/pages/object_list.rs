@@ -699,8 +699,6 @@ impl ObjectListPage {
                     let dir = input;
                     self.tx
                         .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
-
-                    self.close_save_dialog();
                 }
                 None => {
                     self.tx.send(AppEventType::StartDownloadObjectAs(
@@ -710,14 +708,16 @@ impl ObjectListPage {
                     ));
                 }
             }
+
+            self.close_save_dialog();
         }
     }
 
-    pub fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>) {
+    fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>) {
         self.view_state = ViewState::SaveDialog(InputDialogState::default(), objs);
     }
 
-    pub fn close_save_dialog(&mut self) {
+    fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
     }
 

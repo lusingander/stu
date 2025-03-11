@@ -337,7 +337,7 @@ impl ObjectPreviewPage {
         self.view_state = ViewState::SaveDialog(InputDialogState::default());
     }
 
-    pub fn close_save_dialog(&mut self) {
+    fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
     }
 
@@ -391,7 +391,7 @@ impl ObjectPreviewPage {
         ));
     }
 
-    fn download_as(&self, input: String) {
+    fn download_as(&mut self, input: String) {
         let input: String = input.trim().into();
         if input.is_empty() {
             return;
@@ -402,6 +402,8 @@ impl ObjectPreviewPage {
             input,
             self.file_version_id.clone(),
         ));
+
+        self.close_save_dialog();
     }
 
     pub fn current_object_key(&self) -> &ObjectKey {
