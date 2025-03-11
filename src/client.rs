@@ -308,11 +308,15 @@ impl Client {
                 .await;
             let output = result.map_err(|e| AppError::new("Failed to list download objects", e))?;
 
-            let os = output.contents().iter().map(|file| {
-                let key = file.key().unwrap().to_owned();
-                let size_byte = file.size().unwrap() as usize;
-                DownloadObjectInfo { key, size_byte }
-            });
+            let os = output
+                .contents()
+                .iter()
+                .map(|file| {
+                    let key = file.key().unwrap().to_owned();
+                    let size_byte = file.size().unwrap() as usize;
+                    DownloadObjectInfo { key, size_byte }
+                })
+                .filter(|f| !f.key.ends_with('/')); // skip dummy empty object
             objs.extend(os);
 
             token = output.next_continuation_token().map(String::from);
@@ -373,6 +377,7 @@ fn objects_output_to_dirs(
                 object_url,
             }
         })
+        .filter(|f| !f.name().is_empty()) // skip dummy empty object
         .collect()
 }
 
@@ -408,6 +413,7 @@ fn objects_output_to_files(
                 e_tag,
             }
         })
+        .filter(|f| !f.name().is_empty()) // skip dummy empty object
         .collect()
 }
 
