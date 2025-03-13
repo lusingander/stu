@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use ratatui::{crossterm::event::KeyEvent, layout::Rect, Frame};
 
@@ -25,7 +25,7 @@ pub struct ObjectPreviewPage {
 
     file_detail: FileDetail,
     file_version_id: Option<String>,
-    object: RawObject,
+    object: Arc<RawObject>,
     object_key: ObjectKey,
 
     view_state: ViewState,
@@ -83,7 +83,7 @@ impl ObjectPreviewPage {
 
         Self {
             preview_type,
-            object,
+            object: Arc::new(object),
             file_detail,
             file_version_id,
             object_key,
@@ -386,7 +386,7 @@ impl ObjectPreviewPage {
     fn download(&self) {
         self.tx.send(AppEventType::StartSaveObject(
             self.file_detail.name.clone(),
-            self.object.clone(),
+            Arc::clone(&self.object),
         ));
     }
 
@@ -396,8 +396,10 @@ impl ObjectPreviewPage {
             return;
         }
 
-        self.tx
-            .send(AppEventType::StartSaveObject(input, self.object.clone()));
+        self.tx.send(AppEventType::StartSaveObject(
+            input,
+            Arc::clone(&self.object),
+        ));
 
         self.close_save_dialog();
     }

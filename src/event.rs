@@ -1,7 +1,7 @@
 use std::{
     fmt::{self, Debug, Formatter},
     path::PathBuf,
-    sync::mpsc,
+    sync::{mpsc, Arc},
     thread,
 };
 
@@ -43,8 +43,8 @@ pub enum AppEventType {
     CompleteDownloadObjects(Result<CompleteDownloadObjectsResult>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
-    StartSaveObject(String, RawObject),
-    SaveObject(String, RawObject),
+    StartSaveObject(String, Arc<RawObject>),
+    SaveObject(String, Arc<RawObject>),
     CompleteSaveObject(Result<CompleteSaveObjectResult>),
     BucketListMoveDown,
     BucketListRefresh,

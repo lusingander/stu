@@ -733,12 +733,12 @@ impl App {
         self.is_loading = false;
     }
 
-    pub fn start_save_object(&mut self, name: String, obj: RawObject) {
+    pub fn start_save_object(&mut self, name: String, obj: Arc<RawObject>) {
         self.tx.send(AppEventType::SaveObject(name, obj));
         self.is_loading = true;
     }
 
-    pub fn save_object(&self, name: String, obj: RawObject) {
+    pub fn save_object(&self, name: String, obj: Arc<RawObject>) {
         let path = self.ctx.config.download_file_path(&name);
         let writer = create_binary_file(&path);
 
