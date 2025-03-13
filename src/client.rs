@@ -25,7 +25,7 @@ pub enum AddressingStyle {
 }
 
 impl AddressingStyle {
-    fn to_force_path_style(&self, endpoint_url: &Option<String>) -> bool {
+    fn to_force_path_style(&self, endpoint_url: Option<&str>) -> bool {
         match self {
             AddressingStyle::Auto => endpoint_url.is_some(),
             AddressingStyle::Path => true,
@@ -72,7 +72,7 @@ impl Client {
         let sdk_config = config_loader.load().await;
 
         let config_builder = aws_sdk_s3::config::Builder::from(&sdk_config)
-            .force_path_style(addressing_style.to_force_path_style(&endpoint_url));
+            .force_path_style(addressing_style.to_force_path_style(sdk_config.endpoint_url()));
         let config = config_builder.build();
 
         let client = aws_sdk_s3::Client::from_conf(config);
