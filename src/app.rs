@@ -811,10 +811,7 @@ impl App {
         }
     }
 
-    pub fn object_detail_open_management_console(&self) {
-        let object_detail_page = self.page_stack.current_page().as_object_detail();
-        let object_key = object_detail_page.current_object_key();
-
+    pub fn object_detail_open_management_console(&self, object_key: ObjectKey) {
         let (client, _) = self.unwrap_client_tx();
         let bucket = &object_key.bucket_name;
         let prefix = &object_key.joined_object_path(true); // should contains file name

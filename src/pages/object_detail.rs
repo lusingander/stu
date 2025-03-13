@@ -449,8 +449,9 @@ impl ObjectDetailPage {
     }
 
     fn open_management_console(&self) {
+        let object_key = self.object_key.clone();
         self.tx
-            .send(AppEventType::ObjectDetailOpenManagementConsole);
+            .send(AppEventType::ObjectDetailOpenManagementConsole(object_key));
     }
 
     fn current_selected_version(&self) -> Option<&FileVersion> {
