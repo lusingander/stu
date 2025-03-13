@@ -133,7 +133,7 @@ impl ObjectListPage {
                     }
                     UserEvent::ObjectListManagementConsole => {
                         if self.non_empty() {
-                            self.tx.send(AppEventType::ObjectListOpenManagementConsole);
+                            self.open_management_console();
                         }
                     }
                     UserEvent::ObjectListFilter => {
@@ -722,6 +722,12 @@ impl ObjectListPage {
 
     fn close_save_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    fn open_management_console(&self) {
+        let object_key = self.current_dir_object_key().clone();
+        self.tx
+            .send(AppEventType::ObjectListOpenManagementConsole(object_key));
     }
 
     pub fn current_selected_item(&self) -> &ObjectItem {

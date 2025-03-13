@@ -56,7 +56,7 @@ pub enum AppEventType {
     OpenPreview(ObjectKey, FileDetail, Option<String>),
     PreviewRerenderImage,
     BucketListOpenManagementConsole,
-    ObjectListOpenManagementConsole,
+    ObjectListOpenManagementConsole(ObjectKey),
     ObjectDetailOpenManagementConsole(ObjectKey),
     CloseCurrentPage,
     OpenHelp,

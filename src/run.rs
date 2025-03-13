@@ -178,8 +178,8 @@ pub async fn run<B: Backend>(
             AppEventType::BucketListOpenManagementConsole => {
                 app.bucket_list_open_management_console();
             }
-            AppEventType::ObjectListOpenManagementConsole => {
-                app.object_list_open_management_console();
+            AppEventType::ObjectListOpenManagementConsole(object_key) => {
+                app.object_list_open_management_console(object_key);
             }
             AppEventType::ObjectDetailOpenManagementConsole(object_key) => {
                 app.object_detail_open_management_console(object_key);
