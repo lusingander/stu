@@ -432,10 +432,14 @@ impl ObjectDetailPage {
     }
 
     fn preview(&self) {
+        let object_key = self.object_key.clone();
         let file_detail = self.file_detail.clone();
         let version_id = self.current_selected_version_id();
-        self.tx
-            .send(AppEventType::OpenPreview(file_detail, version_id));
+        self.tx.send(AppEventType::OpenPreview(
+            object_key,
+            file_detail,
+            version_id,
+        ));
     }
 
     fn open_management_console(&self) {

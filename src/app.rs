@@ -465,9 +465,17 @@ impl App {
         self.page_stack.pop();
     }
 
-    pub fn open_preview(&mut self, file_detail: FileDetail, version_id: Option<String>) {
-        self.tx
-            .send(AppEventType::PreviewObject(file_detail, version_id));
+    pub fn open_preview(
+        &mut self,
+        object_key: ObjectKey,
+        file_detail: FileDetail,
+        version_id: Option<String>,
+    ) {
+        self.tx.send(AppEventType::PreviewObject(
+            object_key,
+            file_detail,
+            version_id,
+        ));
         self.is_loading = true;
     }
 
@@ -676,14 +684,13 @@ impl App {
         self.is_loading = false;
     }
 
-    pub fn preview_object(&self, file_detail: FileDetail, version_id: Option<String>) {
+    pub fn preview_object(
+        &self,
+        object_key: ObjectKey,
+        file_detail: FileDetail,
+        version_id: Option<String>,
+    ) {
         let size_byte = file_detail.size_byte;
-
-        let object_key = match self.page_stack.current_page() {
-            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
-            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
-            page => panic!("Invalid page: {:?}", page),
-        };
 
         let bucket = object_key.bucket_name.clone();
         let key = object_key.joined_object_path(true);
