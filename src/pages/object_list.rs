@@ -643,8 +643,11 @@ impl ObjectListPage {
             ObjectItem::File {
                 name, size_byte, ..
             } => {
+                let object_key = self.current_selected_object_key();
+                let object_name = name.clone();
                 self.tx.send(AppEventType::StartDownloadObject(
-                    name.clone(),
+                    object_key,
+                    object_name,
                     *size_byte,
                     None,
                 ));

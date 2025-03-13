@@ -481,11 +481,13 @@ impl App {
 
     pub fn start_download_object(
         &mut self,
+        object_key: ObjectKey,
         object_name: String,
         size_byte: usize,
         version_id: Option<String>,
     ) {
         self.tx.send(AppEventType::DownloadObject(
+            object_key,
             object_name,
             size_byte,
             version_id,
@@ -495,17 +497,11 @@ impl App {
 
     pub fn download_object(
         &self,
+        object_key: ObjectKey,
         object_name: String,
         size_byte: usize,
         version_id: Option<String>,
     ) {
-        let object_key = match self.page_stack.current_page() {
-            page @ Page::ObjectList(_) => &page.as_object_list().current_selected_object_key(),
-            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
-            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
-            page => panic!("Invalid page: {:?}", page),
-        };
-
         let bucket = object_key.bucket_name.clone();
         let key = object_key.joined_object_path(true);
 

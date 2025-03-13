@@ -409,10 +409,15 @@ impl ObjectDetailPage {
     }
 
     fn download(&self) {
+        let object_key = self.object_key.clone();
+        let object_name = self.file_detail.name.clone();
+        let size_byte = self.file_detail.size_byte;
+        let version_id = self.current_selected_version_id();
         self.tx.send(AppEventType::StartDownloadObject(
-            self.file_detail.name.clone(),
-            self.file_detail.size_byte,
-            self.current_selected_version_id(),
+            object_key,
+            object_name,
+            size_byte,
+            version_id,
         ));
     }
 
