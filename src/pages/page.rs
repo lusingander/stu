@@ -119,7 +119,6 @@ impl Page {
         file_detail: FileDetail,
         file_version_id: Option<String>,
         object: RawObject,
-        object_key: ObjectKey,
         ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
@@ -127,7 +126,6 @@ impl Page {
             file_detail,
             file_version_id,
             object,
-            object_key,
             ctx,
             tx,
         )))
@@ -169,13 +167,6 @@ impl Page {
         match self {
             Self::ObjectDetail(page) => &mut *page,
             page => panic!("Page is not ObjectDetail: {:?}", page),
-        }
-    }
-
-    pub fn as_object_preview(&self) -> &ObjectPreviewPage {
-        match self {
-            Self::ObjectPreview(page) => page,
-            page => panic!("Page is not ObjectPreview: {:?}", page),
         }
     }
 

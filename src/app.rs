@@ -710,9 +710,6 @@ impl App {
     }
 
     pub fn complete_preview_object(&mut self, result: Result<CompletePreviewObjectResult>) {
-        let object_detail_page = self.page_stack.current_page().as_object_detail();
-        let current_object_key = object_detail_page.current_object_key().clone();
-
         match result {
             Ok(CompletePreviewObjectResult {
                 obj,
@@ -723,7 +720,6 @@ impl App {
                     file_detail,
                     file_version_id,
                     obj,
-                    current_object_key,
                     Rc::clone(&self.ctx),
                     self.tx.clone(),
                 );
