@@ -701,10 +701,10 @@ impl ObjectListPage {
                         .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
                 }
                 None => {
+                    let object_key = self.current_selected_object_key();
+                    let size_byte = self.current_selected_item().size_byte().unwrap();
                     self.tx.send(AppEventType::StartDownloadObjectAs(
-                        self.current_selected_item().size_byte().unwrap(),
-                        input,
-                        None,
+                        object_key, size_byte, input, None,
                     ));
                 }
             }

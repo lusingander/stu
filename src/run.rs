@@ -118,11 +118,11 @@ pub async fn run<B: Backend>(
             AppEventType::DownloadObject(object_name, size_byte, version_id) => {
                 app.download_object(object_name, size_byte, version_id);
             }
-            AppEventType::StartDownloadObjectAs(size_byte, input, version_id) => {
-                app.start_download_object_as(size_byte, input, version_id);
+            AppEventType::StartDownloadObjectAs(object_key, size_byte, input, version_id) => {
+                app.start_download_object_as(object_key, size_byte, input, version_id);
             }
-            AppEventType::DownloadObjectAs(size_byte, input, version_id) => {
-                app.download_object_as(size_byte, input, version_id);
+            AppEventType::DownloadObjectAs(object_key, size_byte, input, version_id) => {
+                app.download_object_as(object_key, size_byte, input, version_id);
             }
             AppEventType::CompleteDownloadObject(result) => {
                 app.complete_download_object(result);

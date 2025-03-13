@@ -422,10 +422,11 @@ impl ObjectDetailPage {
             return;
         }
 
+        let object_key = self.object_key.clone();
+        let size_byte = self.file_detail.size_byte;
+        let version_id = self.current_selected_version_id();
         self.tx.send(AppEventType::StartDownloadObjectAs(
-            self.file_detail.size_byte,
-            input,
-            self.current_selected_version_id(),
+            object_key, size_byte, input, version_id,
         ));
 
         self.close_save_dialog();

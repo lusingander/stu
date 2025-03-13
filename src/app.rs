@@ -533,23 +533,24 @@ impl App {
 
     pub fn start_download_object_as(
         &mut self,
+        object_key: ObjectKey,
         size_byte: usize,
         input: String,
         version_id: Option<String>,
     ) {
-        self.tx
-            .send(AppEventType::DownloadObjectAs(size_byte, input, version_id));
+        self.tx.send(AppEventType::DownloadObjectAs(
+            object_key, size_byte, input, version_id,
+        ));
         self.is_loading = true;
     }
 
-    pub fn download_object_as(&self, size_byte: usize, input: String, version_id: Option<String>) {
-        let object_key = match self.page_stack.current_page() {
-            page @ Page::ObjectList(_) => &page.as_object_list().current_selected_object_key(),
-            page @ Page::ObjectDetail(_) => page.as_object_detail().current_object_key(),
-            page @ Page::ObjectPreview(_) => page.as_object_preview().current_object_key(),
-            page => panic!("Invalid page: {:?}", page),
-        };
-
+    pub fn download_object_as(
+        &self,
+        object_key: ObjectKey,
+        size_byte: usize,
+        input: String,
+        version_id: Option<String>,
+    ) {
         let bucket = object_key.bucket_name.clone();
         let key = object_key.joined_object_path(true);
 
