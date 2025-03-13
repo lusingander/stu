@@ -43,6 +43,9 @@ pub enum AppEventType {
     CompleteDownloadObjects(Result<CompleteDownloadObjectsResult>),
     PreviewObject(FileDetail, Option<String>),
     CompletePreviewObject(Result<CompletePreviewObjectResult>),
+    StartSaveObject(String, RawObject),
+    SaveObject(String, RawObject),
+    CompleteSaveObject(Result<CompleteSaveObjectResult>),
     BucketListMoveDown,
     BucketListRefresh,
     ObjectListMoveDown,
@@ -218,6 +221,18 @@ impl CompletePreviewObjectResult {
             file_detail,
             file_version_id,
         })
+    }
+}
+
+#[derive(Debug)]
+pub struct CompleteSaveObjectResult {
+    pub path: PathBuf,
+}
+
+impl CompleteSaveObjectResult {
+    pub fn new(result: Result<()>, path: PathBuf) -> Result<CompleteSaveObjectResult> {
+        result?;
+        Ok(CompleteSaveObjectResult { path })
     }
 }
 

@@ -384,10 +384,9 @@ impl ObjectPreviewPage {
     }
 
     fn download(&self) {
-        self.tx.send(AppEventType::StartDownloadObject(
+        self.tx.send(AppEventType::StartSaveObject(
             self.file_detail.name.clone(),
-            self.file_detail.size_byte,
-            self.file_version_id.clone(),
+            self.object.clone(),
         ));
     }
 
@@ -397,11 +396,8 @@ impl ObjectPreviewPage {
             return;
         }
 
-        self.tx.send(AppEventType::StartDownloadObjectAs(
-            self.file_detail.size_byte,
-            input,
-            self.file_version_id.clone(),
-        ));
+        self.tx
+            .send(AppEventType::StartSaveObject(input, self.object.clone()));
 
         self.close_save_dialog();
     }

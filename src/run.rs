@@ -139,6 +139,15 @@ pub async fn run<B: Backend>(
             AppEventType::CompletePreviewObject(result) => {
                 app.complete_preview_object(result);
             }
+            AppEventType::StartSaveObject(name, obj) => {
+                app.start_save_object(name, obj);
+            }
+            AppEventType::SaveObject(name, obj) => {
+                app.save_object(name, obj);
+            }
+            AppEventType::CompleteSaveObject(result) => {
+                app.complete_save_object(result);
+            }
             AppEventType::BucketListMoveDown => {
                 app.bucket_list_move_down();
             }

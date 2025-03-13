@@ -5,7 +5,12 @@ use ratatui::{
     widgets::Block,
     Frame,
 };
-use std::{io::BufWriter, path::PathBuf, rc::Rc, sync::Arc};
+use std::{
+    io::{BufWriter, Write},
+    path::PathBuf,
+    rc::Rc,
+    sync::Arc,
+};
 use tokio::spawn;
 
 use crate::{
@@ -19,7 +24,7 @@ use crate::{
         CompleteInitializeResult, CompleteLoadAllDownloadObjectListResult,
         CompleteLoadObjectDetailResult, CompleteLoadObjectVersionsResult,
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
-        CompleteReloadObjectsResult, Sender,
+        CompleteReloadObjectsResult, CompleteSaveObjectResult, Sender,
     },
     file::{copy_to_clipboard, create_binary_file, save_error_log},
     keys::UserEventMapper,
@@ -725,6 +730,46 @@ impl App {
             }
         };
         self.clear_notification();
+        self.is_loading = false;
+    }
+
+    pub fn start_save_object(&mut self, name: String, obj: RawObject) {
+        self.tx.send(AppEventType::SaveObject(name, obj));
+        self.is_loading = true;
+    }
+
+    pub fn save_object(&self, name: String, obj: RawObject) {
+        let path = self.ctx.config.download_file_path(&name);
+        let writer = create_binary_file(&path);
+
+        let (_, tx) = self.unwrap_client_tx();
+        spawn(async move {
+            match writer {
+                Ok(mut writer) => {
+                    let result = writer.write_all(&obj.bytes).map_err(AppError::error);
+                    let result = CompleteSaveObjectResult::new(result, path);
+                    tx.send(AppEventType::CompleteSaveObject(result));
+                }
+                Err(e) => {
+                    tx.send(AppEventType::CompleteSaveObject(Err(e)));
+                }
+            }
+        });
+    }
+
+    pub fn complete_save_object(&mut self, result: Result<CompleteSaveObjectResult>) {
+        match result {
+            Ok(CompleteSaveObjectResult { path }) => {
+                let msg = format!(
+                    "Download completed successfully: {}",
+                    path.to_string_lossy()
+                );
+                self.tx.send(AppEventType::NotifySuccess(msg));
+            }
+            Err(e) => {
+                self.tx.send(AppEventType::NotifyError(e));
+            }
+        }
         self.is_loading = false;
     }
 
