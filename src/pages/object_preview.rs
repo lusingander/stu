@@ -149,6 +149,7 @@ impl ObjectPreviewPage {
                     }
                     UserEvent::ObjectPreviewDownload => {
                         self.download();
+                        self.disable_image_render();
                     }
                     UserEvent::ObjectPreviewDownloadAs => {
                         self.open_save_dialog();

@@ -586,12 +586,6 @@ impl App {
             }
         }
         self.is_loading = false;
-
-        if let Page::ObjectPreview(page) = self.page_stack.current_page() {
-            if page.is_image_preview() {
-                self.tx.send(AppEventType::PreviewRerenderImage);
-            }
-        }
     }
 
     pub fn download_objects(
@@ -771,6 +765,12 @@ impl App {
             }
         }
         self.is_loading = false;
+
+        if let Page::ObjectPreview(page) = self.page_stack.current_page() {
+            if page.is_image_preview() {
+                self.tx.send(AppEventType::PreviewRerenderImage);
+            }
+        }
     }
 
     fn handle_loading_size(&self, total_size: usize, tx: Sender) -> Box<dyn Fn(usize) + Send> {
