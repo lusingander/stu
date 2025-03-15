@@ -69,13 +69,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(mapper: UserEventMapper, ctx: AppContext, tx: Sender) -> App {
+    pub fn new(mapper: UserEventMapper, client: Client, ctx: AppContext, tx: Sender) -> App {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
             mapper,
-            client: None,
+            client: Some(Arc::new(client)),
             ctx,
             tx,
             notification: Notification::None,
@@ -83,9 +83,7 @@ impl App {
         }
     }
 
-    pub fn initialize(&mut self, client: Client, bucket: Option<String>) {
-        self.client = Some(Arc::new(client));
-
+    pub fn initialize(&mut self, bucket: Option<String>) {
         let (client, tx) = self.unwrap_client_tx();
         spawn(async move {
             let buckets = match bucket {

@@ -112,9 +112,9 @@ async fn run<B: Backend>(
         args.path_style.into(),
     )
     .await;
-    tx.send(AppEventType::Initialize(client, args.bucket));
+    tx.send(AppEventType::Initialize(args.bucket));
 
-    let mut app = App::new(mapper, ctx, tx.clone());
+    let mut app = App::new(mapper, client, ctx, tx.clone());
 
     run::run(&mut app, terminal, rx).await?;
 

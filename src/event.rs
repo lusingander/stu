@@ -8,7 +8,6 @@ use std::{
 use ratatui::crossterm::event::KeyEvent;
 
 use crate::{
-    client::Client,
     error::{AppError, Result},
     object::{
         BucketItem, DownloadObjectInfo, FileDetail, FileVersion, ObjectItem, ObjectKey, RawObject,
@@ -19,7 +18,7 @@ use crate::{
 pub enum AppEventType {
     Key(KeyEvent),
     Resize,
-    Initialize(Client, Option<String>),
+    Initialize(Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
     ReloadBuckets,
     CompleteReloadBuckets(Result<CompleteReloadBucketsResult>),
