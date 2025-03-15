@@ -104,10 +104,9 @@ async fn run<B: Backend>(
     ctx: AppContext,
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
-    let (width, height) = get_frame_size(terminal);
     let default_region_fallback = ctx.config.default_region.clone();
 
-    let mut app = App::new(mapper, ctx, tx.clone(), width, height);
+    let mut app = App::new(mapper, ctx, tx.clone());
 
     spawn(async move {
         let client = Client::new(
@@ -124,11 +123,6 @@ async fn run<B: Backend>(
     run::run(&mut app, terminal, rx).await?;
 
     Ok(())
-}
-
-fn get_frame_size<B: Backend>(terminal: &mut Terminal<B>) -> (usize, usize) {
-    let size = terminal.get_frame().area();
-    (size.width as usize, size.height as usize)
 }
 
 fn initialize_debug_log(args: &Args, config: &Config) -> anyhow::Result<()> {

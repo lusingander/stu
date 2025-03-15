@@ -64,8 +64,8 @@ pub async fn run<B: Backend>(
                     .current_page_mut()
                     .handle_user_events(user_events, key_event);
             }
-            AppEventType::Resize(width, height) => {
-                app.resize(width, height);
+            AppEventType::Resize => {
+                // do nothing (only trigger redraw)
             }
             AppEventType::Initialize(client, bucket) => {
                 app.initialize(client, bucket);

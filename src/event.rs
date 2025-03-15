@@ -18,7 +18,7 @@ use crate::{
 #[derive(Debug)]
 pub enum AppEventType {
     Key(KeyEvent),
-    Resize(usize, usize),
+    Resize,
     Initialize(Client, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
     ReloadBuckets,
@@ -275,8 +275,8 @@ pub fn new() -> (Sender, Receiver) {
                 ratatui::crossterm::event::Event::Key(key) => {
                     event_tx.send(AppEventType::Key(key));
                 }
-                ratatui::crossterm::event::Event::Resize(w, h) => {
-                    event_tx.send(AppEventType::Resize(w as usize, h as usize));
+                ratatui::crossterm::event::Event::Resize(_, _) => {
+                    event_tx.send(AppEventType::Resize);
                 }
                 _ => {}
             },

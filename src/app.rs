@@ -66,18 +66,10 @@ pub struct App {
 
     notification: Notification,
     is_loading: bool,
-    width: usize,
-    height: usize,
 }
 
 impl App {
-    pub fn new(
-        mapper: UserEventMapper,
-        ctx: AppContext,
-        tx: Sender,
-        width: usize,
-        height: usize,
-    ) -> App {
+    pub fn new(mapper: UserEventMapper, ctx: AppContext, tx: Sender) -> App {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
@@ -88,14 +80,7 @@ impl App {
             tx,
             notification: Notification::None,
             is_loading: true,
-            width,
-            height,
         }
-    }
-
-    pub fn resize(&mut self, width: usize, height: usize) {
-        self.width = width;
-        self.height = height;
     }
 
     pub fn initialize(&mut self, client: Client, bucket: Option<String>) {
