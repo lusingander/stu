@@ -85,56 +85,38 @@ impl ObjectListPage {
         match self.view_state {
             ViewState::Default => {
                 handle_user_events! { user_events =>
-                    UserEvent::ObjectListSelect => {
-                        if self.non_empty() {
-                            self.tx.send(AppEventType::ObjectListMoveDown);
-                        }
+                    UserEvent::ObjectListSelect if self.non_empty() => {
+                        self.tx.send(AppEventType::ObjectListMoveDown);
                     }
                     UserEvent::ObjectListBack => {
                         self.tx.send(AppEventType::ObjectListMoveUp);
                     }
-                    UserEvent::ObjectListDown => {
-                        if self.non_empty() {
-                            self.select_next();
-                        }
+                    UserEvent::ObjectListDown if self.non_empty() => {
+                        self.select_next();
                     }
-                    UserEvent::ObjectListUp => {
-                        if self.non_empty() {
-                            self.select_prev();
-                        }
+                    UserEvent::ObjectListUp if self.non_empty() => {
+                        self.select_prev();
                     }
-                    UserEvent::ObjectListGoToTop => {
-                        if self.non_empty() {
-                            self.select_first();
-                        }
+                    UserEvent::ObjectListGoToTop if self.non_empty() => {
+                        self.select_first();
                     }
-                    UserEvent::ObjectListGoToBottom => {
-                        if self.non_empty() {
-                            self.select_last();
-                        }
+                    UserEvent::ObjectListGoToBottom if self.non_empty() => {
+                        self.select_last();
                     }
-                    UserEvent::ObjectListPageDown => {
-                        if self.non_empty() {
-                            self.select_next_page();
-                        }
+                    UserEvent::ObjectListPageDown if self.non_empty() => {
+                        self.select_next_page();
                     }
-                    UserEvent::ObjectListPageUp => {
-                        if self.non_empty() {
-                            self.select_prev_page();
-                        }
+                    UserEvent::ObjectListPageUp if self.non_empty() => {
+                        self.select_prev_page();
                     }
-                    UserEvent::ObjectListRefresh => {
-                        if self.non_empty() {
-                            self.tx.send(AppEventType::ObjectListRefresh);
-                        }
+                    UserEvent::ObjectListRefresh if self.non_empty() => {
+                        self.tx.send(AppEventType::ObjectListRefresh);
                     }
                     UserEvent::ObjectListBucketList => {
                         self.tx.send(AppEventType::BackToBucketList);
                     }
-                    UserEvent::ObjectListManagementConsole => {
-                        if self.non_empty() {
-                            self.open_management_console();
-                        }
+                    UserEvent::ObjectListManagementConsole if self.non_empty() => {
+                        self.open_management_console();
                     }
                     UserEvent::ObjectListFilter => {
                         self.open_filter_dialog();
@@ -142,20 +124,14 @@ impl ObjectListPage {
                     UserEvent::ObjectListSort => {
                         self.open_sort_dialog();
                     }
-                    UserEvent::ObjectListCopyDetails => {
-                        if self.non_empty() {
-                            self.open_copy_detail_dialog();
-                        }
+                    UserEvent::ObjectListCopyDetails if self.non_empty() => {
+                        self.open_copy_detail_dialog();
                     }
-                    UserEvent::ObjectListDownloadObject => {
-                        if self.non_empty() {
-                            self.start_download();
-                        }
+                    UserEvent::ObjectListDownloadObject if self.non_empty() => {
+                        self.start_download();
                     }
-                    UserEvent::ObjectListDownloadObjectAs => {
-                        if self.non_empty() {
-                            self.start_download_as();
-                        }
+                    UserEvent::ObjectListDownloadObjectAs if self.non_empty() => {
+                        self.start_download_as();
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);

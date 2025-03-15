@@ -67,50 +67,32 @@ impl BucketListPage {
         match self.view_state {
             ViewState::Default => {
                 handle_user_events! { user_events =>
-                    UserEvent::BucketListSelect => {
-                        if self.non_empty() {
-                            self.tx.send(AppEventType::BucketListMoveDown);
-                        }
+                    UserEvent::BucketListSelect if self.non_empty() => {
+                        self.tx.send(AppEventType::BucketListMoveDown);
                     }
-                    UserEvent::BucketListDown => {
-                        if self.non_empty() {
-                            self.select_next();
-                        }
+                    UserEvent::BucketListDown if self.non_empty() => {
+                        self.select_next();
                     }
-                    UserEvent::BucketListUp => {
-                        if self.non_empty() {
-                            self.select_prev();
-                        }
+                    UserEvent::BucketListUp if self.non_empty() => {
+                        self.select_prev();
                     }
-                    UserEvent::BucketListGoToTop => {
-                        if self.non_empty() {
-                            self.select_first();
-                        }
+                    UserEvent::BucketListGoToTop if self.non_empty() => {
+                        self.select_first();
                     }
-                    UserEvent::BucketListGoToBottom => {
-                        if self.non_empty() {
-                            self.select_last();
-                        }
+                    UserEvent::BucketListGoToBottom if self.non_empty() => {
+                        self.select_last();
                     }
-                    UserEvent::BucketListPageDown => {
-                        if self.non_empty() {
-                            self.select_next_page();
-                        }
+                    UserEvent::BucketListPageDown if self.non_empty() => {
+                        self.select_next_page();
                     }
-                    UserEvent::BucketListPageUp => {
-                        if self.non_empty() {
-                            self.select_prev_page();
-                        }
+                    UserEvent::BucketListPageUp if self.non_empty() => {
+                        self.select_prev_page();
                     }
-                    UserEvent::BucketListRefresh => {
-                        if self.non_empty() {
-                            self.tx.send(AppEventType::BucketListRefresh);
-                        }
+                    UserEvent::BucketListRefresh if self.non_empty() => {
+                        self.tx.send(AppEventType::BucketListRefresh);
                     }
-                    UserEvent::BucketListManagementConsole => {
-                        if self.non_empty() {
-                            self.tx.send(AppEventType::BucketListOpenManagementConsole);
-                        }
+                    UserEvent::BucketListManagementConsole if self.non_empty() => {
+                        self.tx.send(AppEventType::BucketListOpenManagementConsole);
                     }
                     UserEvent::BucketListFilter => {
                         self.open_filter_dialog();
