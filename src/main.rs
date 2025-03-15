@@ -20,7 +20,6 @@ mod widget;
 use clap::{arg, Parser, ValueEnum};
 use event::AppEventType;
 use file::open_or_create_append_file;
-use ratatui::{backend::Backend, Terminal};
 use std::sync::Mutex;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
@@ -89,19 +88,6 @@ async fn main() -> anyhow::Result<()> {
     initialize_debug_log(&args, &ctx.config)?;
 
     let mut terminal = ratatui::try_init()?;
-    let ret = run(&mut terminal, args, mapper, ctx).await;
-
-    ratatui::try_restore()?;
-
-    ret
-}
-
-async fn run<B: Backend>(
-    terminal: &mut Terminal<B>,
-    args: Args,
-    mapper: UserEventMapper,
-    ctx: AppContext,
-) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
 
     let client = Client::new(
@@ -115,10 +101,11 @@ async fn run<B: Backend>(
     tx.send(AppEventType::Initialize(args.bucket));
 
     let mut app = App::new(mapper, client, ctx, tx.clone());
+    let ret = run::run(&mut app, &mut terminal, rx).await;
 
-    run::run(&mut app, terminal, rx).await?;
+    ratatui::try_restore()?;
 
-    Ok(())
+    ret
 }
 
 fn initialize_debug_log(args: &Args, config: &Config) -> anyhow::Result<()> {

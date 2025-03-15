@@ -1,5 +1,4 @@
 use ratatui::{backend::Backend, Terminal};
-use std::io::Result;
 
 use crate::{
     app::{App, Notification},
@@ -13,7 +12,7 @@ pub async fn run<B: Backend>(
     app: &mut App,
     terminal: &mut Terminal<B>,
     rx: Receiver,
-) -> Result<()> {
+) -> anyhow::Result<()> {
     loop {
         terminal.draw(|f| app.render(f))?;
 
