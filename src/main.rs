@@ -87,9 +87,6 @@ async fn main() -> anyhow::Result<()> {
 
     initialize_debug_log(&args, &ctx.config)?;
 
-    let mut terminal = ratatui::try_init()?;
-    let (tx, rx) = event::new();
-
     let client = Client::new(
         args.region,
         args.endpoint_url,
@@ -98,11 +95,13 @@ async fn main() -> anyhow::Result<()> {
         args.path_style.into(),
     )
     .await;
+
+    let (tx, rx) = event::new();
+    let mut app = App::new(mapper, client, ctx, tx.clone());
     tx.send(AppEventType::Initialize(args.bucket));
 
-    let mut app = App::new(mapper, client, ctx, tx.clone());
+    let mut terminal = ratatui::try_init()?;
     let ret = run::run(&mut app, &mut terminal, rx).await;
-
     ratatui::try_restore()?;
 
     ret
