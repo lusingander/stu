@@ -22,7 +22,6 @@ use event::AppEventType;
 use file::open_or_create_append_file;
 use ratatui::{backend::Backend, Terminal};
 use std::sync::Mutex;
-use tokio::spawn;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
 use crate::app::{App, AppContext};
@@ -104,21 +103,18 @@ async fn run<B: Backend>(
     ctx: AppContext,
 ) -> anyhow::Result<()> {
     let (tx, rx) = event::new();
-    let default_region_fallback = ctx.config.default_region.clone();
+
+    let client = Client::new(
+        args.region,
+        args.endpoint_url,
+        args.profile,
+        ctx.config.default_region.clone(),
+        args.path_style.into(),
+    )
+    .await;
+    tx.send(AppEventType::Initialize(client, args.bucket));
 
     let mut app = App::new(mapper, ctx, tx.clone());
-
-    spawn(async move {
-        let client = Client::new(
-            args.region,
-            args.endpoint_url,
-            args.profile,
-            default_region_fallback,
-            args.path_style.into(),
-        )
-        .await;
-        tx.send(AppEventType::Initialize(client, args.bucket));
-    });
 
     run::run(&mut app, terminal, rx).await?;
 
