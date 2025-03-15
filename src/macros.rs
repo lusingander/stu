@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! handle_user_events {
-    ($user_events:ident => $($event:pat $(if $cond:expr)* => $body:block)+) => {
+    ($user_events:ident => $($event:pat $(if $cond:expr)? => $body:block)+) => {
         #[allow(unreachable_code)]
         for user_event in &$user_events {
             match user_event {
