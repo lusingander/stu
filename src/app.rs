@@ -60,7 +60,7 @@ pub struct App {
     pub page_stack: PageStack,
     pub mapper: UserEventMapper,
     app_objects: AppObjects,
-    client: Option<Arc<Client>>,
+    client: Arc<Client>,
     ctx: Rc<AppContext>,
     tx: Sender,
 
@@ -75,7 +75,7 @@ impl App {
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
             mapper,
-            client: Some(Arc::new(client)),
+            client: Arc::new(client),
             ctx,
             tx,
             notification: Notification::None,
@@ -84,7 +84,8 @@ impl App {
     }
 
     pub fn initialize(&mut self, bucket: Option<String>) {
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         spawn(async move {
             let buckets = match bucket {
                 Some(name) => client.load_bucket(&name).await.map(|b| vec![b]),
@@ -121,8 +122,7 @@ impl App {
             self.bucket_list_move_down();
         } else {
             if bucket_items_len == 0 {
-                let (client, _) = self.unwrap_client_tx();
-                let msg = format!("No bucket found (region: {})", client.region());
+                let msg = format!("No bucket found (region: {})", self.client.region());
                 self.tx.send(AppEventType::NotifyWarn(msg));
             }
             self.is_loading = false;
@@ -130,7 +130,8 @@ impl App {
     }
 
     pub fn reload_buckets(&self) {
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         spawn(async move {
             let buckets = client.load_all_buckets().await;
             let result = CompleteReloadBucketsResult::new(buckets);
@@ -245,7 +246,9 @@ impl App {
         };
         let bucket = current_object_key.bucket_name.clone();
         let prefix = current_object_key.joined_object_path(false);
-        let (client, tx) = self.unwrap_client_tx();
+
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
             let result = CompleteLoadObjectsResult::new(items);
@@ -285,7 +288,9 @@ impl App {
         let object_key = object_list_page.current_dir_object_key();
         let bucket = object_key.bucket_name.clone();
         let prefix = object_key.joined_object_path(false);
-        let (client, tx) = self.unwrap_client_tx();
+
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
             let result = CompleteReloadObjectsResult::new(items);
@@ -312,7 +317,8 @@ impl App {
             let bucket = map_key.bucket_name.clone();
             let key = map_key.joined_object_path(true);
 
-            let (client, tx) = self.unwrap_client_tx();
+            let client = self.client.clone();
+            let tx = self.tx.clone();
             spawn(async move {
                 let detail = client
                     .load_object_detail(&bucket, &key, &name, size_byte)
@@ -373,7 +379,8 @@ impl App {
         let bucket = map_key.bucket_name.clone();
         let key = map_key.joined_object_path(true);
 
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         spawn(async move {
             let versions = client.load_object_versions(&bucket, &key).await;
             let result = CompleteLoadObjectVersionsResult::new(versions, map_key);
@@ -411,7 +418,8 @@ impl App {
         let bucket = key.bucket_name.clone();
         let prefix = key.joined_object_path(false);
 
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         spawn(async move {
             let objects = client.list_all_download_objects(&bucket, &prefix).await;
             let result = CompleteLoadAllDownloadObjectListResult::new(objects, download_as);
@@ -491,7 +499,8 @@ impl App {
         let path = self.ctx.config.download_file_path(&object_name);
         let writer = create_binary_file(&path);
 
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         let loading = self.handle_loading_size(size_byte, tx.clone());
 
         spawn(async move {
@@ -536,7 +545,8 @@ impl App {
         let path = self.ctx.config.download_file_path(&input);
         let writer = create_binary_file(&path);
 
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         let loading = self.handle_loading_size(size_byte, tx.clone());
 
         spawn(async move {
@@ -598,7 +608,9 @@ impl App {
         let total_size_s = humansize::format_size_i(total_size, format_opt);
 
         let max_concurrent_requests = self.ctx.config.max_concurrent_requests;
-        let (client, tx) = self.unwrap_client_tx();
+
+        let client = self.client.clone();
+        let tx = self.tx.clone();
 
         spawn(async move {
             let mut iter = futures::stream::iter(obj_paths)
@@ -669,7 +681,8 @@ impl App {
         let bucket = object_key.bucket_name.clone();
         let key = object_key.joined_object_path(true);
 
-        let (client, tx) = self.unwrap_client_tx();
+        let client = self.client.clone();
+        let tx = self.tx.clone();
         let loading = self.handle_loading_size(size_byte, tx.clone());
 
         spawn(async move {
@@ -719,7 +732,7 @@ impl App {
         let path = self.ctx.config.download_file_path(&name);
         let writer = create_binary_file(&path);
 
-        let (_, tx) = self.unwrap_client_tx();
+        let tx = self.tx.clone();
         spawn(async move {
             match writer {
                 Ok(mut writer) => {
@@ -774,28 +787,25 @@ impl App {
     }
 
     pub fn bucket_list_open_management_console(&self) {
-        let (client, _) = self.unwrap_client_tx();
-        let result = client.open_management_console_buckets();
+        let result = self.client.open_management_console_buckets();
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }
     }
 
     pub fn object_list_open_management_console(&self, object_key: ObjectKey) {
-        let (client, _) = self.unwrap_client_tx();
         let bucket = &object_key.bucket_name;
         let prefix = &object_key.joined_object_path(false);
-        let result = client.open_management_console_list(bucket, prefix);
+        let result = self.client.open_management_console_list(bucket, prefix);
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }
     }
 
     pub fn object_detail_open_management_console(&self, object_key: ObjectKey) {
-        let (client, _) = self.unwrap_client_tx();
         let bucket = &object_key.bucket_name;
         let prefix = &object_key.joined_object_path(true); // should contains file name
-        let result = client.open_management_console_object(bucket, prefix);
+        let result = self.client.open_management_console_object(bucket, prefix);
         if let Err(e) = result {
             self.tx.send(AppEventType::NotifyError(e));
         }
@@ -857,10 +867,6 @@ impl App {
 
     pub fn dump_app(&self) {
         tracing::debug!("{:?}", self);
-    }
-
-    fn unwrap_client_tx(&self) -> (Arc<Client>, Sender) {
-        (self.client.as_ref().unwrap().clone(), self.tx.clone())
     }
 }
 
