@@ -23,6 +23,14 @@ impl InputDialogState {
         self.input.value()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.input().is_empty()
+    }
+
+    pub fn non_empty(&self) -> bool {
+        !self.is_empty()
+    }
+
     pub fn clear_input(&mut self) {
         self.input.reset();
     }

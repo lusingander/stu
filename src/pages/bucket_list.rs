@@ -103,10 +103,8 @@ impl BucketListPage {
                     UserEvent::BucketListCopyDetails => {
                         self.open_copy_detail_dialog();
                     }
-                    UserEvent::BucketListResetFilter => {
-                        if !self.filter_input_state.input().is_empty() {
-                            self.reset_filter();
-                        }
+                    UserEvent::BucketListResetFilter if self.filter_input_state.non_empty() => {
+                        self.reset_filter();
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
@@ -216,7 +214,7 @@ impl BucketListPage {
         #[rustfmt::skip]
         let helps = match self.view_state {
             ViewState::Default => {
-                if self.filter_input_state.input().is_empty() {
+                if self.filter_input_state.is_empty() {
                     vec![
                         BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
                         BuildHelpsItem::new(UserEvent::BucketListDown, "Select next item"),
@@ -284,7 +282,7 @@ impl BucketListPage {
         #[rustfmt::skip]
         let helps = match self.view_state {
             ViewState::Default => {
-                if self.filter_input_state.input().is_empty() {
+                if self.filter_input_state.is_empty() {
                     vec![
                         BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
                         BuildShortHelpsItem::group(vec![UserEvent::BucketListDown, UserEvent::BucketListUp], "Select", 1),

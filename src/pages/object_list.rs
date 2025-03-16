@@ -295,7 +295,7 @@ impl ObjectListPage {
         #[rustfmt::skip]
         let helps = match self.view_state {
             ViewState::Default => {
-                if self.filter_input_state.input().is_empty() {
+                if self.filter_input_state.is_empty() {
                     vec![
                         BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
                         BuildHelpsItem::new(UserEvent::ObjectListDown, "Select next item"),
@@ -387,7 +387,7 @@ impl ObjectListPage {
         #[rustfmt::skip]
         let helps = match self.view_state {
             ViewState::Default => {
-                if self.filter_input_state.input().is_empty() {
+                if self.filter_input_state.is_empty() {
                     vec![
                         BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
                         BuildShortHelpsItem::group(vec![UserEvent::ObjectListDown, UserEvent::ObjectListUp], "Select", 3),
