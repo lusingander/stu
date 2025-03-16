@@ -179,22 +179,22 @@ impl ObjectListPage {
             }
             ViewState::CopyDetailDialog(ref mut state) => {
                 handle_user_events! { user_events =>
-                        UserEvent::SelectDialogClose => {
-                            self.close_copy_detail_dialog();
-                        }
-                        UserEvent::SelectDialogDown => {
-                            state.select_next();
-                        }
-                        UserEvent::SelectDialogUp => {
-                            state.select_prev();
-                        }
-                        UserEvent::SelectDialogSelect => {
-                            let (name, value) = state.selected_name_and_value();
-                            self.tx.send(AppEventType::CopyToClipboard(name, value));
-                        }
-                        UserEvent::Help => {
-                            self.tx.send(AppEventType::OpenHelp);
-                        }
+                    UserEvent::SelectDialogClose => {
+                        self.close_copy_detail_dialog();
+                    }
+                    UserEvent::SelectDialogDown => {
+                        state.select_next();
+                    }
+                    UserEvent::SelectDialogUp => {
+                        state.select_prev();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        let (name, value) = state.selected_name_and_value();
+                        self.tx.send(AppEventType::CopyToClipboard(name, value));
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
                 }
             }
             ViewState::DownloadConfirmDialog(_, ref mut state, _) => {
