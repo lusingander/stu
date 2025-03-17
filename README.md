@@ -2,13 +2,23 @@
 
 [![Crate Status](https://img.shields.io/crates/v/stu.svg)](https://crates.io/crates/stu)
 
-S3 Terminal UI
+S3 Terminal UI 🪣
+
+<img src="./img/demo.gif">
 
 ## About
 
 STU is the TUI explorer application for Amazon S3 (AWS S3) written in Rust using [ratatui](https://github.com/ratatui/ratatui).
 
-<img src="./img/demo.gif">
+STU provides the following features:
+
+- Recursive download of objects
+- Preview with syntax highlighting for text and image rendering
+- Access to past versions of objects
+- Customizable key bindings
+- Support for S3-compatible storage
+
+Check out the [Features / Screenshots](#features--screenshots) section for more details!
 
 ## Installation
 
