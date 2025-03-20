@@ -88,7 +88,7 @@ impl App {
         let tx = self.tx.clone();
         spawn(async move {
             let buckets = match bucket {
-                Some(name) => client.load_bucket(&name).await.map(|b| vec![b]),
+                Some(name) => client.load_bucket(&name).await,
                 None => client.load_all_buckets().await,
             };
             let result = CompleteInitializeResult::new(buckets);

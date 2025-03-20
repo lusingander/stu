@@ -119,7 +119,7 @@ impl Client {
         }
     }
 
-    pub async fn load_bucket(&self, name: &str) -> Result<BucketItem> {
+    pub async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>> {
         let s3_uri = build_bucket_s3_uri(name);
         let arn = build_bucket_arn(name);
         let object_url = build_bucket_url(&self.region, name);
@@ -130,7 +130,7 @@ impl Client {
             arn,
             object_url,
         };
-        Ok(bucket)
+        Ok(vec![bucket])
     }
 
     pub async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
