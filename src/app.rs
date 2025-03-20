@@ -931,20 +931,14 @@ impl App {
     }
 
     fn breadcrumb(&self) -> Vec<String> {
-        let mut target_pages: Vec<&Page> = self
-            .page_stack
+        self.page_stack
             .iter()
-            .filter(|page| matches!(page, Page::BucketList(_) | Page::ObjectList(_)))
-            .collect();
-        target_pages.pop(); // Remove the last item (current page)
-
-        target_pages
-            .iter()
-            .map(|page| match page {
-                Page::BucketList(page) => page.current_selected_item().name.clone(),
-                Page::ObjectList(page) => page.current_selected_item().name().into(),
-                _ => unreachable!(),
+            .filter_map(|page| match page {
+                Page::ObjectList(page) => Some(page),
+                _ => None,
             })
-            .collect()
+            .last()
+            .map(|page| page.current_dir_object_key().paths())
+            .unwrap_or_default()
     }
 }

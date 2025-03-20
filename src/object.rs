@@ -161,6 +161,13 @@ pub struct ObjectKey {
 }
 
 impl ObjectKey {
+    pub fn paths(&self) -> Vec<String> {
+        let mut paths = vec![];
+        paths.push(self.bucket_name.clone());
+        paths.extend(self.object_path.clone());
+        paths
+    }
+
     pub fn joined_object_path(&self, contains_file_name: bool) -> String {
         let mut joined = self.object_path.join("/");
         if !contains_file_name && !self.object_path.is_empty() {
