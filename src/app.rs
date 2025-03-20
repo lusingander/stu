@@ -158,7 +158,7 @@ impl App {
             );
             self.page_stack.push(object_list_page);
         } else {
-            self.tx.send(AppEventType::LoadObjects);
+            self.tx.send(AppEventType::LoadObjects(object_key));
             self.is_loading = true;
         }
     }
@@ -207,7 +207,7 @@ impl App {
                     );
                     self.page_stack.push(new_object_list_page);
                 } else {
-                    self.tx.send(AppEventType::LoadObjects);
+                    self.tx.send(AppEventType::LoadObjects(object_key));
                     self.is_loading = true;
                 }
             }
@@ -238,12 +238,7 @@ impl App {
         self.page_stack.clear();
     }
 
-    pub fn load_objects(&self) {
-        let current_object_key = match self.page_stack.current_page() {
-            page @ Page::BucketList(_) => page.as_bucket_list().current_selected_object_key(),
-            page @ Page::ObjectList(_) => page.as_object_list().current_selected_object_key(),
-            page => panic!("Invalid page: {:?}", page),
-        };
+    pub fn load_objects(&self, current_object_key: ObjectKey) {
         let bucket = current_object_key.bucket_name.clone();
         let prefix = current_object_key.joined_object_path(false);
 

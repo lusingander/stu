@@ -78,8 +78,8 @@ pub async fn run<B: Backend>(
             AppEventType::CompleteReloadBuckets(result) => {
                 app.complete_reload_buckets(result);
             }
-            AppEventType::LoadObjects => {
-                app.load_objects();
+            AppEventType::LoadObjects(object_key) => {
+                app.load_objects(object_key);
             }
             AppEventType::CompleteLoadObjects(result) => {
                 app.complete_load_objects(result);

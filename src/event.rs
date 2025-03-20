@@ -22,7 +22,7 @@ pub enum AppEventType {
     CompleteInitialize(Result<CompleteInitializeResult>),
     ReloadBuckets,
     CompleteReloadBuckets(Result<CompleteReloadBucketsResult>),
-    LoadObjects,
+    LoadObjects(ObjectKey),
     CompleteLoadObjects(Result<CompleteLoadObjectsResult>),
     ReloadObjects,
     CompleteReloadObjects(Result<CompleteReloadObjectsResult>),
