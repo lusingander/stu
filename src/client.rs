@@ -285,6 +285,8 @@ impl Client {
             }
             i += 1;
         }
+        f(total_bytes); // last call
+
         writer.flush().map_err(AppError::error)?;
         Ok(())
     }
