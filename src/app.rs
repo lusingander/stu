@@ -246,29 +246,19 @@ impl App {
         let tx = self.tx.clone();
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
-            let result = CompleteLoadObjectsResult::new(items);
+            let result = CompleteLoadObjectsResult::new(items, current_object_key);
             tx.send(AppEventType::CompleteLoadObjects(result));
         });
     }
 
     pub fn complete_load_objects(&mut self, result: Result<CompleteLoadObjectsResult>) {
-        let current_object_key = match self.page_stack.current_page() {
-            page @ Page::BucketList(_) => page.as_bucket_list().current_selected_object_key(),
-            page @ Page::ObjectList(_) => page.as_object_list().current_selected_object_key(),
-            page => panic!("Invalid page: {:?}", page),
-        };
-
         match result {
-            Ok(CompleteLoadObjectsResult { items }) => {
+            Ok(CompleteLoadObjectsResult { items, object_key }) => {
                 self.app_objects
-                    .set_object_items(current_object_key.clone(), items.clone());
+                    .set_object_items(object_key.clone(), items.clone());
 
-                let object_list_page = Page::of_object_list(
-                    items,
-                    current_object_key,
-                    Rc::clone(&self.ctx),
-                    self.tx.clone(),
-                );
+                let object_list_page =
+                    Page::of_object_list(items, object_key, Rc::clone(&self.ctx), self.tx.clone());
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {
@@ -280,7 +270,7 @@ impl App {
 
     pub fn reload_objects(&self) {
         let object_list_page = self.page_stack.current_page().as_object_list();
-        let object_key = object_list_page.current_dir_object_key();
+        let object_key = object_list_page.current_dir_object_key().clone();
         let bucket = object_key.bucket_name.clone();
         let prefix = object_key.joined_object_path(false);
 
@@ -288,7 +278,7 @@ impl App {
         let tx = self.tx.clone();
         spawn(async move {
             let items = client.load_objects(&bucket, &prefix).await;
-            let result = CompleteReloadObjectsResult::new(items);
+            let result = CompleteReloadObjectsResult::new(items, object_key);
             tx.send(AppEventType::CompleteReloadObjects(result));
         });
     }

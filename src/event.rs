@@ -101,12 +101,16 @@ impl CompleteReloadBucketsResult {
 #[derive(Debug)]
 pub struct CompleteLoadObjectsResult {
     pub items: Vec<ObjectItem>,
+    pub object_key: ObjectKey,
 }
 
 impl CompleteLoadObjectsResult {
-    pub fn new(items: Result<Vec<ObjectItem>>) -> Result<CompleteLoadObjectsResult> {
+    pub fn new(
+        items: Result<Vec<ObjectItem>>,
+        object_key: ObjectKey,
+    ) -> Result<CompleteLoadObjectsResult> {
         let items = items?;
-        Ok(CompleteLoadObjectsResult { items })
+        Ok(CompleteLoadObjectsResult { items, object_key })
     }
 }
 
@@ -114,6 +118,7 @@ impl From<CompleteReloadObjectsResult> for CompleteLoadObjectsResult {
     fn from(result: CompleteReloadObjectsResult) -> Self {
         CompleteLoadObjectsResult {
             items: result.items,
+            object_key: result.object_key,
         }
     }
 }
@@ -121,12 +126,16 @@ impl From<CompleteReloadObjectsResult> for CompleteLoadObjectsResult {
 #[derive(Debug)]
 pub struct CompleteReloadObjectsResult {
     pub items: Vec<ObjectItem>,
+    pub object_key: ObjectKey,
 }
 
 impl CompleteReloadObjectsResult {
-    pub fn new(items: Result<Vec<ObjectItem>>) -> Result<CompleteReloadObjectsResult> {
+    pub fn new(
+        items: Result<Vec<ObjectItem>>,
+        object_key: ObjectKey,
+    ) -> Result<CompleteReloadObjectsResult> {
         let items = items?;
-        Ok(CompleteReloadObjectsResult { items })
+        Ok(CompleteReloadObjectsResult { items, object_key })
     }
 }
 
