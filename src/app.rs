@@ -14,7 +14,7 @@ use std::{
 use tokio::spawn;
 
 use crate::{
-    client::ClientImpl,
+    client::{Client, ClientImpl},
     color::ColorTheme,
     config::Config,
     environment::Environment,

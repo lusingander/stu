@@ -34,6 +34,40 @@ impl AddressingStyle {
     }
 }
 
+pub trait Client {
+    fn region(&self) -> &str;
+    async fn load_all_buckets(&self) -> Result<Vec<BucketItem>>;
+    async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>>;
+    async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>>;
+    async fn load_object_detail(
+        &self,
+        bucket: &str,
+        key: &str,
+        name: &str,
+        size_byte: usize,
+    ) -> Result<FileDetail>;
+    async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>>;
+    async fn download_object<W, F>(
+        &self,
+        bucket: &str,
+        key: &str,
+        version_id: Option<String>,
+        writer: &mut BufWriter<W>,
+        f: F,
+    ) -> Result<()>
+    where
+        W: std::io::Write,
+        F: Fn(usize);
+    async fn list_all_download_objects(
+        &self,
+        bucket: &str,
+        prefix: &str,
+    ) -> Result<Vec<DownloadObjectInfo>>;
+    fn open_management_console_buckets(&self) -> Result<()>;
+    fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()>;
+    fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()>;
+}
+
 pub struct ClientImpl {
     client: aws_sdk_s3::Client,
     region: String,
@@ -80,12 +114,14 @@ impl ClientImpl {
 
         ClientImpl { client, region }
     }
+}
 
-    pub fn region(&self) -> &str {
+impl Client for ClientImpl {
+    fn region(&self) -> &str {
         &self.region
     }
 
-    pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
+    async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
         let list_buckets_result = self
             .client
             .list_buckets()
@@ -119,7 +155,7 @@ impl ClientImpl {
         }
     }
 
-    pub async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>> {
+    async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>> {
         let s3_uri = build_bucket_s3_uri(name);
         let arn = build_bucket_arn(name);
         let object_url = build_bucket_url(&self.region, name);
@@ -133,7 +169,7 @@ impl ClientImpl {
         Ok(vec![bucket])
     }
 
-    pub async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
+    async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
         let mut dirs_vec: Vec<Vec<ObjectItem>> = Vec::new();
         let mut files_vec: Vec<Vec<ObjectItem>> = Vec::new();
 
@@ -174,7 +210,7 @@ impl ClientImpl {
         Ok(di.chain(fi).collect())
     }
 
-    pub async fn load_object_detail(
+    async fn load_object_detail(
         &self,
         bucket: &str,
         key: &str,
@@ -216,7 +252,7 @@ impl ClientImpl {
         })
     }
 
-    pub async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
+    async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
         let result = self
             .client
             .list_object_versions()
@@ -247,7 +283,7 @@ impl ClientImpl {
         Ok(versions)
     }
 
-    pub async fn download_object<W, F>(
+    async fn download_object<W, F>(
         &self,
         bucket: &str,
         key: &str,
@@ -291,7 +327,7 @@ impl ClientImpl {
         Ok(())
     }
 
-    pub async fn list_all_download_objects(
+    async fn list_all_download_objects(
         &self,
         bucket: &str,
         prefix: &str,
@@ -330,7 +366,7 @@ impl ClientImpl {
         Ok(objs)
     }
 
-    pub fn open_management_console_buckets(&self) -> Result<()> {
+    fn open_management_console_buckets(&self) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets?region={}",
             self.region
@@ -338,7 +374,7 @@ impl ClientImpl {
         open::that(path).map_err(AppError::error)
     }
 
-    pub fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()> {
+    fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}&prefix={}",
             bucket, self.region, prefix
@@ -346,7 +382,7 @@ impl ClientImpl {
         open::that(path).map_err(AppError::error)
     }
 
-    pub fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()> {
+    fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}",
             bucket, self.region, prefix
