@@ -24,7 +24,7 @@ use std::sync::Mutex;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
 use crate::app::{App, AppContext};
-use crate::client::Client;
+use crate::client::ClientImpl;
 use crate::color::ColorTheme;
 use crate::config::Config;
 use crate::environment::Environment;
@@ -87,7 +87,7 @@ async fn main() -> anyhow::Result<()> {
 
     initialize_debug_log(&args, &ctx.config)?;
 
-    let client = Client::new(
+    let client = ClientImpl::new(
         args.region,
         args.endpoint_url,
         args.profile,

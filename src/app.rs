@@ -14,7 +14,7 @@ use std::{
 use tokio::spawn;
 
 use crate::{
-    client::Client,
+    client::ClientImpl,
     color::ColorTheme,
     config::Config,
     environment::Environment,
@@ -60,7 +60,7 @@ pub struct App {
     pub page_stack: PageStack,
     pub mapper: UserEventMapper,
     app_objects: AppObjects,
-    client: Arc<Client>,
+    client: Arc<ClientImpl>,
     ctx: Rc<AppContext>,
     tx: Sender,
 
@@ -69,7 +69,7 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(mapper: UserEventMapper, client: Client, ctx: AppContext, tx: Sender) -> App {
+    pub fn new(mapper: UserEventMapper, client: ClientImpl, ctx: AppContext, tx: Sender) -> App {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),

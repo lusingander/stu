@@ -34,25 +34,25 @@ impl AddressingStyle {
     }
 }
 
-pub struct Client {
+pub struct ClientImpl {
     client: aws_sdk_s3::Client,
     region: String,
 }
 
-impl Debug for Client {
+impl Debug for ClientImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Client {{ region: {} }}", self.region)
     }
 }
 
-impl Client {
+impl ClientImpl {
     pub async fn new(
         region: Option<String>,
         endpoint_url: Option<String>,
         profile: Option<String>,
         default_region_fallback: String,
         addressing_style: AddressingStyle,
-    ) -> Client {
+    ) -> ClientImpl {
         let mut region_builder = region::Builder::default();
         if let Some(profile) = &profile {
             region_builder = region_builder.profile_name(profile);
@@ -78,7 +78,7 @@ impl Client {
         let client = aws_sdk_s3::Client::from_conf(config);
         let region = sdk_config.region().unwrap().to_string();
 
-        Client { client, region }
+        ClientImpl { client, region }
     }
 
     pub fn region(&self) -> &str {
