@@ -41,7 +41,7 @@ pub trait Client: Send + Sync + 'static + Debug {
     fn load_all_buckets(&self) -> impl Future<Output = Result<Vec<BucketItem>>> + Send;
     fn load_bucket(&self, name: &str) -> impl Future<Output = Result<Vec<BucketItem>>> + Send;
     fn load_objects(&self, bucket: &str, prefix: &str) -> impl Future<Output = Result<Vec<ObjectItem>>> + Send;
-    fn load_object_detail(&self, bucket: &str, key: &str, name: &str, size_byte: usize) -> impl Future<Output = Result<FileDetail>> + Send;
+    fn load_object_detail(&self, bucket: &str, key: &str, name: &str) -> impl Future<Output = Result<FileDetail>> + Send;
     fn load_object_versions(&self, bucket: &str, key: &str) -> impl Future<Output = Result<Vec<FileVersion>>> + Send;
     fn download_object<W: std::io::Write + Send, F: Fn(usize) + Send>(&self, bucket: &str, key: &str, version_id: Option<String>, writer: &mut BufWriter<W>, f: F) -> impl Future<Output = Result<()>> + Send;
     fn list_all_download_objects(&self, bucket: &str, prefix: &str) -> impl Future<Output = Result<Vec<DownloadObjectInfo>>> + Send;
@@ -209,13 +209,7 @@ impl Client for AwsSdkClient {
         Ok(di.chain(fi).collect())
     }
 
-    async fn load_object_detail(
-        &self,
-        bucket: &str,
-        key: &str,
-        name: &str,
-        size_byte: usize,
-    ) -> Result<FileDetail> {
+    async fn load_object_detail(&self, bucket: &str, key: &str, name: &str) -> Result<FileDetail> {
         let result = self
             .client
             .head_object()
@@ -226,6 +220,7 @@ impl Client for AwsSdkClient {
         let output = result.map_err(|e| AppError::new("Failed to load object detail", e))?;
 
         let name = name.to_owned();
+        let size_byte = output.content_length().unwrap() as usize;
         let last_modified = convert_datetime(output.last_modified().unwrap());
         let e_tag = output.e_tag().unwrap().trim_matches('"').to_string();
         let content_type = output.content_type().unwrap().to_string();

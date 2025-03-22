@@ -291,12 +291,8 @@ impl<C: Client> App<C> {
     pub fn load_object_detail(&self) {
         let object_list_page = self.page_stack.current_page().as_object_list();
 
-        if let ObjectItem::File {
-            name, size_byte, ..
-        } = object_list_page.current_selected_item()
-        {
+        if let ObjectItem::File { name, .. } = object_list_page.current_selected_item() {
             let name = name.clone();
-            let size_byte = *size_byte;
 
             let map_key = object_list_page.current_selected_object_key().clone();
             let bucket = map_key.bucket_name.clone();
@@ -305,9 +301,7 @@ impl<C: Client> App<C> {
             let client = self.client.clone();
             let tx = self.tx.clone();
             spawn(async move {
-                let detail = client
-                    .load_object_detail(&bucket, &key, &name, size_byte)
-                    .await;
+                let detail = client.load_object_detail(&bucket, &key, &name).await;
                 let result = CompleteLoadObjectDetailResult::new(detail, map_key);
                 tx.send(AppEventType::CompleteLoadObjectDetail(result));
             });
