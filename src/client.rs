@@ -1,5 +1,6 @@
 use std::{
     fmt::Debug,
+    future::Future,
     io::{BufWriter, Write},
 };
 
@@ -34,53 +35,51 @@ impl AddressingStyle {
     }
 }
 
-pub trait Client {
+#[rustfmt::skip]
+pub trait Client: Send + Sync + 'static + Debug {
     fn region(&self) -> &str;
-    async fn load_all_buckets(&self) -> Result<Vec<BucketItem>>;
-    async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>>;
-    async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>>;
-    async fn load_object_detail(
-        &self,
-        bucket: &str,
-        key: &str,
-        name: &str,
-        size_byte: usize,
-    ) -> Result<FileDetail>;
-    async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>>;
-    async fn download_object<W, F>(
-        &self,
-        bucket: &str,
-        key: &str,
-        version_id: Option<String>,
-        writer: &mut BufWriter<W>,
-        f: F,
-    ) -> Result<()>
-    where
-        W: std::io::Write,
-        F: Fn(usize);
-    async fn list_all_download_objects(
-        &self,
-        bucket: &str,
-        prefix: &str,
-    ) -> Result<Vec<DownloadObjectInfo>>;
+    fn load_all_buckets(&self) -> impl Future<Output = Result<Vec<BucketItem>>> + Send;
+    fn load_bucket(&self, name: &str) -> impl Future<Output = Result<Vec<BucketItem>>> + Send;
+    fn load_objects(&self, bucket: &str, prefix: &str) -> impl Future<Output = Result<Vec<ObjectItem>>> + Send;
+    fn load_object_detail(&self, bucket: &str, key: &str, name: &str, size_byte: usize) -> impl Future<Output = Result<FileDetail>> + Send;
+    fn load_object_versions(&self, bucket: &str, key: &str) -> impl Future<Output = Result<Vec<FileVersion>>> + Send;
+    fn download_object<W: std::io::Write + Send, F: Fn(usize) + Send>(&self, bucket: &str, key: &str, version_id: Option<String>, writer: &mut BufWriter<W>, f: F) -> impl Future<Output = Result<()>> + Send;
+    fn list_all_download_objects(&self, bucket: &str, prefix: &str) -> impl Future<Output = Result<Vec<DownloadObjectInfo>>> + Send;
     fn open_management_console_buckets(&self) -> Result<()>;
     fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()>;
     fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()>;
 }
 
-pub struct ClientImpl {
+pub async fn new(
+    region: Option<String>,
+    endpoint_url: Option<String>,
+    profile: Option<String>,
+    default_region_fallback: String,
+    addressing_style: AddressingStyle,
+) -> impl Client {
+    ClientImpl::new(
+        region,
+        endpoint_url,
+        profile,
+        default_region_fallback,
+        addressing_style,
+    )
+    .await
+}
+
+struct ClientImpl {
     client: aws_sdk_s3::Client,
     region: String,
 }
 
 impl Debug for ClientImpl {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Client {{ region: {} }}", self.region)
+        write!(f, "ClientImpl {{ region: {} }}", self.region)
     }
 }
 
 impl ClientImpl {
-    pub async fn new(
+    async fn new(
         region: Option<String>,
         endpoint_url: Option<String>,
         profile: Option<String>,
@@ -283,18 +282,14 @@ impl Client for ClientImpl {
         Ok(versions)
     }
 
-    async fn download_object<W, F>(
+    async fn download_object<W: std::io::Write + Send, F: Fn(usize) + Send>(
         &self,
         bucket: &str,
         key: &str,
         version_id: Option<String>,
         writer: &mut BufWriter<W>,
         f: F,
-    ) -> Result<()>
-    where
-        W: std::io::Write,
-        F: Fn(usize),
-    {
+    ) -> Result<()> {
         let mut request = self.client.get_object().bucket(bucket).key(key);
         if let Some(version_id) = version_id {
             request = request.version_id(version_id);

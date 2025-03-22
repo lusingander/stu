@@ -14,7 +14,7 @@ use std::{
 use tokio::spawn;
 
 use crate::{
-    client::{Client, ClientImpl},
+    client::Client,
     color::ColorTheme,
     config::Config,
     environment::Environment,
@@ -56,11 +56,11 @@ impl AppContext {
 }
 
 #[derive(Debug)]
-pub struct App {
+pub struct App<C: Client> {
     pub page_stack: PageStack,
     pub mapper: UserEventMapper,
     app_objects: AppObjects,
-    client: Arc<ClientImpl>,
+    client: Arc<C>,
     ctx: Rc<AppContext>,
     tx: Sender,
 
@@ -68,8 +68,8 @@ pub struct App {
     is_loading: bool,
 }
 
-impl App {
-    pub fn new(mapper: UserEventMapper, client: ClientImpl, ctx: AppContext, tx: Sender) -> App {
+impl<C: Client> App<C> {
+    pub fn new(mapper: UserEventMapper, client: C, ctx: AppContext, tx: Sender) -> App<C> {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
@@ -855,7 +855,7 @@ impl App {
     }
 }
 
-impl App {
+impl<C: Client> App<C> {
     pub fn render(&mut self, f: &mut Frame) {
         let chunks = Layout::vertical([
             Constraint::Length(self.header_height()),
