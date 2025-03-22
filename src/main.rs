@@ -23,11 +23,13 @@ use file::open_or_create_append_file;
 use std::sync::Mutex;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
-use crate::app::{App, AppContext};
-use crate::color::ColorTheme;
-use crate::config::Config;
-use crate::environment::Environment;
-use crate::keys::UserEventMapper;
+use crate::{
+    app::{App, AppContext},
+    color::ColorTheme,
+    config::Config,
+    environment::Environment,
+    keys::UserEventMapper,
+};
 
 #[derive(Debug, Clone, Copy, ValueEnum)]
 enum PathStyle {
