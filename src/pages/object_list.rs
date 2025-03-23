@@ -930,8 +930,8 @@ mod tests {
         Terminal,
     };
 
-    #[test]
-    fn test_render_without_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -977,8 +977,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_with_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_with_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -1019,8 +1019,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_with_config() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_with_config() -> std::io::Result<()> {
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -1068,8 +1068,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_sort_items() {
+    #[tokio::test]
+    async fn test_sort_items() {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let items = vec![

@@ -427,8 +427,8 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_render_without_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -469,8 +469,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_with_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_with_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -506,8 +506,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;

@@ -1,11 +1,12 @@
 use std::{
     fmt::{self, Debug, Formatter},
     path::PathBuf,
-    sync::{mpsc, Arc},
-    thread,
+    sync::Arc,
 };
 
+use futures::{FutureExt, StreamExt};
 use ratatui::crossterm::event::KeyEvent;
+use tokio::{select, spawn, sync::mpsc};
 
 use crate::{
     error::{AppError, Result},
@@ -246,7 +247,7 @@ impl CompleteSaveObjectResult {
 
 #[derive(Clone)]
 pub struct Sender {
-    tx: mpsc::Sender<AppEventType>,
+    tx: mpsc::UnboundedSender<AppEventType>,
 }
 
 impl Debug for Sender {
@@ -262,35 +263,40 @@ impl Sender {
 }
 
 pub struct Receiver {
-    rx: mpsc::Receiver<AppEventType>,
+    rx: mpsc::UnboundedReceiver<AppEventType>,
 }
 
 impl Receiver {
-    pub fn recv(&self) -> AppEventType {
-        self.rx.recv().unwrap()
+    pub async fn recv(&mut self) -> AppEventType {
+        self.rx.recv().await.unwrap()
     }
 }
 
 pub fn new() -> (Sender, Receiver) {
-    let (tx, rx) = mpsc::channel();
+    let (tx, rx) = mpsc::unbounded_channel();
     let tx = Sender { tx };
     let rx = Receiver { rx };
 
+    let mut reader = ratatui::crossterm::event::EventStream::new();
     let event_tx = tx.clone();
-    thread::spawn(move || loop {
-        match ratatui::crossterm::event::read() {
-            Ok(e) => match e {
-                ratatui::crossterm::event::Event::Key(key) => {
-                    event_tx.send(AppEventType::Key(key));
+    spawn(async move {
+        loop {
+            let event = reader.next().fuse();
+            select! {
+                _ = event_tx.tx.closed() => {
+                    break;
                 }
-                ratatui::crossterm::event::Event::Resize(_, _) => {
-                    event_tx.send(AppEventType::Resize);
+                Some(Ok(e)) = event => {
+                    match e {
+                        ratatui::crossterm::event::Event::Key(key) => {
+                            event_tx.send(AppEventType::Key(key));
+                        }
+                        ratatui::crossterm::event::Event::Resize(_, _) => {
+                            event_tx.send(AppEventType::Resize);
+                        }
+                        _ => {}
+                    }
                 }
-                _ => {}
-            },
-            Err(e) => {
-                let e = AppError::new("Failed to read event", e);
-                event_tx.send(AppEventType::NotifyError(e));
             }
         }
     });

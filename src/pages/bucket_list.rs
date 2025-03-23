@@ -745,8 +745,8 @@ mod tests {
         backend::TestBackend, buffer::Buffer, crossterm::event::KeyCode, style::Color, Terminal,
     };
 
-    #[test]
-    fn test_render_without_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -783,8 +783,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_with_scroll() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_with_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -821,8 +821,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_filter_items() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_filter_items() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -904,8 +904,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_sort_items() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_sort_items() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -959,8 +959,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_filter_items() {
+    #[tokio::test]
+    async fn test_filter_items() {
         let ctx = Rc::default();
         let (tx, _) = event::new();
 
@@ -1000,8 +1000,8 @@ mod tests {
         assert_eq!(page.view_indices, vec![0, 1, 2, 3, 4]);
     }
 
-    #[test]
-    fn test_sort_items() {
+    #[tokio::test]
+    async fn test_sort_items() {
         let ctx = Rc::default();
         let (tx, _) = event::new();
 
@@ -1053,8 +1053,8 @@ mod tests {
         assert_eq!(page.view_indices, vec![0, 1, 2, 3, 4]);
     }
 
-    #[test]
-    fn test_filter_and_sort_items() {
+    #[tokio::test]
+    async fn test_filter_and_sort_items() {
         let ctx = Rc::default();
         let (tx, _) = event::new();
 

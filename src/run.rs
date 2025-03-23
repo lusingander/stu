@@ -12,12 +12,12 @@ use crate::{
 pub async fn run<B: Backend, C: Client>(
     app: &mut App<C>,
     terminal: &mut Terminal<B>,
-    rx: Receiver,
+    mut rx: Receiver,
 ) -> anyhow::Result<()> {
     loop {
         terminal.draw(|f| app.render(f))?;
 
-        let event = rx.recv();
+        let event = rx.recv().await;
         tracing::debug!("event received: {:?}", event);
 
         match event {

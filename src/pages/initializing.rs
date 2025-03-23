@@ -47,8 +47,8 @@ mod tests {
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
-    #[test]
-    fn test_render() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;

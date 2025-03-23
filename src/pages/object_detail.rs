@@ -808,8 +808,8 @@ mod tests {
     use chrono::{DateTime, Local, NaiveDateTime};
     use ratatui::{backend::TestBackend, buffer::Buffer, crossterm::event::KeyCode, Terminal};
 
-    #[test]
-    fn test_render_detail_tab() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_detail_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -874,8 +874,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_detail_tab_with_config() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_detail_tab_with_config() -> std::io::Result<()> {
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -941,8 +941,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_version_tab() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_version_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -1009,8 +1009,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_version_tab_with_config() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_version_tab_with_config() -> std::io::Result<()> {
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
 
@@ -1078,8 +1078,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -1143,8 +1143,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
@@ -1214,8 +1214,8 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_render_copy_detail_dialog_version_tab() -> std::io::Result<()> {
+    #[tokio::test]
+    async fn test_render_copy_detail_dialog_version_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
         let (tx, _) = event::new();
         let mut terminal = setup_terminal()?;
