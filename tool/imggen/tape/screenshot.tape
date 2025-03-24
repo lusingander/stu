@@ -70,6 +70,11 @@ Type "?"
 Sleep 100ms
 Escape
 Sleep 100ms
+Type "s"
+Sleep 500ms
+Screenshot ${OUTPUT_DIR}/bucket-list-download-confirm.png
+Sleep 100ms
+Escape
 
 # open test-bucket-2
 Enter

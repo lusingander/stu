@@ -12,6 +12,8 @@ page_down = ["ctrl-f"]
 page_up = ["ctrl-b"]
 select = ["enter"]
 
+download = ["s"]
+download_as = ["shift-s"]
 filter = ["/"]
 sort = ["o"]
 copy_details = ["r"]

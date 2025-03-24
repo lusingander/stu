@@ -232,9 +232,11 @@ https://www.sublimetext.com/docs/syntax.html
 
 - Show list of buckets
   - filter/sort items
+- Download object
+  - Recursive download of selected buckets
 - Copy resource name to clipboard
 
-<img src="./img/bucket-list.png" width=400> <img src="./img/bucket-list-filter.png" width=400> <img src="./img/bucket-list-sort.png" width=400> <img src="./img/bucket-list-copy.png" width=400>
+<img src="./img/bucket-list.png" width=400> <img src="./img/bucket-list-filter.png" width=400> <img src="./img/bucket-list-sort.png" width=400> <img src="./img/bucket-list-copy.png" width=400> <img src="./img/bucket-list-download-confirm.png" width=400>
 
 ### Object list
 

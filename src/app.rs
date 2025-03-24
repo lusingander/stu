@@ -412,8 +412,15 @@ impl<C: Client> App<C> {
     ) {
         match result {
             Ok(CompleteLoadAllDownloadObjectListResult { objs, download_as }) => {
-                let object_list_page = self.page_stack.current_page_mut().as_mut_object_list();
-                object_list_page.open_download_confirm_dialog(objs, download_as);
+                match self.page_stack.current_page_mut() {
+                    Page::BucketList(page) => {
+                        page.open_download_confirm_dialog(objs, download_as);
+                    }
+                    Page::ObjectList(page) => {
+                        page.open_download_confirm_dialog(objs, download_as);
+                    }
+                    page => panic!("Invalid page: {:?}", page),
+                }
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
