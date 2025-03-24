@@ -292,6 +292,8 @@ impl BucketListPage {
                         BuildHelpsItem::new(UserEvent::BucketListFilter, "Filter bucket list"),
                         BuildHelpsItem::new(UserEvent::BucketListSort, "Sort bucket list"),
                         BuildHelpsItem::new(UserEvent::BucketListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::BucketListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::BucketListDownloadObjectAs, "Download object as"),
                         BuildHelpsItem::new(UserEvent::BucketListRefresh, "Refresh bucket list"),
                         BuildHelpsItem::new(UserEvent::BucketListManagementConsole, "Open management console in browser"),
                     ]
@@ -309,6 +311,8 @@ impl BucketListPage {
                         BuildHelpsItem::new(UserEvent::BucketListFilter, "Filter bucket list"),
                         BuildHelpsItem::new(UserEvent::BucketListSort, "Sort bucket list"),
                         BuildHelpsItem::new(UserEvent::BucketListCopyDetails, "Open copy dialog"),
+                        BuildHelpsItem::new(UserEvent::BucketListDownloadObject, "Download object"),
+                        BuildHelpsItem::new(UserEvent::BucketListDownloadObjectAs, "Download object as"),
                         BuildHelpsItem::new(UserEvent::BucketListRefresh, "Refresh bucket list"),
                         BuildHelpsItem::new(UserEvent::BucketListManagementConsole, "Open management console in browser"),
                     ]
@@ -367,22 +371,24 @@ impl BucketListPage {
                     vec![
                         BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
                         BuildShortHelpsItem::group(vec![UserEvent::BucketListDown, UserEvent::BucketListUp], "Select", 1),
-                        BuildShortHelpsItem::group(vec![UserEvent::BucketListGoToTop, UserEvent::BucketListGoToBottom], "Top/Bottom", 6),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListGoToTop, UserEvent::BucketListGoToBottom], "Top/Bottom", 7),
                         BuildShortHelpsItem::single(UserEvent::BucketListSelect, "Open", 2),
                         BuildShortHelpsItem::single(UserEvent::BucketListFilter, "Filter", 3),
                         BuildShortHelpsItem::single(UserEvent::BucketListSort, "Sort", 4),
-                        BuildShortHelpsItem::single(UserEvent::BucketListRefresh, "Refresh", 5),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListDownloadObject, UserEvent::BucketListDownloadObjectAs], "Download", 5),
+                        BuildShortHelpsItem::single(UserEvent::BucketListRefresh, "Refresh", 6),
                         BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 } else {
                     vec![
                         BuildShortHelpsItem::single(UserEvent::BucketListResetFilter, "Clear filter", 0),
                         BuildShortHelpsItem::group(vec![UserEvent::BucketListDown, UserEvent::BucketListUp], "Select", 1),
-                        BuildShortHelpsItem::group(vec![UserEvent::BucketListGoToTop, UserEvent::BucketListGoToBottom], "Top/Bottom", 6),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListGoToTop, UserEvent::BucketListGoToBottom], "Top/Bottom", 7),
                         BuildShortHelpsItem::single(UserEvent::BucketListSelect, "Open", 2),
                         BuildShortHelpsItem::single(UserEvent::BucketListFilter, "Filter", 3),
                         BuildShortHelpsItem::single(UserEvent::BucketListSort, "Sort", 4),
-                        BuildShortHelpsItem::single(UserEvent::BucketListRefresh, "Refresh", 5),
+                        BuildShortHelpsItem::group(vec![UserEvent::BucketListDownloadObject, UserEvent::BucketListDownloadObjectAs], "Download", 5),
+                        BuildShortHelpsItem::single(UserEvent::BucketListRefresh, "Refresh", 6),
                         BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                     ]
                 }
