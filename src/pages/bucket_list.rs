@@ -2,23 +2,30 @@ use std::rc::Rc;
 
 use laurier::highlight::highlight_matched_text;
 use ratatui::{
-    crossterm::event::KeyEvent, layout::Rect, style::Style, text::Line, widgets::ListItem, Frame,
+    crossterm::event::KeyEvent,
+    layout::Rect,
+    style::{Style, Stylize},
+    text::Line,
+    widgets::ListItem,
+    Frame,
 };
 
 use crate::{
     app::AppContext,
     color::ColorTheme,
     event::{AppEventType, Sender},
+    format::format_size_byte,
     handle_user_events, handle_user_events_with_default,
     help::{
         build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
         SpansWithPriority,
     },
     keys::{UserEvent, UserEventMapper},
-    object::{BucketItem, ObjectKey},
+    object::{BucketItem, DownloadObjectInfo, ObjectKey},
     widget::{
-        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, CopyDetailDialog,
-        CopyDetailDialogState, InputDialog, InputDialogState, ScrollList, ScrollListState,
+        BucketListSortDialog, BucketListSortDialogState, BucketListSortType, ConfirmDialog,
+        ConfirmDialogState, CopyDetailDialog, CopyDetailDialogState, InputDialog, InputDialogState,
+        ScrollList, ScrollListState,
     },
 };
 
@@ -45,6 +52,8 @@ enum ViewState {
     FilterDialog,
     SortDialog,
     CopyDetailDialog(Box<CopyDetailDialogState>),
+    DownloadConfirmDialog(Vec<DownloadObjectInfo>, ConfirmDialogState, bool),
+    SaveDialog(InputDialogState, Option<Vec<DownloadObjectInfo>>),
 }
 
 impl BucketListPage {
@@ -105,6 +114,12 @@ impl BucketListPage {
                     }
                     UserEvent::BucketListResetFilter if self.filter_input_state.non_empty() => {
                         self.reset_filter();
+                    }
+                    UserEvent::BucketListDownloadObject => {
+                        self.start_download();
+                    }
+                    UserEvent::BucketListDownloadObjectAs => {
+                        self.start_download_as();
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
@@ -167,6 +182,39 @@ impl BucketListPage {
                     }
                 }
             }
+            ViewState::DownloadConfirmDialog(_, ref mut state, _) => {
+                handle_user_events! { user_events =>
+                    UserEvent::SelectDialogClose => {
+                        self.close_download_confirm_dialog();
+                    }
+                    UserEvent::SelectDialogLeft | UserEvent::SelectDialogRight => {
+                        state.toggle();
+                    }
+                    UserEvent::SelectDialogSelect => {
+                        self.download();
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                }
+            }
+            ViewState::SaveDialog(ref mut state, _) => {
+                handle_user_events_with_default! { user_events =>
+                    UserEvent::InputDialogClose => {
+                        self.close_save_dialog();
+                    }
+                    UserEvent::InputDialogApply => {
+                        let input = state.input().into();
+                        self.download_as(input);
+                    }
+                    UserEvent::Help => {
+                        self.tx.send(AppEventType::OpenHelp);
+                    }
+                    => {
+                        state.handle_key_event(key_event);
+                    }
+                }
+            }
         }
     }
 
@@ -207,6 +255,23 @@ impl BucketListPage {
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
             let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
             f.render_stateful_widget(copy_detail_dialog, area, state);
+        }
+
+        if let ViewState::DownloadConfirmDialog(objs, state, _) = &mut self.view_state {
+            let message_lines = build_download_confirm_message_lines(objs, &self.ctx.theme);
+            let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(&self.ctx.theme);
+            f.render_stateful_widget(download_confirm_dialog, area, state);
+        }
+
+        if let ViewState::SaveDialog(state, _) = &mut self.view_state {
+            let save_dialog = InputDialog::default()
+                .title("Save As")
+                .max_width(40)
+                .theme(&self.ctx.theme);
+            f.render_stateful_widget(save_dialog, area, state);
+
+            let (cursor_x, cursor_y) = state.cursor();
+            f.set_cursor_position((cursor_x, cursor_y));
         }
     }
 
@@ -274,6 +339,22 @@ impl BucketListPage {
                     BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Copy selected value to clipboard"),
                 ]
             },
+            ViewState::DownloadConfirmDialog(_, _, _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogClose, "Close confirm dialog"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogRight, "Select next"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogLeft, "Select previous"),
+                    BuildHelpsItem::new(UserEvent::SelectDialogSelect, "Confirm"),
+                ]
+            }
+            ViewState::SaveDialog(_, _) => {
+                vec![
+                    BuildHelpsItem::new(UserEvent::Quit, "Quit app"),
+                    BuildHelpsItem::new(UserEvent::InputDialogClose, "Close save dialog"),
+                    BuildHelpsItem::new(UserEvent::InputDialogApply, "Download object"),
+                ]
+            }
         };
         build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
     }
@@ -329,6 +410,21 @@ impl BucketListPage {
                     BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                 ]
             },
+            ViewState::DownloadConfirmDialog(_, _, _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogClose, "Close", 2),
+                    BuildShortHelpsItem::group(vec![UserEvent::SelectDialogLeft, UserEvent::SelectDialogRight], "Select", 3),
+                    BuildShortHelpsItem::single(UserEvent::SelectDialogSelect, "Confirm", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            },
+            ViewState::SaveDialog(_, _) => {
+                vec![
+                    BuildShortHelpsItem::single(UserEvent::InputDialogClose, "Close", 2),
+                    BuildShortHelpsItem::single(UserEvent::InputDialogApply, "Download", 1),
+                    BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
+                ]
+            }
         };
         build_short_help_spans(helps, mapper)
     }
@@ -453,6 +549,19 @@ impl BucketListPage {
         }
     }
 
+    pub fn open_download_confirm_dialog(
+        &mut self,
+        objs: Vec<DownloadObjectInfo>,
+        download_as: bool,
+    ) {
+        let dialog_state = ConfirmDialogState::default();
+        self.view_state = ViewState::DownloadConfirmDialog(objs, dialog_state, download_as);
+    }
+
+    fn close_download_confirm_dialog(&mut self) {
+        self.view_state = ViewState::Default;
+    }
+
     pub fn current_selected_item(&self) -> &BucketItem {
         let i = self
             .view_indices
@@ -483,6 +592,65 @@ impl BucketListPage {
 
     fn non_empty(&self) -> bool {
         !self.view_indices.is_empty()
+    }
+
+    fn start_download(&self) {
+        let key = self.current_selected_object_key();
+        self.tx
+            .send(AppEventType::StartLoadAllDownloadObjectList(key, false));
+    }
+
+    fn start_download_as(&mut self) {
+        let key = self.current_selected_object_key();
+        self.tx
+            .send(AppEventType::StartLoadAllDownloadObjectList(key, true));
+    }
+
+    fn download(&mut self) {
+        if let ViewState::DownloadConfirmDialog(objs, state, download_as) = &mut self.view_state {
+            if state.is_ok() {
+                if *download_as {
+                    let objs = std::mem::take(objs);
+                    self.open_save_dialog(Some(objs));
+                    return;
+                }
+
+                let objs = std::mem::take(objs);
+                let key = self.current_selected_object_key();
+                let bucket = key.bucket_name.clone();
+                let dir = key.bucket_name.clone();
+                self.tx
+                    .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
+            }
+            self.close_download_confirm_dialog();
+        }
+    }
+
+    fn download_as(&mut self, input: String) {
+        if let ViewState::SaveDialog(_, objs) = &mut self.view_state {
+            let input: String = input.trim().into();
+            if input.is_empty() {
+                return;
+            }
+
+            if let Some(objs) = std::mem::take(objs) {
+                let key = self.current_selected_object_key();
+                let bucket = key.bucket_name.clone();
+                let dir = input;
+                self.tx
+                    .send(AppEventType::DownloadObjects(bucket, key, dir, objs));
+            }
+
+            self.close_save_dialog();
+        }
+    }
+
+    fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>) {
+        self.view_state = ViewState::SaveDialog(InputDialogState::default(), objs);
+    }
+
+    fn close_save_dialog(&mut self) {
+        self.view_state = ViewState::Default;
     }
 }
 
@@ -543,6 +711,23 @@ fn build_list_item<'a>(
         Style::default()
     };
     ListItem::new(line).style(style)
+}
+
+fn build_download_confirm_message_lines<'a>(
+    objs: &[DownloadObjectInfo],
+    theme: &ColorTheme,
+) -> Vec<Line<'a>> {
+    let total_size = format_size_byte(objs.iter().map(|obj| obj.size_byte).sum());
+    let total_count = objs.len();
+    let size_message = format!("{} objects (Total size: {})", total_count, total_size);
+
+    vec![
+        Line::from("You are about to download the following files:".fg(theme.fg)),
+        Line::from(""),
+        Line::from(size_message.fg(theme.fg).bold()),
+        Line::from(""),
+        Line::from("This operation may take some time. Do you want to proceed?".fg(theme.fg)),
+    ]
 }
 
 #[cfg(test)]

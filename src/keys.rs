@@ -17,6 +17,8 @@ pub enum UserEvent {
     BucketListPageDown,
     BucketListPageUp,
     BucketListSelect,
+    BucketListDownloadObject,
+    BucketListDownloadObjectAs,
     BucketListFilter,
     BucketListSort,
     BucketListCopyDetails,
@@ -127,6 +129,8 @@ fn build_user_event_mapper(
     set_event_to_map(&mut map, &bindings, "bucket_list", "page_down", UserEvent::BucketListPageDown)?;
     set_event_to_map(&mut map, &bindings, "bucket_list", "page_up", UserEvent::BucketListPageUp)?;
     set_event_to_map(&mut map, &bindings, "bucket_list", "select", UserEvent::BucketListSelect)?;
+    set_event_to_map(&mut map, &bindings, "bucket_list", "download", UserEvent::BucketListDownloadObject)?;
+    set_event_to_map(&mut map, &bindings, "bucket_list", "download_as", UserEvent::BucketListDownloadObjectAs)?;
     set_event_to_map(&mut map, &bindings, "bucket_list", "filter", UserEvent::BucketListFilter)?;
     set_event_to_map(&mut map, &bindings, "bucket_list", "sort", UserEvent::BucketListSort)?;
     set_event_to_map(&mut map, &bindings, "bucket_list", "copy_details", UserEvent::BucketListCopyDetails)?;
