@@ -181,7 +181,7 @@ fn with_empty_lines(lines: Vec<Line>) -> Vec<Line> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{event, set_cells};
+    use crate::set_cells;
 
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, text::Span, Terminal};
@@ -189,7 +189,7 @@ mod tests {
     #[tokio::test]
     async fn test_render() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -247,5 +247,10 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn sender() -> Sender {
+        let (tx, _) = tokio::sync::mpsc::unbounded_channel();
+        Sender::new(tx)
     }
 }

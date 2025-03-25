@@ -415,7 +415,7 @@ impl From<ImagePicker> for widget::ImagePicker {
 
 #[cfg(test)]
 mod tests {
-    use crate::{event, set_cells};
+    use crate::set_cells;
 
     use super::*;
     use chrono::{DateTime, Local, NaiveDateTime};
@@ -430,7 +430,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -472,7 +472,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_with_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -509,7 +509,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_save_dialog_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -561,6 +561,11 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn sender() -> Sender {
+        let (tx, _) = tokio::sync::mpsc::unbounded_channel();
+        Sender::new(tx)
     }
 
     fn file_detail() -> FileDetail {

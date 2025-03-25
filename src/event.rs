@@ -257,6 +257,10 @@ impl Debug for Sender {
 }
 
 impl Sender {
+    pub fn new(tx: mpsc::UnboundedSender<AppEventType>) -> Self {
+        Self { tx }
+    }
+
     pub fn send(&self, event: AppEventType) {
         self.tx.send(event).unwrap();
     }
@@ -267,6 +271,10 @@ pub struct Receiver {
 }
 
 impl Receiver {
+    pub fn new(rx: mpsc::UnboundedReceiver<AppEventType>) -> Self {
+        Self { rx }
+    }
+
     pub async fn recv(&mut self) -> AppEventType {
         self.rx.recv().await.unwrap()
     }
@@ -274,8 +282,8 @@ impl Receiver {
 
 pub fn new() -> (Sender, Receiver) {
     let (tx, rx) = mpsc::unbounded_channel();
-    let tx = Sender { tx };
-    let rx = Receiver { rx };
+    let tx = Sender::new(tx);
+    let rx = Receiver::new(rx);
 
     let mut reader = ratatui::crossterm::event::EventStream::new();
     let event_tx = tx.clone();

@@ -918,7 +918,7 @@ fn build_download_confirm_message_lines<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::{event, set_cells};
+    use crate::set_cells;
 
     use super::*;
     use chrono::NaiveDateTime;
@@ -933,7 +933,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_without_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -980,7 +980,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_with_scroll() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -1021,7 +1021,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_render_with_config() -> std::io::Result<()> {
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -1071,7 +1071,7 @@ mod tests {
     #[tokio::test]
     async fn test_sort_items() {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let items = vec![
             object_dir_item("rid"),
             object_file_item("file", 1024, "2024-01-02 13:01:02"),
@@ -1142,6 +1142,11 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn sender() -> Sender {
+        let (tx, _) = tokio::sync::mpsc::unbounded_channel();
+        Sender::new(tx)
     }
 
     fn parse_datetime(s: &str) -> DateTime<Local> {

@@ -42,15 +42,13 @@ impl InitializingPage {
 
 #[cfg(test)]
 mod tests {
-    use crate::event;
-
     use super::*;
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[tokio::test]
     async fn test_render() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -83,5 +81,10 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn sender() -> Sender {
+        let (tx, _) = tokio::sync::mpsc::unbounded_channel();
+        Sender::new(tx)
     }
 }

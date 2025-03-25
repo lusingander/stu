@@ -802,7 +802,7 @@ fn flatten_with_empty_lines(line_groups: Vec<Vec<Line>>) -> Vec<Line> {
 
 #[cfg(test)]
 mod tests {
-    use crate::{event, set_cells};
+    use crate::set_cells;
 
     use super::*;
     use chrono::{DateTime, Local, NaiveDateTime};
@@ -811,7 +811,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_detail_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -876,7 +876,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_render_detail_tab_with_config() -> std::io::Result<()> {
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -944,7 +944,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_version_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -1011,7 +1011,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_render_version_tab_with_config() -> std::io::Result<()> {
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -1081,7 +1081,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -1146,7 +1146,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         terminal.draw(|f| {
@@ -1217,7 +1217,7 @@ mod tests {
     #[tokio::test]
     async fn test_render_copy_detail_dialog_version_tab() -> std::io::Result<()> {
         let ctx = Rc::default();
-        let (tx, _) = event::new();
+        let tx = sender();
         let mut terminal = setup_terminal()?;
 
         let (items, file_detail, file_versions, object_key) = fixtures();
@@ -1304,6 +1304,11 @@ mod tests {
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;
         Ok(terminal)
+    }
+
+    fn sender() -> Sender {
+        let (tx, _) = tokio::sync::mpsc::unbounded_channel();
+        Sender::new(tx)
     }
 
     fn parse_datetime(s: &str) -> DateTime<Local> {
