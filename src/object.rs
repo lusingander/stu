@@ -161,6 +161,13 @@ pub struct ObjectKey {
 }
 
 impl ObjectKey {
+    pub fn bucket(name: impl Into<String>) -> Self {
+        ObjectKey {
+            bucket_name: name.into(),
+            object_path: vec![],
+        }
+    }
+
     pub fn paths(&self) -> Vec<String> {
         let mut paths = vec![];
         paths.push(self.bucket_name.clone());

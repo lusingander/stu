@@ -77,7 +77,7 @@ impl BucketListPage {
             ViewState::Default => {
                 handle_user_events! { user_events =>
                     UserEvent::BucketListSelect if self.non_empty() => {
-                        self.tx.send(AppEventType::BucketListMoveDown);
+                        self.move_down();
                     }
                     UserEvent::BucketListDown if self.non_empty() => {
                         self.select_next();
@@ -437,6 +437,11 @@ impl BucketListPage {
 }
 
 impl BucketListPage {
+    fn move_down(&self) {
+        let object_key = self.current_selected_object_key();
+        self.tx.send(AppEventType::BucketListMoveDown(object_key));
+    }
+
     fn select_next(&mut self) {
         self.list_state.select_next();
     }

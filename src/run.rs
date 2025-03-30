@@ -148,8 +148,8 @@ pub async fn run<B: Backend, C: Client>(
             AppEventType::CompleteSaveObject(result) => {
                 app.complete_save_object(result);
             }
-            AppEventType::BucketListMoveDown => {
-                app.bucket_list_move_down();
+            AppEventType::BucketListMoveDown(object_key) => {
+                app.bucket_list_move_down(object_key);
             }
             AppEventType::BucketListRefresh => {
                 app.bucket_list_refresh();

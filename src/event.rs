@@ -46,7 +46,7 @@ pub enum AppEventType {
     StartSaveObject(String, Arc<RawObject>),
     SaveObject(String, Arc<RawObject>),
     CompleteSaveObject(Result<CompleteSaveObjectResult>),
-    BucketListMoveDown,
+    BucketListMoveDown(ObjectKey),
     BucketListRefresh,
     ObjectListMoveDown,
     ObjectListMoveUp,

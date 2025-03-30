@@ -114,14 +114,15 @@ impl<C: Client> App<C> {
             }
         }
 
-        let bucket_items_len = self.app_objects.get_bucket_items().len();
+        let bucket_items = self.app_objects.get_bucket_items();
 
-        if bucket_items_len == 1 {
+        if bucket_items.len() == 1 {
             // bucket name is specified, or if there is only one bucket, open it.
             // since continues to load object, is_loading is not reset.
-            self.bucket_list_move_down();
+            let object_key = ObjectKey::bucket(&bucket_items[0].name);
+            self.bucket_list_move_down(object_key);
         } else {
-            if bucket_items_len == 0 {
+            if bucket_items.is_empty() {
                 let msg = format!("No bucket found (region: {})", self.client.region());
                 self.tx.send(AppEventType::NotifyWarn(msg));
             }
@@ -144,10 +145,7 @@ impl<C: Client> App<C> {
         self.complete_initialize(result.map(|r| r.into()));
     }
 
-    pub fn bucket_list_move_down(&mut self) {
-        let bucket_page = self.page_stack.current_page().as_bucket_list();
-        let object_key = bucket_page.current_selected_object_key();
-
+    pub fn bucket_list_move_down(&mut self, object_key: ObjectKey) {
         if let Some(current_object_items) = self.app_objects.get_object_items(&object_key) {
             // object list has been already loaded
             let object_list_page = Page::of_object_list(
