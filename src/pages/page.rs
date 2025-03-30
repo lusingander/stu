@@ -135,13 +135,6 @@ impl Page {
         Self::Help(Box::new(HelpPage::new(helps, ctx, tx)))
     }
 
-    pub fn as_bucket_list(&self) -> &BucketListPage {
-        match self {
-            Self::BucketList(page) => page,
-            page => panic!("Page is not BucketList: {:?}", page),
-        }
-    }
-
     pub fn as_object_list(&self) -> &ObjectListPage {
         match self {
             Self::ObjectList(page) => page,
