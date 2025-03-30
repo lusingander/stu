@@ -101,13 +101,15 @@ impl<C: Client> App<C> {
             Ok(CompleteInitializeResult { buckets }) => {
                 self.app_objects.set_bucket_items(buckets);
 
-                let bucket_list_page = Page::of_bucket_list(
-                    self.app_objects.get_bucket_items(),
-                    Rc::clone(&self.ctx),
-                    self.tx.clone(),
-                );
-                self.page_stack.pop(); // remove initializing page
-                self.page_stack.push(bucket_list_page);
+                if self.app_objects.get_bucket_items().len() > 1 {
+                    // if multiple buckets are found, show bucket list page
+                    let bucket_list_page = Page::of_bucket_list(
+                        self.app_objects.get_bucket_items(),
+                        Rc::clone(&self.ctx),
+                        self.tx.clone(),
+                    );
+                    self.page_stack.push(bucket_list_page);
+                }
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -213,8 +215,7 @@ impl<C: Client> App<C> {
     }
 
     pub fn object_list_move_up(&mut self) {
-        if self.page_stack.len() == 2 /* bucket list and object list */ && self.app_objects.get_bucket_items().len() == 1
-        {
+        if self.page_stack.len() == 1 && self.app_objects.get_bucket_items().len() == 1 {
             return;
         }
         self.page_stack.pop();

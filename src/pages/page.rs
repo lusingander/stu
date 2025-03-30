@@ -181,6 +181,9 @@ impl PageStack {
     }
 
     pub fn push(&mut self, page: Page) {
+        if self.stack.len() == 1 && matches!(self.stack[0], Page::Initializing(_)) {
+            self.stack.pop();
+        }
         self.stack.push(page);
     }
 
