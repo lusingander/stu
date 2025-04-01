@@ -821,6 +821,10 @@ impl<C: Client> App<C> {
         &self.notification
     }
 
+    pub fn is_showing_notification(&self) -> bool {
+        !matches!(self.notification, Notification::None)
+    }
+
     pub fn clear_notification(&mut self) {
         self.notification = Notification::None;
     }

@@ -36,10 +36,13 @@ pub async fn run<B: Backend, C: Client>(
                     continue;
                 }
 
+                if app.is_showing_notification()
+                    && matches!(app.page_stack.current_page(), Page::Initializing(_))
+                {
+                    return Ok(());
+                }
+
                 if matches!(app.current_notification(), Notification::Error(_)) {
-                    if matches!(app.page_stack.current_page(), Page::Initializing(_)) {
-                        return Ok(());
-                    }
                     // Clear message and cancel key input
                     app.clear_notification();
                     continue;
