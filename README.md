@@ -273,16 +273,17 @@ https://www.sublimetext.com/docs/syntax.html
 
 ## Troubleshooting
 
-- If you cannot connect to AWS S3, first check whether you can connect using the AWS CLI with the same settings.
-- By running with the `--debug` flag, logs will be output to `$STU_ROOT_DIR/debug.log`.
-  - Currently, application events and AWS SDK logs are output.
-  - Pressing `F12` while the application is running will dump the application state to the log.
-- When reporting a problem, please include the information like the following.
-  - Application version
-  - Operating system and version
-  - Terminal you are using
-  - Steps to reproduce the issue
-  - Relevant log files or error messages
+- If you're having trouble connecting, first verify that the AWS CLI can successfully access the same S3 resources:
+  - Are your AWS credentials configured properly?
+    - This includes checking `~/.aws/credentials`, environment variables, or any credential provider chain used by the AWS CLI.
+  - Are the necessary permissions set correctly?
+    - This includes IAM policies, roles, and bucket policies that allow operations like `s3:ListBucket` or `s3:GetObject`.
+  - If you're using an S3-compatible service:
+    - Is the `endpoint-url` set correctly?
+    - Are you using the appropriate `path-style` access setting?
+- If an error occurs, check the error log at `$STU_ROOT_DIR/error.log`.
+  - For more detailed information, run with the `--debug` flag and inspect `$STU_ROOT_DIR/debug.log`.
+    - Currently, the debug log only includes application-level events and logs from the AWS SDK.
 
 ## Contributing
 

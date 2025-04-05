@@ -16,6 +16,7 @@ When reporting a bug, please include the following information:
 
 - Application version
 - Version of the terminal emulator and the OS it's running on
+- The service you are trying to connect to (if it is an S3 compatible storage)
 - Information to reproduce the issue
 
 ### Suggesting Features
