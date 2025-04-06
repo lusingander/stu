@@ -926,7 +926,7 @@ impl<C: Client> App<C> {
                 Page::ObjectList(page) => Some(page),
                 _ => None,
             })
-            .last()
+            .next_back()
             .map(|page| page.current_dir_object_key().paths())
             .unwrap_or_default()
     }

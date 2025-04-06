@@ -50,7 +50,7 @@ pub fn digits(n: usize) -> usize {
 pub fn extension_from_file_name(filename: &str) -> String {
     filename
         .split('.')
-        .last()
+        .next_back()
         .map(|s| s.to_string())
         .unwrap_or_default()
 }
