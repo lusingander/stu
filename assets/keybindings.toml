@@ -76,7 +76,7 @@ toggle_number = ["n"]
 [help]
 close = ["?", "backspace"]
 
-# filter
+# filter, save
 [input_dialog]
 close = ["esc"]
 apply = ["enter"]
