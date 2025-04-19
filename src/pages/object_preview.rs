@@ -56,7 +56,7 @@ impl ObjectPreviewPage {
         ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
-        let encoding_dialog_state = EncodingDialogState::new(&ctx.config.preview.encodings);
+        let mut encoding_dialog_state = EncodingDialogState::new(&ctx.config.preview.encodings);
 
         let preview_type = if infer::is_image(&object.bytes) {
             let (state, msg) =
@@ -66,7 +66,7 @@ impl ObjectPreviewPage {
             }
             PreviewType::Image(state)
         } else {
-            let (state, msg) = TextPreviewState::new(
+            let (state, guessed_encoding, msg) = TextPreviewState::new(
                 &file_detail,
                 &object,
                 ctx.config.preview.highlight,
@@ -76,6 +76,7 @@ impl ObjectPreviewPage {
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }
+            encoding_dialog_state.add_guessed_encoding(guessed_encoding);
             PreviewType::Text(state)
         };
 

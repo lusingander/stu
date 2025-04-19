@@ -1,4 +1,7 @@
+use std::cmp::min;
+
 use ansi_to_tui::IntoText;
+use chardetng::EncodingDetector;
 use itsuki::zero_indexed_enum;
 use once_cell::sync::Lazy;
 use ratatui::{
@@ -28,6 +31,8 @@ use crate::{
         ScrollLinesState,
     },
 };
+
+const ENCODING_GUESS_BYTES_SIZE_LIMIT: usize = 1024 * 8;
 
 static SYNTAX_SET: Lazy<SyntaxSet> = Lazy::new(|| {
     if let Ok(path) = Config::preview_syntax_dir_path() {
@@ -259,6 +264,17 @@ impl EncodingDialogState {
         }
     }
 
+    pub fn add_guessed_encoding(&mut self, encoding: EncodingType) {
+        for (i, e) in self.encodings.iter().enumerate() {
+            if *e == encoding {
+                self.selected = i;
+                return;
+            }
+        }
+        self.encodings.push(encoding);
+        self.selected = self.encodings.len() - 1;
+    }
+
     pub fn select_next(&mut self) {
         if self.selected == self.encodings.len() - 1 {
             self.selected = 0;
@@ -371,14 +387,24 @@ impl TextPreviewState {
         object: &RawObject,
         highlight: bool,
         highlight_theme_name: &str,
-        default_encoding: EncodingType,
-    ) -> (Self, Option<String>) {
+        mut default_encoding: EncodingType,
+    ) -> (Self, EncodingType, Option<String>) {
+        let mut detector = EncodingDetector::new();
+        detector.feed(
+            &object.bytes[..min(ENCODING_GUESS_BYTES_SIZE_LIMIT, object.bytes.len())],
+            true,
+        );
+        let (encoding, ok) = detector.guess_assess(None, true);
+        if ok {
+            default_encoding = EncodingType::from(encoding.name()).unwrap();
+        }
+
         let mut state = Self {
             scroll_lines_state: ScrollLinesState::new(vec![], ScrollLinesOptions::default()),
             encoding: default_encoding,
         };
         let warn_msg = state.update_lines(file_detail, object, highlight, highlight_theme_name);
-        (state, warn_msg)
+        (state, default_encoding, warn_msg)
     }
 
     pub fn set_encoding(&mut self, encoding: EncodingType) {
