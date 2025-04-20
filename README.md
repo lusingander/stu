@@ -265,12 +265,13 @@ https://www.sublimetext.com/docs/syntax.html
 
 ### Object preview
 
-- syntax highlighting (by [syntect](https://github.com/trishume/syntect))
+- Syntax highlighting (by [syntect](https://github.com/trishume/syntect))
   - It must be enabled in the [config](#config-file-format)
-- image preview (by [ratatui-image](https://github.com/benjajaja/ratatui-image))
+- Image preview (by [ratatui-image](https://github.com/benjajaja/ratatui-image))
   - It must be enabled in the [config](#config-file-format)
-- open with encoding
+- Open with encoding
   - Available encodings can be specified in the [config](#config-file-format)
+  - Automatic encoding detection (guessing)
 
 <img src="./img/object-preview.png" width=400> <img src="./img/object-preview-image.png" width=400> <img src="./img/object-preview-encoding.png" width=400>
 
