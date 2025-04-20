@@ -21,6 +21,7 @@ arboard = "3.5.0"
 aws-config = "1.6.1"
 aws-sdk-s3 = "1.82.0"
 aws-smithy-types = "1.3.0"
+chardetng = "0.1.17"
 chrono = "0.4.40"
 clap = { version = "4.5.37", features = ["derive"] }
 console = "0.15.11"

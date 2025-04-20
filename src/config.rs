@@ -83,6 +83,8 @@ pub struct PreviewConfig {
         "utf-16le".into(),
     ])]
     pub encodings: Vec<String>,
+    #[default = false]
+    pub auto_detect_encoding: bool,
 }
 
 fn default_download_dir() -> String {
