@@ -387,24 +387,28 @@ impl TextPreviewState {
         object: &RawObject,
         highlight: bool,
         highlight_theme_name: &str,
-        mut default_encoding: EncodingType,
-    ) -> (Self, EncodingType, Option<String>) {
-        let mut detector = EncodingDetector::new();
-        detector.feed(
-            &object.bytes[..min(ENCODING_GUESS_BYTES_SIZE_LIMIT, object.bytes.len())],
-            true,
-        );
-        let (encoding, ok) = detector.guess_assess(None, true);
-        if ok {
-            default_encoding = EncodingType::from(encoding.name()).unwrap();
+        auto_detect_encoding: bool,
+        default_encoding: EncodingType,
+    ) -> (Self, Option<EncodingType>, Option<String>) {
+        let mut guessed_encoding = None;
+        if auto_detect_encoding {
+            let mut detector = EncodingDetector::new();
+            detector.feed(
+                &object.bytes[..min(ENCODING_GUESS_BYTES_SIZE_LIMIT, object.bytes.len())],
+                true,
+            );
+            let (encoding, ok) = detector.guess_assess(None, true);
+            if ok {
+                guessed_encoding = Some(EncodingType::from(encoding.name()).unwrap());
+            }
         }
 
         let mut state = Self {
             scroll_lines_state: ScrollLinesState::new(vec![], ScrollLinesOptions::default()),
-            encoding: default_encoding,
+            encoding: guessed_encoding.unwrap_or(default_encoding),
         };
         let warn_msg = state.update_lines(file_detail, object, highlight, highlight_theme_name);
-        (state, default_encoding, warn_msg)
+        (state, guessed_encoding, warn_msg)
     }
 
     pub fn set_encoding(&mut self, encoding: EncodingType) {

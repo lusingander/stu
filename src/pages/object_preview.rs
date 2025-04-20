@@ -71,12 +71,15 @@ impl ObjectPreviewPage {
                 &object,
                 ctx.config.preview.highlight,
                 &ctx.config.preview.highlight_theme,
+                ctx.config.preview.auto_detect_encoding,
                 encoding_dialog_state.selected(),
             );
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }
-            encoding_dialog_state.add_guessed_encoding(guessed_encoding);
+            if let Some(guessed_encoding) = guessed_encoding {
+                encoding_dialog_state.add_guessed_encoding(guessed_encoding);
+            }
             PreviewType::Text(state)
         };
 
