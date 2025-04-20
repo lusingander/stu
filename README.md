@@ -195,6 +195,9 @@ encodings = [
   "utf-16be",
   "utf-16le",
 ]
+# Whether to enable encoding auto detection.
+# type: bool
+auto_detect_encoding = false
 ```
 
 ### Syntax highlighting
