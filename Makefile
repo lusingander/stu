@@ -4,9 +4,15 @@ CMD_DIR=./tool
 IMGGEN_DIR=$(CMD_DIR)/imggen
 IMGDIFF_DIR=$(CMD_DIR)/imgdiff
 OUTPUT_DIR=./out
+CARGO_BUILD_FLAGS?=--features imggen
+RELEASE?=0
+ifneq ($(RELEASE), 0)
+	CARGO_BUILD_FLAGS += --release
+	STU_BIN=./target/release/stu
+endif
 
 $(STU_BIN): $(RUST_SRC)
-	cargo build --features imggen
+	cargo build $(CARGO_BUILD_FLAGS)
 
 .PHONY: demo
 demo: $(STU_BIN)
@@ -27,4 +33,4 @@ vrt: screenshot
 .PHONY: clean
 clean:
 	rm -rf $(OUTPUT_DIR)
-	
+	rm -rf target
