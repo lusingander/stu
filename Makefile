@@ -1,3 +1,7 @@
+# Note:
+#   This Makefile is only used for generating screenshots and testing them,
+#   it is not related to the development of the application itself.
+
 STU_BIN=./target/debug/stu
 RUST_SRC=./src/*.rs
 CMD_DIR=./tool
