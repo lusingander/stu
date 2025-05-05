@@ -850,7 +850,7 @@ impl<C: Client> App<C> {
         tracing::error!("AppError occurred: {:?}", e);
 
         // cause panic if save errors
-        let path = self.ctx.config.error_log_path().unwrap();
+        let path = Config::error_log_path().unwrap();
         save_error_log(path, e).unwrap();
     }
 

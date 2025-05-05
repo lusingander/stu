@@ -85,8 +85,8 @@ pub struct UserEventMapper {
 }
 
 impl UserEventMapper {
-    pub fn load(config: &Config) -> anyhow::Result<UserEventMapper> {
-        let path = config.keybindings_file_path()?;
+    pub fn load() -> anyhow::Result<UserEventMapper> {
+        let path = Config::keybindings_file_path()?;
         let custom_bindings_str = std::fs::read_to_string(path).unwrap_or_default();
         build_user_event_mapper(DEFAULT_KEYBINDINGS, &custom_bindings_str)
             .map_err(|e| anyhow::anyhow!(e))

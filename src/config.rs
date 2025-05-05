@@ -118,17 +118,17 @@ impl Config {
         dir.join(name)
     }
 
-    pub fn keybindings_file_path(&self) -> anyhow::Result<PathBuf> {
+    pub fn keybindings_file_path() -> anyhow::Result<PathBuf> {
         let dir = Config::get_app_base_dir()?;
         Ok(dir.join(KEYBINDINGS_FILE_NAME))
     }
 
-    pub fn error_log_path(&self) -> anyhow::Result<PathBuf> {
+    pub fn error_log_path() -> anyhow::Result<PathBuf> {
         let dir = Config::get_app_base_dir()?;
         Ok(dir.join(ERROR_LOG_FILE_NAME))
     }
 
-    pub fn debug_log_path(&self) -> anyhow::Result<PathBuf> {
+    pub fn debug_log_path() -> anyhow::Result<PathBuf> {
         let dir = Config::get_app_base_dir()?;
         Ok(dir.join(DEBUG_LOG_FILE_NAME))
     }

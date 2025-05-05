@@ -81,12 +81,12 @@ struct Args {
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = Config::load()?;
-    let mapper = UserEventMapper::load(&config)?;
+    let mapper = UserEventMapper::load()?;
     let env = Environment::new(&config);
     let theme = ColorTheme::default();
     let ctx = AppContext::new(config, env, theme);
 
-    initialize_debug_log(&args, &ctx.config)?;
+    initialize_debug_log(&args)?;
 
     let client = client::new(
         args.region,
@@ -108,9 +108,9 @@ async fn main() -> anyhow::Result<()> {
     ret
 }
 
-fn initialize_debug_log(args: &Args, config: &Config) -> anyhow::Result<()> {
+fn initialize_debug_log(args: &Args) -> anyhow::Result<()> {
     if args.debug {
-        let path = config.debug_log_path()?;
+        let path = Config::debug_log_path()?;
         let file = open_or_create_append_file(path)?;
         tracing_subscriber::fmt()
             .with_ansi(false)
