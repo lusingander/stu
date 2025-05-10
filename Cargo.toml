@@ -10,7 +10,7 @@ license = "MIT"
 keywords = ["s3", "aws", "cli", "tui", "terminal"]
 categories = ["command-line-utilities"]
 edition = "2021"
-rust-version = "1.81.0"
+rust-version = "1.82.0"
 
 exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 
