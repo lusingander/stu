@@ -276,7 +276,7 @@ Sleep 100ms
 Type "j"
 Sleep 100ms
 Enter
-Sleep 100ms
+Sleep 50ms
 Screenshot ${OUTPUT_DIR}/loading-object-list.png
-Sleep 5s
+Sleep 3s
 Screenshot ${OUTPUT_DIR}/object-list-many.png
