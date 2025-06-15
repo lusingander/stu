@@ -15,19 +15,34 @@ $(STU_BIN): $(RUST_SRC)
 
 .PHONY: demo
 demo: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/demo.tape -bin $(STU_BIN) -root $(STU_ROOT_DIR) -out $(OUTPUT_DIR)/demo
+	go run $(IMGGEN_DIR)/*.go generate \
+		-tape $(IMGGEN_DIR)/tape/demo.tape \
+		-bin $(STU_BIN) \
+		-root $(STU_ROOT_DIR) \
+		-out $(OUTPUT_DIR)/demo
 
 .PHONY: social-preview-demo
 social-preview-demo: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/social-preview-demo.tape -bin $(STU_BIN) -root $(STU_ROOT_DIR) -out $(OUTPUT_DIR)/social-preview-demo
+	go run $(IMGGEN_DIR)/*.go generate \
+		-tape $(IMGGEN_DIR)/tape/social-preview-demo.tape \
+		-bin $(STU_BIN) \
+		-root $(STU_ROOT_DIR) \
+		-out $(OUTPUT_DIR)/social-preview-demo
 
 .PHONY: screenshot
 screenshot: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/screenshot.tape -bin $(STU_BIN) -root $(STU_ROOT_DIR) -out $(OUTPUT_DIR)/screenshot
-	
+	go run $(IMGGEN_DIR)/*.go generate \
+		-tape $(IMGGEN_DIR)/tape/screenshot.tape \
+		-bin $(STU_BIN) \
+		-root $(STU_ROOT_DIR) \
+		-out $(OUTPUT_DIR)/screenshot
+
 .PHONY: vrt
 vrt: screenshot
-	go run $(IMGDIFF_DIR)/*.go test -base ./img -target $(OUTPUT_DIR)/screenshot -out $(OUTPUT_DIR)/diff
+	go run $(IMGDIFF_DIR)/*.go test \
+		-base ./img \
+		-target $(OUTPUT_DIR)/screenshot \
+		-out $(OUTPUT_DIR)/diff
 
 .PHONY: clean
 clean:
