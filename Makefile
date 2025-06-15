@@ -5,6 +5,7 @@
 STU_BIN=./target/debug/stu
 RUST_SRC=./src/*.rs
 CMD_DIR=./tool
+STU_ROOT_DIR=./tool/imggen/test_root_dir
 IMGGEN_DIR=$(CMD_DIR)/imggen
 IMGDIFF_DIR=$(CMD_DIR)/imgdiff
 OUTPUT_DIR=./out
@@ -14,15 +15,15 @@ $(STU_BIN): $(RUST_SRC)
 
 .PHONY: demo
 demo: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/demo.tape -out $(OUTPUT_DIR)/demo
+	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/demo.tape -bin $(STU_BIN) -root $(STU_ROOT_DIR) -out $(OUTPUT_DIR)/demo
 
 .PHONY: social-preview-demo
 social-preview-demo: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/social-preview-demo.tape -out $(OUTPUT_DIR)/social-preview-demo
+	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/social-preview-demo.tape -bin $(STU_BIN) -root $(STU_ROOT_DIR) -out $(OUTPUT_DIR)/social-preview-demo
 
 .PHONY: screenshot
 screenshot: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/screenshot.tape -out $(OUTPUT_DIR)/screenshot
+	go run $(IMGGEN_DIR)/*.go generate -tape $(IMGGEN_DIR)/tape/screenshot.tape -bin $(STU_BIN) -root $(STU_ROOT_DIR) -out $(OUTPUT_DIR)/screenshot
 	
 .PHONY: vrt
 vrt: screenshot

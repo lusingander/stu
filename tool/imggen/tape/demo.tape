@@ -15,9 +15,9 @@ Type@10ms "export AWS_ACCESS_KEY_ID=dummy"
 Enter
 Type@10ms "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
-Type@10ms "export STU_ROOT_DIR=./tool/imggen/test_root_dir"
+Type@10ms "export STU_ROOT_DIR=${STU_ROOT_DIR}"
 Enter
-Type@10ms "./target/debug/stu --endpoint-url ${ENDPOINT_URL}"
+Type@10ms "${STU_BINARY} --endpoint-url ${ENDPOINT_URL}"
 Enter
 Sleep 3s
 

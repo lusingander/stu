@@ -185,19 +185,25 @@ func generateGif(tape string) error {
 }
 
 type generateCmd struct {
-	tapefile string
-	outpath  string
+	tapefile   string
+	binPath    string
+	outpath    string
+	stuRootDir string
 }
 
 func (*generateCmd) Name() string { return "generate" }
 
 func (*generateCmd) Synopsis() string { return "Generate gif" }
 
-func (*generateCmd) Usage() string { return "generate -tape <file> -out <dir>\n" }
+func (*generateCmd) Usage() string {
+	return "generate -tape <file> -bin <file> -root <dir> -out <dir>\n"
+}
 
 func (cmd *generateCmd) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&cmd.tapefile, "tape", "", "tape file path")
+	f.StringVar(&cmd.binPath, "bin", "", "executable binary path")
 	f.StringVar(&cmd.outpath, "out", "", "output directory path")
+	f.StringVar(&cmd.stuRootDir, "root", "", "STU_ROOT_DIR directory path")
 }
 
 func (cmd *generateCmd) Execute(_ context.Context, f *flag.FlagSet, args ...any) subcommands.ExitStatus {
@@ -212,8 +218,14 @@ func (cmd *generateCmd) run() error {
 	if cmd.tapefile == "" {
 		return errors.New("tape is not set")
 	}
+	if cmd.binPath == "" {
+		return errors.New("bin is not set")
+	}
 	if cmd.outpath == "" {
 		return errors.New("out is not set")
+	}
+	if cmd.stuRootDir == "" {
+		return errors.New("root is not set")
 	}
 	if err := checkVhs(); err != nil {
 		return err
@@ -235,7 +247,9 @@ func (cmd *generateCmd) run() error {
 	}
 
 	variables := map[string]string{
+		"stu_binary":   cmd.binPath,
 		"output_dir":   cmd.outpath,
+		"stu_root_dir": cmd.stuRootDir,
 		"endpoint_url": url,
 	}
 	tape, err := readTape(cmd.tapefile, variables)
