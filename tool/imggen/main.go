@@ -101,7 +101,7 @@ func setupFixtures(s3Client *s3.Client) error {
 			if obj.multipleVersion {
 				n = 3
 			}
-			for i := 0; i < n; i++ {
+			for range n {
 				uploadObject(s3Client, bucket.name, obj.objectKey, objectMap[obj.objectType])
 			}
 		}
