@@ -71,14 +71,9 @@ func setupLocalstack() (string, func(), error) {
 }
 
 func setupS3Client(url string) (*s3.Client, error) {
-	customResolver := aws.EndpointResolverWithOptionsFunc(
-		func(service, region string, opts ...interface{}) (aws.Endpoint, error) {
-			return aws.Endpoint{URL: url, SigningRegion: region}, nil
-		})
 	cfg, err := config.LoadDefaultConfig(
 		context.TODO(),
 		config.WithRegion("us-east-1"),
-		config.WithEndpointResolverWithOptions(customResolver),
 		config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider("dummy", "dummy", "dummy"),
 		),
@@ -89,6 +84,7 @@ func setupS3Client(url string) (*s3.Client, error) {
 
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
 		o.UsePathStyle = true
+		o.BaseEndpoint = aws.String(url)
 	})
 	return client, nil
 }
