@@ -30,9 +30,9 @@ const (
 func setupLocalstack() (string, func(), error) {
 	ctx := context.Background()
 
-	container, err := localstack.RunContainer(
+	container, err := localstack.Run(
 		ctx,
-		testcontainers.WithImage(fmt.Sprintf("localstack/localstack:%s", localstackVersion)),
+		fmt.Sprintf("localstack/localstack:%s", localstackVersion),
 		testcontainers.CustomizeRequest(
 			testcontainers.GenericContainerRequest{
 				ContainerRequest: testcontainers.ContainerRequest{
