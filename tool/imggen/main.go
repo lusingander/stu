@@ -27,6 +27,12 @@ const (
 	localstackVersion = "3.2.0"
 )
 
+type Logger struct{}
+
+func (Logger) Printf(format string, v ...any) {
+	log.Printf(format, v...)
+}
+
 func setupLocalstack() (string, func(), error) {
 	ctx := context.Background()
 
@@ -38,6 +44,7 @@ func setupLocalstack() (string, func(), error) {
 				ContainerRequest: testcontainers.ContainerRequest{
 					Env: map[string]string{"SERVICES": "s3"},
 				},
+				Logger: Logger{},
 			},
 		),
 	)
