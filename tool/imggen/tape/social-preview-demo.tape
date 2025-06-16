@@ -1,7 +1,7 @@
 # For GitHub social media preview
 Set Shell zsh
 
-Output ${OUTPUT_DIR}/social-preview-demo.gif
+Output "${OUTPUT_DIR}/social-preview-demo.gif"
 
 Set FontSize 15
 Set Width 1000

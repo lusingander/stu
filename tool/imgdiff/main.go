@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"flag"
 	"fmt"
@@ -111,11 +112,11 @@ func (cmd *testCmd) run() error {
 		}
 	}
 
-	slices.SortFunc(results, func(r1, r2 result) bool {
-		if r1.tp == r2.tp {
-			return r1.file < r2.file
-		}
-		return resultTpOrder(r1.tp) < resultTpOrder(r2.tp)
+	slices.SortFunc(results, func(r1, r2 result) int {
+		return cmp.Or(
+			cmp.Compare(resultTpOrder(r1.tp), resultTpOrder(r2.tp)),
+			cmp.Compare(r1.file, r2.file),
+		)
 	})
 	for _, r := range results {
 		switch r.tp {

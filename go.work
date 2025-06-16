@@ -1,5 +1,0 @@
-go 1.21.3
-
-use ./tool/imggen
-
-use ./tool/imgdiff

@@ -2,20 +2,23 @@
 #   This Makefile is only used for generating screenshots and testing them,
 #   it is not related to the development of the application itself.
 
-STU_BIN=./target/debug/stu
-RUST_SRC=./src/*.rs
-CMD_DIR=./tool
-STU_ROOT_DIR=./tool/imggen/test_root_dir
+PROJECT_DIR := $(shell pwd)
+
+STU_BIN=$(PROJECT_DIR)/target/debug/stu
+RUST_SRC=$(PROJECT_DIR)/src/*.rs
+CMD_DIR=$(PROJECT_DIR)/tool
+STU_ROOT_DIR=$(PROJECT_DIR)/tool/imggen/test_root_dir
 IMGGEN_DIR=$(CMD_DIR)/imggen
 IMGDIFF_DIR=$(CMD_DIR)/imgdiff
-OUTPUT_DIR=./out
+OUTPUT_DIR=$(PROJECT_DIR)/out
+IMG_DIR=$(PROJECT_DIR)/img
 
 $(STU_BIN): $(RUST_SRC)
 	cargo build --features imggen
 
 .PHONY: demo
 demo: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate \
+	cd $(IMGGEN_DIR) && go run *.go generate \
 		-tape $(IMGGEN_DIR)/tape/demo.tape \
 		-bin $(STU_BIN) \
 		-root $(STU_ROOT_DIR) \
@@ -23,7 +26,7 @@ demo: $(STU_BIN)
 
 .PHONY: social-preview-demo
 social-preview-demo: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate \
+	cd $(IMGGEN_DIR) && go run *.go generate \
 		-tape $(IMGGEN_DIR)/tape/social-preview-demo.tape \
 		-bin $(STU_BIN) \
 		-root $(STU_ROOT_DIR) \
@@ -31,7 +34,7 @@ social-preview-demo: $(STU_BIN)
 
 .PHONY: screenshot
 screenshot: $(STU_BIN)
-	go run $(IMGGEN_DIR)/*.go generate \
+	cd $(IMGGEN_DIR) && go run *.go generate \
 		-tape $(IMGGEN_DIR)/tape/screenshot.tape \
 		-bin $(STU_BIN) \
 		-root $(STU_ROOT_DIR) \
@@ -39,8 +42,8 @@ screenshot: $(STU_BIN)
 
 .PHONY: vrt
 vrt: screenshot
-	go run $(IMGDIFF_DIR)/*.go test \
-		-base ./img \
+	cd $(IMGDIFF_DIR) && go run *.go test \
+		-base $(IMG_DIR) \
 		-target $(OUTPUT_DIR)/screenshot \
 		-out $(OUTPUT_DIR)/diff
 

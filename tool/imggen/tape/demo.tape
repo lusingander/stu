@@ -1,6 +1,6 @@
 Set Shell zsh
 
-Output ${OUTPUT_DIR}/demo.gif
+Output "${OUTPUT_DIR}/demo.gif"
 
 Set FontSize 15
 Set Width 1000
