@@ -99,8 +99,8 @@ func imageJpgObject() []byte {
 func dummyImage() image.Image {
 	w, h := 600, 400
 	img := image.NewRGBA(image.Rect(0, 0, w, h))
-	for x := 0; x < w; x++ {
-		for y := 0; y < h; y++ {
+	for x := range w {
+		for y := range h {
 			var c color.Color
 			if x < w/2 && y < h/2 {
 				c = color.RGBA{R: 128, G: 128, B: 0, A: 100}
@@ -276,7 +276,7 @@ func variousContentTypeObjects() []object {
 func largeNumberObjects() []object {
 	size := 3000
 	objs := make([]object, size)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		objs[i] = object{
 			objectKey:  fmt.Sprintf("file-%05d.txt", i),
 			objectType: smallText,
