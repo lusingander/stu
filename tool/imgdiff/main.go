@@ -11,12 +11,12 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/google/subcommands"
 	"github.com/logrusorgru/aurora/v4"
 	"github.com/n7olkachev/imgdiff/pkg/imgdiff"
-	"golang.org/x/exp/slices"
 )
 
 type testCmd struct {

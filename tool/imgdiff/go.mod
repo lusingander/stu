@@ -8,5 +8,4 @@ require (
 	github.com/google/subcommands v1.2.0
 	github.com/logrusorgru/aurora/v4 v4.0.0
 	github.com/n7olkachev/imgdiff v1.0.2
-	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
 )
