@@ -47,6 +47,10 @@ vrt: screenshot
 		-target $(OUTPUT_DIR)/screenshot \
 		-out $(OUTPUT_DIR)/diff
 
+.PHONY: update-img
+update-img:
+	mv $(OUTPUT_DIR)/screenshot/*.png $(IMG_DIR)
+
 .PHONY: clean
 clean:
 	rm -rf $(OUTPUT_DIR)
