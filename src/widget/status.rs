@@ -83,7 +83,7 @@ impl Status {
             StatusType::Success(msg) => Line::from(msg).fg(self.color.success).bold(),
             StatusType::Warn(msg) => Line::from(msg).fg(self.color.warn).bold(),
             StatusType::Error(msg) => {
-                let msg = format!("ERROR: {}", msg);
+                let msg = format!("ERROR: {msg}");
                 Line::from(msg).fg(self.color.error).bold()
             }
         }

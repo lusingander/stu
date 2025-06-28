@@ -342,8 +342,8 @@ impl CopyDetailDialog {
         (name, value): (String, String),
     ) -> ListItem<'a> {
         let item = ListItem::new(vec![
-            Line::from(format!("{}:", name).add_modifier(Modifier::BOLD)),
-            Line::from(format!("  {}", value)),
+            Line::from(format!("{name}:").add_modifier(Modifier::BOLD)),
+            Line::from(format!("  {value}")),
         ]);
         if i == selected {
             item.fg(self.color.selected)

@@ -474,7 +474,7 @@ fn build_highlighted_lines(
     let syntax = SYNTAX_SET
         .find_syntax_by_extension(&extension)
         .ok_or_else(|| {
-            let msg = format!("No syntax definition found for `.{}`", extension);
+            let msg = format!("No syntax definition found for `.{extension}`");
             Some(msg)
         })?;
     let theme = &DEFAULT_THEME_SET
@@ -482,7 +482,7 @@ fn build_highlighted_lines(
         .get(highlight_theme_name)
         .or_else(|| USER_THEME_SET.themes.get(highlight_theme_name))
         .ok_or_else(|| {
-            let msg = format!("Theme `{}` not found", highlight_theme_name);
+            let msg = format!("Theme `{highlight_theme_name}` not found");
             Some(msg)
         })?;
     let mut h = HighlightLines::new(syntax, theme);

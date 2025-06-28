@@ -186,7 +186,7 @@ impl Client for AwsSdkClient {
 
             if let Err(SdkError::ServiceError(ref e)) = result {
                 if let ListObjectsV2Error::NoSuchBucket(_) = e.err() {
-                    return Err(AppError::msg(format!("Bucket '{}' not found", bucket)));
+                    return Err(AppError::msg(format!("Bucket '{bucket}' not found")));
                 }
             }
 
@@ -461,25 +461,25 @@ fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono:
 }
 
 fn build_bucket_s3_uri(bucket: &str) -> String {
-    format!("s3://{}/", bucket)
+    format!("s3://{bucket}/")
 }
 
 fn build_bucket_arn(bucket: &str) -> String {
-    format!("arn:aws:s3:::{}", bucket)
+    format!("arn:aws:s3:::{bucket}")
 }
 
 fn build_bucket_url(region: &str, bucket: &str) -> String {
-    format!("https://{}.s3.{}.amazonaws.com/", bucket, region)
+    format!("https://{bucket}.s3.{region}.amazonaws.com/")
 }
 
 fn build_object_s3_uri(bucket: &str, key: &str) -> String {
-    format!("s3://{}/{}", bucket, key)
+    format!("s3://{bucket}/{key}")
 }
 
 fn build_object_arn(bucket: &str, key: &str) -> String {
-    format!("arn:aws:s3:::{}/{}", bucket, key)
+    format!("arn:aws:s3:::{bucket}/{key}")
 }
 
 fn build_object_url(region: &str, bucket: &str, key: &str) -> String {
-    format!("https://{}.s3.{}.amazonaws.com/{}", bucket, region, key)
+    format!("https://{bucket}.s3.{region}.amazonaws.com/{key}")
 }

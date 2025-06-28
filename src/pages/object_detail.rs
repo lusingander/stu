@@ -523,13 +523,13 @@ fn build_list_item_from_object_item<'a>(
 
 fn format_dir_item(name: &str, width: u16) -> String {
     let name_w: usize = (width as usize) - 2 /* spaces */ - 2 /* border */;
-    let name = format!("{}/", name);
-    format!(" {:<name_w$} ", name, name_w = name_w)
+    let name = format!("{name}/");
+    format!(" {name:<name_w$} ")
 }
 
 fn format_file_item(name: &str, width: u16) -> String {
     let name_w: usize = (width as usize) - 2 /* spaces */ - 4 /* border */;
-    format!(" {:<name_w$} ", name, name_w = name_w)
+    format!(" {name:<name_w$} ")
 }
 
 fn build_tabs(tab: &Tab, theme: &ColorTheme) -> Tabs<'static> {
@@ -563,7 +563,7 @@ fn build_detail_content_lines(detail: &FileDetail, ui_config: &UiConfig) -> Vec<
         } else {
             let lines = vec![
                 Line::from(label.add_modifier(Modifier::BOLD)),
-                Line::from(format!(" {}", value)),
+                Line::from(format!(" {value}")),
             ];
             Some(lines)
         }

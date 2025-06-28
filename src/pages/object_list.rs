@@ -830,7 +830,7 @@ fn build_object_dir_line<'a>(
     width: u16,
     theme: &ColorTheme,
 ) -> Line<'a> {
-    let name = format!("{}/", name);
+    let name = format!("{name}/");
     let name_w = (width as usize) - 2 /* spaces */ - 4 /* border + pad */ - 1 /* slash */;
     let pad_name =
         console::pad_str(&name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
@@ -905,7 +905,7 @@ fn build_download_confirm_message_lines<'a>(
 ) -> Vec<Line<'a>> {
     let total_size = format_size_byte(objs.iter().map(|obj| obj.size_byte).sum());
     let total_count = objs.len();
-    let size_message = format!("{} objects (Total size: {})", total_count, total_size);
+    let size_message = format!("{total_count} objects (Total size: {total_size})");
 
     vec![
         Line::from("You are about to download the following files:".fg(theme.fg)),

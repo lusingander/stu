@@ -225,9 +225,9 @@ fn deserialize_and_merge_bindings(
     custom_bindings_str: &str,
 ) -> Result<KeyMap, String> {
     let default_bindings: KeyMap = toml::from_str(default_bindings_str)
-        .map_err(|e| format!("failed to parse default bindings: {}", e))?;
+        .map_err(|e| format!("failed to parse default bindings: {e}"))?;
     let mut custom_bindings: KeyMap = toml::from_str(custom_bindings_str)
-        .map_err(|e| format!("failed to parse custom bindings: {}", e))?;
+        .map_err(|e| format!("failed to parse custom bindings: {e}"))?;
 
     let mut bindings: KeyMap = IndexMap::new();
     for (section, mut default_section_bindings) in default_bindings {

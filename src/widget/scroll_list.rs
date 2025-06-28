@@ -193,7 +193,7 @@ mod tests {
         let theme = ColorTheme::default();
         let mut state = ScrollListState::new(5);
         let items: Vec<ListItem> = (1..=5)
-            .map(|i| ListItem::new(vec![Line::from(format!("Item {}", i))]))
+            .map(|i| ListItem::new(vec![Line::from(format!("Item {i}"))]))
             .collect();
         let scroll_list = ScrollList::new(items).theme(&theme);
 
@@ -293,7 +293,7 @@ mod tests {
     fn render_scroll_list(state: &mut ScrollListState) -> Buffer {
         let show_item_count = 10_u16;
         let items: Vec<ListItem> = (1..=20)
-            .map(|i| ListItem::new(vec![Line::from(format!("Item {}", i))]))
+            .map(|i| ListItem::new(vec![Line::from(format!("Item {i}"))]))
             .skip(state.offset)
             .take(show_item_count as usize)
             .collect();

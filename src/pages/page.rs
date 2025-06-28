@@ -138,28 +138,28 @@ impl Page {
     pub fn as_object_list(&self) -> &ObjectListPage {
         match self {
             Self::ObjectList(page) => page,
-            page => panic!("Page is not ObjectList: {:?}", page),
+            page => panic!("Page is not ObjectList: {page:?}"),
         }
     }
 
     pub fn as_object_detail(&self) -> &ObjectDetailPage {
         match self {
             Self::ObjectDetail(page) => page,
-            page => panic!("Page is not ObjectDetail: {:?}", page),
+            page => panic!("Page is not ObjectDetail: {page:?}"),
         }
     }
 
     pub fn as_mut_object_detail(&mut self) -> &mut ObjectDetailPage {
         match self {
             Self::ObjectDetail(page) => &mut *page,
-            page => panic!("Page is not ObjectDetail: {:?}", page),
+            page => panic!("Page is not ObjectDetail: {page:?}"),
         }
     }
 
     pub fn as_mut_object_preview(&mut self) -> &mut ObjectPreviewPage {
         match self {
             Self::ObjectPreview(page) => &mut *page,
-            page => panic!("Page is not ObjectPreview: {:?}", page),
+            page => panic!("Page is not ObjectPreview: {page:?}"),
         }
     }
 }

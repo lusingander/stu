@@ -418,7 +418,7 @@ impl<C: Client> App<C> {
                     Page::ObjectList(page) => {
                         page.open_download_confirm_dialog(objs, download_as);
                     }
-                    page => panic!("Invalid page: {:?}", page),
+                    page => panic!("Invalid page: {page:?}"),
                 }
             }
             Err(e) => {
@@ -622,8 +622,7 @@ impl<C: Client> App<C> {
 
                         let cur_size_s = humansize::format_size_i(cur_size, format_opt);
                         let msg = format!(
-                            "{}/{} objects downloaded ({} out of {} total)",
-                            cur_count, total_count, cur_size_s, total_size_s
+                            "{cur_count}/{total_count} objects downloaded ({cur_size_s} out of {total_size_s} total)"
                         );
                         tx.send(AppEventType::NotifyInfo(msg));
                     }
@@ -765,7 +764,7 @@ impl<C: Client> App<C> {
         let f = move |current| {
             let percent = (current * 100) / total_size;
             let cur_s = humansize::format_size_i(current, opt);
-            let msg = format!("{:3}% downloaded ({} out of {})", percent, cur_s, total_s);
+            let msg = format!("{percent:3}% downloaded ({cur_s} out of {total_s})");
             tx.send(AppEventType::NotifyInfo(msg));
         };
         Box::new(f)
@@ -804,7 +803,7 @@ impl<C: Client> App<C> {
     pub fn copy_to_clipboard(&self, name: String, value: String) {
         match copy_to_clipboard(value) {
             Ok(_) => {
-                let msg = format!("Copied '{}' to clipboard successfully", name);
+                let msg = format!("Copied '{name}' to clipboard successfully");
                 self.tx.send(AppEventType::NotifySuccess(msg));
             }
             Err(e) => {
