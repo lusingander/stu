@@ -18,8 +18,8 @@ exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 ansi-to-tui = "7.0.0"
 anyhow = "1.0.98"
 arboard = { version = "3.5.0", features = ["wayland-data-control"] }
-aws-config = "1.6.3"
-aws-sdk-s3 = "1.90.0"
+aws-config = "1.8.0"
+aws-sdk-s3 = "1.94.0"
 aws-smithy-types = "1.3.0"
 chardetng = "0.1.17"
 chrono = "0.4.41"
