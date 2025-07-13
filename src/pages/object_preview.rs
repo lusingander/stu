@@ -336,7 +336,8 @@ impl ObjectPreviewPage {
 
 impl ObjectPreviewPage {
     fn open_save_dialog(&mut self) {
-        self.view_state = ViewState::SaveDialog(InputDialogState::default());
+        let name = self.file_detail.name.clone();
+        self.view_state = ViewState::SaveDialog(InputDialogState::new(name));
     }
 
     fn close_save_dialog(&mut self) {
@@ -537,7 +538,7 @@ mod tests {
             "│ 1 Hello, world!            │",
             "│ 2 This is a test file.     │",
             "│ ╭Save As─────────────────╮ │",
-            "│ │                        │ │",
+            "│ │ file.txt               │ │",
             "│ ╰────────────────────────╯ │",
             "│                            │",
             "│                            │",

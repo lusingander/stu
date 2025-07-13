@@ -622,7 +622,9 @@ impl BucketListPage {
             if state.is_ok() {
                 if *download_as {
                     let objs = std::mem::take(objs);
-                    self.open_save_dialog(Some(objs));
+                    let key = self.current_selected_object_key();
+                    let bucket = key.bucket_name.clone();
+                    self.open_save_dialog(Some(objs), bucket);
                     return;
                 }
 
@@ -656,8 +658,8 @@ impl BucketListPage {
         }
     }
 
-    fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>) {
-        self.view_state = ViewState::SaveDialog(InputDialogState::default(), objs);
+    fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>, bucket: String) {
+        self.view_state = ViewState::SaveDialog(InputDialogState::new(bucket), objs);
     }
 
     fn close_save_dialog(&mut self) {

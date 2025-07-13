@@ -381,7 +381,8 @@ impl ObjectDetailPage {
     }
 
     fn open_save_dialog(&mut self) {
-        self.view_state = ViewState::SaveDialog(InputDialogState::default());
+        let name = self.file_detail.name.clone();
+        self.view_state = ViewState::SaveDialog(InputDialogState::new(name));
     }
 
     fn close_save_dialog(&mut self) {
@@ -1111,7 +1112,7 @@ mod tests {
             "│                            ││ Size:                      │",
             "│                            ││  1.01 KiB                  │",
             "│         ╭Save As───────────────────────────────╮         │",
-            "│         │                                      │         │",
+            "│         │ file1                                │         │",
             "│         ╰──────────────────────────────────────╯ 2       │",
             "│                            ││                            │",
             "│                            ││ ETag:                      │",
