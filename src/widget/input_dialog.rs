@@ -19,6 +19,14 @@ pub struct InputDialogState {
 }
 
 impl InputDialogState {
+    pub fn new(default_input: String) -> Self {
+        let input = Input::new(default_input);
+        InputDialogState {
+            input,
+            ..Default::default()
+        }
+    }
+
     pub fn input(&self) -> &str {
         self.input.value()
     }
@@ -189,5 +197,36 @@ mod tests {
 
         assert_eq!(buf, expected);
         assert_eq!(state.cursor(), (15, 4));
+    }
+
+    #[test]
+    fn test_render_input_dialog_with_default_input() {
+        let theme = ColorTheme::default();
+        let mut state = InputDialogState::new("xyz".into());
+        let save_dialog = InputDialog::default().theme(&theme);
+
+        for c in "abc".chars() {
+            state.handle_key_event(KeyEvent::from(KeyCode::Char(c)));
+        }
+
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 10));
+        save_dialog.render(buf.area, &mut buf, &mut state);
+
+        #[rustfmt::skip]
+        let expected = Buffer::with_lines([
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "  ╭──────────────────────────────────╮  ",
+            "  │ xyzabc                           │  ",
+            "  ╰──────────────────────────────────╯  ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+            "                                        ",
+        ]);
+
+        assert_eq!(buf, expected);
+        assert_eq!(state.cursor(), (10, 4));
     }
 }
