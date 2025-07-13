@@ -638,8 +638,8 @@ impl ObjectListPage {
                 self.tx
                     .send(AppEventType::StartLoadAllDownloadObjectList(key, true));
             }
-            ObjectItem::File { .. } => {
-                self.open_save_dialog(None);
+            ObjectItem::File { name, .. } => {
+                self.open_save_dialog(None, name.clone());
             }
         }
     }
@@ -649,7 +649,8 @@ impl ObjectListPage {
             if state.is_ok() {
                 if *download_as {
                     let objs = std::mem::take(objs);
-                    self.open_save_dialog(Some(objs));
+                    let dir = self.current_selected_item().name().to_string();
+                    self.open_save_dialog(Some(objs), dir);
                     return;
                 }
 
@@ -692,8 +693,8 @@ impl ObjectListPage {
         }
     }
 
-    fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>) {
-        self.view_state = ViewState::SaveDialog(InputDialogState::default(), objs);
+    fn open_save_dialog(&mut self, objs: Option<Vec<DownloadObjectInfo>>, name: String) {
+        self.view_state = ViewState::SaveDialog(InputDialogState::new(name), objs);
     }
 
     fn close_save_dialog(&mut self) {
