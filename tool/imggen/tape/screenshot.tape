@@ -163,6 +163,8 @@ Sleep 500ms
 
 Type "S"
 Sleep 100ms
+Ctrl+U
+Sleep 100ms
 Type@10ms "download_file.txt"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-download.png"
@@ -197,6 +199,8 @@ Sleep 1s
 Screenshot "${OUTPUT_DIR}/object-list-download-confirm.png"
 Sleep 500ms
 Enter
+Sleep 100ms
+Ctrl+W
 Sleep 100ms
 Type "baaar"
 Sleep 100ms

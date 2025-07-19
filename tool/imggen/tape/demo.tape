@@ -122,6 +122,8 @@ Type "f"
 Sleep 500ms
 Type "S"
 Sleep 500ms
+Ctrl+U
+Sleep 100ms
 Type@100ms "object.rs"
 Sleep 500ms
 Enter
