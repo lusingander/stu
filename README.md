@@ -28,13 +28,19 @@ Check out the [Features / Screenshots](#features--screenshots) section for more 
 $ cargo install --locked stu
 ```
 
-### [Homebrew (macOS)](https://github.com/lusingander/homebrew-tap/blob/master/stu.rb)
+### [Homebrew](https://formulae.brew.sh/formula/stu)
+
+```
+$ brew install stu
+```
+
+or from [tap](https://github.com/lusingander/homebrew-tap/blob/master/stu.rb):
 
 ```
 $ brew install lusingander/tap/stu
 ```
 
-### [AUR (Arch Linux)](https://aur.archlinux.org/packages/stu)
+### [AUR](https://aur.archlinux.org/packages/stu)
 
 ```
 $ paru -S stu
