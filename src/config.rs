@@ -107,7 +107,6 @@ impl Config {
         if path.exists() {
             let content = std::fs::read_to_string(path)?;
             let mut config: OptionalConfig = toml::from_str(&content)?;
-
             if let Some(ref mut download_dir) = config.download_dir {
                 *download_dir = Self::expand_env_vars(download_dir)?;
             }
@@ -119,18 +118,16 @@ impl Config {
 
     fn expand_env_vars(path: &str) -> anyhow::Result<String> {
         let mut result = path.to_string();
-
         while let Some(start) = result.find('$') {
             let remaining = &result[start + 1..];
-            let end = remaining.find(|c: char| !c.is_alphanumeric() && c != '_')
+            let end = remaining
+                .find(|c: char| !c.is_alphanumeric() && c != '_')
                 .unwrap_or(remaining.len());
-
             let var_name = &remaining[..end];
             let var_value = match var_name {
                 "STU_ROOT_DIR" => Config::get_app_base_dir()?.to_string_lossy().to_string(),
                 _ => env::var(var_name).unwrap_or_else(|_| format!("${}", var_name)),
             };
-
             result.replace_range(start..start + 1 + end, &var_value);
         }
 
