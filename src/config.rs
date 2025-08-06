@@ -169,7 +169,7 @@ impl Config {
             Ok(dir) => Ok(PathBuf::from(dir)),
             Err(_) => {
                 // default
-                dirs::home_dir()
+                env::home_dir()
                     .map(|home| home.join(APP_BASE_DIR))
                     .context("Failed to load home directory")
             }
