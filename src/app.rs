@@ -97,7 +97,7 @@ impl<C: Client> App<C> {
     }
 
     pub fn complete_initialize(&mut self, result: Result<CompleteInitializeResult>) {
-        let object_path: Vec<String> = match result {
+        let object_path_prefix: Option<String> = match result {
             Ok(CompleteInitializeResult { buckets, prefix }) => {
                 self.app_objects.set_bucket_items(buckets);
 
@@ -111,13 +111,6 @@ impl<C: Client> App<C> {
                     self.page_stack.push(bucket_list_page);
                 }
                 prefix
-                    .map(|p| {
-                        p.split('/')
-                            .filter(|s| !s.is_empty())
-                            .map(String::from)
-                            .collect()
-                    })
-                    .unwrap_or_default()
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
@@ -132,13 +125,10 @@ impl<C: Client> App<C> {
             // bucket name is specified, or if there is only one bucket, open it.
             // and if prefix is specified, open object list page with it.
             // since continues to load object, is_loading is not reset.
-            let object_key = if object_path.is_empty() {
-                ObjectKey::bucket(&bucket_items[0].name)
+            let object_key = if let Some(prefix) = object_path_prefix {
+                ObjectKey::with_prefix(bucket_items[0].name.clone(), prefix)
             } else {
-                ObjectKey {
-                    bucket_name: bucket_items[0].name.clone(),
-                    object_path,
-                }
+                ObjectKey::bucket(&bucket_items[0].name)
             };
             self.bucket_list_move_down(object_key);
         } else {

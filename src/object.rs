@@ -168,6 +168,18 @@ impl ObjectKey {
         }
     }
 
+    pub fn with_prefix(name: impl Into<String>, prefix: String) -> Self {
+        let object_path = prefix
+            .split('/')
+            .filter(|s| !s.is_empty())
+            .map(String::from)
+            .collect();
+        ObjectKey {
+            bucket_name: name.into(),
+            object_path,
+        }
+    }
+
     pub fn paths(&self) -> Vec<String> {
         let mut paths = vec![];
         paths.push(self.bucket_name.clone());
