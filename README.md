@@ -74,6 +74,7 @@ Options:
   -e, --endpoint-url <URL>  AWS endpoint url
   -p, --profile <NAME>      AWS profile name
   -b, --bucket <NAME>       Target bucket name
+  -P, --prefix <PREFIX>     Prefix for object keys
       --path-style <TYPE>   Path style type for object paths [default: auto] [possible values: auto, always, never]
       --debug               Enable debug logs
   -h, --help                Print help
@@ -88,6 +89,9 @@ $ stu --profile foo-profile
 
 # Show only the specified bucket objects
 $ stu --bucket bar-bucket
+
+# Show only objects under the specified prefix
+$ stu --bucket baz-bucket --prefix path/to/object/
 
 # Connect to localstack, minio, etc.
 $ stu --endpoint-url http://localhost:12345

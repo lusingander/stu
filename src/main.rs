@@ -68,6 +68,10 @@ struct Args {
     #[arg(short, long, value_name = "NAME")]
     bucket: Option<String>,
 
+    /// Prefix for object keys
+    #[arg(short = 'P', long, value_name = "PREFIX", requires = "bucket")]
+    prefix: Option<String>,
+
     /// Path style type for object paths
     #[arg(long, value_name = "TYPE", default_value = "auto")]
     path_style: PathStyle,
@@ -99,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
 
     let (tx, rx) = event::new();
     let mut app = App::new(mapper, client, ctx, tx.clone());
-    tx.send(AppEventType::Initialize(args.bucket));
+    tx.send(AppEventType::Initialize(args.bucket, args.prefix));
 
     let mut terminal = ratatui::try_init()?;
     let ret = run::run(&mut app, &mut terminal, rx).await;

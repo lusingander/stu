@@ -70,8 +70,8 @@ pub async fn run<B: Backend, C: Client>(
             AppEventType::Resize => {
                 // do nothing (only trigger redraw)
             }
-            AppEventType::Initialize(bucket) => {
-                app.initialize(bucket);
+            AppEventType::Initialize(bucket, prefix) => {
+                app.initialize(bucket, prefix);
             }
             AppEventType::CompleteInitialize(result) => {
                 app.complete_initialize(result);
