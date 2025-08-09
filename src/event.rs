@@ -19,7 +19,7 @@ use crate::{
 pub enum AppEventType {
     Key(KeyEvent),
     Resize,
-    Initialize(Option<String>),
+    Initialize(Option<String>, Option<String>),
     CompleteInitialize(Result<CompleteInitializeResult>),
     ReloadBuckets,
     CompleteReloadBuckets(Result<CompleteReloadBucketsResult>),
@@ -70,12 +70,16 @@ pub enum AppEventType {
 #[derive(Debug)]
 pub struct CompleteInitializeResult {
     pub buckets: Vec<BucketItem>,
+    pub prefix: Option<String>,
 }
 
 impl CompleteInitializeResult {
-    pub fn new(buckets: Result<Vec<BucketItem>>) -> Result<CompleteInitializeResult> {
+    pub fn new(
+        buckets: Result<Vec<BucketItem>>,
+        prefix: Option<String>,
+    ) -> Result<CompleteInitializeResult> {
         let buckets = buckets?;
-        Ok(CompleteInitializeResult { buckets })
+        Ok(CompleteInitializeResult { buckets, prefix })
     }
 }
 
@@ -83,6 +87,7 @@ impl From<CompleteReloadBucketsResult> for CompleteInitializeResult {
     fn from(result: CompleteReloadBucketsResult) -> Self {
         CompleteInitializeResult {
             buckets: result.buckets,
+            prefix: None,
         }
     }
 }

@@ -83,7 +83,7 @@ impl<C: Client> App<C> {
         }
     }
 
-    pub fn initialize(&mut self, bucket: Option<String>) {
+    pub fn initialize(&mut self, bucket: Option<String>, prefix: Option<String>) {
         let client = self.client.clone();
         let tx = self.tx.clone();
         spawn(async move {
@@ -91,14 +91,14 @@ impl<C: Client> App<C> {
                 Some(name) => client.load_bucket(&name).await,
                 None => client.load_all_buckets().await,
             };
-            let result = CompleteInitializeResult::new(buckets);
+            let result = CompleteInitializeResult::new(buckets, prefix);
             tx.send(AppEventType::CompleteInitialize(result));
         });
     }
 
     pub fn complete_initialize(&mut self, result: Result<CompleteInitializeResult>) {
-        match result {
-            Ok(CompleteInitializeResult { buckets }) => {
+        let object_path: Vec<String> = match result {
+            Ok(CompleteInitializeResult { buckets, prefix }) => {
                 self.app_objects.set_bucket_items(buckets);
 
                 if self.app_objects.get_bucket_items().len() > 1 {
@@ -110,20 +110,31 @@ impl<C: Client> App<C> {
                     );
                     self.page_stack.push(bucket_list_page);
                 }
+                prefix
+                    .map(|p| p.split('/').map(String::from).collect())
+                    .unwrap_or_default()
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
                 self.is_loading = false;
                 return;
             }
-        }
+        };
 
         let bucket_items = self.app_objects.get_bucket_items();
 
         if bucket_items.len() == 1 {
             // bucket name is specified, or if there is only one bucket, open it.
+            // and if prefix is specified, open object list page with it.
             // since continues to load object, is_loading is not reset.
-            let object_key = ObjectKey::bucket(&bucket_items[0].name);
+            let object_key = if object_path.is_empty() {
+                ObjectKey::bucket(&bucket_items[0].name)
+            } else {
+                ObjectKey {
+                    bucket_name: bucket_items[0].name.clone(),
+                    object_path,
+                }
+            };
             self.bucket_list_move_down(object_key);
         } else {
             if bucket_items.is_empty() {

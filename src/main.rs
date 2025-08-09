@@ -103,7 +103,7 @@ async fn main() -> anyhow::Result<()> {
 
     let (tx, rx) = event::new();
     let mut app = App::new(mapper, client, ctx, tx.clone());
-    tx.send(AppEventType::Initialize(args.bucket));
+    tx.send(AppEventType::Initialize(args.bucket, args.prefix));
 
     let mut terminal = ratatui::try_init()?;
     let ret = run::run(&mut app, &mut terminal, rx).await;
