@@ -68,6 +68,10 @@ struct Args {
     #[arg(short, long, value_name = "NAME")]
     bucket: Option<String>,
 
+    /// Prefix for object keys
+    #[arg(short = 'P', long, value_name = "PREFIX", requires = "bucket")]
+    prefix: Option<String>,
+
     /// Path style type for object paths
     #[arg(long, value_name = "TYPE", default_value = "auto")]
     path_style: PathStyle,
