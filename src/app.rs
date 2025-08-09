@@ -113,6 +113,8 @@ impl<C: Client> App<C> {
             }
             Err(e) => {
                 self.tx.send(AppEventType::NotifyError(e));
+                self.is_loading = false;
+                return;
             }
         }
 
