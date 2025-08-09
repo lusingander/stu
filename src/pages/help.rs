@@ -161,7 +161,7 @@ impl Widget for Help<'_> {
     }
 }
 
-fn build_help_lines(helps: &[Spans], max_width: usize) -> Vec<Line> {
+fn build_help_lines(helps: &[Spans], max_width: usize) -> Vec<Line<'_>> {
     let word_groups = group_spans_to_fit_width(helps, max_width, "  ");
     let lines: Vec<Line> = word_groups.into_iter().map(Line::from).collect();
     with_empty_lines(lines)

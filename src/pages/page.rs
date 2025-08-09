@@ -203,7 +203,7 @@ impl PageStack {
         self.stack.last_mut().unwrap()
     }
 
-    pub fn iter(&self) -> std::slice::Iter<Page> {
+    pub fn iter(&self) -> std::slice::Iter<'_, Page> {
         self.stack.iter()
     }
 }

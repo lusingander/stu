@@ -186,7 +186,7 @@ fn build_line_numbers_paragraph(
     text_area_width: usize,
     show_lines_count: usize,
     line_number_color: Color,
-) -> Paragraph {
+) -> Paragraph<'_> {
     // may not be correct because the wrap of the text is calculated separately...
     let line_heights = wrapped_line_width_iter(
         &state.lines,
@@ -222,7 +222,7 @@ fn build_lines_paragraph(
     state: &ScrollLinesState,
     show_lines_count: usize,
     block_color: Color,
-) -> Paragraph {
+) -> Paragraph<'_> {
     let lines_content: Vec<Line> = state
         .lines
         .iter()
