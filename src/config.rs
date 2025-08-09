@@ -126,7 +126,8 @@ impl Config {
             let var_name = &remaining[..end];
             let var_value = match var_name {
                 "STU_ROOT_DIR" => Config::get_app_base_dir()?.to_string_lossy().to_string(),
-                _ => env::var(var_name).unwrap_or_else(|_| format!("${var_name}")),
+                _ => env::var(var_name)
+                    .map_err(|_| anyhow::anyhow!("Environment variable '{}' not set", var_name))?,
             };
             result.replace_range(start..start + 1 + end, &var_value);
         }
