@@ -125,7 +125,7 @@ impl Config {
                 .unwrap_or(remaining.len());
             let var_name = &remaining[..end];
             let var_value = match var_name {
-                "STU_ROOT_DIR" => Config::get_app_base_dir()?.to_string_lossy().to_string(),
+                STU_ROOT_DIR_ENV_VAR => Config::get_app_base_dir()?.to_string_lossy().to_string(),
                 _ => env::var(var_name)
                     .map_err(|_| anyhow::anyhow!("Environment variable '{}' not set", var_name))?,
             };
