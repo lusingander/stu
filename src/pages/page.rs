@@ -206,4 +206,15 @@ impl PageStack {
     pub fn iter(&self) -> std::slice::Iter<'_, Page> {
         self.stack.iter()
     }
+
+    pub fn breadcrumb(&self) -> Vec<String> {
+        self.iter()
+            .filter_map(|page| match page {
+                Page::ObjectList(page) => Some(page),
+                _ => None,
+            })
+            .next_back()
+            .map(|page| page.current_dir_object_key().paths())
+            .unwrap_or_default()
+    }
 }

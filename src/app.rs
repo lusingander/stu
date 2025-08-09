@@ -896,7 +896,7 @@ impl<C: Client> App<C> {
 
     fn render_header(&self, f: &mut Frame, area: Rect) {
         if !area.is_empty() {
-            let header = Header::new(self.breadcrumb()).theme(&self.ctx.theme);
+            let header = Header::new(self.page_stack.breadcrumb()).theme(&self.ctx.theme);
             f.render_widget(header, area);
         }
     }
@@ -924,17 +924,5 @@ impl<C: Client> App<C> {
             let dialog = LoadingDialog::default().theme(&self.ctx.theme);
             f.render_widget(dialog, f.area());
         }
-    }
-
-    fn breadcrumb(&self) -> Vec<String> {
-        self.page_stack
-            .iter()
-            .filter_map(|page| match page {
-                Page::ObjectList(page) => Some(page),
-                _ => None,
-            })
-            .next_back()
-            .map(|page| page.current_dir_object_key().paths())
-            .unwrap_or_default()
     }
 }
