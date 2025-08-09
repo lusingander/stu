@@ -111,7 +111,12 @@ impl<C: Client> App<C> {
                     self.page_stack.push(bucket_list_page);
                 }
                 prefix
-                    .map(|p| p.split('/').map(String::from).collect())
+                    .map(|p| {
+                        p.split('/')
+                            .filter(|s| !s.is_empty())
+                            .map(String::from)
+                            .collect()
+                    })
                     .unwrap_or_default()
             }
             Err(e) => {
