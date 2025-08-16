@@ -16,14 +16,14 @@ exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "_config.yml"]
 
 [dependencies]
 ansi-to-tui = "7.0.0"
-anyhow = "1.0.98"
+anyhow = "1.0.99"
 arboard = { version = "3.6.0", features = ["wayland-data-control"] }
-aws-config = "1.8.4"
-aws-sdk-s3 = "1.101.0"
+aws-config = "1.8.5"
+aws-sdk-s3 = "1.103.0"
 aws-smithy-types = "1.3.0"
 chardetng = "0.1.17"
 chrono = "0.4.41"
-clap = { version = "4.5.42", features = ["derive"] }
+clap = { version = "4.5.45", features = ["derive"] }
 console = "0.16.0"
 crossterm = { version = "0.28.1", features = ["event-stream"] }
 encoding_rs = "0.8.35"
