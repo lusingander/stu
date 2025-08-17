@@ -1,0 +1,10 @@
+[book]
+authors = ["Kyosuke Fujimoto"]
+language = "en"
+src = "src"
+title = "STU"
+description = "STU Documentation"
+
+[output.html]
+git-repository-url = "https://github.com/lusingander/stu"
+default-theme = "rust"
