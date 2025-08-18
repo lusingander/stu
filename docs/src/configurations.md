@@ -9,6 +9,30 @@ Config is loaded from `$STU_ROOT_DIR/config.toml`.
 - If the config file does not exist, the default values will be used for all items.
 - If the config file exists but some items are not set, the default values will be used for those unset items.
 
+## STU_ROOT_DIR
+
+`$STU_ROOT_DIR` will be structured as follows:
+
+```
+$STU_ROOT_DIR
+│
+├── config.toml
+│
+├── keybindings.toml
+│
+├── error.log
+│
+├── debug.log
+│
+├── preview_theme/
+│   ├── material-theme-dark.tmTheme
+│   └── ...
+│
+└── preview_syntax/
+    ├── toml.sublime-syntax
+    └── ...
+```
+
 ----
 
 - [Config File Format](./config-file-format.md)
