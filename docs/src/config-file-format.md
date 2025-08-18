@@ -96,12 +96,16 @@ Whether syntax highlighting is enabled in the object preview.
 - type: `bool`
 - default: `false`
 
+See [Syntax Highlighting](./syntax-highlighting.md) for details on possible values.
+
 ### `preview.highlight_theme`
 
 The name of the color theme to use for syntax highlighting in the object preview.
 
 - type: `string`
 - default: `base16-ocean.dark`
+
+See [Color Themes](./syntax-highlighting.md#color-themes) for details on possible values.
 
 ### `preview.image`
 

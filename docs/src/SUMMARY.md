@@ -7,3 +7,4 @@
   - [Command Line Options](./command-line-options.md)
 - [Configurations](./configurations.md)
   - [Config File Format](./config-file-format.md)
+  - [Syntax Highlighting](./syntax-highlighting.md)

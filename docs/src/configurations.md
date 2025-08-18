@@ -12,3 +12,4 @@ Config is loaded from `$STU_ROOT_DIR/config.toml`.
 ----
 
 - [Config File Format](./config-file-format.md)
+- [Syntax Highlighting](./syntax-highlighting.md)
