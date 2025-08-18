@@ -9,3 +9,6 @@ Config is loaded from `$STU_ROOT_DIR/config.toml`.
 - If the config file does not exist, the default values will be used for all items.
 - If the config file exists but some items are not set, the default values will be used for those unset items.
 
+----
+
+- [Config File Format](./config-file-format.md)
