@@ -8,3 +8,5 @@
 - [Configurations](./configurations.md)
   - [Config File Format](./config-file-format.md)
   - [Syntax Highlighting](./syntax-highlighting.md)
+- [Keybindings](./keybindings.md)
+  - [Custom Keybindings](./custom-keybindings.md)
