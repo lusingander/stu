@@ -10,3 +10,8 @@
   - [Syntax Highlighting](./syntax-highlighting.md)
 - [Keybindings](./keybindings.md)
   - [Custom Keybindings](./custom-keybindings.md)
+- [Features](./features.md)
+  - [Bucket List](./bucket-list.md)
+  - [Object List](./object-list.md)
+  - [Object Detail](./object-detail.md)
+  - [Object Preview](./object-preview.md)
