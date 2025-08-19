@@ -1,7 +1,7 @@
 # STU
 
 [![Crate Status](https://img.shields.io/crates/v/stu.svg)](https://crates.io/crates/stu)
-![Built With Ratatui](https://img.shields.io/badge/Built_With-Ratatui-000?logo=ratatui&logoColor=fff&labelColor=000&color=fff)
+[![Built With Ratatui](https://img.shields.io/badge/Built_With-Ratatui-000?logo=ratatui&logoColor=fff&labelColor=000&color=fff)](https://ratatui.rs)
 
 S3 Terminal UI 🪣
 
