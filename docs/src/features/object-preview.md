@@ -1,13 +1,13 @@
 # Object Preview
 
 - Syntax highlighting
-  - It must be enabled in the [config](./config-file-format.md#previewhighlight)
+  - It must be enabled in the [config](../configurations/config-file-format.md#previewhighlight)
 - Image preview
-  - It must be enabled in the [config](./config-file-format.md#previewimage)
+  - It must be enabled in the [config](../configurations/config-file-format.md#previewimage)
 - Open with encoding
-  - Available encodings can be specified in the [config](./config-file-format.md#previewencodings)
+  - Available encodings can be specified in the [config](../configurations/config-file-format.md#previewencodings)
   - Automatic encoding detection (guessing)
-    - It must be enabled in the [config](./config-file-format.md#previewauto_detect_encoding)
+    - It must be enabled in the [config](../configurations/config-file-format.md#previewauto_detect_encoding)
 - Download object
   - Download a single selected object
 
