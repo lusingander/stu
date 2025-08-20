@@ -21,7 +21,7 @@ STU provides the following features:
 - Customizable key bindings
 - Support for S3-compatible storage
 
-Check out the [Features](https://lusingander.github.io/stu/features.html) section for more details!
+Check out the [Features](https://lusingander.github.io/stu/features/index.html) section for more details!
 
 ## Documentation
 
@@ -35,7 +35,7 @@ If you're using Cargo:
 $ cargo install --locked stu
 ```
 
-For other download options, see [Installation](https://lusingander.github.io/stu/installation.html).
+For other download options, see [Installation](https://lusingander.github.io/stu/getting-started/installation.html).
 
 ## Usage
 
@@ -68,7 +68,7 @@ Options:
   -V, --version             Print version
 ```
 
-For details on each option, see [Command Line Options](https://lusingander.github.io/stu/command-line-options.html).
+For details on each option, see [Command Line Options](https://lusingander.github.io/stu/getting-started/command-line-options.html).
 
 ### Keybindings
 
@@ -85,7 +85,7 @@ The basic key bindings are as follows:
 Detailed operations on each view can be displayed by pressing `?` key.
 
 You can customize your own keybindings.
-See [Custom Keybindings](https://lusingander.github.io/stu/custom-keybindings.html) for more information.
+See [Custom Keybindings](https://lusingander.github.io/stu/keybindings/custom-keybindings.html) for more information.
 
 ### Config
 
@@ -96,7 +96,7 @@ Config is loaded from `$STU_ROOT_DIR/config.toml`.
 - If the config file does not exist, the default values will be used for all items.
 - If the config file exists but some items are not set, the default values will be used for those unset items.
 
-For detailed information about the config file format, see [Config File Format](https://lusingander.github.io/stu/config-file-format.html).
+For detailed information about the config file format, see [Config File Format](https://lusingander.github.io/stu/configurations/config-file-format.html).
 
 ## Screenshots
 

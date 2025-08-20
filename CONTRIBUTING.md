@@ -8,7 +8,7 @@ To ensure that your contributions are considered, please follow this guidelines.
 
 Before reporting, please check if an issue with the same content already exists.
 
-Also, please refer to [Troubleshooting](https://lusingander.github.io/stu/troubleshooting.html).
+Also, please refer to [Troubleshooting](https://lusingander.github.io/stu/troubleshooting/index.html).
 
 ### Reporting Bugs
 
