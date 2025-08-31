@@ -211,6 +211,7 @@ impl ObjectPreviewPage {
                 let preview = TextPreview::new(
                     self.file_detail.name.as_str(),
                     self.file_version_id.as_deref(),
+                    &self.ctx.env,
                     &self.ctx.theme,
                 );
                 f.render_stateful_widget(preview, area, state);
@@ -219,6 +220,7 @@ impl ObjectPreviewPage {
                 let preview = ImagePreview::new(
                     self.file_detail.name.as_str(),
                     self.file_version_id.as_deref(),
+                    &self.ctx.env,
                 );
                 f.render_stateful_widget(preview, area, state);
             }

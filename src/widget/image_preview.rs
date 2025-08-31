@@ -11,7 +11,7 @@ use ratatui::{
 };
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
 
-use crate::format::format_version;
+use crate::{environment::Environment, format::format_version};
 
 pub struct ImagePreviewState {
     protocol: Option<StatefulProtocol>,
@@ -79,13 +79,16 @@ fn build_image_protocol(
 pub struct ImagePreview<'a> {
     file_name: &'a str,
     file_version_id: Option<&'a str>,
+
+    env: &'a Environment,
 }
 
 impl<'a> ImagePreview<'a> {
-    pub fn new(file_name: &'a str, file_version_id: Option<&'a str>) -> Self {
+    pub fn new(file_name: &'a str, file_version_id: Option<&'a str>, env: &'a Environment) -> Self {
         Self {
             file_name,
             file_version_id,
+            env,
         }
     }
 }
@@ -98,7 +101,7 @@ impl StatefulWidget for ImagePreview<'_> {
             format!(
                 "Preview [{} (Version ID: {})]",
                 self.file_name,
-                format_version(version_id)
+                format_version(version_id, self.env.fix_dynamic_values)
             )
         } else {
             format!("Preview [{}]", self.file_name)
