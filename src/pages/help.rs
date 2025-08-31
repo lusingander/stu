@@ -12,7 +12,7 @@ use ratatui::{
 
 use crate::{
     app::AppContext,
-    constant::{APP_DESCRIPTION, APP_HOMEPAGE, APP_NAME, APP_VERSION},
+    constant::{APP_DESCRIPTION, APP_NAME, APP_REPOSITORY_URL, APP_VERSION},
     event::{AppEventType, Sender},
     handle_user_events,
     help::{
@@ -63,7 +63,7 @@ impl HelpPage {
             APP_NAME,
             APP_DESCRIPTION,
             APP_VERSION,
-            APP_HOMEPAGE,
+            APP_REPOSITORY_URL,
             self.ctx.theme.link,
         );
         let divider = Divider::default().color(self.ctx.theme.divider);
