@@ -14,6 +14,7 @@ use crate::{
     app::AppContext,
     color::ColorTheme,
     config::UiConfig,
+    environment::Environment,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte, format_version},
     handle_user_events, handle_user_events_with_default,
@@ -76,7 +77,7 @@ impl ObjectDetailPage {
         ctx: Rc<AppContext>,
         tx: Sender,
     ) -> Self {
-        let detail_tab_state = DetailTabState::new(&file_detail, &ctx.config.ui);
+        let detail_tab_state = DetailTabState::new(&file_detail, &ctx.config.ui, &ctx.env);
         Self {
             file_detail,
             file_versions: Vec::new(),
@@ -366,13 +367,18 @@ impl ObjectDetailPage {
     }
 
     pub fn select_detail_tab(&mut self) {
-        self.tab = Tab::Detail(DetailTabState::new(&self.file_detail, &self.ctx.config.ui));
+        self.tab = Tab::Detail(DetailTabState::new(
+            &self.file_detail,
+            &self.ctx.config.ui,
+            &self.ctx.env,
+        ));
     }
 
     pub fn select_versions_tab(&mut self) {
         self.tab = Tab::Version(VersionTabState::new(
             &self.file_versions,
             &self.ctx.config.ui,
+            &self.ctx.env,
         ));
     }
 
@@ -545,13 +551,21 @@ fn build_tabs(tab: &Tab, theme: &ColorTheme) -> Tabs<'static> {
         .block(Block::default().borders(Borders::BOTTOM))
 }
 
-fn build_detail_content_lines(detail: &FileDetail, ui_config: &UiConfig) -> Vec<Line<'static>> {
+fn build_detail_content_lines(
+    detail: &FileDetail,
+    ui_config: &UiConfig,
+    env: &Environment,
+) -> Vec<Line<'static>> {
     let details = [
         ("Name:", &detail.name),
         ("Size:", &format_size_byte(detail.size_byte)),
         (
             "Last Modified:",
-            &format_datetime(&detail.last_modified, &ui_config.object_detail.date_format),
+            &format_datetime(
+                &detail.last_modified,
+                &ui_config.object_detail.date_format,
+                env.fix_dynamic_values,
+            ),
         ),
         ("ETag:", &detail.e_tag),
         ("Content-Type:", &detail.content_type),
@@ -580,8 +594,8 @@ struct DetailTabState {
 }
 
 impl DetailTabState {
-    fn new(file_detail: &FileDetail, ui_config: &UiConfig) -> Self {
-        let scroll_lines = build_detail_content_lines(file_detail, ui_config);
+    fn new(file_detail: &FileDetail, ui_config: &UiConfig, env: &Environment) -> Self {
+        let scroll_lines = build_detail_content_lines(file_detail, ui_config, env);
         let scroll_lines_state =
             ScrollLinesState::new(scroll_lines, ScrollLinesOptions::new(false, true));
         Self { scroll_lines_state }
@@ -611,13 +625,17 @@ impl StatefulWidget for DetailTab<'_> {
 fn build_version_detail_lines(
     versions: &[FileVersion],
     ui_config: &UiConfig,
+    env: &Environment,
 ) -> Vec<Vec<Line<'static>>> {
     versions
         .iter()
         .map(|v| {
-            let version_id = format_version(&v.version_id).to_owned();
-            let last_modified =
-                format_datetime(&v.last_modified, &ui_config.object_detail.date_format);
+            let version_id = format_version(&v.version_id, env.fix_dynamic_values).to_owned();
+            let last_modified = format_datetime(
+                &v.last_modified,
+                &ui_config.object_detail.date_format,
+                env.fix_dynamic_values,
+            );
             let size_byte = format_size_byte(v.size_byte);
             vec![
                 Line::from(vec![
@@ -646,8 +664,8 @@ struct VersionTabState {
 }
 
 impl VersionTabState {
-    fn new(versions: &[FileVersion], ui_config: &UiConfig) -> Self {
-        let lines = build_version_detail_lines(versions, ui_config);
+    fn new(versions: &[FileVersion], ui_config: &UiConfig, env: &Environment) -> Self {
+        let lines = build_version_detail_lines(versions, ui_config, env);
         Self {
             lines,
             ..Default::default()

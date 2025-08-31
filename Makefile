@@ -14,7 +14,7 @@ OUTPUT_DIR=$(PROJECT_DIR)/out
 IMG_DIR=$(PROJECT_DIR)/img
 
 $(STU_BIN): $(RUST_SRC)
-	cargo build --features imggen
+	cargo build
 
 .PHONY: demo
 demo: $(STU_BIN)

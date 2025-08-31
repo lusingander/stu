@@ -15,6 +15,7 @@ use crate::{
     app::AppContext,
     color::ColorTheme,
     config::UiConfig,
+    environment::Environment,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
     handle_user_events, handle_user_events_with_default,
@@ -245,6 +246,7 @@ impl ObjectListPage {
             selected,
             area,
             &self.ctx.config.ui,
+            &self.ctx.env,
             &self.ctx.theme,
         );
 
@@ -767,6 +769,7 @@ fn build_list_items<'a>(
     selected: usize,
     area: Rect,
     ui_config: &UiConfig,
+    env: &Environment,
     theme: &ColorTheme,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
@@ -783,6 +786,7 @@ fn build_list_items<'a>(
                 filter,
                 area,
                 ui_config,
+                env,
                 theme,
             )
         })
@@ -795,6 +799,7 @@ fn build_list_item<'a>(
     filter: &'a str,
     area: Rect,
     ui_config: &UiConfig,
+    env: &Environment,
     theme: &ColorTheme,
 ) -> ListItem<'a> {
     let line = match item {
@@ -811,6 +816,7 @@ fn build_list_item<'a>(
             filter,
             area.width,
             ui_config,
+            env,
             theme,
         ),
     };
@@ -859,10 +865,15 @@ fn build_object_file_line<'a>(
     filter: &'a str,
     width: u16,
     ui_config: &UiConfig,
+    env: &Environment,
     theme: &ColorTheme,
 ) -> Line<'a> {
     let size = format_size_byte(size_byte);
-    let date = format_datetime(last_modified, &ui_config.object_list.date_format);
+    let date = format_datetime(
+        last_modified,
+        &ui_config.object_list.date_format,
+        env.fix_dynamic_values,
+    );
     let date_w: usize = ui_config.object_list.date_width;
     let size_w: usize = 10;
     let name_w: usize = (width as usize) - date_w - size_w - 10 /* spaces */ - 4 /* border + pad */;

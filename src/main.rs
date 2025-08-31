@@ -79,6 +79,11 @@ struct Args {
     /// Enable debug logs
     #[arg(long)]
     debug: bool,
+
+    // Fix dynamic values (e.g., datetime, version) for tests
+    // This option is hidden and intended for internal testing only
+    #[arg(long, hide = true)]
+    fix_dynamic_values_for_test: bool,
 }
 
 #[tokio::main]
@@ -86,7 +91,7 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config = Config::load()?;
     let mapper = UserEventMapper::load()?;
-    let env = Environment::new(&config);
+    let env = Environment::new(config.preview.image, args.fix_dynamic_values_for_test);
     let theme = ColorTheme::default();
     let ctx = AppContext::new(config, env, theme);
 

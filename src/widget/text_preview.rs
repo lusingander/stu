@@ -23,6 +23,7 @@ use syntect::{
 use crate::{
     color::ColorTheme,
     config::Config,
+    environment::Environment,
     format::format_version,
     object::{FileDetail, RawObject},
     util::extension_from_file_name,
@@ -502,6 +503,7 @@ pub struct TextPreview<'a> {
     file_name: &'a str,
     file_version_id: Option<&'a str>,
 
+    env: &'a Environment,
     theme: &'a ColorTheme,
 }
 
@@ -509,11 +511,13 @@ impl<'a> TextPreview<'a> {
     pub fn new(
         file_name: &'a str,
         file_version_id: Option<&'a str>,
+        env: &'a Environment,
         theme: &'a ColorTheme,
     ) -> Self {
         Self {
             file_name,
             file_version_id,
+            env,
             theme,
         }
     }
@@ -527,7 +531,7 @@ impl StatefulWidget for TextPreview<'_> {
             format!(
                 "Preview [{} (Version ID: {})]",
                 self.file_name,
-                format_version(version_id)
+                format_version(version_id, self.env.fix_dynamic_values)
             )
         } else {
             format!("Preview [{}]", self.file_name)
