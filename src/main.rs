@@ -79,6 +79,11 @@ struct Args {
     /// Enable debug logs
     #[arg(long)]
     debug: bool,
+
+    // Fix dynamic values (e.g., datetime, version) for tests
+    // This option is hidden and intended for internal testing only
+    #[arg(long, hide = true)]
+    fix_dynamic_values_for_test: bool,
 }
 
 #[tokio::main]
