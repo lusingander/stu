@@ -15,7 +15,7 @@ Type@10ms "export AWS_SECRET_ACCESS_KEY=dummy"
 Enter
 Type@10ms "export STU_ROOT_DIR=${STU_ROOT_DIR}"
 Enter
-Type@10ms "${STU_BINARY} --endpoint-url ${ENDPOINT_URL}"
+Type@10ms "${STU_BINARY} --endpoint-url ${ENDPOINT_URL} --fix-dynamic-values-for-test"
 Enter
 Sleep 3s
 
