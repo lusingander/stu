@@ -12,7 +12,7 @@ categories = ["command-line-utilities"]
 edition = "2021"
 rust-version = "1.87.0"
 
-exclude = ["/.github", "/img", "/tool", "go.work*", "Makefile", "/docs"]
+exclude = ["/.github", "/img", "/tool", "Makefile", "/docs"]
 
 [dependencies]
 ansi-to-tui = "7.0.0"
