@@ -7,4 +7,5 @@ description = "STU Documentation"
 
 [output.html]
 git-repository-url = "https://github.com/lusingander/stu"
+site-url = "/stu/"
 default-theme = "rust"
