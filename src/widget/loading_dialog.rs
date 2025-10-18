@@ -1,3 +1,4 @@
+use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Rect},
@@ -6,10 +7,7 @@ use ratatui::{
     widgets::{Block, BorderType, Padding, Paragraph, Widget, WidgetRef},
 };
 
-use crate::{
-    color::ColorTheme,
-    widget::{common::calc_centered_dialog_rect, Dialog},
-};
+use crate::{color::ColorTheme, widget::Dialog};
 
 #[derive(Debug, Default)]
 struct LoadingDialogColor {
@@ -42,7 +40,7 @@ impl LoadingDialog {
 
 impl Widget for LoadingDialog {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let area = calc_centered_dialog_rect(area, 30, 5);
+        let area = calc_centered_area(area, 30, 5);
 
         let text = Line::from(Self::MSG.fg(self.color.text).add_modifier(Modifier::BOLD));
         let paragraph = Paragraph::new(text).alignment(Alignment::Center).block(

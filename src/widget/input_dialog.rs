@@ -1,3 +1,4 @@
+use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
     crossterm::event::KeyEvent,
@@ -7,10 +8,7 @@ use ratatui::{
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
 
-use crate::{
-    color::ColorTheme,
-    widget::{common::calc_centered_dialog_rect, Dialog},
-};
+use crate::{color::ColorTheme, widget::Dialog};
 
 #[derive(Debug, Default)]
 pub struct InputDialogState {
@@ -103,7 +101,7 @@ impl StatefulWidget for InputDialog {
             dialog_width = dialog_width.min(max_width);
         }
         let dialog_height = 3;
-        let dialog_area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        let dialog_area = calc_centered_area(area, dialog_width, dialog_height);
 
         // show the last `input_max_width` characters of the input
         let input_max_width = (dialog_width - 4) as usize;

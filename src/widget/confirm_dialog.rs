@@ -1,4 +1,5 @@
 use itsuki::zero_indexed_enum;
+use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -9,7 +10,7 @@ use ratatui::{
 
 use crate::{
     color::ColorTheme,
-    widget::{common::calc_centered_dialog_rect, Dialog, Divider},
+    widget::{Dialog, Divider},
 };
 
 #[derive(Default)]
@@ -83,7 +84,7 @@ impl StatefulWidget for ConfirmDialog<'_> {
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let dialog_width = 70;
         let dialog_height = self.message_lines.len() as u16 + 2 /* divider + select */ + 2 /* border */;
-        let dialog_area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        let dialog_area = calc_centered_area(area, dialog_width, dialog_height);
 
         let divider_lines = build_divider_lines(&self.color, dialog_width);
         let select_lines = build_select_lines(state, &self.color);

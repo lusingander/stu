@@ -2211,9 +2211,9 @@ dependencies = [
 
 [[package]]
 name = "laurier"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eab6c93df4d64a8b50f6fd7b9320b36a0bb434b9fdb85b6bf9473f8686f0081a"
+checksum = "0d04feaca262fd47f2d6ae07b23596dc266e99eb1764246801e8975dc1a0de46"
 dependencies = [
  "ratatui",
 ]

@@ -3,6 +3,7 @@ use std::cmp::min;
 use ansi_to_tui::IntoText;
 use chardetng::EncodingDetector;
 use itsuki::zero_indexed_enum;
+use laurier::layout::calc_centered_area;
 use once_cell::sync::Lazy;
 use ratatui::{
     buffer::Buffer,
@@ -27,10 +28,7 @@ use crate::{
     format::format_version,
     object::{FileDetail, RawObject},
     util::extension_from_file_name,
-    widget::{
-        common::calc_centered_dialog_rect, Dialog, ScrollLines, ScrollLinesOptions,
-        ScrollLinesState,
-    },
+    widget::{Dialog, ScrollLines, ScrollLinesOptions, ScrollLinesState},
 };
 
 const ENCODING_GUESS_BYTES_SIZE_LIMIT: usize = 1024 * 8;
@@ -360,7 +358,7 @@ impl Widget for EncodingDialog<'_> {
 
         let dialog_width = (area.width - 4).min(20);
         let dialog_height = self.labels.len() as u16 + 2 /* border */;
-        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        let area = calc_centered_area(area, dialog_width, dialog_height);
 
         let title = Title::from("Encoding");
         let list = List::new(list_items).block(

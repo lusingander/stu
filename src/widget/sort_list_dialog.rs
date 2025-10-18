@@ -1,4 +1,5 @@
 use itsuki::zero_indexed_enum;
+use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -7,10 +8,7 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
 };
 
-use crate::{
-    color::ColorTheme,
-    widget::{common::calc_centered_dialog_rect, Dialog},
-};
+use crate::{color::ColorTheme, widget::Dialog};
 
 #[derive(Default)]
 #[zero_indexed_enum]
@@ -221,7 +219,7 @@ impl Widget for ListSortDialog {
 
         let dialog_width = (area.width - 4).min(30);
         let dialog_height = self.labels.len() as u16 + 2 /* border */;
-        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height);
+        let area = calc_centered_area(area, dialog_width, dialog_height);
 
         let title = Title::from("Sort");
         let list = List::new(list_items).block(

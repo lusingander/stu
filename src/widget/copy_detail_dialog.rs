@@ -1,4 +1,5 @@
 use itsuki::zero_indexed_enum;
+use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -12,7 +13,7 @@ use ratatui::{
 use crate::{
     color::ColorTheme,
     object::{BucketItem, FileDetail, FileVersion, ObjectItem},
-    widget::{common::calc_centered_dialog_rect, Dialog},
+    widget::Dialog,
 };
 
 #[derive(Default)]
@@ -318,7 +319,7 @@ impl StatefulWidget for CopyDetailDialog {
 
         let dialog_width = (area.width - 4).min(80);
         let dialog_height = state.item_type_len() * 2 + 2 /* border */;
-        let area = calc_centered_dialog_rect(area, dialog_width, dialog_height as u16);
+        let area = calc_centered_area(area, dialog_width, dialog_height as u16);
 
         let title = Title::from("Copy");
         let list = List::new(list_items).block(

@@ -1,5 +1,4 @@
 mod bar;
-mod common;
 mod confirm_dialog;
 mod copy_detail_dialog;
 mod dialog;
