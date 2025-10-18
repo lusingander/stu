@@ -47,7 +47,6 @@ impl HelpPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let block = Block::bordered()
             .padding(Padding::horizontal(1))
-            .title(APP_NAME)
             .fg(self.ctx.theme.fg);
 
         let content_area = block.inner(area);
@@ -209,7 +208,7 @@ mod tests {
 
         #[rustfmt::skip]
         let mut expected = Buffer::with_lines([
-            "┌STU─────────────────────────────────────────────────────────────────┐",
+            "┌────────────────────────────────────────────────────────────────────┐",
             "│                                                                    │",
             "│  STU - S3 Terminal UI                                              │",
             "│                                                                    │",

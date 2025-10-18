@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, Padding, Paragraph, Widget},
 };
 
-use crate::{color::ColorTheme, constant::APP_NAME, util::prune_strings_to_fit_width};
+use crate::{color::ColorTheme, util::prune_strings_to_fit_width};
 
 #[derive(Debug, Default)]
 struct HeaderColor {
@@ -61,12 +61,8 @@ impl Header {
         let text_color = self.color.text;
         let current_key_str = self.build_current_key_str(max_width).fg(text_color);
 
-        let paragraph = Paragraph::new(current_key_str).block(
-            Block::bordered()
-                .title(APP_NAME)
-                .fg(block_color)
-                .padding(pad),
-        );
+        let paragraph =
+            Paragraph::new(current_key_str).block(Block::bordered().fg(block_color).padding(pad));
 
         paragraph.render(area, buf);
     }
@@ -116,7 +112,7 @@ mod tests {
 
         #[rustfmt::skip]
         let expected = Buffer::with_lines([
-            "┌STU─────────────────────────────┐",
+            "┌────────────────────────────────┐",
             "│ bucket / key01 / key02 / key03 │",
             "└────────────────────────────────┘",
         ]);
@@ -136,7 +132,7 @@ mod tests {
 
         #[rustfmt::skip]
         let expected = Buffer::with_lines([
-            "┌STU─────────────────────────────┐",
+            "┌────────────────────────────────┐",
             "│ bucket / ... / key02a / key03  │",
             "└────────────────────────────────┘",
         ]);
@@ -152,7 +148,7 @@ mod tests {
 
         #[rustfmt::skip]
         let expected = Buffer::with_lines([
-            "┌STU─────────────────────────────┐",
+            "┌────────────────────────────────┐",
             "│                                │",
             "└────────────────────────────────┘",
         ]);
