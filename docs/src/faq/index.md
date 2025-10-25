@@ -16,3 +16,9 @@
 
 - Set `preview.image = true` in config.toml.
 - Images are displayed using Sixel, [iTerm2 Inline Images Protocol](https://iterm2.com/documentation-images.html), and [kitty Terminal graphics protocol](https://sw.kovidgoyal.net/kitty/graphics-protocol/). This feature will not work if you are using a terminal emulator that does not support any of these protocols.
+
+## I don't like Vim bindings, what should I do?
+
+You can change the key bindings to your liking.
+
+See [Custom Keybindings](../keybindings/custom-keybindings.md) for details.
