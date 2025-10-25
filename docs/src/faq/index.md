@@ -1,4 +1,4 @@
-# Troubleshooting
+# FAQ
 
 ## Unable to connect to S3 or compatible service
 

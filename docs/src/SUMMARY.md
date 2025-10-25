@@ -15,4 +15,4 @@
   - [Object List](./features/object-list.md)
   - [Object Detail](./features/object-detail.md)
   - [Object Preview](./features/object-preview.md)
-- [Troubleshooting](./troubleshooting/index.md)
+- [FAQ](./faq/index.md)
