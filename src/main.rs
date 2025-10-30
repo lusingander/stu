@@ -107,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
         args.profile,
         ctx.config.default_region.clone(),
         args.path_style.into(),
+        args.no_sign_request,
     )
     .await;
 

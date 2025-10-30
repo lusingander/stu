@@ -56,6 +56,7 @@ pub async fn new(
     profile: Option<String>,
     default_region_fallback: String,
     addressing_style: AddressingStyle,
+    no_sign_request: bool,
 ) -> impl Client {
     AwsSdkClient::new(
         region,
@@ -63,6 +64,7 @@ pub async fn new(
         profile,
         default_region_fallback,
         addressing_style,
+        no_sign_request,
     )
     .await
 }
@@ -85,6 +87,7 @@ impl AwsSdkClient {
         profile: Option<String>,
         default_region_fallback: String,
         addressing_style: AddressingStyle,
+        no_sign_request: bool,
     ) -> AwsSdkClient {
         let mut region_builder = region::Builder::default();
         if let Some(profile) = &profile {
@@ -96,6 +99,9 @@ impl AwsSdkClient {
 
         let mut config_loader =
             aws_config::defaults(BehaviorVersion::latest()).region(region_provider);
+        if no_sign_request {
+            config_loader = config_loader.no_credentials();
+        }
         if let Some(url) = &endpoint_url {
             config_loader = config_loader.endpoint_url(url);
         }
