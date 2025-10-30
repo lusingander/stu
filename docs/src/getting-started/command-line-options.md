@@ -66,6 +66,17 @@ For other S3-compatible services, which one to use depends on the service.
 stu --path-style auto
 ```
 
+## --no-sign-request
+
+Disable request signing.
+
+Credentials will not be loaded if this argument is provided.
+This option is useful when accessing public buckets that do not require authentication.
+
+```
+stu --no-sign-request
+```
+
 ## --debug
 
 Enable debug logging.
