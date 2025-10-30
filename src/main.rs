@@ -76,6 +76,10 @@ struct Args {
     #[arg(long, value_name = "TYPE", default_value = "auto")]
     path_style: PathStyle,
 
+    /// Disable request signing
+    #[arg(long)]
+    no_sign_request: bool,
+
     /// Enable debug logs
     #[arg(long)]
     debug: bool,
@@ -103,6 +107,7 @@ async fn main() -> anyhow::Result<()> {
         args.profile,
         ctx.config.default_region.clone(),
         args.path_style.into(),
+        args.no_sign_request,
     )
     .await;
 
