@@ -63,6 +63,7 @@ Options:
   -b, --bucket <NAME>       Target bucket name
   -P, --prefix <PREFIX>     Prefix for object keys
       --path-style <TYPE>   Path style type for object paths [default: auto] [possible values: auto, always, never]
+      --no-sign-request     Disable request signing
       --debug               Enable debug logs
   -h, --help                Print help
   -V, --version             Print version
