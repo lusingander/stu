@@ -846,7 +846,7 @@ fn build_object_dir_line<'a>(
         Line::from(vec![" ".into(), pad_name.bold(), " ".into()])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(pad_name)
+        let mut spans = highlight_matched_text(vec![pad_name.into()])
             .ellipsis(ELLIPSIS)
             .matched_range(i, i + filter.len())
             .not_matched_style(Style::default().bold())
@@ -895,7 +895,7 @@ fn build_object_file_line<'a>(
         ])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(pad_name)
+        let mut spans = highlight_matched_text(vec![pad_name.into()])
             .ellipsis(ELLIPSIS)
             .matched_range(i, i + filter.len())
             .not_matched_style(Style::default())

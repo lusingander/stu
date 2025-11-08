@@ -705,7 +705,7 @@ fn build_list_item<'a>(
         Line::from(vec![" ".into(), pad_name.into(), " ".into()])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(pad_name)
+        let mut spans = highlight_matched_text(vec![pad_name.into()])
             .ellipsis(ELLIPSIS)
             .matched_range(i, i + filter.len())
             .not_matched_style(Style::default())
