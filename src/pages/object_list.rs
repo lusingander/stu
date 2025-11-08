@@ -839,15 +839,22 @@ fn build_object_dir_line<'a>(
 ) -> Line<'a> {
     let name = format!("{name}/");
     let name_w = (width as usize) - 2 /* spaces */ - 4 /* border + pad */ - 1 /* slash */;
-    let pad_name =
-        console::pad_str(&name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
+    let w = console::measure_text_width(&name);
+    let pad_name = if w > name_w {
+        console::truncate_str(&name, name_w, ELLIPSIS).to_string()
+    } else {
+        console::pad_str(&name, name_w, console::Alignment::Left, None).to_string()
+    };
 
     if filter.is_empty() {
         Line::from(vec![" ".into(), pad_name.bold(), " ".into()])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(vec![pad_name.into()])
-            .ellipsis(ELLIPSIS)
+        let mut hm = highlight_matched_text(vec![pad_name.into()]);
+        if w > name_w {
+            hm = hm.ellipsis(ELLIPSIS);
+        }
+        let mut spans = hm
             .matched_range(i, i + filter.len())
             .not_matched_style(Style::default().bold())
             .matched_style(Style::default().fg(theme.list_filter_match).bold())
@@ -878,8 +885,12 @@ fn build_object_file_line<'a>(
     let size_w: usize = 10;
     let name_w: usize = (width as usize) - date_w - size_w - 10 /* spaces */ - 4 /* border + pad */;
 
-    let pad_name =
-        console::pad_str(name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
+    let w = console::measure_text_width(name);
+    let pad_name = if w > name_w {
+        console::truncate_str(name, name_w, ELLIPSIS).to_string()
+    } else {
+        console::pad_str(name, name_w, console::Alignment::Left, None).to_string()
+    };
     let pad_date = console::pad_str(&date, date_w, console::Alignment::Left, None).to_string();
     let pad_size = console::pad_str(&size, size_w, console::Alignment::Right, None).to_string();
 
@@ -895,8 +906,11 @@ fn build_object_file_line<'a>(
         ])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(vec![pad_name.into()])
-            .ellipsis(ELLIPSIS)
+        let mut hm = highlight_matched_text(vec![pad_name.into()]);
+        if w > name_w {
+            hm = hm.ellipsis(ELLIPSIS);
+        }
+        let mut spans = hm
             .matched_range(i, i + filter.len())
             .not_matched_style(Style::default())
             .matched_style(Style::default().fg(theme.list_filter_match))

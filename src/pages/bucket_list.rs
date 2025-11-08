@@ -697,16 +697,23 @@ fn build_list_item<'a>(
     width: u16,
     theme: &'a ColorTheme,
 ) -> ListItem<'a> {
-    let name_w = (width as usize) - 4 /* border + pad */;
-    let pad_name =
-        console::pad_str(name, name_w, console::Alignment::Left, Some(ELLIPSIS)).to_string();
+    let name_w = (width as usize) - 5 /* border + pad + scroll */;
+    let w = console::measure_text_width(name);
+    let pad_name = if w > name_w {
+        console::truncate_str(name, name_w, ELLIPSIS).to_string()
+    } else {
+        console::pad_str(name, name_w, console::Alignment::Left, None).to_string()
+    };
 
     let line = if filter.is_empty() {
         Line::from(vec![" ".into(), pad_name.into(), " ".into()])
     } else {
         let i = name.find(filter).unwrap();
-        let mut spans = highlight_matched_text(vec![pad_name.into()])
-            .ellipsis(ELLIPSIS)
+        let mut hm = highlight_matched_text(vec![pad_name.into()]);
+        if w > name_w {
+            hm = hm.ellipsis(ELLIPSIS);
+        }
+        let mut spans = hm
             .matched_range(i, i + filter.len())
             .not_matched_style(Style::default())
             .matched_style(Style::default().fg(theme.list_filter_match))
