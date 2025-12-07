@@ -84,7 +84,7 @@ impl FileVersion {
     pub fn s3_uri(&self, base_file_detail: &FileDetail) -> String {
         let mut s3_uri = base_file_detail.s3_uri.clone();
         if let Some(version_id) = &self.version_id {
-            s3_uri.push_str(&format!("?versionId={}", version_id));
+            s3_uri.push_str(&format!("?versionId={version_id}"));
         }
         s3_uri
     }
@@ -92,7 +92,7 @@ impl FileVersion {
     pub fn object_url(&self, base_file_detail: &FileDetail) -> String {
         let mut object_url = base_file_detail.object_url.clone();
         if let Some(version_id) = &self.version_id {
-            object_url.push_str(&format!("?versionId={}", version_id));
+            object_url.push_str(&format!("?versionId={version_id}"));
         }
         object_url
     }
