@@ -266,7 +266,7 @@ impl Client for AwsSdkClient {
             .versions()
             .iter()
             .map(|v| {
-                let version_id = v.version_id().unwrap().to_string(); // returns "null" if empty...
+                let version_id = v.version_id().map(String::from);
                 let size_byte = v.size().unwrap() as usize;
                 let last_modified = convert_datetime(v.last_modified().unwrap());
                 let e_tag = v.e_tag().unwrap().trim_matches('"').to_string();

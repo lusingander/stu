@@ -470,7 +470,7 @@ impl ObjectDetailPage {
 
     fn current_selected_version_id(&self) -> Option<String> {
         self.current_selected_version()
-            .map(|v| v.version_id.clone())
+            .and_then(|v| v.version_id.clone())
     }
 
     pub fn current_object_key(&self) -> &ObjectKey {
@@ -630,7 +630,8 @@ fn build_version_detail_lines(
     versions
         .iter()
         .map(|v| {
-            let version_id = format_version(&v.version_id, env.fix_dynamic_values).to_owned();
+            let version_id =
+                format_version(v.version_id.as_deref(), env.fix_dynamic_values).to_owned();
             let last_modified = format_datetime(
                 &v.last_modified,
                 &ui_config.object_detail.date_format,
@@ -1357,14 +1358,14 @@ mod tests {
         };
         let file_versions = vec![
             FileVersion {
-                version_id: "60f36bc2-0f38-47b8-9bf0-e24e334b86d5".to_string(),
+                version_id: Some("60f36bc2-0f38-47b8-9bf0-e24e334b86d5".to_string()),
                 size_byte: 1024 + 10,
                 last_modified: parse_datetime("2024-01-02 13:01:02"),
                 e_tag: "bef684de-a260-48a4-8178-8a535ecccadb".to_string(),
                 is_latest: true,
             },
             FileVersion {
-                version_id: "1c5d3bcc-2bb3-4cd5-875f-a95a6ae53f65".to_string(),
+                version_id: Some("1c5d3bcc-2bb3-4cd5-875f-a95a6ae53f65".to_string()),
                 size_byte: 1024,
                 last_modified: parse_datetime("2024-01-01 23:59:59"),
                 e_tag: "6c5db847-d206-4a27-9723-713e3a6cad86".to_string(),

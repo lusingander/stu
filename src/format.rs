@@ -4,12 +4,15 @@ pub fn format_size_byte(size_byte: usize) -> String {
     humansize::format_size_i(size_byte, humansize::BINARY)
 }
 
-pub fn format_version(version: &str, fix_dynamic_values: bool) -> &str {
+pub fn format_version(version: Option<&str>, fix_dynamic_values: bool) -> &str {
     if fix_dynamic_values {
         // use a fixed version if fix_dynamic_values is true
         return "GeJeVLwoQlknMCcSa";
     }
-    version
+    match version {
+        Some(v) => v,
+        None => "-",
+    }
 }
 
 pub fn format_datetime(

@@ -529,7 +529,7 @@ impl StatefulWidget for TextPreview<'_> {
             format!(
                 "Preview [{} (Version ID: {})]",
                 self.file_name,
-                format_version(version_id, self.env.fix_dynamic_values)
+                format_version(Some(version_id), self.env.fix_dynamic_values)
             )
         } else {
             format!("Preview [{}]", self.file_name)

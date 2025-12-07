@@ -72,7 +72,7 @@ pub struct FileDetail {
 
 #[derive(Debug, Clone)]
 pub struct FileVersion {
-    pub version_id: String,
+    pub version_id: Option<String>,
     pub size_byte: usize,
     pub last_modified: DateTime<Local>,
     pub e_tag: String,
@@ -82,14 +82,19 @@ pub struct FileVersion {
 
 impl FileVersion {
     pub fn s3_uri(&self, base_file_detail: &FileDetail) -> String {
-        format!("{}?versionId={}", base_file_detail.s3_uri, self.version_id)
+        let mut s3_uri = base_file_detail.s3_uri.clone();
+        if let Some(version_id) = &self.version_id {
+            s3_uri.push_str(&format!("?versionId={}", version_id));
+        }
+        s3_uri
     }
 
     pub fn object_url(&self, base_file_detail: &FileDetail) -> String {
-        format!(
-            "{}?versionId={}",
-            base_file_detail.object_url, self.version_id
-        )
+        let mut object_url = base_file_detail.object_url.clone();
+        if let Some(version_id) = &self.version_id {
+            object_url.push_str(&format!("?versionId={}", version_id));
+        }
+        object_url
     }
 }
 
