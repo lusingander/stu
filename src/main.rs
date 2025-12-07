@@ -25,6 +25,7 @@ use tracing_subscriber::fmt::time::ChronoLocal;
 
 use crate::{
     app::{App, AppContext},
+    client::Client,
     color::ColorTheme,
     config::Config,
     environment::Environment,
@@ -101,7 +102,7 @@ async fn main() -> anyhow::Result<()> {
 
     initialize_debug_log(&args)?;
 
-    let client = client::AwsSdkClient::new(
+    let client = Client::new(
         args.region,
         args.endpoint_url,
         args.profile,

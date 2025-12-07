@@ -34,18 +34,18 @@ impl AddressingStyle {
     }
 }
 
-pub struct AwsSdkClient {
+pub struct Client {
     client: aws_sdk_s3::Client,
     region: String,
 }
 
-impl Debug for AwsSdkClient {
+impl Debug for Client {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "AwsSdkClient {{ region: {} }}", self.region)
+        write!(f, "Client {{ region: {} }}", self.region)
     }
 }
 
-impl AwsSdkClient {
+impl Client {
     pub async fn new(
         region: Option<String>,
         endpoint_url: Option<String>,
@@ -53,7 +53,7 @@ impl AwsSdkClient {
         default_region_fallback: String,
         addressing_style: AddressingStyle,
         no_sign_request: bool,
-    ) -> AwsSdkClient {
+    ) -> Client {
         let mut region_builder = region::Builder::default();
         if let Some(profile) = &profile {
             region_builder = region_builder.profile_name(profile);
@@ -82,7 +82,7 @@ impl AwsSdkClient {
         let client = aws_sdk_s3::Client::from_conf(config);
         let region = sdk_config.region().unwrap().to_string();
 
-        AwsSdkClient { client, region }
+        Client { client, region }
     }
 
     pub fn region(&self) -> &str {
