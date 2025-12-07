@@ -1,6 +1,5 @@
 use std::{
     fmt::Debug,
-    future::Future,
     io::{BufWriter, Write},
 };
 
@@ -35,41 +34,7 @@ impl AddressingStyle {
     }
 }
 
-#[rustfmt::skip]
-pub trait Client: Send + Sync + 'static + Debug {
-    fn region(&self) -> &str;
-    fn load_all_buckets(&self) -> impl Future<Output = Result<Vec<BucketItem>>> + Send;
-    fn load_bucket(&self, name: &str) -> impl Future<Output = Result<Vec<BucketItem>>> + Send;
-    fn load_objects(&self, bucket: &str, prefix: &str) -> impl Future<Output = Result<Vec<ObjectItem>>> + Send;
-    fn load_object_detail(&self, bucket: &str, key: &str, name: &str) -> impl Future<Output = Result<FileDetail>> + Send;
-    fn load_object_versions(&self, bucket: &str, key: &str) -> impl Future<Output = Result<Vec<FileVersion>>> + Send;
-    fn download_object<W: std::io::Write + Send, F: Fn(usize) + Send>(&self, bucket: &str, key: &str, version_id: Option<String>, writer: &mut BufWriter<W>, f: F) -> impl Future<Output = Result<()>> + Send;
-    fn list_all_download_objects(&self, bucket: &str, prefix: &str) -> impl Future<Output = Result<Vec<DownloadObjectInfo>>> + Send;
-    fn open_management_console_buckets(&self) -> Result<()>;
-    fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()>;
-    fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()>;
-}
-
-pub async fn new(
-    region: Option<String>,
-    endpoint_url: Option<String>,
-    profile: Option<String>,
-    default_region_fallback: String,
-    addressing_style: AddressingStyle,
-    no_sign_request: bool,
-) -> impl Client {
-    AwsSdkClient::new(
-        region,
-        endpoint_url,
-        profile,
-        default_region_fallback,
-        addressing_style,
-        no_sign_request,
-    )
-    .await
-}
-
-struct AwsSdkClient {
+pub struct AwsSdkClient {
     client: aws_sdk_s3::Client,
     region: String,
 }
@@ -81,7 +46,7 @@ impl Debug for AwsSdkClient {
 }
 
 impl AwsSdkClient {
-    async fn new(
+    pub async fn new(
         region: Option<String>,
         endpoint_url: Option<String>,
         profile: Option<String>,
@@ -119,14 +84,12 @@ impl AwsSdkClient {
 
         AwsSdkClient { client, region }
     }
-}
 
-impl Client for AwsSdkClient {
-    fn region(&self) -> &str {
+    pub fn region(&self) -> &str {
         &self.region
     }
 
-    async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
+    pub async fn load_all_buckets(&self) -> Result<Vec<BucketItem>> {
         let list_buckets_result = self
             .client
             .list_buckets()
@@ -160,7 +123,7 @@ impl Client for AwsSdkClient {
         }
     }
 
-    async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>> {
+    pub async fn load_bucket(&self, name: &str) -> Result<Vec<BucketItem>> {
         let s3_uri = build_bucket_s3_uri(name);
         let arn = build_bucket_arn(name);
         let object_url = build_bucket_url(&self.region, name);
@@ -174,7 +137,7 @@ impl Client for AwsSdkClient {
         Ok(vec![bucket])
     }
 
-    async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
+    pub async fn load_objects(&self, bucket: &str, prefix: &str) -> Result<Vec<ObjectItem>> {
         let mut dirs_vec: Vec<Vec<ObjectItem>> = Vec::new();
         let mut files_vec: Vec<Vec<ObjectItem>> = Vec::new();
 
@@ -215,7 +178,12 @@ impl Client for AwsSdkClient {
         Ok(di.chain(fi).collect())
     }
 
-    async fn load_object_detail(&self, bucket: &str, key: &str, name: &str) -> Result<FileDetail> {
+    pub async fn load_object_detail(
+        &self,
+        bucket: &str,
+        key: &str,
+        name: &str,
+    ) -> Result<FileDetail> {
         let result = self
             .client
             .head_object()
@@ -252,7 +220,7 @@ impl Client for AwsSdkClient {
         })
     }
 
-    async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
+    pub async fn load_object_versions(&self, bucket: &str, key: &str) -> Result<Vec<FileVersion>> {
         let result = self
             .client
             .list_object_versions()
@@ -283,7 +251,7 @@ impl Client for AwsSdkClient {
         Ok(versions)
     }
 
-    async fn download_object<W: std::io::Write + Send, F: Fn(usize) + Send>(
+    pub async fn download_object<W: std::io::Write + Send, F: Fn(usize) + Send>(
         &self,
         bucket: &str,
         key: &str,
@@ -323,7 +291,7 @@ impl Client for AwsSdkClient {
         Ok(())
     }
 
-    async fn list_all_download_objects(
+    pub async fn list_all_download_objects(
         &self,
         bucket: &str,
         prefix: &str,
@@ -362,7 +330,7 @@ impl Client for AwsSdkClient {
         Ok(objs)
     }
 
-    fn open_management_console_buckets(&self) -> Result<()> {
+    pub fn open_management_console_buckets(&self) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets?region={}",
             self.region
@@ -370,7 +338,7 @@ impl Client for AwsSdkClient {
         open::that(path).map_err(AppError::error)
     }
 
-    fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()> {
+    pub fn open_management_console_list(&self, bucket: &str, prefix: &str) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/buckets/{}?region={}&prefix={}",
             bucket, self.region, prefix
@@ -378,7 +346,7 @@ impl Client for AwsSdkClient {
         open::that(path).map_err(AppError::error)
     }
 
-    fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()> {
+    pub fn open_management_console_object(&self, bucket: &str, prefix: &str) -> Result<()> {
         let path = format!(
             "https://s3.console.aws.amazon.com/s3/object/{}?region={}&prefix={}",
             bucket, self.region, prefix

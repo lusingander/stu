@@ -2,15 +2,14 @@ use ratatui::{backend::Backend, Terminal};
 
 use crate::{
     app::{App, Notification},
-    client::Client,
     event::{AppEventType, Receiver},
     handle_user_events,
     keys::UserEvent,
     pages::page::Page,
 };
 
-pub async fn run<B: Backend, C: Client>(
-    app: &mut App<C>,
+pub async fn run<B: Backend>(
+    app: &mut App,
     terminal: &mut Terminal<B>,
     mut rx: Receiver,
 ) -> anyhow::Result<()> {

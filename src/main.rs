@@ -101,7 +101,7 @@ async fn main() -> anyhow::Result<()> {
 
     initialize_debug_log(&args)?;
 
-    let client = client::new(
+    let client = client::AwsSdkClient::new(
         args.region,
         args.endpoint_url,
         args.profile,

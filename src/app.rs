@@ -14,7 +14,7 @@ use std::{
 use tokio::spawn;
 
 use crate::{
-    client::Client,
+    client::AwsSdkClient,
     color::ColorTheme,
     config::Config,
     environment::Environment,
@@ -56,11 +56,11 @@ impl AppContext {
 }
 
 #[derive(Debug)]
-pub struct App<C: Client> {
+pub struct App {
     pub page_stack: PageStack,
     pub mapper: UserEventMapper,
     app_objects: AppObjects,
-    client: Arc<C>,
+    client: Arc<AwsSdkClient>,
     ctx: Rc<AppContext>,
     tx: Sender,
 
@@ -68,8 +68,8 @@ pub struct App<C: Client> {
     is_loading: bool,
 }
 
-impl<C: Client> App<C> {
-    pub fn new(mapper: UserEventMapper, client: C, ctx: AppContext, tx: Sender) -> App<C> {
+impl App {
+    pub fn new(mapper: UserEventMapper, client: AwsSdkClient, ctx: AppContext, tx: Sender) -> App {
         let ctx = Rc::new(ctx);
         App {
             app_objects: AppObjects::default(),
@@ -866,7 +866,7 @@ impl<C: Client> App<C> {
     }
 }
 
-impl<C: Client> App<C> {
+impl App {
     pub fn render(&mut self, f: &mut Frame) {
         let chunks = Layout::vertical([
             Constraint::Length(self.header_height()),
