@@ -17,7 +17,7 @@ mod run;
 mod util;
 mod widget;
 
-use clap::{arg, Parser, ValueEnum};
+use clap::{Parser, ValueEnum};
 use event::AppEventType;
 use file::open_or_create_append_file;
 use std::sync::Mutex;
