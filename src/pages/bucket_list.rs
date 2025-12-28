@@ -60,16 +60,20 @@ impl BucketListPage {
     pub fn new(bucket_items: Vec<BucketItem>, ctx: Rc<AppContext>, tx: Sender) -> Self {
         let items_len = bucket_items.len();
         let view_indices = (0..items_len).collect();
-        Self {
+        let mut page = Self {
             bucket_items,
             view_indices,
             view_state: ViewState::Default,
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
-            sort_dialog_state: BucketListSortDialogState::default(),
+            sort_dialog_state: BucketListSortDialogState::new(
+                ctx.config.ui.bucket_list.default_sort,
+            ),
             ctx,
             tx,
-        }
+        };
+        page.sort_view_indices(); // initial sort
+        page
     }
 
     pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {

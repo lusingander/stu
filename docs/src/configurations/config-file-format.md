@@ -9,9 +9,13 @@ max_concurrent_requests = 5
 
 default_region = "us-east-1"
 
+[ui.bucket_list]
+default_sort = "default"
+
 [ui.object_list]
 date_format = "%Y-%m-%d %H:%M:%S"
 date_width = 19
+default_sort = "default"
 
 [ui.object_detail]
 date_format = "%Y-%m-%d %H:%M:%S"
@@ -58,6 +62,17 @@ The default region to use if the region cannot be obtained from the command line
 - type: `string`
 - default: `us-east-1`
 
+### `ui.bucket_list.default_sort`
+
+The default sort order of the bucket list.
+
+- type: `string`
+- default: `default`
+- possible values:
+  - `default`
+  - `name_asc`
+  - `name_desc`
+
 ### `ui.object_list.date_format`
 
 The date format of a last modified in the object list.
@@ -73,6 +88,21 @@ It is recommended to set this when setting `date_format`.
 
 - type: `u16`
 - default: `19`
+
+### `ui.object_list.default_sort`
+
+The default sort order of the object list.
+
+- type: `string`
+- default: `default`
+- possible values:
+  - `default`
+  - `name_asc`
+  - `name_desc`
+  - `date_asc`
+  - `date_desc`
+  - `size_asc`
+  - `size_desc`
 
 ### `ui.object_detail.date_format`
 

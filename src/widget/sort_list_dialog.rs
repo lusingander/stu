@@ -8,15 +8,23 @@ use ratatui::{
     widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
 };
 
-use crate::{color::ColorTheme, widget::Dialog};
+use crate::{color::ColorTheme, config, widget::Dialog};
 
-#[derive(Default)]
 #[zero_indexed_enum]
 pub enum BucketListSortType {
-    #[default]
     Default,
     NameAsc,
     NameDesc,
+}
+
+impl From<config::BucketListDefaultSort> for BucketListSortType {
+    fn from(sort: config::BucketListDefaultSort) -> Self {
+        match sort {
+            config::BucketListDefaultSort::Default => BucketListSortType::Default,
+            config::BucketListDefaultSort::NameAsc => BucketListSortType::NameAsc,
+            config::BucketListDefaultSort::NameDesc => BucketListSortType::NameDesc,
+        }
+    }
 }
 
 impl BucketListSortType {
@@ -29,12 +37,20 @@ impl BucketListSortType {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct BucketListSortDialogState {
+    default: BucketListSortType,
     selected: BucketListSortType,
 }
 
 impl BucketListSortDialogState {
+    pub fn new(default_sort: config::BucketListDefaultSort) -> Self {
+        Self {
+            default: default_sort.into(),
+            selected: default_sort.into(),
+        }
+    }
+
     pub fn select_next(&mut self) {
         self.selected = self.selected.next();
     }
@@ -44,7 +60,7 @@ impl BucketListSortDialogState {
     }
 
     pub fn reset(&mut self) {
-        self.selected = BucketListSortType::Default;
+        self.selected = self.default;
     }
 
     pub fn selected(&self) -> BucketListSortType {
@@ -84,10 +100,8 @@ impl Widget for BucketListSortDialog {
     }
 }
 
-#[derive(Default)]
 #[zero_indexed_enum]
 pub enum ObjectListSortType {
-    #[default]
     Default,
     NameAsc,
     NameDesc,
@@ -95,6 +109,20 @@ pub enum ObjectListSortType {
     LastModifiedDesc,
     SizeAsc,
     SizeDesc,
+}
+
+impl From<config::ObjectListDefaultSort> for ObjectListSortType {
+    fn from(sort: config::ObjectListDefaultSort) -> Self {
+        match sort {
+            config::ObjectListDefaultSort::Default => ObjectListSortType::Default,
+            config::ObjectListDefaultSort::NameAsc => ObjectListSortType::NameAsc,
+            config::ObjectListDefaultSort::NameDesc => ObjectListSortType::NameDesc,
+            config::ObjectListDefaultSort::DateAsc => ObjectListSortType::LastModifiedAsc,
+            config::ObjectListDefaultSort::DateDesc => ObjectListSortType::LastModifiedDesc,
+            config::ObjectListDefaultSort::SizeAsc => ObjectListSortType::SizeAsc,
+            config::ObjectListDefaultSort::SizeDesc => ObjectListSortType::SizeDesc,
+        }
+    }
 }
 
 impl ObjectListSortType {
@@ -111,12 +139,20 @@ impl ObjectListSortType {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct ObjectListSortDialogState {
+    default: ObjectListSortType,
     selected: ObjectListSortType,
 }
 
 impl ObjectListSortDialogState {
+    pub fn new(default_sort: config::ObjectListDefaultSort) -> Self {
+        Self {
+            default: default_sort.into(),
+            selected: default_sort.into(),
+        }
+    }
+
     pub fn select_next(&mut self) {
         self.selected = self.selected.next();
     }
@@ -126,7 +162,7 @@ impl ObjectListSortDialogState {
     }
 
     pub fn reset(&mut self) {
-        self.selected = ObjectListSortType::Default;
+        self.selected = self.default;
     }
 
     pub fn selected(&self) -> ObjectListSortType {

@@ -69,17 +69,21 @@ impl ObjectListPage {
     ) -> Self {
         let items_len = object_items.len();
         let view_indices = (0..items_len).collect();
-        Self {
+        let mut page = Self {
             object_items,
             object_key,
             view_indices,
             view_state: ViewState::Default,
             list_state: ScrollListState::new(items_len),
             filter_input_state: InputDialogState::default(),
-            sort_dialog_state: ObjectListSortDialogState::default(),
+            sort_dialog_state: ObjectListSortDialogState::new(
+                ctx.config.ui.object_list.default_sort,
+            ),
             ctx,
             tx,
-        }
+        };
+        page.sort_view_indices(); // initial sort
+        page
     }
 
     pub fn handle_key(&mut self, user_events: Vec<UserEvent>, key_event: KeyEvent) {

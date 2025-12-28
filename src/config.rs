@@ -38,6 +38,8 @@ pub struct Config {
 #[derive(Debug, Clone, SmartDefault)]
 pub struct UiConfig {
     #[nested]
+    pub bucket_list: UiBucketListConfig,
+    #[nested]
     pub object_list: UiObjectListConfig,
     #[nested]
     pub object_detail: UiObjectDetailConfig,
@@ -47,11 +49,40 @@ pub struct UiConfig {
 
 #[optional(derives = [Deserialize])]
 #[derive(Debug, Clone, SmartDefault)]
+pub struct UiBucketListConfig {
+    #[default(BucketListDefaultSort::Default)]
+    pub default_sort: BucketListDefaultSort,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BucketListDefaultSort {
+    Default,
+    NameAsc,
+    NameDesc,
+}
+
+#[optional(derives = [Deserialize])]
+#[derive(Debug, Clone, SmartDefault)]
 pub struct UiObjectListConfig {
     #[default = "%Y-%m-%d %H:%M:%S"]
     pub date_format: String,
     #[default = 19] // // "2021-01-01 12:34:56".len()
     pub date_width: usize,
+    #[default(ObjectListDefaultSort::Default)]
+    pub default_sort: ObjectListDefaultSort,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ObjectListDefaultSort {
+    Default,
+    NameAsc,
+    NameDesc,
+    DateAsc,
+    DateDesc,
+    SizeAsc,
+    SizeDesc,
 }
 
 #[optional(derives = [Deserialize])]
