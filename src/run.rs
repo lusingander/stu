@@ -8,7 +8,7 @@ use crate::{
     pages::page::Page,
 };
 
-pub async fn run<B: Backend>(
+pub async fn run<B: Backend<Error = std::io::Error>>(
     app: &mut App,
     terminal: &mut Terminal<B>,
     mut rx: Receiver,

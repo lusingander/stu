@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Modifier, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget},
+    widgets::{Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget},
 };
 
 use crate::{
@@ -319,11 +319,10 @@ impl StatefulWidget for CopyDetailDialog {
         let dialog_height = state.item_type_len() * 2 + 2 /* border */;
         let area = calc_centered_area(area, dialog_width, dialog_height as u16);
 
-        let title = Title::from("Copy");
         let list = List::new(list_items).block(
             Block::bordered()
                 .border_type(BorderType::Rounded)
-                .title(title)
+                .title("Copy")
                 .bg(self.color.bg)
                 .fg(self.color.block)
                 .padding(Padding::horizontal(1)),

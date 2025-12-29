@@ -46,7 +46,7 @@ mod tests {
     use ratatui::{backend::TestBackend, buffer::Buffer, Terminal};
 
     #[tokio::test]
-    async fn test_render() -> std::io::Result<()> {
+    async fn test_render() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -76,7 +76,7 @@ mod tests {
         Ok(())
     }
 
-    fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
+    fn setup_terminal() -> Result<Terminal<TestBackend>, core::convert::Infallible> {
         let backend = TestBackend::new(30, 10);
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;

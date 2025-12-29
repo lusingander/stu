@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget},
+    widgets::{Block, BorderType, List, ListItem, Padding, Widget},
 };
 
 use crate::{color::ColorTheme, config, widget::Dialog};
@@ -257,11 +257,10 @@ impl Widget for ListSortDialog {
         let dialog_height = self.labels.len() as u16 + 2 /* border */;
         let area = calc_centered_area(area, dialog_width, dialog_height);
 
-        let title = Title::from("Sort");
         let list = List::new(list_items).block(
             Block::bordered()
                 .border_type(BorderType::Rounded)
-                .title(title)
+                .title("Sort")
                 .padding(Padding::horizontal(1))
                 .bg(self.color.bg)
                 .fg(self.color.block),

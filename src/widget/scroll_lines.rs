@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Style, Stylize},
     text::Line,
-    widgets::{block::BlockExt, Block, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
+    widgets::{Block, BlockExt, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
 use crate::{color::ColorTheme, util::digits};
