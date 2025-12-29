@@ -1,10 +1,10 @@
 use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Rect},
+    layout::{Alignment, Margin, Rect},
     style::{Color, Modifier, Stylize},
     text::Line,
-    widgets::{Block, BorderType, Padding, Paragraph, Widget, WidgetRef},
+    widgets::{Block, BorderType, Padding, Paragraph, Widget},
 };
 
 use crate::{color::ColorTheme, widget::Dialog};
@@ -50,8 +50,10 @@ impl Widget for LoadingDialog {
                 .fg(self.color.block),
         );
 
-        let dialog = Dialog::new(Box::new(paragraph), self.color.bg);
-        dialog.render_ref(area, buf);
+        let dialog = Dialog::new(paragraph)
+            .margin(Margin::new(1, 0))
+            .bg(self.color.bg);
+        dialog.render(area, buf);
     }
 }
 

@@ -2,10 +2,10 @@ use itsuki::zero_indexed_enum;
 use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, WidgetRef},
+    widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, Widget},
 };
 
 use crate::{
@@ -104,8 +104,10 @@ impl StatefulWidget for ConfirmDialog<'_> {
                 .fg(self.color.block),
         );
 
-        let dialog = Dialog::new(Box::new(content), self.color.bg);
-        dialog.render_ref(dialog_area, buf);
+        let dialog = Dialog::new(content)
+            .margin(Margin::new(1, 0))
+            .bg(self.color.bg);
+        dialog.render(dialog_area, buf);
     }
 }
 

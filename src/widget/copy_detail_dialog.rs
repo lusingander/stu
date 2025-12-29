@@ -2,12 +2,10 @@ use itsuki::zero_indexed_enum;
 use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Margin, Rect},
     style::{Color, Modifier, Stylize},
     text::Line,
-    widgets::{
-        block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, WidgetRef,
-    },
+    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget},
 };
 
 use crate::{
@@ -330,8 +328,10 @@ impl StatefulWidget for CopyDetailDialog {
                 .fg(self.color.block)
                 .padding(Padding::horizontal(1)),
         );
-        let dialog = Dialog::new(Box::new(list), self.color.bg);
-        dialog.render_ref(area, buf);
+        let dialog = Dialog::new(list)
+            .margin(Margin::new(1, 0))
+            .bg(self.color.bg);
+        dialog.render(area, buf);
     }
 }
 

@@ -2,9 +2,9 @@ use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
     crossterm::event::KeyEvent,
-    layout::Rect,
+    layout::{Margin, Rect},
     style::{Color, Stylize},
-    widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, WidgetRef},
+    widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, Widget},
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
 
@@ -117,8 +117,10 @@ impl StatefulWidget for InputDialog {
                 .fg(self.color.block)
                 .padding(Padding::horizontal(1)),
         );
-        let dialog = Dialog::new(Box::new(dialog_content), self.color.bg);
-        dialog.render_ref(dialog_area, buf);
+        let dialog = Dialog::new(dialog_content)
+            .margin(Margin::new(1, 0))
+            .bg(self.color.bg);
+        dialog.render(dialog_area, buf);
 
         // update cursor position
         let cursor_x = dialog_area.x + state.input.visual_cursor().min(input_max_width) as u16 + 2;

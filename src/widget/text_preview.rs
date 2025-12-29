@@ -7,12 +7,10 @@ use laurier::layout::calc_centered_area;
 use once_cell::sync::Lazy;
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{
-        block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget, WidgetRef,
-    },
+    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget},
 };
 use syntect::{
     easy::HighlightLines,
@@ -369,8 +367,10 @@ impl Widget for EncodingDialog<'_> {
                 .bg(self.color.bg)
                 .fg(self.color.block),
         );
-        let dialog = Dialog::new(Box::new(list), self.color.bg);
-        dialog.render_ref(area, buf);
+        let dialog = Dialog::new(list)
+            .margin(Margin::new(1, 0))
+            .bg(self.color.bg);
+        dialog.render(area, buf);
     }
 }
 

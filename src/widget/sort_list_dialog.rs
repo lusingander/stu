@@ -2,10 +2,10 @@ use itsuki::zero_indexed_enum;
 use laurier::layout::calc_centered_area;
 use ratatui::{
     buffer::Buffer,
-    layout::Rect,
+    layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget, WidgetRef},
+    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, Widget},
 };
 
 use crate::{color::ColorTheme, config, widget::Dialog};
@@ -266,7 +266,9 @@ impl Widget for ListSortDialog {
                 .bg(self.color.bg)
                 .fg(self.color.block),
         );
-        let dialog = Dialog::new(Box::new(list), self.color.bg);
-        dialog.render_ref(area, buf);
+        let dialog = Dialog::new(list)
+            .margin(Margin::new(1, 0))
+            .bg(self.color.bg);
+        dialog.render(area, buf);
     }
 }
