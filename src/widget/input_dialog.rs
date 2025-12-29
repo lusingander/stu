@@ -4,7 +4,7 @@ use ratatui::{
     crossterm::event::KeyEvent,
     layout::{Margin, Rect},
     style::{Color, Stylize},
-    widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, Widget},
+    widgets::{Block, BorderType, Padding, Paragraph, StatefulWidget, Widget},
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
 
@@ -108,11 +108,10 @@ impl StatefulWidget for InputDialog {
         let input_start_index = state.input.visual_cursor().saturating_sub(input_max_width);
         let input_view: &str = &state.input.value()[input_start_index..];
 
-        let title = Title::from(self.title);
         let dialog_content = Paragraph::new(input_view.fg(self.color.text)).block(
             Block::bordered()
                 .border_type(BorderType::Rounded)
-                .title(title)
+                .title(self.title)
                 .bg(self.color.bg)
                 .fg(self.color.block)
                 .padding(Padding::horizontal(1)),

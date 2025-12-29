@@ -10,7 +10,7 @@ use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget},
+    widgets::{Block, BorderType, List, ListItem, Padding, StatefulWidget, Widget},
 };
 use syntect::{
     easy::HighlightLines,
@@ -358,11 +358,10 @@ impl Widget for EncodingDialog<'_> {
         let dialog_height = self.labels.len() as u16 + 2 /* border */;
         let area = calc_centered_area(area, dialog_width, dialog_height);
 
-        let title = Title::from("Encoding");
         let list = List::new(list_items).block(
             Block::bordered()
                 .border_type(BorderType::Rounded)
-                .title(title)
+                .title("Encoding")
                 .padding(Padding::horizontal(1))
                 .bg(self.color.bg)
                 .fg(self.color.block),

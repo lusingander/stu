@@ -829,7 +829,7 @@ mod tests {
     use ratatui::{backend::TestBackend, buffer::Buffer, crossterm::event::KeyCode, Terminal};
 
     #[tokio::test]
-    async fn test_render_detail_tab() -> std::io::Result<()> {
+    async fn test_render_detail_tab() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -895,7 +895,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_detail_tab_with_config() -> std::io::Result<()> {
+    async fn test_render_detail_tab_with_config() -> Result<(), core::convert::Infallible> {
         let tx = sender();
         let mut terminal = setup_terminal()?;
 
@@ -962,7 +962,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_version_tab() -> std::io::Result<()> {
+    async fn test_render_version_tab() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -1030,7 +1030,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_version_tab_with_config() -> std::io::Result<()> {
+    async fn test_render_version_tab_with_config() -> Result<(), core::convert::Infallible> {
         let tx = sender();
         let mut terminal = setup_terminal()?;
 
@@ -1099,7 +1099,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_save_dialog_detail_tab() -> std::io::Result<()> {
+    async fn test_render_save_dialog_detail_tab() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -1164,7 +1164,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_copy_detail_dialog_detail_tab() -> std::io::Result<()> {
+    async fn test_render_copy_detail_dialog_detail_tab() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -1235,7 +1235,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_copy_detail_dialog_version_tab() -> std::io::Result<()> {
+    async fn test_render_copy_detail_dialog_version_tab() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -1319,7 +1319,7 @@ mod tests {
         Ok(())
     }
 
-    fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
+    fn setup_terminal() -> Result<Terminal<TestBackend>, core::convert::Infallible> {
         let backend = TestBackend::new(60, 20);
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;

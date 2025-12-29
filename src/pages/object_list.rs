@@ -961,7 +961,7 @@ mod tests {
     };
 
     #[tokio::test]
-    async fn test_render_without_scroll() -> std::io::Result<()> {
+    async fn test_render_without_scroll() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -1008,7 +1008,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_with_scroll() -> std::io::Result<()> {
+    async fn test_render_with_scroll() -> Result<(), core::convert::Infallible> {
         let ctx = Rc::default();
         let tx = sender();
         let mut terminal = setup_terminal()?;
@@ -1050,7 +1050,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_render_with_config() -> std::io::Result<()> {
+    async fn test_render_with_config() -> Result<(), core::convert::Infallible> {
         let tx = sender();
         let mut terminal = setup_terminal()?;
 
@@ -1167,7 +1167,7 @@ mod tests {
         assert_eq!(page.view_indices, vec![3, 1, 4, 0, 2]);
     }
 
-    fn setup_terminal() -> std::io::Result<Terminal<TestBackend>> {
+    fn setup_terminal() -> Result<Terminal<TestBackend>, core::convert::Infallible> {
         let backend = TestBackend::new(60, 10);
         let mut terminal = Terminal::new(backend)?;
         terminal.clear()?;

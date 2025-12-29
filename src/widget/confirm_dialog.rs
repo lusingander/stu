@@ -5,7 +5,7 @@ use ratatui::{
     layout::{Margin, Rect},
     style::{Color, Stylize},
     text::Line,
-    widgets::{block::Title, Block, BorderType, Padding, Paragraph, StatefulWidget, Widget},
+    widgets::{Block, BorderType, Padding, Paragraph, StatefulWidget, Widget},
 };
 
 use crate::{
@@ -94,11 +94,10 @@ impl StatefulWidget for ConfirmDialog<'_> {
         lines.extend(divider_lines);
         lines.extend(select_lines);
 
-        let title = Title::from("Confirm");
         let content = Paragraph::new(lines).centered().block(
             Block::bordered()
                 .border_type(BorderType::Rounded)
-                .title(title)
+                .title("Confirm")
                 .padding(Padding::horizontal(1))
                 .bg(self.color.bg)
                 .fg(self.color.block),
