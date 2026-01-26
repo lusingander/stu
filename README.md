@@ -17,6 +17,7 @@ STU provides the following features:
 
 - Recursive object downloads
 - Previews with syntax highlighting for text files and inline rendering for images
+- Yank text content to clipboard from preview
 - Access to previous object versions
 - Customizable key bindings
 - Support for S3-compatible storage
