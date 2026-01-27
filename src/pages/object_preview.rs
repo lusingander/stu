@@ -6,7 +6,6 @@ use crate::{
     app::AppContext,
     environment::ImagePicker,
     event::{AppEventType, Sender},
-    file::copy_to_clipboard,
     handle_user_events, handle_user_events_with_default,
     help::{
         build_help_spans, build_short_help_spans, BuildHelpsItem, BuildShortHelpsItem, Spans,
@@ -142,8 +141,8 @@ impl ObjectPreviewPage {
                     UserEvent::ObjectPreviewEncoding => {
                         self.open_encoding_dialog();
                     }
-                    UserEvent::ObjectPreviewYank => {
-                        self.yank_text_content();
+                    UserEvent::ObjectPreviewCopy => {
+                        self.copy_text_content();
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
@@ -163,8 +162,8 @@ impl ObjectPreviewPage {
                         self.open_save_dialog();
                         self.disable_image_render();
                     }
-                    UserEvent::ObjectPreviewYank => {
-                        self.tx.send(AppEventType::NotifyWarn("Cannot yank image content. Yank is only available for text files.".to_string()));
+                    UserEvent::ObjectPreviewCopy => {
+                        self.tx.send(AppEventType::NotifyWarn("Cannot copy image content. Copy is only available for text files.".to_string()));
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
@@ -271,7 +270,7 @@ impl ObjectPreviewPage {
                     BuildHelpsItem::new(UserEvent::ObjectPreviewDownload, "Download object"),
                     BuildHelpsItem::new(UserEvent::ObjectPreviewDownloadAs, "Download object as"),
                     BuildHelpsItem::new(UserEvent::ObjectPreviewEncoding, "Open encoding dialog"),
-                    BuildHelpsItem::new(UserEvent::ObjectPreviewYank, "Yank content to clipboard"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewCopy, "Copy content to clipboard"),
                 ]
             },
             (ViewState::Default, PreviewType::Image(_)) => {
@@ -312,7 +311,7 @@ impl ObjectPreviewPage {
                     BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewGoToTop, UserEvent::ObjectPreviewGoToBottom], "Top/End", 5),
                     BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDownload, UserEvent::ObjectPreviewDownloadAs], "Download", 3),
                     BuildShortHelpsItem::single(UserEvent::ObjectPreviewEncoding, "Encoding", 4),
-                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewYank, "Yank", 4),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewCopy, "Copy", 6),
                     BuildShortHelpsItem::single(UserEvent::ObjectPreviewBack, "Close", 1),
                     BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                 ]
@@ -351,22 +350,16 @@ impl ObjectPreviewPage {
         self.view_state = ViewState::SaveDialog(InputDialogState::new(name));
     }
 
-    fn yank_text_content(&mut self) {
+    fn copy_text_content(&mut self) {
         if let PreviewType::Text(state) = &self.preview_type {
             let encoding: &encoding_rs::Encoding = state.encoding.into();
             let (content, _, _) = encoding.decode(&self.object.bytes);
             let content_string = content.into_owned();
 
-            match copy_to_clipboard(content_string) {
-                Ok(_) => {
-                    self.tx.send(AppEventType::NotifyInfo(
-                        "Content yanked to clipboard".to_string(),
-                    ));
-                }
-                Err(e) => {
-                    self.tx.send(AppEventType::NotifyError(e));
-                }
-            }
+            self.tx.send(AppEventType::CopyToClipboard(
+                self.file_detail.name.clone(),
+                content_string,
+            ));
         }
     }
 
@@ -625,7 +618,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_yank_text_content() {
+    async fn test_copy_text_content() {
         let ctx = Rc::default();
         let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
         let tx = Sender::new(tx);
@@ -636,7 +629,7 @@ mod tests {
         let mut page = ObjectPreviewPage::new(file_detail, None, object, ctx, tx);
 
         page.handle_key(
-            vec![UserEvent::ObjectPreviewYank],
+            vec![UserEvent::ObjectPreviewCopy],
             KeyEvent::new(KeyCode::Char('y'), KeyModifiers::empty()),
         );
 
@@ -644,7 +637,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_yank_image_content_shows_warning() {
+    async fn test_copy_image_content_shows_warning() {
         use crate::event::AppEventType;
 
         let ctx = Rc::default();
@@ -676,7 +669,7 @@ mod tests {
         }
 
         page.handle_key(
-            vec![UserEvent::ObjectPreviewYank],
+            vec![UserEvent::ObjectPreviewCopy],
             KeyEvent::new(KeyCode::Char('y'), KeyModifiers::empty()),
         );
 
@@ -684,7 +677,7 @@ mod tests {
             match event {
                 AppEventType::NotifyWarn(msg) => {
                     assert!(
-                        msg.contains("Cannot yank image content"),
+                        msg.contains("Cannot copy image content"),
                         "Message was: {}",
                         msg
                     );
@@ -697,7 +690,7 @@ mod tests {
     }
 
     #[test]
-    fn test_yank_respects_encoding() {
+    fn test_copy_respects_encoding() {
         let ctx = Rc::default();
         let tx = sender();
 

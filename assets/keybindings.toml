@@ -72,7 +72,7 @@ download_as = ["shift-s"]
 encoding = ["e"]
 toggle_wrap = ["w"]
 toggle_number = ["n"]
-yank = ["y"]
+copy = ["c"]
 
 [help]
 close = ["?", "backspace"]

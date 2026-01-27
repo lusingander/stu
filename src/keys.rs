@@ -68,7 +68,7 @@ pub enum UserEvent {
     ObjectPreviewEncoding,
     ObjectPreviewToggleWrap,
     ObjectPreviewToggleNumber,
-    ObjectPreviewYank,
+    ObjectPreviewCopy,
     HelpClose,
     InputDialogClose,
     InputDialogApply,
@@ -184,7 +184,7 @@ fn build_user_event_mapper(
     set_event_to_map(&mut map, &bindings, "object_preview", "encoding", UserEvent::ObjectPreviewEncoding)?;
     set_event_to_map(&mut map, &bindings, "object_preview", "toggle_wrap", UserEvent::ObjectPreviewToggleWrap)?;
     set_event_to_map(&mut map, &bindings, "object_preview", "toggle_number", UserEvent::ObjectPreviewToggleNumber)?;
-    set_event_to_map(&mut map, &bindings, "object_preview", "yank", UserEvent::ObjectPreviewYank)?;
+    set_event_to_map(&mut map, &bindings, "object_preview", "copy", UserEvent::ObjectPreviewCopy)?;
 
     set_event_to_map(&mut map, &bindings, "help", "close", UserEvent::HelpClose)?;
 
