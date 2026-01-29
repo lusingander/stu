@@ -356,7 +356,7 @@ impl ObjectPreviewPage {
             let (content, _, _) = encoding.decode(&self.object.bytes);
             let content_string = content.into_owned();
 
-            self.tx.send(AppEventType::CopyToClipboard(
+            self.tx.send(AppEventType::CopyTextToClipboard(
                 self.file_detail.name.clone(),
                 content_string,
             ));

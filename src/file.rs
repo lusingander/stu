@@ -45,7 +45,7 @@ fn create_dirs<P: AsRef<Path>>(path: P) -> Result<()> {
     }
 }
 
-pub fn copy_to_clipboard(value: String) -> Result<()> {
+pub fn copy_text_to_clipboard(value: String) -> Result<()> {
     Clipboard::new()
         .and_then(|mut c| c.set_text(value))
         .map_err(|e| AppError::new("Failed to copy to clipboard", e))

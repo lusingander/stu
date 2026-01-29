@@ -26,7 +26,7 @@ use crate::{
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
         CompleteReloadObjectsResult, CompleteSaveObjectResult, Sender,
     },
-    file::{copy_to_clipboard, create_binary_file, save_error_log},
+    file::{copy_text_to_clipboard, create_binary_file, save_error_log},
     keys::UserEventMapper,
     object::{AppObjects, DownloadObjectInfo, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
@@ -808,8 +808,8 @@ impl App {
         object_preview_page.enable_image_render();
     }
 
-    pub fn copy_to_clipboard(&self, name: String, value: String) {
-        match copy_to_clipboard(value) {
+    pub fn copy_text_to_clipboard(&self, name: String, value: String) {
+        match copy_text_to_clipboard(value) {
             Ok(_) => {
                 let msg = format!("Copied '{name}' to clipboard successfully");
                 self.tx.send(AppEventType::NotifySuccess(msg));

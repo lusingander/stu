@@ -60,7 +60,7 @@ pub enum AppEventType {
     ObjectDetailOpenManagementConsole(ObjectKey),
     CloseCurrentPage,
     OpenHelp,
-    CopyToClipboard(String, String),
+    CopyTextToClipboard(String, String),
     NotifyInfo(String),
     NotifySuccess(String),
     NotifyWarn(String),
