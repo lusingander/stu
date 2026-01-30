@@ -163,7 +163,7 @@ impl ObjectPreviewPage {
                         self.disable_image_render();
                     }
                     UserEvent::ObjectPreviewCopy => {
-                        self.tx.send(AppEventType::NotifyWarn("Cannot copy image content. Copy is only available for text files.".to_string()));
+                        self.copy_image_content();
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
@@ -360,6 +360,17 @@ impl ObjectPreviewPage {
                 self.file_detail.name.clone(),
                 content_string,
             ));
+        }
+    }
+
+    fn copy_image_content(&mut self) {
+        if let PreviewType::Image(state) = &self.preview_type {
+            if let Some((width, height, bytes)) = state.base_image_data() {
+                self.tx.send(AppEventType::CopyImageToClipboard(
+                    self.file_detail.name.clone(),
+                    (width, height, bytes),
+                ));
+            }
         }
     }
 

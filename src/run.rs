@@ -195,6 +195,9 @@ pub async fn run<B: Backend<Error = std::io::Error>>(
             AppEventType::CopyTextToClipboard(name, value) => {
                 app.copy_text_to_clipboard(name, value);
             }
+            AppEventType::CopyImageToClipboard(name, value) => {
+                app.copy_image_to_clipboard(name, value);
+            }
             AppEventType::NotifyInfo(msg) => {
                 app.info_notification(msg);
             }

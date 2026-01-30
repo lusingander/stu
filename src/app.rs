@@ -26,7 +26,7 @@ use crate::{
         CompleteLoadObjectsResult, CompletePreviewObjectResult, CompleteReloadBucketsResult,
         CompleteReloadObjectsResult, CompleteSaveObjectResult, Sender,
     },
-    file::{copy_text_to_clipboard, create_binary_file, save_error_log},
+    file::{copy_image_to_clipboard, copy_text_to_clipboard, create_binary_file, save_error_log},
     keys::UserEventMapper,
     object::{AppObjects, DownloadObjectInfo, FileDetail, ObjectItem, ObjectKey, RawObject},
     pages::page::{Page, PageStack},
@@ -809,7 +809,15 @@ impl App {
     }
 
     pub fn copy_text_to_clipboard(&self, name: String, value: String) {
-        match copy_text_to_clipboard(value) {
+        self.copy_to_clipboard(name, || copy_text_to_clipboard(value));
+    }
+
+    pub fn copy_image_to_clipboard(&self, name: String, value: (usize, usize, Vec<u8>)) {
+        self.copy_to_clipboard(name, || copy_image_to_clipboard(value));
+    }
+
+    fn copy_to_clipboard<F: FnOnce() -> Result<()>>(&self, name: String, copy: F) {
+        match copy() {
             Ok(_) => {
                 let msg = format!("Copied '{name}' to clipboard successfully");
                 self.tx.send(AppEventType::NotifySuccess(msg));

@@ -61,6 +61,7 @@ pub enum AppEventType {
     CloseCurrentPage,
     OpenHelp,
     CopyTextToClipboard(String, String),
+    CopyImageToClipboard(String, (usize, usize, Vec<u8>)),
     NotifyInfo(String),
     NotifySuccess(String),
     NotifyWarn(String),

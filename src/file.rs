@@ -50,3 +50,15 @@ pub fn copy_text_to_clipboard(value: String) -> Result<()> {
         .and_then(|mut c| c.set_text(value))
         .map_err(|e| AppError::new("Failed to copy to clipboard", e))
 }
+
+pub fn copy_image_to_clipboard(value: (usize, usize, Vec<u8>)) -> Result<()> {
+    let (width, height, bytes) = value;
+    let image = arboard::ImageData {
+        width,
+        height,
+        bytes: bytes.into(),
+    };
+    Clipboard::new()
+        .and_then(|mut c| c.set_image(image))
+        .map_err(|e| AppError::new("Failed to copy to clipboard", e))
+}
