@@ -279,6 +279,7 @@ impl ObjectPreviewPage {
                     BuildHelpsItem::new(UserEvent::ObjectPreviewBack, "Close preview"),
                     BuildHelpsItem::new(UserEvent::ObjectPreviewDownload, "Download object"),
                     BuildHelpsItem::new(UserEvent::ObjectPreviewDownloadAs, "Download object as"),
+                    BuildHelpsItem::new(UserEvent::ObjectPreviewCopy, "Copy content to clipboard"),
                 ]
             },
             (ViewState::SaveDialog(_), _) => {
@@ -320,6 +321,7 @@ impl ObjectPreviewPage {
                 vec![
                     BuildShortHelpsItem::single(UserEvent::Quit, "Quit", 0),
                     BuildShortHelpsItem::group(vec![UserEvent::ObjectPreviewDownload, UserEvent::ObjectPreviewDownloadAs], "Download", 2),
+                    BuildShortHelpsItem::single(UserEvent::ObjectPreviewCopy, "Copy", 3),
                     BuildShortHelpsItem::single(UserEvent::ObjectPreviewBack, "Close", 1),
                     BuildShortHelpsItem::single(UserEvent::Help, "Help", 0),
                 ]
