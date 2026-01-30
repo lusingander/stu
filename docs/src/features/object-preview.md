@@ -10,7 +10,7 @@
     - It must be enabled in the [config](../configurations/config-file-format.md#previewauto_detect_encoding)
 - Download object
   - Download a single selected object
-- Copy the text content to clipboard
+- Copy the content to clipboard
 
 ![Object Preview](https://raw.githubusercontent.com/lusingander/stu/refs/heads/master/img/object-preview.png)
 ![Object Preview Image](https://raw.githubusercontent.com/lusingander/stu/refs/heads/master/img/object-preview-image.png)

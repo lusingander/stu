@@ -17,7 +17,10 @@ exclude = ["/.github", "/img", "/tool", "Makefile", "/docs"]
 [dependencies]
 ansi-to-tui = "8.0.0"
 anyhow = "1.0.100"
-arboard = { version = "3.6.1", features = ["wayland-data-control"] }
+arboard = { version = "3.6.1", features = [
+    "image-data",
+    "wayland-data-control",
+] }
 aws-config = "1.8.12"
 aws-sdk-s3 = "1.119.0"
 aws-smithy-types = "1.3.5"

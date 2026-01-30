@@ -3,7 +3,7 @@ use std::{
     io::Cursor,
 };
 
-use image::{DynamicImage, ImageReader};
+use image::{DynamicImage, GenericImageView, ImageReader};
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
@@ -15,6 +15,7 @@ use crate::{environment::Environment, format::format_version};
 
 pub struct ImagePreviewState {
     protocol: Option<StatefulProtocol>,
+    base_image: Option<DynamicImage>,
     // to control image rendering when dialogs are overlapped...
     render: bool,
 }
@@ -34,9 +35,10 @@ pub enum ImagePicker {
 impl ImagePreviewState {
     pub fn new(bytes: &[u8], image_picker: ImagePicker) -> (Self, Option<String>) {
         match build_image_protocol(bytes, image_picker) {
-            Ok(protocol) => {
+            Ok((protocol, img)) => {
                 let state = ImagePreviewState {
                     protocol: Some(protocol),
+                    base_image: Some(img),
                     render: true,
                 };
                 (state, None)
@@ -44,6 +46,7 @@ impl ImagePreviewState {
             Err(e) => {
                 let state = ImagePreviewState {
                     protocol: None,
+                    base_image: None,
                     render: true,
                 };
                 (state, Some(e))
@@ -54,12 +57,20 @@ impl ImagePreviewState {
     pub fn set_render(&mut self, render: bool) {
         self.render = render;
     }
+
+    pub fn base_image_data(&self) -> Option<(usize, usize, Vec<u8>)> {
+        self.base_image.as_ref().map(|img| {
+            let (w, h) = img.dimensions();
+            let bytes = img.to_rgba8().into_raw();
+            (w as usize, h as usize, bytes)
+        })
+    }
 }
 
 fn build_image_protocol(
     bytes: &[u8],
     image_picker: ImagePicker,
-) -> Result<StatefulProtocol, String> {
+) -> Result<(StatefulProtocol, DynamicImage), String> {
     match image_picker {
         ImagePicker::Ok(picker) => {
             let reader = ImageReader::new(Cursor::new(bytes))
@@ -68,7 +79,8 @@ fn build_image_protocol(
             let img: DynamicImage = reader
                 .decode()
                 .map_err(|e| format!("Failed to decode image: {e}"))?;
-            Ok(picker.new_resize_protocol(img))
+            let protocol = picker.new_resize_protocol(img.clone());
+            Ok((protocol, img))
         }
         ImagePicker::Error(e) => Err(format!("Failed to create picker: {e}")),
         ImagePicker::Disabled => Err("Image preview is disabled".into()),

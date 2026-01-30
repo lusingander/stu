@@ -179,7 +179,7 @@ impl BucketListPage {
                     }
                     UserEvent::SelectDialogSelect => {
                         let (name, value) = state.selected_name_and_value();
-                        self.tx.send(AppEventType::CopyToClipboard(name, value));
+                        self.tx.send(AppEventType::CopyTextToClipboard(name, value));
                     }
                     UserEvent::Help => {
                         self.tx.send(AppEventType::OpenHelp);
