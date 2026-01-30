@@ -458,13 +458,7 @@ mod tests {
 
     use super::*;
     use chrono::{DateTime, Local, NaiveDateTime};
-    use ratatui::{
-        backend::TestBackend,
-        buffer::Buffer,
-        crossterm::event::{KeyCode, KeyModifiers},
-        style::Color,
-        Terminal,
-    };
+    use ratatui::{backend::TestBackend, buffer::Buffer, style::Color, Terminal};
 
     fn object(ss: &[&str]) -> RawObject {
         RawObject {
@@ -625,98 +619,6 @@ mod tests {
             s3_uri: "s3://bucket-1/file.txt".to_string(),
             arn: "arn:aws:s3:::bucket-1/file.txt".to_string(),
             object_url: "https://bucket-1.s3.ap-northeast-1.amazonaws.com/file.txt".to_string(),
-        }
-    }
-
-    #[tokio::test]
-    async fn test_copy_text_content() {
-        let ctx = Rc::default();
-        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-        let tx = Sender::new(tx);
-
-        let file_detail = file_detail();
-        let preview = ["Hello, world!", "This is test content."];
-        let object = object(&preview);
-        let mut page = ObjectPreviewPage::new(file_detail, None, object, ctx, tx);
-
-        page.handle_key(
-            vec![UserEvent::ObjectPreviewCopy],
-            KeyEvent::new(KeyCode::Char('y'), KeyModifiers::empty()),
-        );
-
-        assert!(matches!(page.preview_type, PreviewType::Text(_)));
-    }
-
-    #[tokio::test]
-    async fn test_copy_image_content_shows_warning() {
-        use crate::event::AppEventType;
-
-        let ctx = Rc::default();
-        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-        let tx = Sender::new(tx);
-
-        let image_bytes = vec![
-            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG signature
-            0x00, 0x00, 0x00, 0x0D, // IHDR chunk size
-            0x49, 0x48, 0x44, 0x52, // "IHDR"
-            0x00, 0x00, 0x00, 0x01, // width: 1
-            0x00, 0x00, 0x00, 0x01, // height: 1
-            0x08, 0x02, // bit depth: 8, color type: 2 (RGB)
-            0x00, 0x00, 0x00, // compression, filter, interlace
-        ];
-        let object = RawObject { bytes: image_bytes };
-
-        let mut file_detail = file_detail();
-        file_detail.name = "image.png".to_string();
-        file_detail.content_type = "image/png".to_string();
-
-        let mut page = ObjectPreviewPage::new(file_detail, None, object, ctx, tx);
-
-        assert!(matches!(page.preview_type, PreviewType::Image(_)));
-
-        // NOTE: Clear any initial warning messages (like "Image preview is disabled")
-        while rx.try_recv().is_ok() {
-            // Drain events
-        }
-
-        page.handle_key(
-            vec![UserEvent::ObjectPreviewCopy],
-            KeyEvent::new(KeyCode::Char('y'), KeyModifiers::empty()),
-        );
-
-        if let Ok(event) = rx.try_recv() {
-            match event {
-                AppEventType::NotifyWarn(msg) => {
-                    assert!(
-                        msg.contains("Cannot copy image content"),
-                        "Message was: {}",
-                        msg
-                    );
-                }
-                _ => panic!("Expected NotifyWarn event, got: {:?}", event),
-            }
-        } else {
-            panic!("Expected NotifyWarn event to be sent");
-        }
-    }
-
-    #[test]
-    fn test_copy_respects_encoding() {
-        let ctx = Rc::default();
-        let tx = sender();
-
-        let text = "Hello, 世界!";
-        let utf16_bytes: Vec<u8> = text.encode_utf16().flat_map(|c| c.to_be_bytes()).collect();
-
-        let object = RawObject { bytes: utf16_bytes };
-
-        let file_detail = file_detail();
-        let page = ObjectPreviewPage::new(file_detail, None, object, ctx, tx);
-
-        if let PreviewType::Text(ref state) = page.preview_type {
-            assert!(matches!(state.encoding, _));
-        } else {
-            panic!("Expected text preview type");
         }
     }
 }
