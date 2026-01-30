@@ -23,6 +23,7 @@ jobs:
         run: |
           MSRV=$(grep '^rust-version' Cargo.toml | cut -d '"' -f 2)
           echo "msrv=$MSRV" >> $GITHUB_OUTPUT
+
   build:
     needs: prepare
     strategy:
@@ -30,7 +31,16 @@ jobs:
         versions:
           - stable
           - ${{ needs.prepare.outputs.msrv }}
-    runs-on: ubuntu-latest
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        exclude:
+          - os: macos-latest
+            versions: ${{ needs.prepare.outputs.msrv }}
+          - os: windows-latest
+            versions: ${{ needs.prepare.outputs.msrv }}
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
