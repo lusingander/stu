@@ -4133,7 +4133,7 @@ dependencies = [
 
 [[package]]
 name = "stu"
-version = "0.7.5"
+version = "0.7.6"
 dependencies = [
  "ansi-to-tui",
  "anyhow",
