@@ -205,6 +205,7 @@ Sleep 100ms
 Type "baaar"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-download.png"
+Sleep 100ms
 Escape
 Sleep 500ms
 Type "j"
