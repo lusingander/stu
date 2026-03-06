@@ -241,6 +241,7 @@ impl ObjectListPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
+        let list_active = matches!(self.view_state, ViewState::Default);
 
         let list_items = build_list_items(
             &self.object_items,
@@ -248,6 +249,7 @@ impl ObjectListPage {
             self.filter_input_state.input(),
             offset,
             selected,
+            list_active,
             area,
             &self.ctx.config.ui,
             &self.ctx.env,
@@ -771,6 +773,7 @@ fn build_list_items<'a>(
     filter: &'a str,
     offset: usize,
     selected: usize,
+    list_active: bool,
     area: Rect,
     ui_config: &UiConfig,
     env: &Environment,
@@ -783,14 +786,15 @@ fn build_list_items<'a>(
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, item)| {
-            build_list_item(
-                item,
-                idx + offset == selected,
-                filter,
-                area,
-                ui_config,
-                env,
+            .map(|(idx, item)| {
+                build_list_item(
+                    item,
+                    idx + offset == selected,
+                    list_active,
+                    filter,
+                    area,
+                    ui_config,
+                    env,
                 theme,
             )
         })
@@ -800,6 +804,7 @@ fn build_list_items<'a>(
 fn build_list_item<'a>(
     item: &'a ObjectItem,
     selected: bool,
+    list_active: bool,
     filter: &'a str,
     area: Rect,
     ui_config: &UiConfig,
@@ -807,7 +812,13 @@ fn build_list_item<'a>(
     theme: &ColorTheme,
 ) -> ListItem<'a> {
     let line = match item {
-        ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter, area.width, theme),
+        ObjectItem::Dir { name, .. } => build_object_dir_line(
+            name,
+            filter,
+            area.width,
+            ui_config.theme.object_dir_bold,
+            theme,
+        ),
         ObjectItem::File {
             name,
             size_byte,
@@ -826,9 +837,11 @@ fn build_list_item<'a>(
     };
 
     let style = if selected {
-        Style::default()
-            .bg(theme.list_selected_bg)
-            .fg(theme.list_selected_fg)
+        if list_active {
+            theme.list_selected_style()
+        } else {
+            theme.list_selected_inactive_style()
+        }
     } else {
         Style::default()
     };
@@ -839,6 +852,7 @@ fn build_object_dir_line<'a>(
     name: &'a str,
     filter: &'a str,
     width: u16,
+    dir_bold: bool,
     theme: &ColorTheme,
 ) -> Line<'a> {
     let name = format!("{name}/");
@@ -851,17 +865,32 @@ fn build_object_dir_line<'a>(
     };
 
     if filter.is_empty() {
-        Line::from(vec![" ".into(), pad_name.bold(), " ".into()])
+        let name_span = if dir_bold {
+            pad_name.bold()
+        } else {
+            pad_name.into()
+        };
+        Line::from(vec![" ".into(), name_span, " ".into()])
     } else {
         let i = name.find(filter).unwrap();
         let mut hm = highlight_matched_text(vec![pad_name.into()]);
         if w > name_w {
             hm = hm.ellipsis(ELLIPSIS);
         }
+        let not_matched_style = if dir_bold {
+            Style::default().bold()
+        } else {
+            Style::default()
+        };
+        let matched_style = if dir_bold {
+            Style::default().fg(theme.list_filter_match).bold()
+        } else {
+            Style::default().fg(theme.list_filter_match)
+        };
         let mut spans = hm
             .matched_range(i, i + filter.len())
-            .not_matched_style(Style::default().bold())
-            .matched_style(Style::default().fg(theme.list_filter_match).bold())
+            .not_matched_style(not_matched_style)
+            .matched_style(matched_style)
             .into_spans();
         spans.insert(0, " ".into());
         spans.push(" ".into());

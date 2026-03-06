@@ -45,6 +45,8 @@ pub struct UiConfig {
     pub object_detail: UiObjectDetailConfig,
     #[nested]
     pub help: UiHelpConfig,
+    #[nested]
+    pub theme: UiThemeConfig,
 }
 
 #[optional(derives = [Deserialize])]
@@ -97,6 +99,21 @@ pub struct UiObjectDetailConfig {
 pub struct UiHelpConfig {
     #[default = 100]
     pub max_help_width: usize,
+}
+
+#[optional(derives = [Deserialize])]
+#[derive(Debug, Clone, SmartDefault)]
+pub struct UiThemeConfig {
+    #[default = "cyan"]
+    pub list_selected_bg: String,
+    #[default = "black"]
+    pub list_selected_fg: String,
+    #[default = "dark_gray"]
+    pub list_selected_inactive_bg: String,
+    #[default = "black"]
+    pub list_selected_inactive_fg: String,
+    #[default = true]
+    pub object_dir_bold: bool,
 }
 
 #[optional(derives = [Deserialize])]

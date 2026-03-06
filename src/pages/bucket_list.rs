@@ -225,6 +225,7 @@ impl BucketListPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
+        let list_active = matches!(self.view_state, ViewState::Default);
 
         let list_items = build_list_items(
             &self.bucket_items,
@@ -233,6 +234,7 @@ impl BucketListPage {
             &self.ctx.theme,
             offset,
             selected,
+            list_active,
             area,
         );
 
@@ -678,6 +680,7 @@ fn build_list_items<'a>(
     theme: &'a ColorTheme,
     offset: usize,
     selected: usize,
+    list_active: bool,
     area: Rect,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
@@ -689,7 +692,7 @@ fn build_list_items<'a>(
         .enumerate()
         .map(|(idx, item)| {
             let selected = idx + offset == selected;
-            build_list_item(&item.name, selected, filter, area.width, theme)
+            build_list_item(&item.name, selected, list_active, filter, area.width, theme)
         })
         .collect()
 }
@@ -697,6 +700,7 @@ fn build_list_items<'a>(
 fn build_list_item<'a>(
     name: &'a str,
     selected: bool,
+    list_active: bool,
     filter: &'a str,
     width: u16,
     theme: &'a ColorTheme,
@@ -728,9 +732,11 @@ fn build_list_item<'a>(
     };
 
     let style = if selected {
-        Style::default()
-            .bg(theme.list_selected_bg)
-            .fg(theme.list_selected_fg)
+        if list_active {
+            theme.list_selected_style()
+        } else {
+            theme.list_selected_inactive_style()
+        }
     } else {
         Style::default()
     };

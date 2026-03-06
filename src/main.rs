@@ -97,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::load()?;
     let mapper = UserEventMapper::load()?;
     let env = Environment::new(config.preview.image, args.fix_dynamic_values_for_test);
-    let theme = ColorTheme::default();
+    let theme = ColorTheme::from_config(&config)?;
     let ctx = AppContext::new(config, env, theme);
 
     initialize_debug_log(&args)?;

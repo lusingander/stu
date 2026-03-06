@@ -23,6 +23,13 @@ date_format = "%Y-%m-%d %H:%M:%S"
 [ui.help]
 max_help_width = 100
 
+[ui.theme]
+list_selected_bg = "#ffd166"
+list_selected_fg = "black"
+list_selected_inactive_bg = "dark_gray"
+list_selected_inactive_fg = "black"
+object_dir_bold = true
+
 [preview]
 highlight = false
 highlight_theme = "base16-ocean.dark"
@@ -118,6 +125,50 @@ The maximum width of the keybindings display area in the help.
 
 - type: `usize`
 - default: `100`
+
+### `ui.theme.list_selected_bg`
+
+The background color of the selected row in bucket and object lists.
+
+- type: `string`
+- default: `cyan`
+
+Supports named terminal colors such as `cyan`, `yellow`, `dark_gray`, `bright_white`, and hex
+colors such as `#ffd166` or `#abc`.
+
+### `ui.theme.list_selected_fg`
+
+The foreground color of the selected row in bucket and object lists.
+
+- type: `string`
+- default: `black`
+
+Supports the same color formats as `ui.theme.list_selected_bg`.
+
+### `ui.theme.list_selected_inactive_bg`
+
+The background color of the selected row when the list is inactive.
+
+- type: `string`
+- default: `dark_gray`
+
+Supports the same color formats as `ui.theme.list_selected_bg`.
+
+### `ui.theme.list_selected_inactive_fg`
+
+The foreground color of the selected row when the list is inactive.
+
+- type: `string`
+- default: `black`
+
+Supports the same color formats as `ui.theme.list_selected_bg`.
+
+### `ui.theme.object_dir_bold`
+
+Whether directory names in the object list should be rendered in bold.
+
+- type: `bool`
+- default: `true`
 
 ### `preview.highlight`
 

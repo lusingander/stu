@@ -202,6 +202,7 @@ impl ObjectDetailPage {
             offset,
             selected,
             chunks[0],
+            &self.ctx.config.ui,
             &self.ctx.theme,
         );
 
@@ -483,6 +484,7 @@ fn build_list_items_from_object_items<'a>(
     offset: usize,
     selected: usize,
     area: Rect,
+    ui_config: &UiConfig,
     theme: &ColorTheme,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
@@ -492,7 +494,7 @@ fn build_list_items_from_object_items<'a>(
         .take(show_item_count)
         .enumerate()
         .map(|(idx, item)| {
-            build_list_item_from_object_item(idx, item, offset, selected, area, theme)
+            build_list_item_from_object_item(idx, item, offset, selected, area, ui_config, theme)
         })
         .collect()
 }
@@ -503,12 +505,17 @@ fn build_list_item_from_object_item<'a>(
     offset: usize,
     selected: usize,
     area: Rect,
+    ui_config: &UiConfig,
     theme: &ColorTheme,
 ) -> ListItem<'a> {
     let content = match item {
         ObjectItem::Dir { name, .. } => {
             let content = format_dir_item(name, area.width);
-            let style = Style::default().add_modifier(Modifier::BOLD);
+            let style = if ui_config.theme.object_dir_bold {
+                Style::default().add_modifier(Modifier::BOLD)
+            } else {
+                Style::default()
+            };
             Span::styled(content, style)
         }
         ObjectItem::File { name, .. } => {
@@ -518,11 +525,7 @@ fn build_list_item_from_object_item<'a>(
         }
     };
     if idx + offset == selected {
-        ListItem::new(content).style(
-            Style::default()
-                .bg(theme.list_selected_inactive_bg)
-                .fg(theme.list_selected_inactive_fg),
-        )
+        ListItem::new(content).style(theme.list_selected_style())
     } else {
         ListItem::new(content)
     }
