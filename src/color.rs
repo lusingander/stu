@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Context};
 use ratatui::style::{Color, Style};
 
-use crate::config::Config;
+use crate::config::{Config, UiThemeConfig};
 
 #[derive(Debug, Clone)]
 pub struct ColorTheme {
@@ -67,28 +67,56 @@ impl Default for ColorTheme {
 impl ColorTheme {
     pub fn from_config(config: &Config) -> anyhow::Result<Self> {
         let mut theme = Self::default();
-        theme.list_selected_bg = parse_color(&config.ui.theme.list_selected_bg)
-            .with_context(|| "Failed to parse ui.theme.list_selected_bg")?;
-        theme.list_selected_fg = parse_color(&config.ui.theme.list_selected_fg)
-            .with_context(|| "Failed to parse ui.theme.list_selected_fg")?;
-        theme.list_selected_inactive_bg = parse_color(&config.ui.theme.list_selected_inactive_bg)
-            .with_context(|| "Failed to parse ui.theme.list_selected_inactive_bg")?;
-        theme.list_selected_inactive_fg = parse_color(&config.ui.theme.list_selected_inactive_fg)
-            .with_context(|| "Failed to parse ui.theme.list_selected_inactive_fg")?;
+        theme.apply_ui_theme(&config.ui.theme)?;
         Ok(theme)
     }
 
+    fn apply_ui_theme(&mut self, ui_theme: &UiThemeConfig) -> anyhow::Result<()> {
+        self.list_selected_bg =
+            parse_config_color(&ui_theme.list_selected_bg, "ui.theme.list_selected_bg")?;
+        self.list_selected_fg =
+            parse_config_color(&ui_theme.list_selected_fg, "ui.theme.list_selected_fg")?;
+        self.list_selected_inactive_bg = parse_config_color(
+            &ui_theme.list_selected_inactive_bg,
+            "ui.theme.list_selected_inactive_bg",
+        )?;
+        self.list_selected_inactive_fg = parse_config_color(
+            &ui_theme.list_selected_inactive_fg,
+            "ui.theme.list_selected_inactive_fg",
+        )?;
+        Ok(())
+    }
+
+    pub fn list_item_style(&self, selected: bool, active: bool) -> Style {
+        if !selected {
+            return Style::default();
+        }
+
+        if active {
+            self.list_selected_style()
+        } else {
+            self.list_selected_inactive_style()
+        }
+    }
+
     pub fn list_selected_style(&self) -> Style {
-        Style::default()
-            .bg(self.list_selected_bg)
-            .fg(self.list_selected_fg)
+        list_style(self.list_selected_bg, self.list_selected_fg)
     }
 
     pub fn list_selected_inactive_style(&self) -> Style {
-        Style::default()
-            .bg(self.list_selected_inactive_bg)
-            .fg(self.list_selected_inactive_fg)
+        list_style(
+            self.list_selected_inactive_bg,
+            self.list_selected_inactive_fg,
+        )
     }
+}
+
+fn list_style(bg: Color, fg: Color) -> Style {
+    Style::default().bg(bg).fg(fg)
+}
+
+fn parse_config_color(value: &str, key: &str) -> anyhow::Result<Color> {
+    parse_color(value).with_context(|| format!("Failed to parse {key}"))
 }
 
 fn parse_color(value: &str) -> anyhow::Result<Color> {
@@ -150,7 +178,17 @@ mod tests {
 
     #[test]
     fn parse_hex_colors() {
-        assert_eq!(parse_color("#123456").unwrap(), Color::Rgb(0x12, 0x34, 0x56));
+        assert_eq!(
+            parse_color("#123456").unwrap(),
+            Color::Rgb(0x12, 0x34, 0x56)
+        );
         assert_eq!(parse_color("#abc").unwrap(), Color::Rgb(0xaa, 0xbb, 0xcc));
+    }
+
+    #[test]
+    fn list_item_style_falls_back_to_default_for_unselected_items() {
+        let theme = ColorTheme::default();
+        assert_eq!(theme.list_item_style(false, true), Style::default());
+        assert_eq!(theme.list_item_style(false, false), Style::default());
     }
 }

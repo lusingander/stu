@@ -731,16 +731,7 @@ fn build_list_item<'a>(
         Line::from(spans)
     };
 
-    let style = if selected {
-        if list_active {
-            theme.list_selected_style()
-        } else {
-            theme.list_selected_inactive_style()
-        }
-    } else {
-        Style::default()
-    };
-    ListItem::new(line).style(style)
+    ListItem::new(line).style(theme.list_item_style(selected, list_active))
 }
 
 fn build_download_confirm_message_lines<'a>(
@@ -883,7 +874,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // match
             ([3], [1]) => fg: Color::Red,
             ([3], [2]) => fg: Color::Red,
@@ -973,7 +964,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
+            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
             // selected sort item
             (4..26, [5]) => fg: Color::Cyan,
         }

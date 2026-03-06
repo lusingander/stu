@@ -196,11 +196,13 @@ impl ObjectDetailPage {
 
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
+        let list_active = matches!(self.view_state, ViewState::Default);
 
         let list_items = build_list_items_from_object_items(
             &self.object_items,
             offset,
             selected,
+            list_active,
             chunks[0],
             &self.ctx.config.ui,
             &self.ctx.theme,
@@ -483,6 +485,7 @@ fn build_list_items_from_object_items<'a>(
     current_items: &'a [ObjectItem],
     offset: usize,
     selected: usize,
+    list_active: bool,
     area: Rect,
     ui_config: &UiConfig,
     theme: &ColorTheme,
@@ -494,7 +497,16 @@ fn build_list_items_from_object_items<'a>(
         .take(show_item_count)
         .enumerate()
         .map(|(idx, item)| {
-            build_list_item_from_object_item(idx, item, offset, selected, area, ui_config, theme)
+            build_list_item_from_object_item(
+                idx,
+                item,
+                offset,
+                selected,
+                list_active,
+                area,
+                ui_config,
+                theme,
+            )
         })
         .collect()
 }
@@ -504,6 +516,7 @@ fn build_list_item_from_object_item<'a>(
     item: &'a ObjectItem,
     offset: usize,
     selected: usize,
+    list_active: bool,
     area: Rect,
     ui_config: &UiConfig,
     theme: &ColorTheme,
@@ -511,11 +524,7 @@ fn build_list_item_from_object_item<'a>(
     let content = match item {
         ObjectItem::Dir { name, .. } => {
             let content = format_dir_item(name, area.width);
-            let style = if ui_config.theme.object_dir_bold {
-                Style::default().add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
+            let style = ui_config.theme.object_dir_style();
             Span::styled(content, style)
         }
         ObjectItem::File { name, .. } => {
@@ -524,11 +533,7 @@ fn build_list_item_from_object_item<'a>(
             Span::styled(content, style)
         }
     };
-    if idx + offset == selected {
-        ListItem::new(content).style(theme.list_selected_style())
-    } else {
-        ListItem::new(content)
-    }
+    ListItem::new(content).style(theme.list_item_style(idx + offset == selected, list_active))
 }
 
 fn format_dir_item(name: &str, width: u16) -> String {
@@ -877,7 +882,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
             // "Detail" is selected
             (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Name" label
@@ -944,7 +949,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
             // "Detail" is selected
             (32..38, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Name" label
@@ -1012,7 +1017,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
             // "Version" is selected
             (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Version ID" label
@@ -1081,7 +1086,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
             // "Version" is selected
             (41..48, [1]) => fg: Color::Cyan, modifier: Modifier::BOLD,
             // "Version ID" label

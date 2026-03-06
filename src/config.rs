@@ -4,6 +4,7 @@ use std::{
 };
 
 use anyhow::Context;
+use ratatui::style::{Modifier, Style};
 use serde::Deserialize;
 use smart_default::SmartDefault;
 use umbra::optional;
@@ -114,6 +115,16 @@ pub struct UiThemeConfig {
     pub list_selected_inactive_fg: String,
     #[default = true]
     pub object_dir_bold: bool,
+}
+
+impl UiThemeConfig {
+    pub fn object_dir_style(&self) -> Style {
+        let mut style = Style::default();
+        if self.object_dir_bold {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        style
+    }
 }
 
 #[optional(derives = [Deserialize])]

@@ -6,7 +6,7 @@ use ratatui::{
     crossterm::event::KeyEvent,
     layout::Rect,
     style::{Style, Stylize},
-    text::Line,
+    text::{Line, Span},
     widgets::ListItem,
     Frame,
 };
@@ -14,7 +14,7 @@ use ratatui::{
 use crate::{
     app::AppContext,
     color::ColorTheme,
-    config::UiConfig,
+    config::{UiConfig, UiThemeConfig},
     environment::Environment,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
@@ -786,15 +786,15 @@ fn build_list_items<'a>(
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-            .map(|(idx, item)| {
-                build_list_item(
-                    item,
-                    idx + offset == selected,
-                    list_active,
-                    filter,
-                    area,
-                    ui_config,
-                    env,
+        .map(|(idx, item)| {
+            build_list_item(
+                item,
+                idx + offset == selected,
+                list_active,
+                filter,
+                area,
+                ui_config,
+                env,
                 theme,
             )
         })
@@ -812,13 +812,9 @@ fn build_list_item<'a>(
     theme: &ColorTheme,
 ) -> ListItem<'a> {
     let line = match item {
-        ObjectItem::Dir { name, .. } => build_object_dir_line(
-            name,
-            filter,
-            area.width,
-            ui_config.theme.object_dir_bold,
-            theme,
-        ),
+        ObjectItem::Dir { name, .. } => {
+            build_object_dir_line(name, filter, area.width, &ui_config.theme, theme)
+        }
         ObjectItem::File {
             name,
             size_byte,
@@ -836,23 +832,14 @@ fn build_list_item<'a>(
         ),
     };
 
-    let style = if selected {
-        if list_active {
-            theme.list_selected_style()
-        } else {
-            theme.list_selected_inactive_style()
-        }
-    } else {
-        Style::default()
-    };
-    ListItem::new(line).style(style)
+    ListItem::new(line).style(theme.list_item_style(selected, list_active))
 }
 
 fn build_object_dir_line<'a>(
     name: &'a str,
     filter: &'a str,
     width: u16,
-    dir_bold: bool,
+    ui_theme: &UiThemeConfig,
     theme: &ColorTheme,
 ) -> Line<'a> {
     let name = format!("{name}/");
@@ -865,11 +852,7 @@ fn build_object_dir_line<'a>(
     };
 
     if filter.is_empty() {
-        let name_span = if dir_bold {
-            pad_name.bold()
-        } else {
-            pad_name.into()
-        };
+        let name_span = Span::styled(pad_name, ui_theme.object_dir_style());
         Line::from(vec![" ".into(), name_span, " ".into()])
     } else {
         let i = name.find(filter).unwrap();
@@ -877,16 +860,8 @@ fn build_object_dir_line<'a>(
         if w > name_w {
             hm = hm.ellipsis(ELLIPSIS);
         }
-        let not_matched_style = if dir_bold {
-            Style::default().bold()
-        } else {
-            Style::default()
-        };
-        let matched_style = if dir_bold {
-            Style::default().fg(theme.list_filter_match).bold()
-        } else {
-            Style::default().fg(theme.list_filter_match)
-        };
+        let not_matched_style = ui_theme.object_dir_style();
+        let matched_style = not_matched_style.fg(theme.list_filter_match);
         let mut spans = hm
             .matched_range(i, i + filter.len())
             .not_matched_style(not_matched_style)
