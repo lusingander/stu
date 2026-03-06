@@ -241,7 +241,6 @@ impl ObjectListPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
-        let list_active = matches!(self.view_state, ViewState::Default);
 
         let list_items = build_list_items(
             &self.object_items,
@@ -249,7 +248,6 @@ impl ObjectListPage {
             self.filter_input_state.input(),
             offset,
             selected,
-            list_active,
             area,
             &self.ctx.config.ui,
             &self.ctx.env,
@@ -773,7 +771,6 @@ fn build_list_items<'a>(
     filter: &'a str,
     offset: usize,
     selected: usize,
-    list_active: bool,
     area: Rect,
     ui_config: &UiConfig,
     env: &Environment,
@@ -790,7 +787,6 @@ fn build_list_items<'a>(
             build_list_item(
                 item,
                 idx + offset == selected,
-                list_active,
                 filter,
                 area,
                 ui_config,
@@ -804,7 +800,6 @@ fn build_list_items<'a>(
 fn build_list_item<'a>(
     item: &'a ObjectItem,
     selected: bool,
-    list_active: bool,
     filter: &'a str,
     area: Rect,
     ui_config: &UiConfig,
@@ -832,7 +827,7 @@ fn build_list_item<'a>(
         ),
     };
 
-    ListItem::new(line).style(theme.list_item_style(selected, list_active))
+    ListItem::new(line).style(theme.list_item_style(selected, true))
 }
 
 fn build_object_dir_line<'a>(

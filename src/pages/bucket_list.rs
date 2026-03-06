@@ -225,7 +225,6 @@ impl BucketListPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
-        let list_active = matches!(self.view_state, ViewState::Default);
 
         let list_items = build_list_items(
             &self.bucket_items,
@@ -234,7 +233,6 @@ impl BucketListPage {
             &self.ctx.theme,
             offset,
             selected,
-            list_active,
             area,
         );
 
@@ -680,7 +678,6 @@ fn build_list_items<'a>(
     theme: &'a ColorTheme,
     offset: usize,
     selected: usize,
-    list_active: bool,
     area: Rect,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
@@ -692,7 +689,7 @@ fn build_list_items<'a>(
         .enumerate()
         .map(|(idx, item)| {
             let selected = idx + offset == selected;
-            build_list_item(&item.name, selected, list_active, filter, area.width, theme)
+            build_list_item(&item.name, selected, filter, area.width, theme)
         })
         .collect()
 }
@@ -700,7 +697,6 @@ fn build_list_items<'a>(
 fn build_list_item<'a>(
     name: &'a str,
     selected: bool,
-    list_active: bool,
     filter: &'a str,
     width: u16,
     theme: &'a ColorTheme,
@@ -731,7 +727,7 @@ fn build_list_item<'a>(
         Line::from(spans)
     };
 
-    ListItem::new(line).style(theme.list_item_style(selected, list_active))
+    ListItem::new(line).style(theme.list_item_style(selected, true))
 }
 
 fn build_download_confirm_message_lines<'a>(
@@ -874,7 +870,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
             // match
             ([3], [1]) => fg: Color::Red,
             ([3], [2]) => fg: Color::Red,
@@ -964,7 +960,7 @@ mod tests {
         ]);
         set_cells! { expected =>
             // selected item
-            (2..28, [1]) => bg: Color::DarkGray, fg: Color::Black,
+            (2..28, [1]) => bg: Color::Cyan, fg: Color::Black,
             // selected sort item
             (4..26, [5]) => fg: Color::Cyan,
         }
