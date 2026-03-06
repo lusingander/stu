@@ -174,6 +174,8 @@ mod tests {
         assert_eq!(parse_color("cyan").unwrap(), Color::Cyan);
         assert_eq!(parse_color("dark-gray").unwrap(), Color::DarkGray);
         assert_eq!(parse_color("bright_white").unwrap(), Color::White);
+        assert_eq!(parse_color("default").unwrap(), Color::Reset);
+        assert_eq!(parse_color("reset").unwrap(), Color::Reset);
     }
 
     #[test]

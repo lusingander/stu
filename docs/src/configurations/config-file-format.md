@@ -134,7 +134,7 @@ The background color of the selected row in bucket and object lists.
 - default: `cyan`
 
 Supports named terminal colors such as `cyan`, `yellow`, `dark_gray`, `bright_white`, and hex
-colors such as `#ffd166` or `#abc`.
+colors such as `#ffd166` or `#abc`. `default` and `reset` are also supported.
 
 ### `ui.theme.list_selected_fg`
 
