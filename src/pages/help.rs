@@ -47,7 +47,7 @@ impl HelpPage {
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         let block = Block::bordered()
             .padding(Padding::horizontal(1))
-            .fg(self.ctx.theme.fg);
+            .fg(self.ctx.theme().fg);
 
         let content_area = block.inner(area);
 
@@ -63,9 +63,9 @@ impl HelpPage {
             APP_DESCRIPTION,
             APP_VERSION,
             APP_REPOSITORY_URL,
-            self.ctx.theme.link,
+            self.ctx.theme().link,
         );
-        let divider = Divider::default().color(self.ctx.theme.divider);
+        let divider = Divider::default().color(self.ctx.theme().divider);
         let help = Help::new(&self.helps, self.ctx.config.ui.help.max_help_width);
 
         f.render_widget(block, area);

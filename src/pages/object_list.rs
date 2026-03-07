@@ -13,8 +13,8 @@ use ratatui::{
 
 use crate::{
     app::AppContext,
-    color::ColorTheme,
-    config::{UiConfig, UiThemeConfig},
+    color::Theme,
+    config::UiConfig,
     environment::Environment,
     event::{AppEventType, Sender},
     format::{format_datetime, format_size_byte},
@@ -251,17 +251,17 @@ impl ObjectListPage {
             area,
             &self.ctx.config.ui,
             &self.ctx.env,
-            &self.ctx.theme,
+            self.ctx.theme(),
         );
 
-        let list = ScrollList::new(list_items).theme(&self.ctx.theme);
+        let list = ScrollList::new(list_items).theme(self.ctx.theme());
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
             let filter_dialog = InputDialog::default()
                 .title("Filter")
                 .max_width(30)
-                .theme(&self.ctx.theme);
+                .theme(self.ctx.theme());
             f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
@@ -270,18 +270,18 @@ impl ObjectListPage {
 
         if let ViewState::SortDialog = self.view_state {
             let sort_dialog =
-                ObjectListSortDialog::new(self.sort_dialog_state).theme(&self.ctx.theme);
+                ObjectListSortDialog::new(self.sort_dialog_state).theme(self.ctx.theme());
             f.render_widget(sort_dialog, area);
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
+            let copy_detail_dialog = CopyDetailDialog::default().theme(self.ctx.theme());
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
 
         if let ViewState::DownloadConfirmDialog(objs, state, _) = &mut self.view_state {
-            let message_lines = build_download_confirm_message_lines(objs, &self.ctx.theme);
-            let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(&self.ctx.theme);
+            let message_lines = build_download_confirm_message_lines(objs, self.ctx.theme());
+            let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(self.ctx.theme());
             f.render_stateful_widget(download_confirm_dialog, area, state);
         }
 
@@ -289,7 +289,7 @@ impl ObjectListPage {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
-                .theme(&self.ctx.theme);
+                .theme(self.ctx.theme());
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -386,7 +386,7 @@ impl ObjectListPage {
                 ]
             }
         };
-        build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
+        build_help_spans(helps, mapper, self.ctx.theme().help_key_fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
@@ -774,7 +774,7 @@ fn build_list_items<'a>(
     area: Rect,
     ui_config: &UiConfig,
     env: &Environment,
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
     view_indices
@@ -804,12 +804,10 @@ fn build_list_item<'a>(
     area: Rect,
     ui_config: &UiConfig,
     env: &Environment,
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> ListItem<'a> {
     let line = match item {
-        ObjectItem::Dir { name, .. } => {
-            build_object_dir_line(name, filter, area.width, &ui_config.theme, theme)
-        }
+        ObjectItem::Dir { name, .. } => build_object_dir_line(name, filter, area.width, theme),
         ObjectItem::File {
             name,
             size_byte,
@@ -834,8 +832,7 @@ fn build_object_dir_line<'a>(
     name: &'a str,
     filter: &'a str,
     width: u16,
-    ui_theme: &UiThemeConfig,
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> Line<'a> {
     let name = format!("{name}/");
     let name_w = (width as usize) - 2 /* spaces */ - 4 /* border + pad */ - 1 /* slash */;
@@ -847,7 +844,7 @@ fn build_object_dir_line<'a>(
     };
 
     if filter.is_empty() {
-        let name_span = Span::styled(pad_name, ui_theme.object_dir_style());
+        let name_span = Span::styled(pad_name, theme.object_dir_style());
         Line::from(vec![" ".into(), name_span, " ".into()])
     } else {
         let i = name.find(filter).unwrap();
@@ -855,7 +852,7 @@ fn build_object_dir_line<'a>(
         if w > name_w {
             hm = hm.ellipsis(ELLIPSIS);
         }
-        let not_matched_style = ui_theme.object_dir_style();
+        let not_matched_style = theme.object_dir_style();
         let matched_style = not_matched_style.fg(theme.list_filter_match);
         let mut spans = hm
             .matched_range(i, i + filter.len())
@@ -876,7 +873,7 @@ fn build_object_file_line<'a>(
     width: u16,
     ui_config: &UiConfig,
     env: &Environment,
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> Line<'a> {
     let size = format_size_byte(size_byte);
     let date = format_datetime(
@@ -930,7 +927,7 @@ fn build_object_file_line<'a>(
 
 fn build_download_confirm_message_lines<'a>(
     objs: &[DownloadObjectInfo],
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> Vec<Line<'a>> {
     let total_size = format_size_byte(objs.iter().map(|obj| obj.size_byte).sum());
     let total_count = objs.len();
@@ -1090,6 +1087,54 @@ mod tests {
             (3..56, [1, 2]) => modifier: Modifier::BOLD,
             // selected item
             (2..58, [1]) => bg: Color::Cyan, fg: Color::Black,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_render_with_theme_config() -> Result<(), core::convert::Infallible> {
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+
+        terminal.draw(|f| {
+            let items = vec![
+                object_dir_item("dir1"),
+                object_dir_item("dir2"),
+                object_file_item("file1", 1024 + 10, "2024-01-02 13:01:02"),
+                object_file_item("file2", 1024 * 999, "2023-12-31 09:00:00"),
+            ];
+            let object_key = ObjectKey {
+                bucket_name: "test-bucket".to_string(),
+                object_path: vec!["path".to_string(), "to".to_string()],
+            };
+            let mut ctx = AppContext::default();
+            ctx.config.ui.theme.list_selected_bg = Color::LightMagenta;
+            ctx.config.ui.theme.list_selected_fg = Color::Yellow;
+            ctx.config.ui.theme.object_dir_bold = false;
+            let mut page = ObjectListPage::new(items, object_key, Rc::new(ctx), tx);
+            let area = Rect::new(0, 0, 60, 10);
+            page.render(f, area);
+        })?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌─────────────────────────────────────────────────── 1 / 4 ┐",
+            "│  dir1/                                                   │",
+            "│  dir2/                                                   │",
+            "│  file1                2024-01-02 13:01:02      1.01 KiB  │",
+            "│  file2                2023-12-31 09:00:00       999 KiB  │",
+            "│                                                          │",
+            "│                                                          │",
+            "│                                                          │",
+            "│                                                          │",
+            "└──────────────────────────────────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            // selected item
+            (2..58, [1]) => bg: Color::LightMagenta, fg: Color::Yellow,
         }
 
         terminal.backend().assert_buffer(&expected);

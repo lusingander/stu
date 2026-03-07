@@ -20,7 +20,7 @@ use syntect::{
 };
 
 use crate::{
-    color::ColorTheme,
+    color::Theme,
     config::Config,
     environment::Environment,
     format::format_version,
@@ -306,7 +306,7 @@ struct EncodingDialogColor {
 }
 
 impl EncodingDialogColor {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         Self {
             bg: theme.bg,
             block: theme.fg,
@@ -332,7 +332,7 @@ impl<'a> EncodingDialog<'a> {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = EncodingDialogColor::new(theme);
         self
     }
@@ -501,7 +501,7 @@ pub struct TextPreview<'a> {
     file_version_id: Option<&'a str>,
 
     env: &'a Environment,
-    theme: &'a ColorTheme,
+    theme: &'a Theme,
 }
 
 impl<'a> TextPreview<'a> {
@@ -509,7 +509,7 @@ impl<'a> TextPreview<'a> {
         file_name: &'a str,
         file_version_id: Option<&'a str>,
         env: &'a Environment,
-        theme: &'a ColorTheme,
+        theme: &'a Theme,
     ) -> Self {
         Self {
             file_name,

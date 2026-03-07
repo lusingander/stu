@@ -23,7 +23,7 @@ impl InitializingPage {
     pub fn handle_key(&mut self, _user_events: Vec<UserEvent>, _key_event: KeyEvent) {}
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
-        let content = Block::bordered().fg(self.ctx.theme.fg);
+        let content = Block::bordered().fg(self.ctx.theme().fg);
         f.render_widget(content, area);
     }
 

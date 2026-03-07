@@ -6,7 +6,7 @@ use ratatui::{
     widgets::{Block, BlockExt, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap},
 };
 
-use crate::{color::ColorTheme, util::digits};
+use crate::{color::Theme, util::digits};
 
 #[derive(Debug, Default)]
 enum ScrollEvent {
@@ -118,7 +118,7 @@ struct ScrollLinesColor {
 }
 
 impl ScrollLinesColor {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         Self {
             block: theme.fg,
             line_number: theme.preview_line_number,
@@ -139,7 +139,7 @@ impl ScrollLines {
         self
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = ScrollLinesColor::new(theme);
         self
     }
@@ -739,7 +739,7 @@ mod tests {
     }
 
     fn render_scroll_lines(state: &mut ScrollLinesState) -> Buffer {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let scroll_lines = ScrollLines::default()
             .block(Block::bordered().title("TITLE"))
             .theme(&theme);
@@ -749,7 +749,7 @@ mod tests {
     }
 
     fn render_scroll_lines_no_block(state: &mut ScrollLinesState) -> Buffer {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let scroll_lines = ScrollLines::default().theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, 5 + 2));
         scroll_lines.render(buf.area, &mut buf, state);

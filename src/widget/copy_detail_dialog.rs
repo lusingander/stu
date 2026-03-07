@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    color::ColorTheme,
+    color::Theme,
     object::{BucketItem, FileDetail, FileVersion, ObjectItem},
     widget::Dialog,
 };
@@ -281,7 +281,7 @@ struct CopyDetailDialogColor {
 }
 
 impl CopyDetailDialogColor {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         Self {
             bg: theme.bg,
             block: theme.fg,
@@ -297,7 +297,7 @@ pub struct CopyDetailDialog {
 }
 
 impl CopyDetailDialog {
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = CopyDetailDialogColor::new(theme);
         self
     }
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn test_render_copy_detail_dialog() {
         let file_detail = file_detail();
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let mut state = CopyDetailDialogState::object_detail(file_detail);
         let copy_detail_dialog = CopyDetailDialog::default().theme(&theme);
 

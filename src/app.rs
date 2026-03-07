@@ -15,7 +15,7 @@ use tokio::spawn;
 
 use crate::{
     client::Client,
-    color::ColorTheme,
+    color::Theme,
     config::Config,
     environment::Environment,
     error::{AppError, Result},
@@ -46,12 +46,15 @@ pub enum Notification {
 pub struct AppContext {
     pub config: Config,
     pub env: Environment,
-    pub theme: ColorTheme,
 }
 
 impl AppContext {
-    pub fn new(config: Config, env: Environment, theme: ColorTheme) -> AppContext {
-        AppContext { config, env, theme }
+    pub fn new(config: Config, env: Environment) -> AppContext {
+        AppContext { config, env }
+    }
+
+    pub fn theme(&self) -> &Theme {
+        &self.config.ui.theme
     }
 }
 
@@ -898,13 +901,13 @@ impl App {
     }
 
     fn render_background(&self, f: &mut Frame, area: Rect) {
-        let block = Block::default().bg(self.ctx.theme.bg);
+        let block = Block::default().bg(self.ctx.theme().bg);
         f.render_widget(block, area);
     }
 
     fn render_header(&self, f: &mut Frame, area: Rect) {
         if !area.is_empty() {
-            let header = Header::new(self.page_stack.breadcrumb()).theme(&self.ctx.theme);
+            let header = Header::new(self.page_stack.breadcrumb()).theme(self.ctx.theme());
             f.render_widget(header, area);
         }
     }
@@ -923,13 +926,13 @@ impl App {
                 StatusType::Help(self.page_stack.current_page().short_helps(&self.mapper))
             }
         };
-        let status = Status::new(status_type).theme(&self.ctx.theme);
+        let status = Status::new(status_type).theme(self.ctx.theme());
         f.render_widget(status, area);
     }
 
     fn render_loading_dialog(&self, f: &mut Frame) {
         if self.loading() {
-            let dialog = LoadingDialog::default().theme(&self.ctx.theme);
+            let dialog = LoadingDialog::default().theme(self.ctx.theme());
             f.render_widget(dialog, f.area());
         }
     }

@@ -26,7 +26,6 @@ use tracing_subscriber::fmt::time::ChronoLocal;
 use crate::{
     app::{App, AppContext},
     client::Client,
-    color::ColorTheme,
     config::Config,
     environment::Environment,
     keys::UserEventMapper,
@@ -97,8 +96,7 @@ async fn main() -> anyhow::Result<()> {
     let config = Config::load()?;
     let mapper = UserEventMapper::load()?;
     let env = Environment::new(config.preview.image, args.fix_dynamic_values_for_test);
-    let theme = ColorTheme::from_config(&config)?;
-    let ctx = AppContext::new(config, env, theme);
+    let ctx = AppContext::new(config, env);
 
     initialize_debug_log(&args)?;
 

@@ -12,7 +12,7 @@ use ratatui::{
 
 use crate::{
     app::AppContext,
-    color::ColorTheme,
+    color::Theme,
     event::{AppEventType, Sender},
     format::format_size_byte,
     handle_user_events, handle_user_events_with_default,
@@ -230,20 +230,20 @@ impl BucketListPage {
             &self.bucket_items,
             &self.view_indices,
             self.filter_input_state.input(),
-            &self.ctx.theme,
+            self.ctx.theme(),
             offset,
             selected,
             area,
         );
 
-        let list = ScrollList::new(list_items).theme(&self.ctx.theme);
+        let list = ScrollList::new(list_items).theme(self.ctx.theme());
         f.render_stateful_widget(list, area, &mut self.list_state);
 
         if let ViewState::FilterDialog = self.view_state {
             let filter_dialog = InputDialog::default()
                 .title("Filter")
                 .max_width(30)
-                .theme(&self.ctx.theme);
+                .theme(self.ctx.theme());
             f.render_stateful_widget(filter_dialog, area, &mut self.filter_input_state);
 
             let (cursor_x, cursor_y) = self.filter_input_state.cursor();
@@ -252,18 +252,18 @@ impl BucketListPage {
 
         if let ViewState::SortDialog = self.view_state {
             let sort_dialog =
-                BucketListSortDialog::new(self.sort_dialog_state).theme(&self.ctx.theme);
+                BucketListSortDialog::new(self.sort_dialog_state).theme(self.ctx.theme());
             f.render_widget(sort_dialog, area);
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
+            let copy_detail_dialog = CopyDetailDialog::default().theme(self.ctx.theme());
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
 
         if let ViewState::DownloadConfirmDialog(objs, state, _) = &mut self.view_state {
-            let message_lines = build_download_confirm_message_lines(objs, &self.ctx.theme);
-            let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(&self.ctx.theme);
+            let message_lines = build_download_confirm_message_lines(objs, self.ctx.theme());
+            let download_confirm_dialog = ConfirmDialog::new(message_lines).theme(self.ctx.theme());
             f.render_stateful_widget(download_confirm_dialog, area, state);
         }
 
@@ -271,7 +271,7 @@ impl BucketListPage {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
-                .theme(&self.ctx.theme);
+                .theme(self.ctx.theme());
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -364,7 +364,7 @@ impl BucketListPage {
                 ]
             }
         };
-        build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
+        build_help_spans(helps, mapper, self.ctx.theme().help_key_fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
@@ -675,7 +675,7 @@ fn build_list_items<'a>(
     current_items: &'a [BucketItem],
     view_indices: &'a [usize],
     filter: &'a str,
-    theme: &'a ColorTheme,
+    theme: &'a Theme,
     offset: usize,
     selected: usize,
     area: Rect,
@@ -699,7 +699,7 @@ fn build_list_item<'a>(
     selected: bool,
     filter: &'a str,
     width: u16,
-    theme: &'a ColorTheme,
+    theme: &'a Theme,
 ) -> ListItem<'a> {
     let name_w = (width as usize) - 5 /* border + pad + scroll */;
     let w = console::measure_text_width(name);
@@ -732,7 +732,7 @@ fn build_list_item<'a>(
 
 fn build_download_confirm_message_lines<'a>(
     objs: &[DownloadObjectInfo],
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> Vec<Line<'a>> {
     let total_size = format_size_byte(objs.iter().map(|obj| obj.size_byte).sum());
     let total_count = objs.len();

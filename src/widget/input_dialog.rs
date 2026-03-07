@@ -8,7 +8,7 @@ use ratatui::{
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
 
-use crate::{color::ColorTheme, widget::Dialog};
+use crate::{color::Theme, widget::Dialog};
 
 #[derive(Debug, Default)]
 pub struct InputDialogState {
@@ -59,7 +59,7 @@ struct InputDialogColor {
 }
 
 impl InputDialogColor {
-    fn new(theme: &ColorTheme) -> InputDialogColor {
+    fn new(theme: &Theme) -> InputDialogColor {
         InputDialogColor {
             bg: theme.bg,
             block: theme.fg,
@@ -86,7 +86,7 @@ impl InputDialog {
         self
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = InputDialogColor::new(theme);
         self
     }
@@ -136,7 +136,7 @@ mod tests {
 
     #[test]
     fn test_render_input_dialog() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let mut state = InputDialogState::default();
         let save_dialog = InputDialog::default().theme(&theme);
 
@@ -167,7 +167,7 @@ mod tests {
 
     #[test]
     fn test_render_input_dialog_with_params() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let mut state = InputDialogState::default();
         let save_dialog = InputDialog::default()
             .title("xyz")
@@ -200,7 +200,7 @@ mod tests {
 
     #[test]
     fn test_render_input_dialog_with_default_input() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let mut state = InputDialogState::new("xyz".into());
         let save_dialog = InputDialog::default().theme(&theme);
 

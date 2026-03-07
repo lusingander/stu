@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, List, ListItem, Padding, StatefulWidget, Widget},
 };
 
-use crate::{color::ColorTheme, util::digits};
+use crate::{color::Theme, util::digits};
 
 use crate::widget::ScrollBar;
 
@@ -119,7 +119,7 @@ struct ScrollListColor {
 }
 
 impl ScrollListColor {
-    fn new(theme: &ColorTheme) -> ScrollListColor {
+    fn new(theme: &Theme) -> ScrollListColor {
         ScrollListColor {
             block: theme.fg,
             bar: theme.fg,
@@ -141,7 +141,7 @@ impl ScrollList<'_> {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = ScrollListColor::new(theme);
         self
     }
@@ -190,7 +190,7 @@ mod tests {
 
     #[test]
     fn test_render_scroll_list_without_scroll() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let mut state = ScrollListState::new(5);
         let items: Vec<ListItem> = (1..=5)
             .map(|i| ListItem::new(vec![Line::from(format!("Item {i}"))]))
@@ -297,7 +297,7 @@ mod tests {
             .skip(state.offset)
             .take(show_item_count as usize)
             .collect();
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let scroll_list = ScrollList::new(items).theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 20, show_item_count + 2));
         scroll_list.render(buf.area, &mut buf, state);
