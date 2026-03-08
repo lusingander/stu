@@ -491,7 +491,9 @@ fn build_list_items_from_object_items<'a>(
         .skip(offset)
         .take(show_item_count)
         .enumerate()
-        .map(|(idx, item)| build_list_item_from_object_item(idx, item, offset, selected, area, theme))
+        .map(|(idx, item)| {
+            build_list_item_from_object_item(idx, item, offset, selected, area, theme)
+        })
         .collect()
 }
 
