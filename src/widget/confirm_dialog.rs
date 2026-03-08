@@ -9,7 +9,7 @@ use ratatui::{
 };
 
 use crate::{
-    color::ColorTheme,
+    color::Theme,
     widget::{Dialog, Divider},
 };
 
@@ -46,7 +46,7 @@ struct ConfirmDialogColor {
 }
 
 impl ConfirmDialogColor {
-    fn new(theme: &ColorTheme) -> ConfirmDialogColor {
+    fn new(theme: &Theme) -> ConfirmDialogColor {
         ConfirmDialogColor {
             bg: theme.bg,
             block: theme.fg,
@@ -72,7 +72,7 @@ impl<'a> ConfirmDialog<'a> {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = ConfirmDialogColor::new(theme);
         self
     }

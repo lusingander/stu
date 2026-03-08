@@ -218,7 +218,7 @@ impl ObjectPreviewPage {
                     self.file_detail.name.as_str(),
                     self.file_version_id.as_deref(),
                     &self.ctx.env,
-                    &self.ctx.theme,
+                    self.ctx.theme(),
                 );
                 f.render_stateful_widget(preview, area, state);
             }
@@ -236,7 +236,7 @@ impl ObjectPreviewPage {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
-                .theme(&self.ctx.theme);
+                .theme(self.ctx.theme());
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -245,7 +245,7 @@ impl ObjectPreviewPage {
 
         if let ViewState::EncodingDialog = &mut self.view_state {
             let encoding_dialog =
-                EncodingDialog::new(&self.encoding_dialog_state).theme(&self.ctx.theme);
+                EncodingDialog::new(&self.encoding_dialog_state).theme(self.ctx.theme());
             f.render_widget(encoding_dialog, area);
         }
     }
@@ -299,7 +299,7 @@ impl ObjectPreviewPage {
                 ]
             },
         };
-        build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
+        build_help_spans(helps, mapper, self.ctx.theme().help_key_fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {

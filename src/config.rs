@@ -8,6 +8,8 @@ use serde::Deserialize;
 use smart_default::SmartDefault;
 use umbra::optional;
 
+use crate::color::{OptionalTheme, Theme};
+
 const STU_ROOT_DIR_ENV_VAR: &str = "STU_ROOT_DIR";
 
 const APP_BASE_DIR: &str = ".stu";
@@ -45,6 +47,8 @@ pub struct UiConfig {
     pub object_detail: UiObjectDetailConfig,
     #[nested]
     pub help: UiHelpConfig,
+    #[nested]
+    pub theme: Theme,
 }
 
 #[optional(derives = [Deserialize])]
@@ -206,5 +210,63 @@ impl Config {
                     .context("Failed to load home directory")
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ratatui::style::Color;
+
+    use super::*;
+
+    fn parse_config(input: &str) -> Config {
+        let config: OptionalConfig = toml::from_str(input).unwrap();
+        config.into()
+    }
+
+    #[test]
+    fn theme_defaults_when_omitted() {
+        let config = parse_config("");
+
+        assert_eq!(config.ui.theme.bg, Color::Reset);
+        assert_eq!(config.ui.theme.link, Color::Blue);
+        assert_eq!(config.ui.theme.list_selected_bg, Color::Cyan);
+        assert!(config.ui.theme.object_dir_bold);
+    }
+
+    #[test]
+    fn theme_accepts_ratatui_color_formats() {
+        let config = parse_config(
+            r##"
+[ui.theme]
+bg = "reset"
+list_selected_bg = "#FFD166"
+list_selected_fg = "42"
+status_error = "bright-white"
+object_dir_bold = false
+"##,
+        );
+
+        assert_eq!(config.ui.theme.bg, Color::Reset);
+        assert_eq!(
+            config.ui.theme.list_selected_bg,
+            Color::Rgb(0xFF, 0xD1, 0x66)
+        );
+        assert_eq!(config.ui.theme.list_selected_fg, Color::Indexed(42));
+        assert_eq!(config.ui.theme.status_error, Color::White);
+        assert!(!config.ui.theme.object_dir_bold);
+        assert_eq!(config.ui.theme.dialog_selected, Color::Cyan);
+    }
+
+    #[test]
+    fn invalid_theme_color_is_rejected() {
+        let result = toml::from_str::<OptionalConfig>(
+            r#"
+[ui.theme]
+list_selected_bg = "not-a-color"
+"#,
+        );
+
+        assert!(result.is_err());
     }
 }

@@ -8,7 +8,7 @@ use ratatui::{
     widgets::{Block, BorderType, List, ListItem, Padding, Widget},
 };
 
-use crate::{color::ColorTheme, config, widget::Dialog};
+use crate::{color::Theme, config, widget::Dialog};
 
 #[zero_indexed_enum]
 pub enum BucketListSortType {
@@ -87,7 +87,7 @@ impl BucketListSortDialog {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = ListSortDialogColor::new(theme);
         self
     }
@@ -189,7 +189,7 @@ impl ObjectListSortDialog {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = ListSortDialogColor::new(theme);
         self
     }
@@ -211,7 +211,7 @@ struct ListSortDialogColor {
 }
 
 impl ListSortDialogColor {
-    fn new(theme: &ColorTheme) -> ListSortDialogColor {
+    fn new(theme: &Theme) -> ListSortDialogColor {
         ListSortDialogColor {
             bg: theme.bg,
             block: theme.fg,

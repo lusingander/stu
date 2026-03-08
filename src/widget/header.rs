@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, Padding, Paragraph, Widget},
 };
 
-use crate::{color::ColorTheme, util::prune_strings_to_fit_width};
+use crate::{color::Theme, util::prune_strings_to_fit_width};
 
 #[derive(Debug, Default)]
 struct HeaderColor {
@@ -14,7 +14,7 @@ struct HeaderColor {
 }
 
 impl HeaderColor {
-    fn new(theme: &ColorTheme) -> HeaderColor {
+    fn new(theme: &Theme) -> HeaderColor {
         HeaderColor {
             block: theme.fg,
             text: theme.fg,
@@ -36,7 +36,7 @@ impl Header {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = HeaderColor::new(theme);
         self
     }
@@ -101,7 +101,7 @@ mod tests {
 
     #[test]
     fn test_render_header() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let breadcrumb = ["bucket", "key01", "key02", "key03"]
             .into_iter()
             .map(|s| s.to_string())
@@ -121,7 +121,7 @@ mod tests {
 
     #[test]
     fn test_render_header_with_ellipsis() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let breadcrumb = ["bucket", "key01", "key02a", "key03"]
             .into_iter()
             .map(|s| s.to_string())
@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn test_render_header_empty() {
-        let theme = ColorTheme::default();
+        let theme = Theme::default();
         let header = Header::new(vec![]).theme(&theme);
         let mut buf = Buffer::empty(Rect::new(0, 0, 30 + 4, 3));
         header.render(buf.area, &mut buf);

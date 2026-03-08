@@ -7,7 +7,7 @@ use ratatui::{
     widgets::{Block, BorderType, Padding, Paragraph, Widget},
 };
 
-use crate::{color::ColorTheme, widget::Dialog};
+use crate::{color::Theme, widget::Dialog};
 
 #[derive(Debug, Default)]
 struct LoadingDialogColor {
@@ -17,7 +17,7 @@ struct LoadingDialogColor {
 }
 
 impl LoadingDialogColor {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         LoadingDialogColor {
             bg: theme.bg,
             block: theme.fg,
@@ -32,7 +32,7 @@ pub struct LoadingDialog {
 }
 
 impl LoadingDialog {
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = LoadingDialogColor::new(theme);
         self
     }

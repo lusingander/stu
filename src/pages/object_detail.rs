@@ -12,7 +12,7 @@ use ratatui::{
 
 use crate::{
     app::AppContext,
-    color::ColorTheme,
+    color::Theme,
     config::UiConfig,
     environment::Environment,
     event::{AppEventType, Sender},
@@ -202,29 +202,29 @@ impl ObjectDetailPage {
             offset,
             selected,
             chunks[0],
-            &self.ctx.theme,
+            self.ctx.theme(),
         );
 
-        let list = ScrollList::new(list_items).theme(&self.ctx.theme);
+        let list = ScrollList::new(list_items).theme(self.ctx.theme());
         f.render_stateful_widget(list, chunks[0], &mut self.list_state);
 
-        let block = Block::bordered().fg(self.ctx.theme.fg);
+        let block = Block::bordered().fg(self.ctx.theme().fg);
         f.render_widget(block, chunks[1]);
 
         let chunks = Layout::vertical([Constraint::Length(2), Constraint::Min(0)])
             .margin(1)
             .split(chunks[1]);
 
-        let tabs = build_tabs(&self.tab, &self.ctx.theme);
+        let tabs = build_tabs(&self.tab, self.ctx.theme());
         f.render_widget(tabs, chunks[0]);
 
         match self.tab {
             Tab::Detail(ref mut state) => {
-                let detail = DetailTab::new(&self.ctx.theme);
+                let detail = DetailTab::new(self.ctx.theme());
                 f.render_stateful_widget(detail, chunks[1], state);
             }
             Tab::Version(ref mut state) => {
-                let version = VersionTab::new(&self.ctx.theme);
+                let version = VersionTab::new(self.ctx.theme());
                 f.render_stateful_widget(version, chunks[1], state);
             }
         }
@@ -233,7 +233,7 @@ impl ObjectDetailPage {
             let save_dialog = InputDialog::default()
                 .title("Save As")
                 .max_width(40)
-                .theme(&self.ctx.theme);
+                .theme(self.ctx.theme());
             f.render_stateful_widget(save_dialog, area, state);
 
             let (cursor_x, cursor_y) = state.cursor();
@@ -241,7 +241,7 @@ impl ObjectDetailPage {
         }
 
         if let ViewState::CopyDetailDialog(state) = &mut self.view_state {
-            let copy_detail_dialog = CopyDetailDialog::default().theme(&self.ctx.theme);
+            let copy_detail_dialog = CopyDetailDialog::default().theme(self.ctx.theme());
             f.render_stateful_widget(copy_detail_dialog, area, state);
         }
     }
@@ -300,7 +300,7 @@ impl ObjectDetailPage {
                 ]
             },
         };
-        build_help_spans(helps, mapper, self.ctx.theme.help_key_fg)
+        build_help_spans(helps, mapper, self.ctx.theme().help_key_fg)
     }
 
     pub fn short_helps(&self, mapper: &UserEventMapper) -> Vec<SpansWithPriority> {
@@ -483,7 +483,7 @@ fn build_list_items_from_object_items<'a>(
     offset: usize,
     selected: usize,
     area: Rect,
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> Vec<ListItem<'a>> {
     let show_item_count = (area.height as usize) - 2 /* border */;
     current_items
@@ -503,12 +503,12 @@ fn build_list_item_from_object_item<'a>(
     offset: usize,
     selected: usize,
     area: Rect,
-    theme: &ColorTheme,
+    theme: &Theme,
 ) -> ListItem<'a> {
     let content = match item {
         ObjectItem::Dir { name, .. } => {
             let content = format_dir_item(name, area.width);
-            let style = Style::default().add_modifier(Modifier::BOLD);
+            let style = theme.object_dir_style();
             Span::styled(content, style)
         }
         ObjectItem::File { name, .. } => {
@@ -517,15 +517,7 @@ fn build_list_item_from_object_item<'a>(
             Span::styled(content, style)
         }
     };
-    if idx + offset == selected {
-        ListItem::new(content).style(
-            Style::default()
-                .bg(theme.list_selected_inactive_bg)
-                .fg(theme.list_selected_inactive_fg),
-        )
-    } else {
-        ListItem::new(content)
-    }
+    ListItem::new(content).style(theme.list_item_style(idx + offset == selected, false))
 }
 
 fn format_dir_item(name: &str, width: u16) -> String {
@@ -539,7 +531,7 @@ fn format_file_item(name: &str, width: u16) -> String {
     format!(" {name:<name_w$} ")
 }
 
-fn build_tabs(tab: &Tab, theme: &ColorTheme) -> Tabs<'static> {
+fn build_tabs(tab: &Tab, theme: &Theme) -> Tabs<'static> {
     let tabs = vec!["Detail", "Version"];
     Tabs::new(tabs)
         .select(tab.val())
@@ -604,11 +596,11 @@ impl DetailTabState {
 
 #[derive(Debug)]
 struct DetailTab<'a> {
-    theme: &'a ColorTheme,
+    theme: &'a Theme,
 }
 
 impl<'a> DetailTab<'a> {
-    fn new(theme: &'a ColorTheme) -> Self {
+    fn new(theme: &'a Theme) -> Self {
         Self { theme }
     }
 }
@@ -737,7 +729,7 @@ struct VersionTabColor {
 }
 
 impl VersionTabColor {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         Self {
             selected: theme.detail_selected,
             divider: theme.divider,
@@ -751,7 +743,7 @@ struct VersionTab {
 }
 
 impl VersionTab {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         Self {
             color: VersionTabColor::new(theme),
         }

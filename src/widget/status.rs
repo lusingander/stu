@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use crate::{
-    color::ColorTheme,
+    color::Theme,
     help::{prune_spans_to_fit_width, SpansWithPriority},
 };
 
@@ -30,7 +30,7 @@ struct StatusColor {
 }
 
 impl StatusColor {
-    fn new(theme: &ColorTheme) -> Self {
+    fn new(theme: &Theme) -> Self {
         StatusColor {
             help: theme.status_help,
             info: theme.status_info,
@@ -55,7 +55,7 @@ impl Status {
         }
     }
 
-    pub fn theme(mut self, theme: &ColorTheme) -> Self {
+    pub fn theme(mut self, theme: &Theme) -> Self {
         self.color = StatusColor::new(theme);
         self
     }
