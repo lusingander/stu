@@ -47,6 +47,12 @@ pub struct BucketListPage {
 }
 
 #[derive(Debug)]
+pub(crate) struct BucketListViewState {
+    filter: String,
+    sort: BucketListSortType,
+}
+
+#[derive(Debug)]
 enum ViewState {
     Default,
     FilterDialog,
@@ -575,6 +581,19 @@ impl BucketListPage {
 
     fn close_download_confirm_dialog(&mut self) {
         self.view_state = ViewState::Default;
+    }
+
+    pub(crate) fn view_state_snapshot(&self) -> BucketListViewState {
+        BucketListViewState {
+            filter: self.filter_input_state.input().to_string(),
+            sort: self.sort_dialog_state.selected(),
+        }
+    }
+
+    pub(crate) fn restore_view_state(&mut self, state: BucketListViewState) {
+        self.sort_dialog_state.set_selected(state.sort);
+        self.filter_input_state = InputDialogState::new(state.filter);
+        self.filter_view_indices();
     }
 
     pub fn current_selected_item(&self) -> &BucketItem {
