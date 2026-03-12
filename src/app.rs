@@ -1025,7 +1025,11 @@ mod tests {
     use std::rc::Rc;
 
     use chrono::{DateTime, Local, NaiveDateTime};
-    use ratatui::crossterm::event::{KeyCode, KeyEvent};
+    use ratatui::{
+        backend::TestBackend,
+        crossterm::event::{KeyCode, KeyEvent},
+        Terminal,
+    };
 
     use super::*;
     use crate::{
@@ -1208,6 +1212,66 @@ mod tests {
         assert_object_selected(&app, "baz.txt");
     }
 
+    #[tokio::test]
+    async fn object_list_refresh_keeps_scroll_offset(
+    ) -> std::result::Result<(), core::convert::Infallible> {
+        let (mut app, _rx) = app().await;
+        let object_key = ObjectKey::bucket("test-bucket");
+        let items = (1..=16)
+            .map(|i| object_file_item(&format!("file{i}.txt")))
+            .collect();
+
+        app.page_stack.push(Page::of_object_list(
+            items,
+            object_key.clone(),
+            Rc::clone(&app.ctx),
+            app.tx.clone(),
+        ));
+        app.is_loading = false;
+
+        let mut terminal = setup_terminal()?;
+        render_app(&mut app, &mut terminal)?;
+
+        for _ in 0..8 {
+            app.page_stack.current_page_mut().handle_user_events(
+                vec![UserEvent::ObjectListDown],
+                KeyEvent::from(KeyCode::Char('j')),
+            );
+        }
+
+        let reloaded_items = vec![
+            object_file_item("file1.txt"),
+            object_file_item("file2.txt"),
+            object_file_item("file3.txt"),
+            object_file_item("file4.txt"),
+            object_file_item("file5.txt"),
+            object_file_item("file6.txt"),
+            object_file_item("file7.txt"),
+            object_file_item("file8.txt"),
+            object_file_item("file8.5.txt"),
+            object_file_item("file9.txt"),
+            object_file_item("file10.txt"),
+            object_file_item("file11.txt"),
+            object_file_item("file12.txt"),
+            object_file_item("file13.txt"),
+            object_file_item("file14.txt"),
+            object_file_item("file15.txt"),
+            object_file_item("file16.txt"),
+        ];
+
+        app.complete_reload_objects(Ok(CompleteReloadObjectsResult {
+            items: reloaded_items,
+            object_key,
+        }));
+        render_app(&mut app, &mut terminal)?;
+
+        assert_eq!(app.page_stack.len(), 1);
+        assert_object_selected(&app, "file9.txt");
+        assert_object_list_position(&app, 9, 5);
+
+        Ok(())
+    }
+
     async fn app() -> (App, tokio::sync::mpsc::UnboundedReceiver<AppEventType>) {
         let client = Client::new(
             None,
@@ -1304,6 +1368,14 @@ mod tests {
         );
     }
 
+    fn render_app(
+        app: &mut App,
+        terminal: &mut Terminal<TestBackend>,
+    ) -> std::result::Result<(), core::convert::Infallible> {
+        terminal.draw(|f| app.render(f))?;
+        Ok(())
+    }
+
     fn assert_bucket_selected(app: &App, expected: &str) {
         match app.page_stack.current_page() {
             Page::BucketList(page) => assert_eq!(page.current_selected_item().name, expected),
@@ -1314,6 +1386,17 @@ mod tests {
     fn assert_object_selected(app: &App, expected: &str) {
         match app.page_stack.current_page() {
             Page::ObjectList(page) => assert_eq!(page.current_selected_item().name(), expected),
+            page => panic!("Invalid page: {page:?}"),
+        }
+    }
+
+    fn assert_object_list_position(app: &App, selected: usize, offset: usize) {
+        match app.page_stack.current_page() {
+            Page::ObjectList(page) => {
+                let list_state = page.list_state();
+                assert_eq!(list_state.selected, selected);
+                assert_eq!(list_state.offset, offset);
+            }
             page => panic!("Invalid page: {page:?}"),
         }
     }
@@ -1360,5 +1443,12 @@ mod tests {
             object_url: String::new(),
             e_tag: String::new(),
         }
+    }
+
+    fn setup_terminal() -> std::result::Result<Terminal<TestBackend>, core::convert::Infallible> {
+        let backend = TestBackend::new(80, 12);
+        let mut terminal = Terminal::new(backend)?;
+        terminal.clear()?;
+        Ok(terminal)
     }
 }
