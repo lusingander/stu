@@ -41,6 +41,13 @@ impl ObjectItem {
         }
     }
 
+    pub fn key(&self) -> &str {
+        match self {
+            ObjectItem::Dir { key, .. } => key,
+            ObjectItem::File { key, .. } => key,
+        }
+    }
+
     pub fn size_byte(&self) -> Option<usize> {
         match self {
             ObjectItem::Dir { .. } => None,
