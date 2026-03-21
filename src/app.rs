@@ -160,7 +160,15 @@ impl App {
     pub fn complete_reload_buckets(&mut self, result: Result<CompleteReloadBucketsResult>) {
         let view_state = match self.page_stack.current_page() {
             Page::BucketList(page) => page.view_state_snapshot(),
-            page => panic!("Invalid page: {page:?}"),
+            page => {
+                tracing::warn!(
+                    current_page = ?page,
+                    "ignoring CompleteReloadBuckets because current page is not BucketList"
+                );
+                self.pending_single_bucket_reload = None;
+                self.is_loading = false;
+                return;
+            }
         };
 
         match result {
@@ -313,21 +321,40 @@ impl App {
     pub fn complete_load_objects(&mut self, result: Result<CompleteLoadObjectsResult>) {
         match result {
             Ok(CompleteLoadObjectsResult { items, object_key }) => {
+                let bucket_name = object_key.bucket_name.clone();
+                if let Some(bucket) = self.pending_single_bucket_reload.take() {
+                    if bucket.name != bucket_name {
+                        tracing::warn!(
+                            pending_bucket = %bucket.name,
+                            loaded_bucket = %bucket_name,
+                            "ignoring CompleteLoadObjects because pending single-bucket reload targets a different bucket"
+                        );
+                        self.is_loading = false;
+                        return;
+                    }
+
+                    match self.page_stack.current_page() {
+                        Page::BucketList(_) => {
+                            self.app_objects.set_bucket_items(vec![bucket]);
+                            self.page_stack.pop();
+                        }
+                        page => {
+                            tracing::warn!(
+                                current_page = ?page,
+                                bucket = %bucket_name,
+                                "ignoring CompleteLoadObjects because pending single-bucket reload is no longer on BucketList"
+                            );
+                            self.is_loading = false;
+                            return;
+                        }
+                    }
+                }
+
                 self.app_objects
                     .set_object_items(object_key.clone(), items.clone());
 
-                let bucket_name = object_key.bucket_name.clone();
                 let object_list_page =
                     Page::of_object_list(items, object_key, Rc::clone(&self.ctx), self.tx.clone());
-                if let Some(bucket) = self.pending_single_bucket_reload.take() {
-                    debug_assert_eq!(bucket.name, bucket_name);
-
-                    self.app_objects.set_bucket_items(vec![bucket]);
-
-                    if matches!(self.page_stack.current_page(), Page::BucketList(_)) {
-                        self.page_stack.pop();
-                    }
-                }
                 self.page_stack.push(object_list_page);
             }
             Err(e) => {
@@ -356,7 +383,14 @@ impl App {
     pub fn complete_reload_objects(&mut self, result: Result<CompleteReloadObjectsResult>) {
         let view_state = match self.page_stack.current_page() {
             Page::ObjectList(page) => page.view_state_snapshot(),
-            page => panic!("Invalid page: {page:?}"),
+            page => {
+                tracing::warn!(
+                    current_page = ?page,
+                    "ignoring CompleteReloadObjects because current page is not ObjectList"
+                );
+                self.is_loading = false;
+                return;
+            }
         };
 
         match result {
@@ -1177,6 +1211,59 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn complete_reload_buckets_ignores_response_when_current_page_is_not_bucket_list() {
+        let (mut app, _rx) = app().await;
+        let object_key = ObjectKey::bucket("test-bucket");
+        let items = vec![object_file_item("foo.txt")];
+
+        app.page_stack.push(Page::of_object_list(
+            items,
+            object_key,
+            Rc::clone(&app.ctx),
+            app.tx.clone(),
+        ));
+        app.is_loading = true;
+
+        app.complete_reload_buckets(Ok(CompleteReloadBucketsResult {
+            buckets: vec![bucket_item("foo-bucket")],
+        }));
+
+        assert!(!app.loading());
+        assert!(app.pending_single_bucket_reload.is_none());
+        assert_eq!(app.page_stack.len(), 1);
+        assert!(matches!(app.page_stack.current_page(), Page::ObjectList(_)));
+        assert!(app.app_objects.get_bucket_items().is_empty());
+    }
+
+    #[tokio::test]
+    async fn complete_load_objects_ignores_mismatched_pending_single_bucket_reload() {
+        let (mut app, _rx) = app().await;
+        let buckets = vec![bucket_item("foo-bucket"), bucket_item("bar-bucket")];
+        let object_key = ObjectKey::bucket("other-bucket");
+        let items = vec![object_file_item("foo.txt")];
+
+        app.complete_initialize(Ok(CompleteInitializeResult {
+            buckets,
+            prefix: None,
+        }));
+        app.pending_single_bucket_reload = Some(bucket_item("solo-bucket"));
+        app.is_loading = true;
+
+        app.complete_load_objects(Ok(CompleteLoadObjectsResult {
+            items,
+            object_key: object_key.clone(),
+        }));
+
+        assert!(!app.loading());
+        assert!(app.pending_single_bucket_reload.is_none());
+        assert_eq!(app.page_stack.len(), 1);
+        assert!(matches!(app.page_stack.current_page(), Page::BucketList(_)));
+        assert_bucket_selected(&app, "foo-bucket");
+        assert_bucket_names(&app, &["foo-bucket", "bar-bucket"]);
+        assert!(app.app_objects.get_object_items(&object_key).is_none());
+    }
+
+    #[tokio::test]
     async fn object_list_refresh_keeps_view_state() {
         let (mut app, _rx) = app().await;
         let object_key = ObjectKey::bucket("test-bucket");
@@ -1210,6 +1297,31 @@ mod tests {
 
         assert_eq!(app.page_stack.len(), 1);
         assert_object_selected(&app, "baz.txt");
+    }
+
+    #[tokio::test]
+    async fn complete_reload_objects_ignores_response_when_current_page_is_not_object_list() {
+        let (mut app, _rx) = app().await;
+        let buckets = vec![bucket_item("foo-bucket"), bucket_item("bar-bucket")];
+
+        app.complete_initialize(Ok(CompleteInitializeResult {
+            buckets,
+            prefix: None,
+        }));
+        app.is_loading = true;
+
+        app.complete_reload_objects(Ok(CompleteReloadObjectsResult {
+            items: vec![object_file_item("foo.txt")],
+            object_key: ObjectKey::bucket("foo-bucket"),
+        }));
+
+        assert!(!app.loading());
+        assert_eq!(app.page_stack.len(), 1);
+        assert!(matches!(app.page_stack.current_page(), Page::BucketList(_)));
+        assert!(app
+            .app_objects
+            .get_object_items(&ObjectKey::bucket("foo-bucket"))
+            .is_none());
     }
 
     #[tokio::test]
