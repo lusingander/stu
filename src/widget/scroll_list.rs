@@ -25,6 +25,17 @@ impl ScrollListState {
         }
     }
 
+    pub fn set_position(&mut self, selected: usize, offset: usize) {
+        self.selected = selected;
+        self.offset = offset;
+        self.normalize();
+    }
+
+    pub fn prepare_for_render(&mut self, area_height: usize) {
+        self.height = area_height.saturating_sub(2 /* border */);
+        self.normalize();
+    }
+
     pub fn select_next(&mut self) {
         if self.total == 0 {
             return;
@@ -110,6 +121,34 @@ impl ScrollListState {
             self.offset = self.total - self.height;
         }
     }
+
+    fn normalize(&mut self) {
+        if self.total == 0 {
+            self.selected = 0;
+            self.offset = 0;
+            return;
+        }
+
+        self.selected = self.selected.min(self.total - 1);
+        self.offset = self.offset.min(self.selected);
+
+        if self.height == 0 {
+            return;
+        }
+
+        let max_offset = self.total.saturating_sub(self.height);
+        self.offset = self.offset.min(max_offset);
+
+        if self.selected < self.offset {
+            self.offset = self.selected;
+            return;
+        }
+
+        let max_selected = self.offset + self.height - 1;
+        if self.selected > max_selected {
+            self.offset = self.selected + 1 - self.height;
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -151,7 +190,7 @@ impl StatefulWidget for ScrollList<'_> {
     type State = ScrollListState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        state.height = area.height as usize - 2 /* border */;
+        state.prepare_for_render(area.height as usize);
 
         let title = format_list_count(state.total, state.selected);
         let list = List::new(self.items).block(

@@ -51,6 +51,15 @@ pub struct ObjectListPage {
 }
 
 #[derive(Debug)]
+pub(crate) struct ObjectListViewState {
+    filter: String,
+    sort: ObjectListSortType,
+    selected_item_key: Option<String>,
+    selected_index: usize,
+    selected_row: usize,
+}
+
+#[derive(Debug)]
 enum ViewState {
     Default,
     FilterDialog,
@@ -239,6 +248,8 @@ impl ObjectListPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
+        self.list_state.prepare_for_render(area.height as usize);
+
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
 
@@ -713,6 +724,51 @@ impl ObjectListPage {
             .send(AppEventType::ObjectListOpenManagementConsole(object_key));
     }
 
+    pub(crate) fn view_state_snapshot(&self) -> ObjectListViewState {
+        let (selected_item_key, selected_index, selected_row) = if self.non_empty() {
+            (
+                Some(self.current_selected_item().key().to_string()),
+                self.list_state.selected,
+                self.list_state
+                    .selected
+                    .saturating_sub(self.list_state.offset),
+            )
+        } else {
+            (None, 0, 0)
+        };
+
+        ObjectListViewState {
+            filter: self.filter_input_state.input().to_string(),
+            sort: self.sort_dialog_state.selected(),
+            selected_item_key,
+            selected_index,
+            selected_row,
+        }
+    }
+
+    pub(crate) fn restore_view_state(&mut self, state: ObjectListViewState) {
+        self.sort_dialog_state.set_selected(state.sort);
+        self.filter_input_state = InputDialogState::new(state.filter);
+        self.filter_view_indices();
+
+        if self.view_indices.is_empty() {
+            return;
+        }
+
+        let selected = state
+            .selected_item_key
+            .as_ref()
+            .and_then(|selected_item_key| {
+                self.view_indices
+                    .iter()
+                    .position(|&i| self.object_items[i].key() == selected_item_key)
+            })
+            .unwrap_or_else(|| state.selected_index.min(self.view_indices.len() - 1));
+        let offset = selected.saturating_sub(state.selected_row);
+
+        self.list_state.set_position(selected, offset);
+    }
+
     pub fn current_selected_item(&self) -> &ObjectItem {
         let i = self
             .view_indices
@@ -776,7 +832,7 @@ fn build_list_items<'a>(
     env: &Environment,
     theme: &Theme,
 ) -> Vec<ListItem<'a>> {
-    let show_item_count = (area.height as usize) - 2 /* border */;
+    let show_item_count = (area.height as usize).saturating_sub(2 /* border */);
     view_indices
         .iter()
         .map(|&original_idx| &current_items[original_idx])
@@ -1211,6 +1267,132 @@ mod tests {
         assert_eq!(page.view_indices, vec![3, 1, 4, 0, 2]);
     }
 
+    #[tokio::test]
+    async fn test_restore_view_state_preserves_selected_object_and_scroll_position(
+    ) -> Result<(), core::convert::Infallible> {
+        let ctx = Rc::default();
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+        let area = Rect::new(0, 0, 60, 10);
+        let object_key = ObjectKey::bucket("test-bucket");
+
+        let items = (1..=12)
+            .map(|i| object_file_item(&format!("file{i}"), 1024, "2024-01-02 13:01:02"))
+            .collect();
+        let mut page = ObjectListPage::new(items, object_key.clone(), Rc::clone(&ctx), tx.clone());
+        terminal.draw(|f| page.render(f, area))?;
+        page.list_state.set_position(5, 2);
+
+        let state = page.view_state_snapshot();
+
+        let items = vec![
+            object_file_item("file1", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file2", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file3", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file4", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file5", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file5.5", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file6", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file7", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file8", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file9", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file10", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file11", 1024, "2024-01-02 13:01:02"),
+            object_file_item("file12", 1024, "2024-01-02 13:01:02"),
+        ];
+        let mut restored = ObjectListPage::new(items, object_key, ctx, tx);
+        restored.restore_view_state(state);
+        terminal.draw(|f| restored.render(f, area))?;
+
+        assert_eq!(restored.current_selected_item().name(), "file6");
+        assert_eq!(restored.list_state.selected, 6);
+        assert_eq!(restored.list_state.offset, 3);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_restore_view_state_falls_back_to_previous_index_when_object_was_deleted(
+    ) -> Result<(), core::convert::Infallible> {
+        let ctx = Rc::default();
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+        let area = Rect::new(0, 0, 60, 10);
+        let object_key = ObjectKey::bucket("test-bucket");
+
+        let items = (1..=16)
+            .map(|i| object_file_item(&format!("file{i}"), 1024, "2024-01-02 13:01:02"))
+            .collect();
+        let mut page = ObjectListPage::new(items, object_key.clone(), Rc::clone(&ctx), tx.clone());
+        terminal.draw(|f| page.render(f, area))?;
+        page.list_state.set_position(8, 5);
+
+        let state = page.view_state_snapshot();
+
+        let items = (1..=16)
+            .filter(|&i| i != 9)
+            .map(|i| object_file_item(&format!("file{i}"), 1024, "2024-01-02 13:01:02"))
+            .collect();
+        let mut restored = ObjectListPage::new(items, object_key, ctx, tx);
+        restored.restore_view_state(state);
+        terminal.draw(|f| restored.render(f, area))?;
+
+        assert_eq!(restored.current_selected_item().name(), "file10");
+        assert_eq!(restored.list_state.selected, 8);
+        assert_eq!(restored.list_state.offset, 5);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_render_after_restore_clamps_offset_before_building_items(
+    ) -> Result<(), core::convert::Infallible> {
+        let ctx = Rc::default();
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+        let area = Rect::new(0, 0, 60, 10);
+        let object_key = ObjectKey::bucket("test-bucket");
+
+        let items = (1..=16)
+            .map(|i| object_file_item(&format!("file{i}"), 1024, "2024-01-02 13:01:02"))
+            .collect();
+        let mut page = ObjectListPage::new(items, object_key.clone(), Rc::clone(&ctx), tx.clone());
+        terminal.draw(|f| page.render(f, area))?;
+        page.list_state.set_position(8, 6);
+
+        let state = page.view_state_snapshot();
+
+        let items = ["file1", "file2", "file3", "file9"]
+            .into_iter()
+            .map(|name| object_file_item(name, 1024, "2024-01-02 13:01:02"))
+            .collect();
+        let mut restored = ObjectListPage::new(items, object_key, ctx, tx);
+        restored.restore_view_state(state);
+
+        terminal.draw(|f| restored.render(f, area))?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌─────────────────────────────────────────────────── 4 / 4 ┐",
+            "│  file1                2024-01-02 13:01:02         1 KiB  │",
+            "│  file2                2024-01-02 13:01:02         1 KiB  │",
+            "│  file3                2024-01-02 13:01:02         1 KiB  │",
+            "│  file9                2024-01-02 13:01:02         1 KiB  │",
+            "│                                                          │",
+            "│                                                          │",
+            "│                                                          │",
+            "│                                                          │",
+            "└──────────────────────────────────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            (2..58, [4]) => bg: Color::Cyan, fg: Color::Black,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
+    }
+
     fn setup_terminal() -> Result<Terminal<TestBackend>, core::convert::Infallible> {
         let backend = TestBackend::new(60, 10);
         let mut terminal = Terminal::new(backend)?;
@@ -1233,7 +1415,7 @@ mod tests {
     fn object_dir_item(name: &str) -> ObjectItem {
         ObjectItem::Dir {
             name: name.to_string(),
-            key: "".to_string(),
+            key: format!("{name}/"),
             s3_uri: "".to_string(),
             object_url: "".to_string(),
         }
@@ -1244,7 +1426,7 @@ mod tests {
             name: name.to_string(),
             size_byte,
             last_modified: parse_datetime(last_modified),
-            key: "".to_string(),
+            key: name.to_string(),
             s3_uri: "".to_string(),
             arn: "".to_string(),
             object_url: "".to_string(),

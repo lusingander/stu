@@ -47,6 +47,15 @@ pub struct BucketListPage {
 }
 
 #[derive(Debug)]
+pub(crate) struct BucketListViewState {
+    filter: String,
+    sort: BucketListSortType,
+    selected_bucket_name: Option<String>,
+    selected_index: usize,
+    selected_row: usize,
+}
+
+#[derive(Debug)]
 enum ViewState {
     Default,
     FilterDialog,
@@ -223,6 +232,8 @@ impl BucketListPage {
     }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
+        self.list_state.prepare_for_render(area.height as usize);
+
         let offset = self.list_state.offset;
         let selected = self.list_state.selected;
 
@@ -577,6 +588,51 @@ impl BucketListPage {
         self.view_state = ViewState::Default;
     }
 
+    pub(crate) fn view_state_snapshot(&self) -> BucketListViewState {
+        let (selected_bucket_name, selected_index, selected_row) = if self.non_empty() {
+            (
+                Some(self.current_selected_item().name.clone()),
+                self.list_state.selected,
+                self.list_state
+                    .selected
+                    .saturating_sub(self.list_state.offset),
+            )
+        } else {
+            (None, 0, 0)
+        };
+
+        BucketListViewState {
+            filter: self.filter_input_state.input().to_string(),
+            sort: self.sort_dialog_state.selected(),
+            selected_bucket_name,
+            selected_index,
+            selected_row,
+        }
+    }
+
+    pub(crate) fn restore_view_state(&mut self, state: BucketListViewState) {
+        self.sort_dialog_state.set_selected(state.sort);
+        self.filter_input_state = InputDialogState::new(state.filter);
+        self.filter_view_indices();
+
+        if self.view_indices.is_empty() {
+            return;
+        }
+
+        let selected = state
+            .selected_bucket_name
+            .as_ref()
+            .and_then(|selected_bucket_name| {
+                self.view_indices
+                    .iter()
+                    .position(|&i| self.bucket_items[i].name == *selected_bucket_name)
+            })
+            .unwrap_or_else(|| state.selected_index.min(self.view_indices.len() - 1));
+        let offset = selected.saturating_sub(state.selected_row);
+
+        self.list_state.set_position(selected, offset);
+    }
+
     pub fn current_selected_item(&self) -> &BucketItem {
         let i = self
             .view_indices
@@ -680,7 +736,7 @@ fn build_list_items<'a>(
     selected: usize,
     area: Rect,
 ) -> Vec<ListItem<'a>> {
-    let show_item_count = (area.height as usize) - 2 /* border */;
+    let show_item_count = (area.height as usize).saturating_sub(2 /* border */);
     view_indices
         .iter()
         .map(|&original_idx| &current_items[original_idx])
@@ -1137,6 +1193,129 @@ mod tests {
         );
 
         assert_eq!(page.view_indices, vec![0, 4]);
+    }
+
+    #[tokio::test]
+    async fn test_restore_view_state_preserves_selected_bucket_and_scroll_position(
+    ) -> Result<(), core::convert::Infallible> {
+        let ctx = Rc::default();
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+        let area = Rect::new(0, 0, 30, 10);
+
+        let items = (1..=12)
+            .map(|i| bucket_item(&format!("bucket{i}")))
+            .collect();
+        let mut page = BucketListPage::new(items, Rc::clone(&ctx), tx.clone());
+        terminal.draw(|f| page.render(f, area))?;
+        page.list_state.set_position(5, 2);
+
+        let state = page.view_state_snapshot();
+
+        let items = vec![
+            bucket_item("bucket1"),
+            bucket_item("bucket2"),
+            bucket_item("bucket3"),
+            bucket_item("bucket4"),
+            bucket_item("bucket5"),
+            bucket_item("bucket5.5"),
+            bucket_item("bucket6"),
+            bucket_item("bucket7"),
+            bucket_item("bucket8"),
+            bucket_item("bucket9"),
+            bucket_item("bucket10"),
+            bucket_item("bucket11"),
+            bucket_item("bucket12"),
+        ];
+        let mut restored = BucketListPage::new(items, ctx, tx);
+        restored.restore_view_state(state);
+        terminal.draw(|f| restored.render(f, area))?;
+
+        assert_eq!(restored.current_selected_item().name, "bucket6");
+        assert_eq!(restored.list_state.selected, 6);
+        assert_eq!(restored.list_state.offset, 3);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_restore_view_state_falls_back_to_previous_index_when_bucket_was_deleted(
+    ) -> Result<(), core::convert::Infallible> {
+        let ctx = Rc::default();
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+        let area = Rect::new(0, 0, 30, 10);
+
+        let items = (1..=16)
+            .map(|i| bucket_item(&format!("bucket{i}")))
+            .collect();
+        let mut page = BucketListPage::new(items, Rc::clone(&ctx), tx.clone());
+        terminal.draw(|f| page.render(f, area))?;
+        page.list_state.set_position(8, 5);
+
+        let state = page.view_state_snapshot();
+
+        let items = (1..=16)
+            .filter(|&i| i != 9)
+            .map(|i| bucket_item(&format!("bucket{i}")))
+            .collect();
+        let mut restored = BucketListPage::new(items, ctx, tx);
+        restored.restore_view_state(state);
+        terminal.draw(|f| restored.render(f, area))?;
+
+        assert_eq!(restored.current_selected_item().name, "bucket10");
+        assert_eq!(restored.list_state.selected, 8);
+        assert_eq!(restored.list_state.offset, 5);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_render_after_restore_clamps_offset_before_building_items(
+    ) -> Result<(), core::convert::Infallible> {
+        let ctx = Rc::default();
+        let tx = sender();
+        let mut terminal = setup_terminal()?;
+        let area = Rect::new(0, 0, 30, 10);
+
+        let items = (1..=16)
+            .map(|i| bucket_item(&format!("bucket{i}")))
+            .collect();
+        let mut page = BucketListPage::new(items, Rc::clone(&ctx), tx.clone());
+        terminal.draw(|f| page.render(f, area))?;
+        page.list_state.set_position(8, 6);
+
+        let state = page.view_state_snapshot();
+
+        let items = ["bucket1", "bucket2", "bucket3", "bucket9"]
+            .into_iter()
+            .map(bucket_item)
+            .collect();
+        let mut restored = BucketListPage::new(items, ctx, tx);
+        restored.restore_view_state(state);
+
+        terminal.draw(|f| restored.render(f, area))?;
+
+        #[rustfmt::skip]
+        let mut expected = Buffer::with_lines([
+            "┌───────────────────── 4 / 4 ┐",
+            "│  bucket1                   │",
+            "│  bucket2                   │",
+            "│  bucket3                   │",
+            "│  bucket9                   │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "│                            │",
+            "└────────────────────────────┘",
+        ]);
+        set_cells! { expected =>
+            (2..28, [4]) => bg: Color::Cyan, fg: Color::Black,
+        }
+
+        terminal.backend().assert_buffer(&expected);
+
+        Ok(())
     }
 
     fn setup_terminal() -> Result<Terminal<TestBackend>, core::convert::Infallible> {

@@ -66,6 +66,10 @@ impl BucketListSortDialogState {
     pub fn selected(&self) -> BucketListSortType {
         self.selected
     }
+
+    pub(crate) fn set_selected(&mut self, selected: BucketListSortType) {
+        self.selected = selected;
+    }
 }
 
 pub struct BucketListSortDialog {
@@ -167,6 +171,10 @@ impl ObjectListSortDialogState {
 
     pub fn selected(&self) -> ObjectListSortType {
         self.selected
+    }
+
+    pub(crate) fn set_selected(&mut self, selected: ObjectListSortType) {
+        self.selected = selected;
     }
 }
 
