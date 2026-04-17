@@ -113,7 +113,7 @@ pub fn prune_spans_to_fit_width(
     let mut spans_with_priority_with_index: Vec<(usize, &SpansWithPriority)> =
         spans_with_priorities.iter().enumerate().collect();
 
-    spans_with_priority_with_index.sort_by(|(_, sp1), (_, sp2)| sp2.priority.cmp(&sp1.priority));
+    spans_with_priority_with_index.sort_by_key(|(_, sp)| std::cmp::Reverse(sp.priority));
 
     let mut prune: Vec<usize> = Vec::new();
     for (i, sp) in &spans_with_priority_with_index {
