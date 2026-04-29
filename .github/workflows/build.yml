@@ -17,7 +17,7 @@ jobs:
     outputs:
       msrv: ${{ steps.get-msrv.outputs.msrv }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - name: Get MSRV
         id: get-msrv
         run: |
@@ -42,12 +42,12 @@ jobs:
             versions: ${{ needs.prepare.outputs.msrv }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6.0.2
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.versions }}
           components: rustfmt, clippy
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.1
       - name: Version
         run: |
           rustc --version
