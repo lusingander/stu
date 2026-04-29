@@ -1023,7 +1023,9 @@ impl App {
 
     fn render_header(&self, f: &mut Frame, area: Rect) {
         if !area.is_empty() {
-            let header = Header::new(self.page_stack.breadcrumb()).theme(self.ctx.theme());
+            let header = Header::new(self.page_stack.breadcrumb())
+                .theme(self.ctx.theme())
+                .region(Some(self.client.region().to_string()));
             f.render_widget(header, area);
         }
     }
