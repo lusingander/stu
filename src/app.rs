@@ -72,6 +72,7 @@ pub struct App {
     notification: Notification,
     is_loading: bool,
     pending_single_bucket_reload: Option<BucketItem>,
+    header_region: Option<String>,
 }
 
 impl App {
@@ -87,6 +88,10 @@ impl App {
             notification: Notification::None,
             is_loading: true,
             pending_single_bucket_reload: None,
+            header_region: std::env::var("AWS_REGION")
+                .ok()
+                .or_else(|| std::env::var("AWS_DEFAULT_REGION").ok())
+                .filter(|s| !s.is_empty()),
         }
     }
 
@@ -1025,7 +1030,7 @@ impl App {
         if !area.is_empty() {
             let header = Header::new(self.page_stack.breadcrumb())
                 .theme(self.ctx.theme())
-                .region(Some(self.client.region().to_string()));
+                .region(self.header_region.clone());
             f.render_widget(header, area);
         }
     }
