@@ -84,11 +84,12 @@ impl App {
         // so users who haven't set anything explicitly don't see a misleading
         // "[us-east-1]" in the header.
         let resolved_region = client.region();
-        let header_region = if resolved_region == ctx.config.default_region {
-            None
-        } else {
-            Some(resolved_region.to_string())
-        };
+        let header_region =
+            if !ctx.config.ui.header.show_region || resolved_region == ctx.config.default_region {
+                None
+            } else {
+                Some(resolved_region.to_string())
+            };
         App {
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
