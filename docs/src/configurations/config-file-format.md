@@ -9,6 +9,9 @@ max_concurrent_requests = 5
 
 default_region = "us-east-1"
 
+[ui.header]
+show_region = true
+
 [ui.bucket_list]
 default_sort = "default"
 
@@ -82,6 +85,13 @@ The default region to use if the region cannot be obtained from the command line
 
 - type: `string`
 - default: `us-east-1`
+
+### `ui.header.show_region`
+
+Whether to display the AWS region resolved by the client (e.g. from the `--region` flag, `AWS_REGION` env var, or AWS profile) in the top-right of the header bar. The label is hidden automatically when the resolved region is just the configured `default_region` fallback.
+
+- type: `bool`
+- default: `true`
 
 ### `ui.bucket_list.default_sort`
 

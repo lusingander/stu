@@ -40,6 +40,8 @@ pub struct Config {
 #[derive(Debug, Clone, SmartDefault)]
 pub struct UiConfig {
     #[nested]
+    pub header: UiHeaderConfig,
+    #[nested]
     pub bucket_list: UiBucketListConfig,
     #[nested]
     pub object_list: UiObjectListConfig,
@@ -49,6 +51,13 @@ pub struct UiConfig {
     pub help: UiHelpConfig,
     #[nested]
     pub theme: Theme,
+}
+
+#[optional(derives = [Deserialize])]
+#[derive(Debug, Clone, SmartDefault)]
+pub struct UiHeaderConfig {
+    #[default = true]
+    pub show_region: bool,
 }
 
 #[optional(derives = [Deserialize])]
@@ -256,6 +265,23 @@ object_dir_bold = false
         assert_eq!(config.ui.theme.status_error, Color::White);
         assert!(!config.ui.theme.object_dir_bold);
         assert_eq!(config.ui.theme.dialog_selected, Color::Cyan);
+    }
+
+    #[test]
+    fn header_show_region_defaults_to_true_when_omitted() {
+        let config = parse_config("");
+        assert!(config.ui.header.show_region);
+    }
+
+    #[test]
+    fn header_show_region_can_be_disabled() {
+        let config = parse_config(
+            r#"
+[ui.header]
+show_region = false
+"#,
+        );
+        assert!(!config.ui.header.show_region);
     }
 
     #[test]

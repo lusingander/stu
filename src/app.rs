@@ -72,11 +72,24 @@ pub struct App {
     notification: Notification,
     is_loading: bool,
     pending_single_bucket_reload: Option<BucketItem>,
+    header_region: Option<String>,
 }
 
 impl App {
     pub fn new(mapper: UserEventMapper, client: Client, ctx: AppContext, tx: Sender) -> App {
         let ctx = Rc::new(ctx);
+        // Use the region the AWS SDK actually resolved (honors --region CLI arg,
+        // AWS_REGION / AWS_DEFAULT_REGION env vars, and AWS profile config).
+        // Suppress the label when the SDK fell back to the configured default,
+        // so users who haven't set anything explicitly don't see a misleading
+        // "[us-east-1]" in the header.
+        let resolved_region = client.region();
+        let header_region =
+            if !ctx.config.ui.header.show_region || resolved_region == ctx.config.default_region {
+                None
+            } else {
+                Some(resolved_region.to_string())
+            };
         App {
             app_objects: AppObjects::default(),
             page_stack: PageStack::new(Rc::clone(&ctx), tx.clone()),
@@ -87,6 +100,7 @@ impl App {
             notification: Notification::None,
             is_loading: true,
             pending_single_bucket_reload: None,
+            header_region,
         }
     }
 
@@ -1023,7 +1037,9 @@ impl App {
 
     fn render_header(&self, f: &mut Frame, area: Rect) {
         if !area.is_empty() {
-            let header = Header::new(self.page_stack.breadcrumb()).theme(self.ctx.theme());
+            let header = Header::new(self.page_stack.breadcrumb())
+                .theme(self.ctx.theme())
+                .region(self.header_region.clone());
             f.render_widget(header, area);
         }
     }
