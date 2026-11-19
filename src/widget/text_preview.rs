@@ -1,7 +1,7 @@
 use std::cmp::min;
 
 use ansi_to_tui::IntoText;
-use chardetng::EncodingDetector;
+use chardetng::{EncodingDetector, Iso2022JpDetection, Utf8Detection};
 use itsuki::zero_indexed_enum;
 use laurier::layout::calc_centered_area;
 use once_cell::sync::Lazy;
@@ -390,15 +390,13 @@ impl TextPreviewState {
     ) -> (Self, Option<EncodingType>, Option<String>) {
         let mut guessed_encoding = None;
         if auto_detect_encoding {
-            let mut detector = EncodingDetector::new();
+            let mut detector = EncodingDetector::new(Iso2022JpDetection::Allow);
             detector.feed(
                 &object.bytes[..min(ENCODING_GUESS_BYTES_SIZE_LIMIT, object.bytes.len())],
                 true,
             );
-            let (encoding, ok) = detector.guess_assess(None, true);
-            if ok {
-                guessed_encoding = Some(EncodingType::from(encoding.name()).unwrap());
-            }
+            let encoding = detector.guess(None, Utf8Detection::Allow);
+            guessed_encoding = Some(EncodingType::from(encoding.name()).unwrap());
         }
 
         let mut state = Self {
@@ -537,5 +535,69 @@ impl StatefulWidget for TextPreview<'_> {
             .block(Block::bordered().title(title))
             .theme(self.theme)
             .render(area, buf, &mut state.scroll_lines_state);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+
+    use super::*;
+
+    #[rstest]
+    #[case::utf8(encoding_rs::UTF_8, EncodingType::Utf8, true, EncodingType::ShiftJis)]
+    #[case::iso2022jp(
+        encoding_rs::ISO_2022_JP,
+        EncodingType::Iso2022Jp,
+        true,
+        EncodingType::Utf8
+    )]
+    #[case::shift_jis(
+        encoding_rs::SHIFT_JIS,
+        EncodingType::ShiftJis,
+        true,
+        EncodingType::Utf8
+    )]
+    #[case::disabled(
+        encoding_rs::SHIFT_JIS,
+        EncodingType::ShiftJis,
+        false,
+        EncodingType::ShiftJis
+    )]
+    fn preview_preserves_encoding_detection(
+        #[case] encoding: &'static encoding_rs::Encoding,
+        #[case] expected: EncodingType,
+        #[case] auto_detect: bool,
+        #[case] default_encoding: EncodingType,
+    ) {
+        let text = "日本語のテキストをプレビューします。文字コードを正しく判定します。";
+        let (bytes, _, had_errors) = encoding.encode(text);
+        assert!(!had_errors);
+        let object = RawObject {
+            bytes: bytes.into_owned(),
+        };
+        let detail = FileDetail {
+            name: "preview.txt".into(),
+            size_byte: object.bytes.len(),
+            last_modified: chrono::Local::now(),
+            e_tag: String::new(),
+            content_type: "text/plain".into(),
+            storage_class: String::new(),
+            key: "preview.txt".into(),
+            s3_uri: String::new(),
+            arn: String::new(),
+            object_url: String::new(),
+        };
+
+        let (state, guessed, warning) =
+            TextPreviewState::new(&detail, &object, false, "", auto_detect, default_encoding);
+
+        assert_eq!(state.encoding.str(), expected.str());
+        assert_eq!(
+            guessed.map(|e| e.str()),
+            auto_detect.then_some(expected.str())
+        );
+        assert_eq!(state.to_preview_string(&object.bytes), text);
+        assert!(warning.is_none());
     }
 }
