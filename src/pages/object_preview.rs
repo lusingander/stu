@@ -37,7 +37,7 @@ pub struct ObjectPreviewPage {
 #[derive(Debug)]
 enum PreviewType {
     Text(TextPreviewState),
-    Image(ImagePreviewState),
+    Image(Box<ImagePreviewState>),
 }
 
 #[derive(Debug, Default)]
@@ -64,7 +64,7 @@ impl ObjectPreviewPage {
             if let Some(msg) = msg {
                 tx.send(AppEventType::NotifyWarn(msg));
             }
-            PreviewType::Image(state)
+            PreviewType::Image(Box::new(state))
         } else {
             let (state, guessed_encoding, msg) = TextPreviewState::new(
                 &file_detail,

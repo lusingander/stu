@@ -28,7 +28,7 @@ fn build_image_picker(image_preview_enabled: bool, fix_dynamic_values: bool) -> 
         // - want to fix the protocol to iterm2
         // so changed the settings if fix_dynamic_values is true
         #[allow(deprecated)]
-        let mut picker = ratatui_image::picker::Picker::from_fontsize((10, 20));
+        let mut picker = ratatui_image::picker::Picker::from_fontsize((10, 20).into());
         picker.set_protocol_type(ratatui_image::picker::ProtocolType::Iterm2);
         return ImagePicker::Ok(picker);
     }
