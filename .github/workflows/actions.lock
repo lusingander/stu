@@ -18,6 +18,8 @@ workflows:
         - 'actions/upload-artifact@v7.0.1'
         - 'houseabsolute/actions-rust-cross@v1.0.6'
         - 'softprops/action-gh-release@v3.0.0'
+    '.github/workflows/verify-lockfile.yml':
+        - 'actions/checkout@v6.0.2'
 dependencies:
     'actions/cache@v5':
         ref: 'v5'
