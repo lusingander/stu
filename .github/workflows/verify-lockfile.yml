@@ -23,10 +23,10 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Install actions-lock
-        run: gh extension install github/gh-actions-lock --pin v0.4.0
+        run: gh extension install github/gh-actions-lock --pin v0.5.0
       - name: Verify lockfile
         run: gh actions-lock --verify
