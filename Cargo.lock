@@ -4246,7 +4246,6 @@ dependencies = [
  "arboard",
  "aws-config",
  "aws-sdk-s3",
- "aws-smithy-types",
  "chardetng",
  "chrono",
  "clap",
