@@ -224,3 +224,61 @@ async fn sorts_and_filters_objects_before_opening_the_selected_details() -> Resu
 
     app.quit()
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
+    let storage = Storage::new(&["stu-preview"]).await?;
+    storage
+        .put_object("stu-preview", "alpha.txt", b"another object")
+        .await?;
+    let content = (1..=60)
+        .map(|line| format!("preview line {line:02}"))
+        .collect::<Vec<_>>()
+        .join("\n");
+    storage
+        .put_object("stu-preview", "notes.txt", content.as_bytes())
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "notes.txt"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]") && screen.contains("preview line 01")
+    })?;
+    app.terminal.send(Key::Char('G'))?;
+    let bottom = app
+        .terminal
+        .snapshot_after(|screen| screen.contains("preview line 60"))?;
+    assert!(!bottom.contains("preview line 01"), "{bottom}");
+
+    app.terminal.send(Key::Char('g'))?;
+    let top = app
+        .terminal
+        .snapshot_after(|screen| screen.contains("preview line 01"))?;
+    assert!(!top.contains("preview line 60"), "{top}");
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Content-Type:") && !screen.contains("Preview [notes.txt]")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview")
+            && selected_item(screen, "notes.txt")
+            && !screen.contains("Content-Type:")
+    })?;
+
+    app.quit()
+}
