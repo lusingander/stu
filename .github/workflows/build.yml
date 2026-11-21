@@ -58,6 +58,9 @@ jobs:
           cargo --version
           cargo fmt -- --version
           cargo clippy -- --version
+      - name: Docker version
+        if: runner.os == 'Linux'
+        run: docker version
       - name: Format
         run: cargo fmt --all -- --check
       - name: Build
