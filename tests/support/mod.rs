@@ -12,6 +12,7 @@ use testcontainers::{
 
 pub struct Storage {
     pub endpoint: String,
+    client: aws_sdk_s3::Client,
     _container: ContainerAsync<GenericImage>,
 }
 
@@ -50,8 +51,22 @@ impl Storage {
 
         Ok(Self {
             endpoint,
+            client,
             _container: container,
         })
+    }
+
+    pub async fn put_object(&self, bucket: &str, key: &str, body: &[u8]) -> Result<()> {
+        self.client
+            .put_object()
+            .bucket(bucket)
+            .key(key)
+            .content_type("text/plain")
+            .body(body.to_vec().into())
+            .send()
+            .await
+            .with_context(|| format!("Failed to create fixture object 's3://{bucket}/{key}'"))?;
+        Ok(())
     }
 }
 
