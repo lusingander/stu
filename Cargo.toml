@@ -73,7 +73,11 @@ syntect = { version = "5.3.0", default-features = false, features = [
 ] }
 textwrap = "0.16.4"
 tokio = { version = "1.54.1", features = ["full"] }
-toml = "1.2.1"
+toml = { version = "1.2.1", default-features = false, features = [
+    "std",
+    "serde",
+    "parse",
+] }
 tracing = "0.1.44"
 tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.23", features = ["chrono"] }
