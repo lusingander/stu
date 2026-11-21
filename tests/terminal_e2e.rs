@@ -4,7 +4,7 @@ use anyhow::Result;
 use rstest::rstest;
 use termlens::Key;
 
-use support::{at_path, Storage, TestApp};
+use support::{at_path, footer_contains, selected_item, Storage, TestApp};
 
 // Keep runtime workers available while termlens waits synchronously for the PTY.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -125,6 +125,102 @@ async fn starts_at_the_requested_bucket_or_prefix(
         .snapshot_after(|screen| at_path(screen, path) && screen.contains(visible))?;
     assert!(!screen.contains(hidden), "{screen}");
     assert!(!screen.contains("stu-beta"), "{screen}");
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-beta", "stu-gamma"]).await?;
+    storage
+        .put_object("stu-beta", "chosen.txt", b"chosen bucket")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "stu-alpha") && screen.contains("stu-gamma"))?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str("beta")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Clear filter") && selected_item(screen, "stu-beta")
+    })?;
+    assert!(!filtered.contains("stu-alpha"), "{filtered}");
+    assert!(!filtered.contains("stu-gamma"), "{filtered}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| at_path(screen, "stu-beta") && screen.contains("chosen.txt"))?;
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Clear filter") && selected_item(screen, "stu-beta")
+    })?;
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("stu-alpha")
+            && screen.contains("stu-beta")
+            && screen.contains("stu-gamma")
+            && !footer_contains(screen, "Clear filter")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sorts_and_filters_objects_before_opening_the_selected_details() -> Result<()> {
+    let storage = Storage::new(&["stu-objects"]).await?;
+    for (key, body) in [
+        ("alpha.txt", "a"),
+        ("bravo.log", "log"),
+        ("charlie.txt", "charlie"),
+    ] {
+        storage
+            .put_object("stu-objects", key, body.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-objects") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Last Modified (Asc)"))?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        selected_item(screen, "charlie.txt") && !screen.contains("Last Modified (Asc)")
+    })?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str(".txt")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Clear filter")
+            && selected_item(screen, "charlie.txt")
+            && screen.contains("alpha.txt")
+    })?;
+    assert!(!filtered.contains("bravo.log"), "{filtered}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains("7 B")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.terminal.send(Key::Backspace)?;
+    let restored = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Clear filter") && selected_item(screen, "charlie.txt")
+    })?;
+    assert!(!restored.contains("bravo.log"), "{restored}");
+    assert!(!restored.contains("Content-Type:"), "{restored}");
 
     app.quit()
 }

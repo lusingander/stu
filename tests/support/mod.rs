@@ -3,7 +3,7 @@ use std::{fs, time::Duration};
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
 use tempfile::{tempdir, TempDir};
-use termlens::{Key, Screen, Terminal};
+use termlens::{Color, Key, Screen, Terminal};
 use testcontainers::{
     core::{IntoContainerPort, WaitFor},
     runners::AsyncRunner,
@@ -167,4 +167,20 @@ impl Drop for TestApp {
 
 pub fn at_path(screen: &Screen, path: &str) -> bool {
     screen.row_text(1).trim_matches(['│', ' ']) == path && !screen.contains("Loading...")
+}
+
+pub fn footer_contains(screen: &Screen, text: &str) -> bool {
+    (screen.rows().saturating_sub(2)..screen.rows()).any(|row| screen.row_text(row).contains(text))
+}
+
+pub fn selected_item(screen: &Screen, name: &str) -> bool {
+    (0..screen.rows()).any(|row| {
+        screen
+            .row_text(row)
+            .trim_matches(['│', ' '])
+            .starts_with(name)
+            && screen
+                .cell(row, 3)
+                .is_some_and(|cell| cell.style().bg == Color::Indexed(6))
+    })
 }
