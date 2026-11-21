@@ -41,9 +41,9 @@ We welcome pull requests, but please note that they are not guaranteed to be acc
 
 We use [GitHub Actions](https://github.com/lusingander/stu/blob/master/.github/workflows/build.yml) to perform basic checks:
 
-- Run both stable and MSRV versions of Rust.
-- Run build, test, format, and lint.
-- Run unit tests on Linux, macOS, and Windows, and terminal E2E tests on Linux with Docker.
+- Run build, unit tests, format, and lint with stable Rust and MSRV.
+- Run these checks on Linux, macOS, and Windows, with MSRV checked on Linux only.
+- Run terminal E2E tests in a separate Linux job with stable Rust and Docker.
 
 ## Development
 
