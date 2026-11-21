@@ -79,7 +79,6 @@ toml = { version = "1.2.1", default-features = false, features = [
     "parse",
 ] }
 tracing = "0.1.44"
-tracing-log = "0.2.0"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = [
     "fmt",
     "chrono",
