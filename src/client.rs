@@ -429,7 +429,7 @@ fn parse_path(path: &str, dir: bool) -> Vec<String> {
     }
 }
 
-fn convert_datetime(dt: &aws_smithy_types::DateTime) -> chrono::DateTime<chrono::Local> {
+fn convert_datetime(dt: &aws_sdk_s3::primitives::DateTime) -> chrono::DateTime<chrono::Local> {
     let nanos = dt.as_nanos();
     chrono::Local.timestamp_nanos(nanos as i64)
 }
