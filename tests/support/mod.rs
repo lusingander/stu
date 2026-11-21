@@ -5,7 +5,7 @@ use aws_sdk_s3::config::{Credentials, Region};
 use tempfile::{tempdir, TempDir};
 use termlens::{Key, Screen, Terminal};
 use testcontainers::{
-    core::{IntoContainerPort, WaitFor},
+    core::{wait::HttpWaitStrategy, IntoContainerPort, WaitFor},
     runners::AsyncRunner,
     ContainerAsync, GenericImage, ImageExt,
 };
@@ -22,6 +22,12 @@ impl Storage {
         let container = GenericImage::new("localstack/localstack", "3.2.0")
             .with_exposed_port(4566.tcp())
             .with_wait_for(WaitFor::message_on_stdout("Ready."))
+            // The mapped host port can become reachable after the ready log.
+            .with_wait_for(WaitFor::http(
+                HttpWaitStrategy::new("/_localstack/health")
+                    .with_port(4566.tcp())
+                    .with_expected_status_code(200u16),
+            ))
             .with_env_var("SERVICES", "s3")
             .start()
             .await
@@ -46,7 +52,9 @@ impl Storage {
                 .bucket(*bucket)
                 .send()
                 .await
-                .with_context(|| format!("Failed to create fixture bucket '{bucket}'"))?;
+                .with_context(|| {
+                    format!("Failed to create fixture bucket '{bucket}' at {endpoint}")
+                })?;
         }
 
         Ok(Self {
