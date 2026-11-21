@@ -64,5 +64,8 @@ jobs:
         run: cargo build --verbose
       - name: Lint
         run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Run unit tests
+        run: cargo test --bin stu --verbose
+      - name: Run terminal E2E tests
+        if: runner.os == 'Linux'
+        run: cargo test --test terminal_e2e --verbose
