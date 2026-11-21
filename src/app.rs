@@ -1,4 +1,4 @@
-use futures::StreamExt;
+use futures_util::StreamExt;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::Stylize,
@@ -739,7 +739,7 @@ impl App {
         let tx = self.tx.clone();
 
         spawn(async move {
-            let mut iter = futures::stream::iter(obj_paths)
+            let mut iter = futures_util::stream::iter(obj_paths)
                 .map(|(obj, path)| {
                     let bucket = bucket.clone();
                     let client = client.clone();

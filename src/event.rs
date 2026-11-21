@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use futures::{FutureExt, StreamExt};
+use futures_util::{FutureExt, StreamExt};
 use ratatui::crossterm::event::KeyEvent;
 use tokio::{select, spawn, sync::mpsc};
 
