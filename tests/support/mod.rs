@@ -1,4 +1,4 @@
-use std::{fs, time::Duration};
+use std::{fs, path::PathBuf, time::Duration};
 
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
@@ -148,6 +148,10 @@ image = false
         ensure!(screen.cursor_visible(), "Cursor was not restored");
         self.exited = true;
         Ok(())
+    }
+
+    pub fn download_dir(&self) -> PathBuf {
+        self.directory.path().join("download")
     }
 }
 

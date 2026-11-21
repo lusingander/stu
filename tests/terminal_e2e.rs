@@ -1,5 +1,7 @@
 mod support;
 
+use std::fs;
+
 use anyhow::Result;
 use rstest::rstest;
 use termlens::Key;
@@ -279,6 +281,102 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
             && selected_item(screen, "notes.txt")
             && !screen.contains("Content-Type:")
     })?;
+
+    app.quit()
+}
+
+#[rstest]
+#[case::from_list(false, None)]
+#[case::from_details(true, None)]
+#[case::save_as(true, Some("renamed.bin"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_an_object_to_the_expected_file(
+    #[case] open_details: bool,
+    #[case] save_as: Option<&str>,
+) -> Result<()> {
+    let storage = Storage::new(&["stu-download"]).await?;
+    let content = b"download fixture\0\xff";
+    storage
+        .put_object("stu-download", "payload.bin", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-download") && selected_item(screen, "payload.bin")
+    })?;
+
+    if open_details {
+        app.terminal.send(Key::Enter)?;
+        app.terminal.wait_until(|screen| {
+            screen.contains("Content-Type:")
+                && screen.contains("text/plain")
+                && !screen.contains("Loading...")
+        })?;
+    }
+
+    if let Some(name) = save_as {
+        app.terminal.send(Key::Char('S'))?;
+        app.terminal
+            .wait_until(|screen| screen.contains("Save As"))?;
+        app.terminal.send(Key::Ctrl('u'))?;
+        app.terminal.send_str(name)?;
+        app.terminal
+            .wait_until(|screen| screen.contains("Save As") && screen.contains(name))?;
+        app.terminal.send(Key::Enter)?;
+    } else {
+        app.terminal.send(Key::Char('s'))?;
+    }
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+
+    let directory = app.download_dir();
+    let name = save_as.unwrap_or("payload.bin");
+    assert_eq!(fs::read(directory.join(name))?, content);
+    assert_eq!(fs::read_dir(&directory)?.count(), 1);
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_a_directory_with_its_relative_paths_and_contents() -> Result<()> {
+    let storage = Storage::new(&["stu-download"]).await?;
+    let intro = b"documentation";
+    let config = br#"{"enabled":true}"#;
+    storage
+        .put_object("stu-download", "docs/intro.txt", intro)
+        .await?;
+    storage
+        .put_object("stu-download", "docs/nested/config.json", config)
+        .await?;
+    storage
+        .put_object("stu-download", "outside.txt", b"excluded")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-download")
+            && selected_item(screen, "docs/")
+            && screen.contains("outside.txt")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("2 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+
+    let directory = app.download_dir();
+    assert_eq!(fs::read(directory.join("docs/intro.txt"))?, intro);
+    assert_eq!(fs::read(directory.join("docs/nested/config.json"))?, config);
+    assert_eq!(fs::read_dir(&directory)?.count(), 1);
+    assert_eq!(fs::read_dir(directory.join("docs"))?.count(), 2);
+    assert_eq!(fs::read_dir(directory.join("docs/nested"))?.count(), 1);
 
     app.quit()
 }
