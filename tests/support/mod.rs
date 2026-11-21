@@ -1,14 +1,15 @@
-use std::fs;
+use std::{fs, time::Duration};
 
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
 use tempfile::{tempdir, TempDir};
 use termlens::{Key, Screen, Terminal};
 use testcontainers::{
-    core::{wait::HttpWaitStrategy, IntoContainerPort, WaitFor},
+    core::{IntoContainerPort, WaitFor},
     runners::AsyncRunner,
     ContainerAsync, GenericImage, ImageExt,
 };
+use tokio::time::{sleep, timeout};
 
 pub struct Storage {
     pub endpoint: String,
@@ -22,12 +23,6 @@ impl Storage {
         let container = GenericImage::new("localstack/localstack", "3.2.0")
             .with_exposed_port(4566.tcp())
             .with_wait_for(WaitFor::message_on_stdout("Ready."))
-            // The mapped host port can become reachable after the ready log.
-            .with_wait_for(WaitFor::http(
-                HttpWaitStrategy::new("/_localstack/health")
-                    .with_port(4566.tcp())
-                    .with_expected_status_code(200u16),
-            ))
             .with_env_var("SERVICES", "s3")
             .start()
             .await
@@ -45,6 +40,16 @@ impl Storage {
             .force_path_style(true)
             .build();
         let client = aws_sdk_s3::Client::from_conf(config);
+
+        // The ready log can precede host port availability. Check S3 itself
+        // before creating fixtures, using the SDK already needed to seed them.
+        timeout(Duration::from_secs(30), async {
+            while client.list_buckets().send().await.is_err() {
+                sleep(Duration::from_millis(100)).await;
+            }
+        })
+        .await
+        .with_context(|| format!("LocalStack S3 did not become ready at {endpoint}"))?;
 
         for bucket in buckets {
             client
