@@ -3,6 +3,7 @@ Set Shell zsh
 Output "${OUTPUT_DIR}/demo.gif"
 
 Set FontSize 15
+Set LetterSpacing 1.5
 Set Width 1000
 Set Height 600
 Set Padding 15
