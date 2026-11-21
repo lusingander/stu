@@ -80,7 +80,11 @@ toml = { version = "1.2.1", default-features = false, features = [
 ] }
 tracing = "0.1.44"
 tracing-log = "0.2.0"
-tracing-subscriber = { version = "0.3.23", features = ["chrono"] }
+tracing-subscriber = { version = "0.3.23", default-features = false, features = [
+    "fmt",
+    "chrono",
+    "tracing-log",
+] }
 tui-input = "0.15.5"
 umbra = "0.6.0"
 
