@@ -51,7 +51,10 @@ vrt: screenshot
 update-img:
 	mv $(OUTPUT_DIR)/screenshot/*.png $(IMG_DIR)
 
+.PHONY: update-demo
+update-demo:
+	mv $(OUTPUT_DIR)/demo/*.gif $(IMG_DIR)
+
 .PHONY: clean
 clean:
 	rm -rf $(OUTPUT_DIR)
-	
