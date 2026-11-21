@@ -24,11 +24,9 @@ pub enum ImagePicker {
 
 fn build_image_picker(image_preview_enabled: bool, fix_dynamic_values: bool) -> ImagePicker {
     if fix_dynamic_values {
-        // - font size cannot be obtained with xterm.js
-        // - want to fix the protocol to iterm2
-        // so changed the settings if fix_dynamic_values is true
+        // Match the cell size used by the VHS tapes (FontSize 15, LetterSpacing 1.5) and fix the protocol to iterm2 for screenshot generation.
         #[allow(deprecated)]
-        let mut picker = ratatui_image::picker::Picker::from_fontsize((10, 20).into());
+        let mut picker = ratatui_image::picker::Picker::from_fontsize((10, 18).into());
         picker.set_protocol_type(ratatui_image::picker::ProtocolType::Iterm2);
         return ImagePicker::Ok(picker);
     }

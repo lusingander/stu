@@ -3,6 +3,7 @@ Set Shell zsh
 Output "${OUTPUT_DIR}/screenshot.gif"
 
 Set FontSize 15
+Set LetterSpacing 1.5
 Set Width 1000
 Set Height 600
 Set Padding 15
@@ -25,11 +26,13 @@ Sleep 100ms
 Type "j"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list.png"
+Sleep 100ms
 Type "k"
 Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Type "o"
@@ -39,9 +42,11 @@ Sleep 100ms
 Type "j"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-sort.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-sort-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Escape
@@ -51,9 +56,11 @@ Sleep 100ms
 Type@10ms "buck"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-filter.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-filter-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Escape
@@ -63,9 +70,11 @@ Sleep 100ms
 Type "r"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-copy.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/bucket-list-copy-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Escape
@@ -80,9 +89,11 @@ Escape
 Enter
 Sleep 500ms
 Screenshot "${OUTPUT_DIR}/object-list-simple.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Type "o"
@@ -92,9 +103,11 @@ Sleep 100ms
 Type "k"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-sort.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-sort-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Enter
@@ -104,9 +117,11 @@ Sleep 100ms
 Type@10ms "image"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-filter.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-filter-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Enter
@@ -117,17 +132,21 @@ Sleep 100ms
 Enter
 Sleep 500ms
 Screenshot "${OUTPUT_DIR}/object-detail.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-detail-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Type "l"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-version.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-version-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Type "p"
@@ -153,9 +172,11 @@ Sleep 100ms
 Type "r"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-details-copy.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-details-copy-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Escape
@@ -168,14 +189,17 @@ Sleep 100ms
 Type@10ms "download_file.txt"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-download.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-download-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Enter
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-download-success.png"
+Sleep 100ms
 Enter
 Sleep 100ms
 
@@ -219,9 +243,11 @@ Sleep 100ms
 Type "r"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-dir-copy.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-list-copy-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Escape
@@ -235,6 +261,7 @@ Sleep 500ms
 Enter
 Sleep 500ms
 Screenshot "${OUTPUT_DIR}/object-list-hierarchy.png"
+Sleep 100ms
 
 Backspace
 Type "j"
@@ -260,11 +287,13 @@ Sleep 100ms
 Type "e"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-preview-encoding.png"
+Sleep 100ms
 Escape
 Sleep 100ms
 Type "?"
 Sleep 100ms
 Screenshot "${OUTPUT_DIR}/object-preview-help.png"
+Sleep 100ms
 Type "?"
 Sleep 100ms
 Backspace
@@ -285,3 +314,4 @@ Sleep 50ms
 Screenshot "${OUTPUT_DIR}/loading-object-list.png"
 Sleep 3s
 Screenshot "${OUTPUT_DIR}/object-list-many.png"
+Sleep 100ms

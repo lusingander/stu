@@ -4,6 +4,7 @@ Set Shell zsh
 Output "${OUTPUT_DIR}/social-preview-demo.gif"
 
 Set FontSize 15
+Set LetterSpacing 1.5
 Set Width 1000
 Set Height 500
 Set Padding 10
