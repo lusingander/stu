@@ -101,7 +101,8 @@ umbra = "0.6.0"
 rstest = { version = "0.28.0", default-features = false }
 tempfile = "3.27.0"
 termlens = { version = "0.11.10", default-features = false }
-testcontainers = "0.28.0"
+# Keep Docker API 1.48 compatibility with Docker 28.0 on CI runners.
+testcontainers = "=0.25.0"
 
 [profile.release]
 codegen-units = 1
