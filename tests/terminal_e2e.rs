@@ -6,7 +6,7 @@ use anyhow::Result;
 use rstest::rstest;
 use termlens::Key;
 
-use support::{at_path, footer_contains, selected_item, Storage, TestApp};
+use support::{at_path, footer_contains, list_rows, selected_item, Storage, TestApp};
 
 // Keep runtime workers available while termlens waits synchronously for the PTY.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -157,6 +157,78 @@ async fn refreshes_buckets_and_opens_a_newly_created_bucket() -> Result<()> {
     app.terminal.send(Key::Enter)?;
     app.terminal
         .wait_until(|screen| at_path(screen, "stu-bravo") && selected_item(screen, "added.txt"))?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn refreshes_objects_and_preserves_the_path_filter_sort_and_selection() -> Result<()> {
+    let storage = Storage::new(&["stu-refresh"]).await?;
+    for (key, body) in [
+        ("outside.txt", "outside"),
+        ("docs/alpha.txt", "a"),
+        ("docs/bravo.log", "log"),
+        ("docs/charlie.txt", "charlie"),
+    ] {
+        storage
+            .put_object("stu-refresh", key, body.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(
+        &storage.endpoint,
+        &["--bucket", "stu-refresh", "--prefix", "docs/"],
+    )?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-refresh / docs") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Last Modified (Asc)"))?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        selected_item(screen, "charlie.txt") && !screen.contains("Last Modified (Asc)")
+    })?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str(".txt")?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Clear filter") && selected_item(screen, "charlie.txt")
+    })?;
+
+    // Insert ahead of the selection so retaining its index would select the wrong file.
+    storage
+        .put_object("stu-refresh", "docs/delta.txt", b"new delta")
+        .await?;
+    app.terminal.send(Key::Char('R'))?;
+    let refreshed = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-refresh / docs")
+            && footer_contains(screen, "Clear filter")
+            && selected_item(screen, "charlie.txt")
+            && screen.contains("delta.txt")
+    })?;
+    let rows = list_rows(&refreshed);
+    assert_eq!(rows.len(), 3, "{refreshed}");
+    for (row, name) in rows.iter().zip(["delta.txt", "charlie.txt", "alpha.txt"]) {
+        assert!(row.starts_with(name), "{refreshed}");
+    }
+    assert!(!refreshed.contains("bravo.log"), "{refreshed}");
+    assert!(!refreshed.contains("outside.txt"), "{refreshed}");
+
+    app.terminal.send(Key::Char('k'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "delta.txt"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-refresh / docs")
+            && screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains("9 B")
+    })?;
 
     app.quit()
 }

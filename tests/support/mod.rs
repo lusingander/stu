@@ -185,6 +185,15 @@ pub fn footer_contains(screen: &Screen, text: &str) -> bool {
     (screen.rows().saturating_sub(2)..screen.rows()).any(|row| screen.row_text(row).contains(text))
 }
 
+pub fn list_rows(screen: &Screen) -> Vec<String> {
+    // For list pages without a dialog: exclude the three-row header,
+    // the list's top and bottom borders, and the two-row footer.
+    (4..screen.rows().saturating_sub(3))
+        .map(|row| screen.row_text(row).trim_matches(['│', ' ']).to_string())
+        .filter(|row| !row.is_empty())
+        .collect()
+}
+
 pub fn selected_item(screen: &Screen, name: &str) -> bool {
     (0..screen.rows()).any(|row| {
         screen
