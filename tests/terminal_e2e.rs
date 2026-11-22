@@ -1,6 +1,6 @@
 mod support;
 
-use std::fs;
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use anyhow::Result;
 use rstest::rstest;
@@ -656,6 +656,47 @@ async fn downloads_a_directory_with_its_relative_paths_and_contents() -> Result<
     assert_eq!(fs::read_dir(&directory)?.count(), 1);
     assert_eq!(fs::read_dir(directory.join("docs"))?.count(), 2);
     assert_eq!(fs::read_dir(directory.join("docs/nested"))?.count(), 1);
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_an_entire_bucket_with_its_relative_paths_and_contents() -> Result<()> {
+    let storage = Storage::new(&["stu-bucket", "stu-other"]).await?;
+    let objects: [(&str, &[u8]); 3] = [
+        ("root.txt", b"bucket root"),
+        ("docs/intro.txt", b"introduction"),
+        ("docs/nested/payload.bin", b"nested\0\xff"),
+    ];
+    for (key, content) in objects {
+        storage.put_object("stu-bucket", key, content).await?;
+    }
+    for key in ["root.txt", "docs/nested/payload.bin", "other-only.txt"] {
+        storage
+            .put_object("stu-other", key, b"excluded bucket")
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-bucket") && screen.contains("stu-other")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("3 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && footer_contains(screen, "Download completed successfully:")
+    })?;
+
+    let expected: BTreeMap<_, _> = objects
+        .into_iter()
+        .map(|(key, content)| (PathBuf::from("stu-bucket").join(key), content.to_vec()))
+        .collect();
+    assert_eq!(app.downloaded_files()?, expected);
 
     app.quit()
 }

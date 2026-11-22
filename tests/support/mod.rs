@@ -1,4 +1,9 @@
-use std::{fs, path::PathBuf, time::Duration};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
@@ -160,6 +165,33 @@ image = false
 
     pub fn download_dir(&self) -> PathBuf {
         self.directory.path().join("download")
+    }
+
+    pub fn downloaded_files(&self) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
+        fn collect_files(
+            root: &Path,
+            directory: &Path,
+            files: &mut BTreeMap<PathBuf, Vec<u8>>,
+        ) -> Result<()> {
+            for entry in fs::read_dir(directory)? {
+                let entry = entry?;
+                let path = entry.path();
+                if entry.file_type()?.is_dir() {
+                    collect_files(root, &path, files)?;
+                } else {
+                    files.insert(path.strip_prefix(root)?.to_path_buf(), fs::read(&path)?);
+                }
+            }
+            Ok(())
+        }
+
+        let directory = self.download_dir();
+        let mut files = BTreeMap::new();
+        // Cancelling before the first download leaves the directory absent.
+        if directory.try_exists()? {
+            collect_files(&directory, &directory, &mut files)?;
+        }
+        Ok(files)
     }
 }
 
