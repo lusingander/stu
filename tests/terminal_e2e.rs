@@ -410,6 +410,51 @@ async fn sorts_and_filters_objects_before_opening_the_selected_details() -> Resu
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn clears_an_object_filter_with_no_matches_and_opens_an_object() -> Result<()> {
+    let storage = Storage::new(&["stu-filter"]).await?;
+    storage.put_object("stu-filter", "alpha.txt", b"a").await?;
+    storage
+        .put_object("stu-filter", "bravo.log", b"bravo")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-filter")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("bravo.log")
+    })?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str("no-match")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-filter") && footer_contains(screen, "Clear filter")
+    })?;
+    assert!(list_rows(&filtered).is_empty(), "{filtered}");
+
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-filter")
+            && !footer_contains(screen, "Clear filter")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("bravo.log")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.log"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-filter")
+            && screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains("5 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
     let storage = Storage::new(&["stu-preview"]).await?;
     storage
