@@ -735,8 +735,15 @@ async fn cancels_a_directory_download_and_can_download_it_afterwards() -> Result
             && footer_contains(screen, "Open")
             && !screen.contains("Do you want to proceed?")
     })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-cancel") && selected_item(screen, "outside.txt")
+    })?;
     assert!(app.downloaded_files()?.is_empty());
 
+    app.terminal.send(Key::Char('k'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "docs/"))?;
     app.terminal.send(Key::Char('s'))?;
     app.terminal.wait_until(|screen| {
         screen.contains("2 objects (Total size:")
@@ -753,6 +760,69 @@ async fn cancels_a_directory_download_and_can_download_it_afterwards() -> Result
         .map(|(key, content)| (PathBuf::from(key), content.to_vec()))
         .collect();
     assert_eq!(app.downloaded_files()?, expected);
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancels_save_as_and_downloads_the_selected_object_with_its_original_name() -> Result<()> {
+    let storage = Storage::new(&["stu-save-cancel"]).await?;
+    let content = b"download after cancellation\0\xff";
+    storage
+        .put_object("stu-save-cancel", "alpha.txt", b"another object")
+        .await?;
+    storage
+        .put_object("stu-save-cancel", "payload.bin", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-cancel")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("payload.bin")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "payload.bin"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-cancel") && screen.contains("Content-Type:")
+    })?;
+
+    app.terminal.send(Key::Char('S'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && footer_contains(screen, "Close"))?;
+    app.terminal.send(Key::Ctrl('u'))?;
+    app.terminal.send_str("cancelled.bin")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("cancelled.bin"))?;
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-cancel")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "Preview")
+            && !screen.contains("Save As")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-cancel")
+            && selected_item(screen, "payload.bin")
+            && !screen.contains("Content-Type:")
+    })?;
+    assert!(app.downloaded_files()?.is_empty());
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-cancel") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-cancel")
+            && footer_contains(screen, "Download completed successfully:")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from("payload.bin"), content.to_vec())])
+    );
 
     app.quit()
 }
