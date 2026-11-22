@@ -700,3 +700,59 @@ async fn downloads_an_entire_bucket_with_its_relative_paths_and_contents() -> Re
 
     app.quit()
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancels_a_directory_download_and_can_download_it_afterwards() -> Result<()> {
+    let storage = Storage::new(&["stu-cancel"]).await?;
+    let objects: [(&str, &[u8]); 2] = [
+        ("docs/intro.txt", b"documentation"),
+        ("docs/nested/payload.bin", b"nested\0\xff"),
+    ];
+    for (key, content) in objects {
+        storage.put_object("stu-cancel", key, content).await?;
+    }
+    storage
+        .put_object("stu-cancel", "outside.txt", b"excluded")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-cancel")
+            && selected_item(screen, "docs/")
+            && screen.contains("outside.txt")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("2 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Char('l'))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-cancel")
+            && selected_item(screen, "docs/")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Do you want to proceed?")
+    })?;
+    assert!(app.downloaded_files()?.is_empty());
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("2 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-cancel") && footer_contains(screen, "Download completed successfully:")
+    })?;
+
+    let expected: BTreeMap<_, _> = objects
+        .into_iter()
+        .map(|(key, content)| (PathBuf::from(key), content.to_vec()))
+        .collect();
+    assert_eq!(app.downloaded_files()?, expected);
+
+    app.quit()
+}
