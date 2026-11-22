@@ -51,22 +51,30 @@ impl Storage {
         .await
         .with_context(|| format!("LocalStack S3 did not become ready at {endpoint}"))?;
 
-        for bucket in buckets {
-            client
-                .create_bucket()
-                .bucket(*bucket)
-                .send()
-                .await
-                .with_context(|| {
-                    format!("Failed to create fixture bucket '{bucket}' at {endpoint}")
-                })?;
-        }
-
-        Ok(Self {
+        let storage = Self {
             endpoint,
             client,
             _container: container,
-        })
+        };
+        for bucket in buckets {
+            storage.create_bucket(bucket).await?;
+        }
+        Ok(storage)
+    }
+
+    pub async fn create_bucket(&self, bucket: &str) -> Result<()> {
+        self.client
+            .create_bucket()
+            .bucket(bucket)
+            .send()
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to create fixture bucket '{bucket}' at {}",
+                    self.endpoint
+                )
+            })?;
+        Ok(())
     }
 
     pub async fn put_object(&self, bucket: &str, key: &str, body: &[u8]) -> Result<()> {

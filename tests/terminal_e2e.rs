@@ -132,6 +132,36 @@ async fn starts_at_the_requested_bucket_or_prefix(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn refreshes_buckets_and_opens_a_newly_created_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-charlie"]).await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-alpha") && screen.contains("stu-charlie")
+    })?;
+
+    storage.create_bucket("stu-bravo").await?;
+    storage
+        .put_object("stu-bravo", "added.txt", b"new bucket")
+        .await?;
+    app.terminal.send(Key::Char('R'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-alpha")
+            && screen.contains("stu-bravo")
+            && screen.contains("stu-charlie")
+    })?;
+
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "stu-bravo"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| at_path(screen, "stu-bravo") && selected_item(screen, "added.txt"))?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta", "stu-gamma"]).await?;
     storage
