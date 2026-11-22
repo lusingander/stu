@@ -1,4 +1,9 @@
-use std::{fs, path::PathBuf, time::Duration};
+use std::{
+    collections::BTreeMap,
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
@@ -51,22 +56,30 @@ impl Storage {
         .await
         .with_context(|| format!("LocalStack S3 did not become ready at {endpoint}"))?;
 
-        for bucket in buckets {
-            client
-                .create_bucket()
-                .bucket(*bucket)
-                .send()
-                .await
-                .with_context(|| {
-                    format!("Failed to create fixture bucket '{bucket}' at {endpoint}")
-                })?;
-        }
-
-        Ok(Self {
+        let storage = Self {
             endpoint,
             client,
             _container: container,
-        })
+        };
+        for bucket in buckets {
+            storage.create_bucket(bucket).await?;
+        }
+        Ok(storage)
+    }
+
+    pub async fn create_bucket(&self, bucket: &str) -> Result<()> {
+        self.client
+            .create_bucket()
+            .bucket(bucket)
+            .send()
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to create fixture bucket '{bucket}' at {}",
+                    self.endpoint
+                )
+            })?;
+        Ok(())
     }
 
     pub async fn put_object(&self, bucket: &str, key: &str, body: &[u8]) -> Result<()> {
@@ -153,6 +166,33 @@ image = false
     pub fn download_dir(&self) -> PathBuf {
         self.directory.path().join("download")
     }
+
+    pub fn downloaded_files(&self) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
+        fn collect_files(
+            root: &Path,
+            directory: &Path,
+            files: &mut BTreeMap<PathBuf, Vec<u8>>,
+        ) -> Result<()> {
+            for entry in fs::read_dir(directory)? {
+                let entry = entry?;
+                let path = entry.path();
+                if entry.file_type()?.is_dir() {
+                    collect_files(root, &path, files)?;
+                } else {
+                    files.insert(path.strip_prefix(root)?.to_path_buf(), fs::read(&path)?);
+                }
+            }
+            Ok(())
+        }
+
+        let directory = self.download_dir();
+        let mut files = BTreeMap::new();
+        // Cancelling before the first download leaves the directory absent.
+        if directory.try_exists()? {
+            collect_files(&directory, &directory, &mut files)?;
+        }
+        Ok(files)
+    }
 }
 
 impl Drop for TestApp {
@@ -175,6 +215,15 @@ pub fn at_path(screen: &Screen, path: &str) -> bool {
 
 pub fn footer_contains(screen: &Screen, text: &str) -> bool {
     (screen.rows().saturating_sub(2)..screen.rows()).any(|row| screen.row_text(row).contains(text))
+}
+
+pub fn list_rows(screen: &Screen) -> Vec<String> {
+    // For list pages without a dialog: exclude the three-row header,
+    // the list's top and bottom borders, and the two-row footer.
+    (4..screen.rows().saturating_sub(3))
+        .map(|row| screen.row_text(row).trim_matches(['│', ' ']).to_string())
+        .filter(|row| !row.is_empty())
+        .collect()
 }
 
 pub fn selected_item(screen: &Screen, name: &str) -> bool {
