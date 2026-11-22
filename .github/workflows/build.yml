@@ -61,7 +61,7 @@ jobs:
       - name: Format
         run: cargo fmt --all -- --check
       - name: Build
-        run: cargo build --verbose
+        run: cargo build --all-targets --verbose
       - name: Lint
         run: cargo clippy --all-targets --all-features -- -D warnings
       - name: Run unit tests
