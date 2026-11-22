@@ -316,6 +316,44 @@ async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn clears_a_bucket_filter_with_no_matches_and_opens_a_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-beta"]).await?;
+    storage
+        .put_object("stu-beta", "chosen.txt", b"chosen bucket")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-alpha") && screen.contains("stu-beta")
+    })?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str("no-match")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app
+        .terminal
+        .snapshot_after(|screen| at_path(screen, "") && footer_contains(screen, "Clear filter"))?;
+    assert!(list_rows(&filtered).is_empty(), "{filtered}");
+
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && !footer_contains(screen, "Clear filter")
+            && selected_item(screen, "stu-alpha")
+            && screen.contains("stu-beta")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "stu-beta"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| at_path(screen, "stu-beta") && selected_item(screen, "chosen.txt"))?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn sorts_and_filters_objects_before_opening_the_selected_details() -> Result<()> {
     let storage = Storage::new(&["stu-objects"]).await?;
     for (key, body) in [
