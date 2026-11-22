@@ -54,6 +54,8 @@ jobs:
           components: rustfmt, clippy
       - name: Cache
         uses: Swatinem/rust-cache@v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Version
         run: |
           rustc --version
@@ -80,6 +82,8 @@ jobs:
           toolchain: stable
       - name: Cache
         uses: Swatinem/rust-cache@v2.9.3
+        with:
+          save-if: ${{ github.ref == 'refs/heads/master' }}
       - name: Version
         run: |
           rustc --version
