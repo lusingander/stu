@@ -64,5 +64,24 @@ jobs:
         run: cargo build --verbose
       - name: Lint
         run: cargo clippy --all-targets --all-features -- -D warnings
-      - name: Run tests
-        run: cargo test --verbose
+      - name: Run unit tests
+        run: cargo test --bin stu --verbose
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.1
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+      - name: Cache
+        uses: Swatinem/rust-cache@v2.9.3
+      - name: Version
+        run: |
+          rustc --version
+          cargo --version
+          docker version
+      - name: Run terminal E2E tests
+        run: cargo test --test terminal_e2e --verbose

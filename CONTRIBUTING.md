@@ -41,14 +41,16 @@ We welcome pull requests, but please note that they are not guaranteed to be acc
 
 We use [GitHub Actions](https://github.com/lusingander/stu/blob/master/.github/workflows/build.yml) to perform basic checks:
 
-- Run both stable and MSRV versions of Rust.
-- Run build, test, format, and lint.
+- Run build, unit tests, format, and lint with stable Rust and MSRV.
+- Run E2E tests on Linux with stable Rust and Docker.
 
 ## Development
 
 - The `Makefile` and `tool` directories (go projects) are not relevant for development, so you don't need to worry about them.
   - These are tools for creating screenshots, etc.
-  - It's ok if you can run `cargo build` and `cargo test` as a normal Rust project.
+- Build with `cargo build` and run all tests with `cargo test`.
+  - E2E tests require a running Docker daemon (Docker 29.2+).
+  - Run only unit tests with `cargo test --bin stu` or E2E tests with `cargo test --test terminal_e2e`.
 
 ## License
 
