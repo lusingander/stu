@@ -36,6 +36,48 @@ async fn opens_the_only_bucket_automatically() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn returns_from_an_empty_bucket_and_opens_an_object_in_another_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-empty", "stu-populated"]).await?;
+    storage
+        .put_object("stu-populated", "available.txt", b"available")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-empty")
+            && screen.contains("stu-populated")
+    })?;
+
+    app.terminal.send(Key::Enter)?;
+    let empty = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-empty") && footer_contains(screen, "Go back")
+    })?;
+    assert!(list_rows(&empty).is_empty(), "{empty}");
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-empty")
+            && screen.contains("stu-populated")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "stu-populated"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-populated") && selected_item(screen, "available.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-populated")
+            && screen.contains("Content-Type:")
+            && screen.contains("9 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn navigates_into_nested_directories_and_back_to_the_bucket_list() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta"]).await?;
     for key in ["root.txt", "docs/readme.txt", "docs/nested/deep.txt"] {
