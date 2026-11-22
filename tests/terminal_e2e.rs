@@ -1,6 +1,6 @@
 mod support;
 
-use std::{collections::BTreeMap, fs, path::PathBuf};
+use std::{collections::BTreeMap, path::PathBuf};
 
 use anyhow::Result;
 use rstest::rstest;
@@ -609,10 +609,11 @@ async fn downloads_an_object_to_the_expected_file(
             && !screen.contains("Loading...")
     })?;
 
-    let directory = app.download_dir();
     let name = save_as.unwrap_or("payload.bin");
-    assert_eq!(fs::read(directory.join(name))?, content);
-    assert_eq!(fs::read_dir(&directory)?.count(), 1);
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from(name), content.to_vec())])
+    );
 
     app.quit()
 }
@@ -650,12 +651,13 @@ async fn downloads_a_directory_with_its_relative_paths_and_contents() -> Result<
             && !screen.contains("Loading...")
     })?;
 
-    let directory = app.download_dir();
-    assert_eq!(fs::read(directory.join("docs/intro.txt"))?, intro);
-    assert_eq!(fs::read(directory.join("docs/nested/config.json"))?, config);
-    assert_eq!(fs::read_dir(&directory)?.count(), 1);
-    assert_eq!(fs::read_dir(directory.join("docs"))?.count(), 2);
-    assert_eq!(fs::read_dir(directory.join("docs/nested"))?.count(), 1);
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([
+            (PathBuf::from("docs/intro.txt"), intro.to_vec()),
+            (PathBuf::from("docs/nested/config.json"), config.to_vec()),
+        ])
+    );
 
     app.quit()
 }
