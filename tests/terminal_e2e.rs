@@ -455,6 +455,58 @@ async fn clears_an_object_filter_with_no_matches_and_opens_an_object() -> Result
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn pages_to_an_offscreen_object_and_restores_the_list_after_details() -> Result<()> {
+    let storage = Storage::new(&["stu-scroll"]).await?;
+    for number in 1..=40 {
+        let key = format!("file{number:02}.txt");
+        let content = vec![b'x'; number];
+        storage.put_object("stu-scroll", &key, &content).await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    let first_page = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-scroll") && selected_item(screen, "file01.txt")
+    })?;
+    let target_number = list_rows(&first_page).len() + 1;
+    let target = format!("file{target_number:02}.txt");
+    assert!(target_number <= 40, "{first_page}");
+    assert!(!first_page.contains(&target), "{first_page}");
+
+    app.terminal.send(Key::Ctrl('f'))?;
+    let next_page = app
+        .terminal
+        .snapshot_after(|screen| at_path(screen, "stu-scroll") && selected_item(screen, &target))?;
+    assert!(!next_page.contains("file01.txt"), "{next_page}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-scroll")
+            && screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains(&format!("{target_number} B"))
+    })?;
+
+    app.terminal.send(Key::Backspace)?;
+    let restored = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-scroll")
+            && selected_item(screen, &target)
+            && !screen.contains("Content-Type:")
+    })?;
+    assert_eq!(list_rows(&restored), list_rows(&next_page), "{restored}");
+
+    app.terminal.send(Key::Ctrl('b'))?;
+    let previous_page = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-scroll") && selected_item(screen, "file01.txt")
+    })?;
+    assert_eq!(
+        list_rows(&previous_page),
+        list_rows(&first_page),
+        "{previous_page}"
+    );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
     let storage = Storage::new(&["stu-preview"]).await?;
     storage
