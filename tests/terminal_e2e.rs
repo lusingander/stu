@@ -410,6 +410,55 @@ async fn sorts_and_filters_objects_before_opening_the_selected_details() -> Resu
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sorts_objects_by_size_before_opening_the_selected_details() -> Result<()> {
+    let storage = Storage::new(&["stu-size-sort"]).await?;
+    // Size order differs from both ascending and descending name order.
+    for (key, size) in [("alpha.txt", 3), ("bravo.txt", 17), ("charlie.txt", 9)] {
+        storage
+            .put_object("stu-size-sort", key, &vec![b'x'; size])
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-size-sort")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("charlie.txt")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Size (Desc)"))?;
+    // The test configuration starts at Name (Asc); advance to Size (Desc).
+    for _ in 0..5 {
+        app.terminal.send(Key::Char('j'))?;
+    }
+    app.terminal.send(Key::Enter)?;
+    let sorted = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-size-sort")
+            && selected_item(screen, "bravo.txt")
+            && !screen.contains("Size (Desc)")
+    })?;
+    let rows = list_rows(&sorted);
+    assert_eq!(rows.len(), 3, "{sorted}");
+    for (row, name) in rows.iter().zip(["bravo.txt", "charlie.txt", "alpha.txt"]) {
+        assert!(row.starts_with(name), "{sorted}");
+    }
+
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "charlie.txt"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-size-sort")
+            && screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains("9 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn clears_an_object_filter_with_no_matches_and_opens_an_object() -> Result<()> {
     let storage = Storage::new(&["stu-filter"]).await?;
     storage.put_object("stu-filter", "alpha.txt", b"a").await?;
