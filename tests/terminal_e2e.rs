@@ -1,6 +1,6 @@
 mod support;
 
-use std::{collections::BTreeMap, path::PathBuf};
+use std::{collections::BTreeMap, path::PathBuf, time::Instant};
 
 use anyhow::Result;
 use rstest::rstest;
@@ -611,6 +611,61 @@ async fn pages_to_an_offscreen_object_and_restores_the_list_after_details() -> R
         list_rows(&first_page),
         "{previous_page}"
     );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opens_an_object_from_a_later_s3_list_page() -> Result<()> {
+    let storage = Storage::new(&["stu-list-pages"]).await?;
+    let fixture_start = Instant::now();
+    for number in 0..1000 {
+        storage
+            .put_object(
+                "stu-list-pages",
+                &format!("file{number:04}.txt"),
+                b"first page",
+            )
+            .await?;
+    }
+    storage
+        .put_object("stu-list-pages", "file1000.txt", b"second-page object")
+        .await?;
+    eprintln!(
+        "Paginated list fixture creation: {:?}",
+        fixture_start.elapsed()
+    );
+    storage
+        .assert_key_on_second_page("stu-list-pages", "", Some("/"), "file1000.txt")
+        .await?;
+    let list_start = Instant::now();
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-list-pages") && selected_item(screen, "file0000.txt")
+    })?;
+    eprintln!(
+        "Paginated list startup and loading: {:?}",
+        list_start.elapsed()
+    );
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str("file1000.txt")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-list-pages")
+            && selected_item(screen, "file1000.txt")
+            && footer_contains(screen, "Clear filter")
+    })?;
+    assert_eq!(list_rows(&filtered).len(), 1, "{filtered}");
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-list-pages")
+            && screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains("18 B")
+    })?;
 
     app.quit()
 }

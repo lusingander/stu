@@ -137,6 +137,57 @@ impl Storage {
             .version_id
             .with_context(|| format!("Missing fixture version ID for 's3://{bucket}/{key}'"))
     }
+
+    pub async fn assert_key_on_second_page(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        delimiter: Option<&str>,
+        key: &str,
+    ) -> Result<()> {
+        // Match the application's request, including its default page size.
+        let first = self
+            .client
+            .list_objects_v2()
+            .bucket(bucket)
+            .prefix(prefix)
+            .set_delimiter(delimiter.map(str::to_owned))
+            .send()
+            .await
+            .context("Failed to inspect the first fixture page")?;
+        ensure!(
+            first.is_truncated() == Some(true),
+            "Fixture was not paginated"
+        );
+        ensure!(
+            !first
+                .contents()
+                .iter()
+                .any(|object| object.key() == Some(key)),
+            "Fixture key '{key}' was already on the first page"
+        );
+        let token = first
+            .next_continuation_token()
+            .context("Missing fixture continuation token")?;
+        let second = self
+            .client
+            .list_objects_v2()
+            .bucket(bucket)
+            .prefix(prefix)
+            .set_delimiter(delimiter.map(str::to_owned))
+            .continuation_token(token)
+            .send()
+            .await
+            .context("Failed to inspect the second fixture page")?;
+        ensure!(
+            second
+                .contents()
+                .iter()
+                .any(|object| object.key() == Some(key)),
+            "Fixture key '{key}' was missing from the second page"
+        );
+        Ok(())
+    }
 }
 
 pub struct TestApp {
