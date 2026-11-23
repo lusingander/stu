@@ -94,6 +94,17 @@ impl Storage {
             .with_context(|| format!("Failed to create fixture object 's3://{bucket}/{key}'"))?;
         Ok(())
     }
+
+    pub async fn delete_object(&self, bucket: &str, key: &str) -> Result<()> {
+        self.client
+            .delete_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await
+            .with_context(|| format!("Failed to delete fixture object 's3://{bucket}/{key}'"))?;
+        Ok(())
+    }
 }
 
 pub struct TestApp {

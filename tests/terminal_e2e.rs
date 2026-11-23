@@ -276,6 +276,64 @@ async fn refreshes_objects_and_preserves_the_path_filter_sort_and_selection() ->
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn recovers_from_a_deleted_objects_detail_error_and_opens_another_object() -> Result<()> {
+    let storage = Storage::new(&["stu-detail-recovery"]).await?;
+    storage
+        .put_object("stu-detail-recovery", "alpha.txt", b"deleted")
+        .await?;
+    storage
+        .put_object("stu-detail-recovery", "bravo.txt", b"available")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-detail-recovery")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("bravo.txt")
+    })?;
+
+    // Delete after listing, before the details have been fetched or cached.
+    storage
+        .delete_object("stu-detail-recovery", "alpha.txt")
+        .await?;
+    app.terminal.send(Key::Enter)?;
+    let failed = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-detail-recovery")
+            && selected_item(screen, "alpha.txt")
+            && footer_contains(screen, "ERROR: Failed to load object detail")
+    })?;
+    assert!(!failed.contains("Content-Type:"), "{failed}");
+
+    // Error notifications consume the dismissal key; refresh separately.
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-detail-recovery")
+            && selected_item(screen, "alpha.txt")
+            && footer_contains(screen, "Open")
+            && !footer_contains(screen, "ERROR:")
+    })?;
+    app.terminal.send(Key::Char('R'))?;
+    let refreshed = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-detail-recovery")
+            && selected_item(screen, "bravo.txt")
+            && footer_contains(screen, "Open")
+    })?;
+    assert!(!refreshed.contains("alpha.txt"), "{refreshed}");
+    let rows = list_rows(&refreshed);
+    assert_eq!(rows.len(), 1, "{refreshed}");
+    assert!(rows[0].starts_with("bravo.txt"), "{refreshed}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-detail-recovery")
+            && screen.contains("Content-Type:")
+            && screen.contains("text/plain")
+            && screen.contains("9 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta", "stu-gamma"]).await?;
     storage
