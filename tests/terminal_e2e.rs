@@ -692,6 +692,37 @@ async fn downloads_an_object_to_the_expected_file(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_an_object_only_to_the_configured_directory() -> Result<()> {
+    let storage = Storage::new(&["stu-download-config"]).await?;
+    let content = b"configured destination\0\xff";
+    storage
+        .put_object("stu-download-config", "payload.bin", content)
+        .await?;
+    let mut app = TestApp::spawn_with_config(
+        &storage.endpoint,
+        &[],
+        r#"download_dir = "$STU_ROOT_DIR/export""#,
+    )?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-download-config") && selected_item(screen, "payload.bin")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-download-config")
+            && footer_contains(screen, "Download completed successfully:")
+    })?;
+
+    assert_eq!(
+        app.files_in("export")?,
+        BTreeMap::from([(PathBuf::from("payload.bin"), content.to_vec())])
+    );
+    assert!(app.downloaded_files()?.is_empty());
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn downloads_a_directory_with_its_relative_paths_and_contents() -> Result<()> {
     let storage = Storage::new(&["stu-download"]).await?;
     let intro = b"documentation";

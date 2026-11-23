@@ -104,9 +104,9 @@ pub struct TestApp {
 
 impl TestApp {
     pub fn spawn(endpoint: &str, args: &[&str]) -> Result<Self> {
-        let directory = tempdir()?;
-        fs::write(
-            directory.path().join("config.toml"),
+        Self::spawn_with_config(
+            endpoint,
+            args,
             r#"
 [ui.bucket_list]
 default_sort = "name_asc"
@@ -117,7 +117,12 @@ default_sort = "name_asc"
 [preview]
 image = false
 "#,
-        )?;
+        )
+    }
+
+    pub fn spawn_with_config(endpoint: &str, args: &[&str], config: &str) -> Result<Self> {
+        let directory = tempdir()?;
+        fs::write(directory.path().join("config.toml"), config)?;
         let terminal = termlens::bin!(
             "stu",
             size(100, 30),
@@ -163,11 +168,11 @@ image = false
         Ok(())
     }
 
-    pub fn download_dir(&self) -> PathBuf {
-        self.directory.path().join("download")
+    pub fn downloaded_files(&self) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
+        self.files_in("download")
     }
 
-    pub fn downloaded_files(&self) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
+    pub fn files_in(&self, directory: &str) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
         fn collect_files(
             root: &Path,
             directory: &Path,
@@ -185,9 +190,9 @@ image = false
             Ok(())
         }
 
-        let directory = self.download_dir();
+        let directory = self.directory.path().join(directory);
         let mut files = BTreeMap::new();
-        // Cancelling before the first download leaves the directory absent.
+        // An unused destination may not exist.
         if directory.try_exists()? {
             collect_files(&directory, &directory, &mut files)?;
         }
