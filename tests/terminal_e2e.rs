@@ -736,6 +736,67 @@ async fn downloads_a_directory_with_its_relative_paths_and_contents() -> Result<
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_a_directory_as_a_new_name_with_its_relative_paths_and_contents() -> Result<()> {
+    let storage = Storage::new(&["stu-directory-save-as"]).await?;
+    let objects: [(&str, &[u8]); 2] = [
+        ("docs/intro.txt", b"documentation"),
+        ("docs/nested/payload.bin", b"nested\0\xff"),
+    ];
+    for (key, content) in objects {
+        storage
+            .put_object("stu-directory-save-as", key, content)
+            .await?;
+    }
+    storage
+        .put_object("stu-directory-save-as", "outside.txt", b"excluded")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-directory-save-as")
+            && selected_item(screen, "docs/")
+            && screen.contains("outside.txt")
+    })?;
+
+    app.terminal.send(Key::Char('S'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("2 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Save As")
+            && footer_contains(screen, "Close")
+            && !screen.contains("Do you want to proceed?")
+    })?;
+    app.terminal.send(Key::Ctrl('u'))?;
+    app.terminal.send_str("renamed-docs")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed-docs"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-directory-save-as")
+            && footer_contains(screen, "Download completed successfully:")
+    })?;
+
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([
+            (
+                PathBuf::from("renamed-docs/intro.txt"),
+                b"documentation".to_vec(),
+            ),
+            (
+                PathBuf::from("renamed-docs/nested/payload.bin"),
+                b"nested\0\xff".to_vec(),
+            ),
+        ])
+    );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn downloads_an_entire_bucket_with_its_relative_paths_and_contents() -> Result<()> {
     let storage = Storage::new(&["stu-bucket", "stu-other"]).await?;
     let objects: [(&str, &[u8]); 3] = [
