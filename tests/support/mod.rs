@@ -7,6 +7,7 @@ use std::{
 
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
+use aws_sdk_s3::types::{BucketVersioningStatus, VersioningConfiguration};
 use tempfile::{tempdir, TempDir};
 use termlens::{Color, Key, Screen, Terminal};
 use testcontainers::{
@@ -104,6 +105,37 @@ impl Storage {
             .await
             .with_context(|| format!("Failed to delete fixture object 's3://{bucket}/{key}'"))?;
         Ok(())
+    }
+
+    pub async fn enable_versioning(&self, bucket: &str) -> Result<()> {
+        self.client
+            .put_bucket_versioning()
+            .bucket(bucket)
+            .versioning_configuration(
+                VersioningConfiguration::builder()
+                    .status(BucketVersioningStatus::Enabled)
+                    .build(),
+            )
+            .send()
+            .await
+            .with_context(|| format!("Failed to enable fixture versioning for '{bucket}'"))?;
+        Ok(())
+    }
+
+    pub async fn put_object_version(&self, bucket: &str, key: &str, body: &[u8]) -> Result<String> {
+        let output = self
+            .client
+            .put_object()
+            .bucket(bucket)
+            .key(key)
+            .content_type("text/plain")
+            .body(body.to_vec().into())
+            .send()
+            .await
+            .with_context(|| format!("Failed to create fixture version 's3://{bucket}/{key}'"))?;
+        output
+            .version_id
+            .with_context(|| format!("Missing fixture version ID for 's3://{bucket}/{key}'"))
     }
 }
 
@@ -251,5 +283,13 @@ pub fn selected_item(screen: &Screen, name: &str) -> bool {
             && screen
                 .cell(row, 3)
                 .is_some_and(|cell| cell.style().bg == Color::Indexed(6))
+    })
+}
+
+pub fn selected_version(screen: &Screen, version_id: &str) -> bool {
+    let label = format!("Version ID: {version_id}");
+    (0..screen.rows()).any(|row| {
+        let text = screen.row_text(row);
+        text.contains('┃') && text.contains(&label)
     })
 }

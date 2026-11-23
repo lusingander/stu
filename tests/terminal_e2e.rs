@@ -6,7 +6,9 @@ use anyhow::Result;
 use rstest::rstest;
 use termlens::Key;
 
-use support::{at_path, footer_contains, list_rows, selected_item, Storage, TestApp};
+use support::{
+    at_path, footer_contains, list_rows, selected_item, selected_version, Storage, TestApp,
+};
 
 // Keep runtime workers available while termlens waits synchronously for the PTY.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -608,6 +610,109 @@ async fn pages_to_an_offscreen_object_and_restores_the_list_after_details() -> R
         list_rows(&previous_page),
         list_rows(&first_page),
         "{previous_page}"
+    );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn previews_the_selected_previous_object_version() -> Result<()> {
+    let storage = Storage::new(&["stu-version-preview"]).await?;
+    storage.enable_versioning("stu-version-preview").await?;
+    let previous_id = storage
+        .put_object_version(
+            "stu-version-preview",
+            "notes.txt",
+            b"previous preview content",
+        )
+        .await?;
+    let current_id = storage
+        .put_object_version(
+            "stu-version-preview",
+            "notes.txt",
+            b"current revision has different content",
+        )
+        .await?;
+    assert_ne!(previous_id, current_id);
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    // Keep complete version IDs visible in the right half of the detail page.
+    app.terminal.resize(140, 30)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview") && selected_item(screen, "notes.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview") && screen.contains("Content-Type:")
+    })?;
+
+    app.terminal.send(Key::Char('l'))?;
+    let versions = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-version-preview")
+            && screen.contains(&previous_id)
+            && screen.contains(&current_id)
+    })?;
+    // Either revision may be first; identify the selection by its ID.
+    if !selected_version(&versions, &previous_id) {
+        app.terminal.send(Key::Char('j'))?;
+    }
+    app.terminal
+        .wait_until(|screen| selected_version(screen, &previous_id))?;
+    app.terminal.send(Key::Char('p'))?;
+    let preview = app.terminal.snapshot_after(|screen| {
+        screen.contains(&format!("Preview [notes.txt (Version ID: {previous_id})]"))
+            && screen.contains("previous preview content")
+            && !screen.contains("Loading...")
+    })?;
+    assert!(!preview.contains("current revision"), "{preview}");
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_the_selected_previous_object_version() -> Result<()> {
+    let storage = Storage::new(&["stu-version-download"]).await?;
+    storage.enable_versioning("stu-version-download").await?;
+    let content = b"previous download content\0\xff";
+    let previous_id = storage
+        .put_object_version("stu-version-download", "notes.txt", content)
+        .await?;
+    let current_id = storage
+        .put_object_version(
+            "stu-version-download",
+            "notes.txt",
+            b"current revision has different content",
+        )
+        .await?;
+    assert_ne!(previous_id, current_id);
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.resize(140, 30)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-download") && selected_item(screen, "notes.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-download") && screen.contains("Content-Type:")
+    })?;
+
+    app.terminal.send(Key::Char('l'))?;
+    let versions = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-version-download")
+            && screen.contains(&previous_id)
+            && screen.contains(&current_id)
+    })?;
+    if !selected_version(&versions, &previous_id) {
+        app.terminal.send(Key::Char('j'))?;
+    }
+    app.terminal
+        .wait_until(|screen| selected_version(screen, &previous_id))?;
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-download")
+            && footer_contains(screen, "Download completed successfully:")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from("notes.txt"), content.to_vec())])
     );
 
     app.quit()
