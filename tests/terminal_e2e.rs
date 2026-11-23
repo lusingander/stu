@@ -671,6 +671,53 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
     app.quit()
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn previews_text_after_selecting_its_encoding() -> Result<()> {
+    let storage = Storage::new(&["stu-encoding"]).await?;
+    let text = "文字コードを選択してプレビューします。";
+    // Build UTF-16LE without a BOM so decoding cannot override the selection.
+    let content: Vec<u8> = text.encode_utf16().flat_map(u16::to_le_bytes).collect();
+    storage
+        .put_object("stu-encoding", "notes.txt", &content)
+        .await?;
+    let mut app = TestApp::spawn_with_config(
+        &storage.endpoint,
+        &[],
+        r#"
+[preview]
+encodings = ["utf-8", "utf-16le"]
+auto_detect_encoding = false
+highlight = false
+image = false
+"#,
+    )?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-encoding") && selected_item(screen, "notes.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| at_path(screen, "stu-encoding") && screen.contains("Content-Type:"))?;
+    app.terminal.send(Key::Char('p'))?;
+    let initial = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]") && !screen.contains("Loading...")
+    })?;
+    assert!(!initial.contains(text), "{initial}");
+
+    app.terminal.send(Key::Char('e'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("UTF-8") && screen.contains("UTF-16LE"))?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && screen.contains(text)
+            && !screen.contains("UTF-16LE")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.quit()
+}
+
 #[rstest]
 #[case::save(None)]
 #[case::save_as(Some("renamed.txt"))]
