@@ -1,6 +1,10 @@
 mod support;
 
-use std::{collections::BTreeMap, path::PathBuf, time::Instant};
+use std::{
+    collections::BTreeMap,
+    path::PathBuf,
+    time::{Duration, Instant},
+};
 
 use anyhow::Result;
 use rstest::rstest;
@@ -1076,6 +1080,78 @@ async fn downloads_a_directory_with_its_relative_paths_and_contents() -> Result<
             (PathBuf::from("docs/nested/config.json"), config.to_vec()),
         ])
     );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_a_directory_across_s3_pages_with_its_paths_and_contents() -> Result<()> {
+    let storage = Storage::new(&["stu-download-pages"]).await?;
+    let fixture_start = Instant::now();
+    let mut objects: Vec<_> = (0..1000)
+        .map(|number| {
+            (
+                format!("docs/file{number:04}.txt"),
+                format!("fixture {number:04}\n").into_bytes(),
+            )
+        })
+        .collect();
+    objects.push((
+        "docs/nested/payload.bin".to_string(),
+        b"second-page payload\0\xff".to_vec(),
+    ));
+    for (key, content) in &objects {
+        storage
+            .put_object("stu-download-pages", key, content)
+            .await?;
+    }
+    storage
+        .put_object("stu-download-pages", "outside.txt", b"excluded")
+        .await?;
+    eprintln!(
+        "Paginated download fixture creation: {:?}",
+        fixture_start.elapsed()
+    );
+    storage
+        .assert_key_on_second_page(
+            "stu-download-pages",
+            "docs/",
+            None,
+            "docs/nested/payload.bin",
+        )
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-download-pages")
+            && selected_item(screen, "docs/")
+            && screen.contains("outside.txt")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("1001 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    let download_start = Instant::now();
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until_for(
+        |screen| {
+            at_path(screen, "stu-download-pages")
+                && footer_contains(screen, "Download completed successfully:")
+        },
+        Duration::from_secs(30),
+    )?;
+    eprintln!(
+        "Paginated directory download: {:?}",
+        download_start.elapsed()
+    );
+
+    let expected = objects
+        .into_iter()
+        .map(|(key, content)| (PathBuf::from(key), content))
+        .collect();
+    assert_eq!(app.downloaded_files()?, expected);
 
     app.quit()
 }
