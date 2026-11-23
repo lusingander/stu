@@ -565,6 +565,79 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
 }
 
 #[rstest]
+#[case::save(None)]
+#[case::save_as(Some("renamed.txt"))]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn saves_the_previewed_bytes_after_the_object_changes(
+    #[case] save_as: Option<&str>,
+) -> Result<()> {
+    let storage = Storage::new(&["stu-preview-save"]).await?;
+    storage
+        .put_object("stu-preview-save", "alpha.txt", b"another object")
+        .await?;
+    let content = b"original preview content\r\nraw byte: \xff\r\n";
+    storage
+        .put_object("stu-preview-save", "notes.txt", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-save") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "notes.txt"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-save") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && screen.contains("original preview content")
+            && !screen.contains("Loading...")
+    })?;
+
+    // Saving the preview must retain the original bytes, not fetch the new object
+    // or encode the displayed text (which contains a replacement character).
+    storage
+        .put_object(
+            "stu-preview-save",
+            "notes.txt",
+            b"updated after opening the preview\n",
+        )
+        .await?;
+
+    if let Some(name) = save_as {
+        app.terminal.send(Key::Char('S'))?;
+        app.terminal
+            .wait_until(|screen| screen.contains("Save As"))?;
+        app.terminal.send(Key::Ctrl('u'))?;
+        app.terminal.send_str(name)?;
+        app.terminal
+            .wait_until(|screen| screen.contains("Save As") && screen.contains(name))?;
+        app.terminal.send(Key::Enter)?;
+    } else {
+        app.terminal.send(Key::Char('s'))?;
+    }
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(
+            PathBuf::from(save_as.unwrap_or("notes.txt")),
+            content.to_vec(),
+        )])
+    );
+
+    app.quit()
+}
+
+#[rstest]
 #[case::from_list(false, None)]
 #[case::from_details(true, None)]
 #[case::save_as(true, Some("renamed.bin"))]
