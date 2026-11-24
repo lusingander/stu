@@ -774,6 +774,9 @@ async fn opens_an_object_from_a_later_s3_list_page() -> Result<()> {
 async fn previews_the_selected_previous_object_version() -> Result<()> {
     let storage = Storage::new(&["stu-version-preview"]).await?;
     storage.enable_versioning("stu-version-preview").await?;
+    storage
+        .put_object("stu-version-preview", "alpha.txt", b"another object")
+        .await?;
     let previous_id = storage
         .put_object_version(
             "stu-version-preview",
@@ -781,17 +784,20 @@ async fn previews_the_selected_previous_object_version() -> Result<()> {
             b"previous preview content",
         )
         .await?;
+    let current_content = b"current revision has different content";
     let current_id = storage
-        .put_object_version(
-            "stu-version-preview",
-            "notes.txt",
-            b"current revision has different content",
-        )
+        .put_object_version("stu-version-preview", "notes.txt", current_content)
         .await?;
     assert_ne!(previous_id, current_id);
     let mut app = TestApp::spawn(&storage.endpoint, &[])?;
     // Keep complete version IDs visible in the right half of the detail page.
     app.terminal.resize(140, 30)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("notes.txt")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
     app.terminal.wait_until(|screen| {
         at_path(screen, "stu-version-preview") && selected_item(screen, "notes.txt")
     })?;
@@ -819,6 +825,30 @@ async fn previews_the_selected_previous_object_version() -> Result<()> {
             && !screen.contains("Loading...")
     })?;
     assert!(!preview.contains("current revision"), "{preview}");
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && selected_version(screen, &previous_id)
+            && screen.contains(&current_id)
+            && !screen.contains("Preview [")
+    })?;
+
+    app.terminal.send(Key::Char('h'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && screen.contains("Content-Type:")
+            && screen.contains(&format!("{} B", current_content.len()))
+            && !screen.contains("Version ID:")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && selected_item(screen, "notes.txt")
+            && screen.contains("alpha.txt")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Content-Type:")
+    })?;
 
     app.quit()
 }
@@ -902,9 +932,27 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
     })?;
 
     app.terminal.send(Key::Char('p'))?;
-    app.terminal.wait_until(|screen| {
-        screen.contains("Preview [notes.txt]") && screen.contains("preview line 01")
+    let first_page = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && screen.contains("preview line 01")
+            && !screen.contains("Loading...")
     })?;
+    let first_rows = content_rows(&first_page);
+    let next_line = first_rows.len() + 1;
+    assert!(next_line < 60, "{first_page}");
+    let target = format!("preview line {next_line:02}");
+
+    app.terminal.send(Key::Ctrl('f'))?;
+    let next_page = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]") && content_rows(screen)[0].ends_with(&target)
+    })?;
+    assert!(!next_page.contains("preview line 01"), "{next_page}");
+
+    app.terminal.send(Key::Ctrl('b'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]") && content_rows(screen) == first_rows
+    })?;
+
     app.terminal.send(Key::Char('G'))?;
     let bottom = app
         .terminal
