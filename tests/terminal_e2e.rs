@@ -1053,7 +1053,8 @@ async fn saves_the_previewed_bytes_after_the_object_changes(
 #[rstest]
 #[case::from_list(false, None)]
 #[case::from_details(true, None)]
-#[case::save_as(true, Some("renamed.bin"))]
+#[case::save_as_from_list(false, Some("renamed.bin"))]
+#[case::save_as_from_details(true, Some("renamed.bin"))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn downloads_an_object_to_the_expected_file(
     #[case] open_details: bool,
@@ -1347,6 +1348,61 @@ async fn downloads_an_entire_bucket_with_its_relative_paths_and_contents() -> Re
     let expected: BTreeMap<_, _> = objects
         .into_iter()
         .map(|(key, content)| (PathBuf::from("stu-bucket").join(key), content.to_vec()))
+        .collect();
+    assert_eq!(app.downloaded_files()?, expected);
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_a_bucket_as_a_new_name_with_its_relative_paths_and_contents() -> Result<()> {
+    let storage = Storage::new(&["stu-bucket-save-as", "stu-other"]).await?;
+    let objects: [(&str, &[u8]); 3] = [
+        ("root.txt", b"bucket root"),
+        ("docs/intro.txt", b"introduction"),
+        ("docs/nested/payload.bin", b"nested\0\xff"),
+    ];
+    for (key, content) in objects {
+        storage
+            .put_object("stu-bucket-save-as", key, content)
+            .await?;
+    }
+    for key in ["root.txt", "docs/nested/payload.bin", "other-only.txt"] {
+        storage
+            .put_object("stu-other", key, b"excluded bucket")
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-bucket-save-as")
+            && screen.contains("stu-other")
+    })?;
+
+    app.terminal.send(Key::Char('S'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("3 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Save As")
+            && footer_contains(screen, "Close")
+            && !screen.contains("Do you want to proceed?")
+    })?;
+    app.terminal.send(Key::Ctrl('u'))?;
+    app.terminal.send_str("renamed-bucket")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed-bucket"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && footer_contains(screen, "Download completed successfully:")
+    })?;
+
+    let expected: BTreeMap<_, _> = objects
+        .into_iter()
+        .map(|(key, content)| (PathBuf::from("renamed-bucket").join(key), content.to_vec()))
         .collect();
     assert_eq!(app.downloaded_files()?, expected);
 
