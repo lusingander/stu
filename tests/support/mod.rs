@@ -7,6 +7,7 @@ use std::{
 
 use anyhow::{ensure, Context, Result};
 use aws_sdk_s3::config::{Credentials, Region};
+use aws_sdk_s3::types::{BucketVersioningStatus, VersioningConfiguration};
 use tempfile::{tempdir, TempDir};
 use termlens::{Color, Key, Screen, Terminal};
 use testcontainers::{
@@ -94,6 +95,99 @@ impl Storage {
             .with_context(|| format!("Failed to create fixture object 's3://{bucket}/{key}'"))?;
         Ok(())
     }
+
+    pub async fn delete_object(&self, bucket: &str, key: &str) -> Result<()> {
+        self.client
+            .delete_object()
+            .bucket(bucket)
+            .key(key)
+            .send()
+            .await
+            .with_context(|| format!("Failed to delete fixture object 's3://{bucket}/{key}'"))?;
+        Ok(())
+    }
+
+    pub async fn enable_versioning(&self, bucket: &str) -> Result<()> {
+        self.client
+            .put_bucket_versioning()
+            .bucket(bucket)
+            .versioning_configuration(
+                VersioningConfiguration::builder()
+                    .status(BucketVersioningStatus::Enabled)
+                    .build(),
+            )
+            .send()
+            .await
+            .with_context(|| format!("Failed to enable fixture versioning for '{bucket}'"))?;
+        Ok(())
+    }
+
+    pub async fn put_object_version(&self, bucket: &str, key: &str, body: &[u8]) -> Result<String> {
+        let output = self
+            .client
+            .put_object()
+            .bucket(bucket)
+            .key(key)
+            .content_type("text/plain")
+            .body(body.to_vec().into())
+            .send()
+            .await
+            .with_context(|| format!("Failed to create fixture version 's3://{bucket}/{key}'"))?;
+        output
+            .version_id
+            .with_context(|| format!("Missing fixture version ID for 's3://{bucket}/{key}'"))
+    }
+
+    pub async fn assert_key_on_second_page(
+        &self,
+        bucket: &str,
+        prefix: &str,
+        delimiter: Option<&str>,
+        key: &str,
+    ) -> Result<()> {
+        // Match the application's request, including its default page size.
+        let first = self
+            .client
+            .list_objects_v2()
+            .bucket(bucket)
+            .prefix(prefix)
+            .set_delimiter(delimiter.map(str::to_owned))
+            .send()
+            .await
+            .context("Failed to inspect the first fixture page")?;
+        ensure!(
+            first.is_truncated() == Some(true),
+            "Fixture was not paginated"
+        );
+        ensure!(
+            !first
+                .contents()
+                .iter()
+                .any(|object| object.key() == Some(key)),
+            "Fixture key '{key}' was already on the first page"
+        );
+        let token = first
+            .next_continuation_token()
+            .context("Missing fixture continuation token")?;
+        let second = self
+            .client
+            .list_objects_v2()
+            .bucket(bucket)
+            .prefix(prefix)
+            .set_delimiter(delimiter.map(str::to_owned))
+            .continuation_token(token)
+            .send()
+            .await
+            .context("Failed to inspect the second fixture page")?;
+        ensure!(
+            second
+                .contents()
+                .iter()
+                .any(|object| object.key() == Some(key)),
+            "Fixture key '{key}' was missing from the second page"
+        );
+        Ok(())
+    }
 }
 
 pub struct TestApp {
@@ -104,9 +198,9 @@ pub struct TestApp {
 
 impl TestApp {
     pub fn spawn(endpoint: &str, args: &[&str]) -> Result<Self> {
-        let directory = tempdir()?;
-        fs::write(
-            directory.path().join("config.toml"),
+        Self::spawn_with_config(
+            endpoint,
+            args,
             r#"
 [ui.bucket_list]
 default_sort = "name_asc"
@@ -117,7 +211,12 @@ default_sort = "name_asc"
 [preview]
 image = false
 "#,
-        )?;
+        )
+    }
+
+    pub fn spawn_with_config(endpoint: &str, args: &[&str], config: &str) -> Result<Self> {
+        let directory = tempdir()?;
+        fs::write(directory.path().join("config.toml"), config)?;
         let terminal = termlens::bin!(
             "stu",
             size(100, 30),
@@ -163,11 +262,11 @@ image = false
         Ok(())
     }
 
-    pub fn download_dir(&self) -> PathBuf {
-        self.directory.path().join("download")
+    pub fn downloaded_files(&self) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
+        self.files_in("download")
     }
 
-    pub fn downloaded_files(&self) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
+    pub fn files_in(&self, directory: &str) -> Result<BTreeMap<PathBuf, Vec<u8>>> {
         fn collect_files(
             root: &Path,
             directory: &Path,
@@ -185,9 +284,9 @@ image = false
             Ok(())
         }
 
-        let directory = self.download_dir();
+        let directory = self.directory.path().join(directory);
         let mut files = BTreeMap::new();
-        // Cancelling before the first download leaves the directory absent.
+        // An unused destination may not exist.
         if directory.try_exists()? {
             collect_files(&directory, &directory, &mut files)?;
         }
@@ -235,5 +334,13 @@ pub fn selected_item(screen: &Screen, name: &str) -> bool {
             && screen
                 .cell(row, 3)
                 .is_some_and(|cell| cell.style().bg == Color::Indexed(6))
+    })
+}
+
+pub fn selected_version(screen: &Screen, version_id: &str) -> bool {
+    let label = format!("Version ID: {version_id}");
+    (0..screen.rows()).any(|row| {
+        let text = screen.row_text(row);
+        text.contains('┃') && text.contains(&label)
     })
 }

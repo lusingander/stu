@@ -861,7 +861,10 @@ impl App {
         spawn(async move {
             match writer {
                 Ok(mut writer) => {
-                    let result = writer.write_all(&obj.bytes).map_err(AppError::error);
+                    let result = writer
+                        .write_all(&obj.bytes)
+                        .and_then(|_| writer.flush())
+                        .map_err(AppError::error);
                     let result = CompleteSaveObjectResult::new(result, path);
                     tx.send(AppEventType::CompleteSaveObject(result));
                 }
