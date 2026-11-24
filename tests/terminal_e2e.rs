@@ -144,6 +144,54 @@ async fn navigates_into_nested_directories_and_back_to_the_bucket_list() -> Resu
     app.quit()
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn returns_directly_from_a_nested_directory_and_opens_another_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-beta"]).await?;
+    storage
+        .put_object("stu-alpha", "docs/nested/deep.txt", b"nested object")
+        .await?;
+    storage
+        .put_object("stu-beta", "other.txt", b"other bucket")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-alpha") && screen.contains("stu-beta")
+    })?;
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| at_path(screen, "stu-alpha") && selected_item(screen, "docs/"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-alpha / docs") && selected_item(screen, "nested/")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-alpha / docs / nested") && selected_item(screen, "deep.txt")
+    })?;
+
+    app.terminal.send(Key::Char('~'))?;
+    let buckets = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-alpha") && screen.contains("stu-beta")
+    })?;
+    assert!(!buckets.contains("deep.txt"), "{buckets}");
+
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "stu-beta"))?;
+    app.terminal.send(Key::Enter)?;
+    let objects = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-beta") && selected_item(screen, "other.txt")
+    })?;
+    assert!(!objects.contains("deep.txt"), "{objects}");
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-beta") && screen.contains("Content-Type:") && screen.contains("12 B")
+    })?;
+
+    app.quit()
+}
+
 #[rstest]
 #[case::bucket(
     &["--bucket", "stu-alpha"],
@@ -413,6 +461,53 @@ async fn clears_a_bucket_filter_with_no_matches_and_opens_a_bucket() -> Result<(
     app.terminal.send(Key::Enter)?;
     app.terminal
         .wait_until(|screen| at_path(screen, "stu-beta") && selected_item(screen, "chosen.txt"))?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sorts_buckets_by_descending_name_and_opens_the_selected_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-bravo", "stu-charlie"]).await?;
+    for (bucket, key, content) in [
+        ("stu-alpha", "alpha.txt", "a"),
+        ("stu-bravo", "bravo.txt", "bravo"),
+        ("stu-charlie", "charlie.txt", "charlie"),
+    ] {
+        storage.put_object(bucket, key, content.as_bytes()).await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-alpha")
+            && screen.contains("stu-bravo")
+            && screen.contains("stu-charlie")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Name (Desc)") && footer_contains(screen, "Sort"))?;
+    // Name (Asc) is the test default; the next entry is Name (Desc).
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal.send(Key::Enter)?;
+    let sorted = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-charlie")
+            && !screen.contains("Name (Desc)")
+    })?;
+    let rows = list_rows(&sorted);
+    assert_eq!(rows.len(), 3, "{sorted}");
+    for (row, name) in rows.iter().zip(["stu-charlie", "stu-bravo", "stu-alpha"]) {
+        assert!(row.starts_with(name), "{sorted}");
+    }
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-charlie") && selected_item(screen, "charlie.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-charlie") && screen.contains("Content-Type:") && screen.contains("7 B")
+    })?;
 
     app.quit()
 }
