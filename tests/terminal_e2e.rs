@@ -11,7 +11,8 @@ use rstest::rstest;
 use termlens::Key;
 
 use support::{
-    at_path, footer_contains, list_rows, selected_item, selected_version, Storage, TestApp,
+    at_path, content_rows, footer_contains, list_rows, selected_item, selected_version, Storage,
+    TestApp,
 };
 
 // Keep runtime workers available while termlens waits synchronously for the PTY.
@@ -926,6 +927,103 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
             && selected_item(screen, "notes.txt")
             && !screen.contains("Content-Type:")
     })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn wraps_preview_text_and_scrolls_horizontally_after_unwrapping() -> Result<()> {
+    let storage = Storage::new(&["stu-preview-wrap"]).await?;
+    let content = format!("BEGIN-{}-END", "0123456789".repeat(12));
+    storage
+        .put_object("stu-preview-wrap", "long.txt", content.as_bytes())
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-wrap") && selected_item(screen, "long.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-wrap") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    let wrapped = app.terminal.snapshot_after(|screen| {
+        let rows = content_rows(screen);
+        screen.contains("Preview [long.txt]")
+            && !screen.contains("Loading...")
+            && rows[0].starts_with("1 BEGIN-")
+            && rows[1].ends_with("-END")
+    })?;
+    let wrapped_rows = content_rows(&wrapped);
+
+    app.terminal.send(Key::Char('w'))?;
+    let unwrapped = app.terminal.snapshot_after(|screen| {
+        let rows = content_rows(screen);
+        screen.contains("Preview [long.txt]")
+            && rows[0].starts_with("1 BEGIN-")
+            && rows[1].is_empty()
+    })?;
+    assert!(!unwrapped.contains("-END"), "{unwrapped}");
+    let unwrapped_rows = content_rows(&unwrapped);
+
+    app.terminal.send(Key::Char('l'))?;
+    let right = app.terminal.snapshot_after(|screen| {
+        let rows = content_rows(screen);
+        rows[0].starts_with("1 EGIN-") && rows[1].is_empty()
+    })?;
+    assert!(!right.contains("BEGIN-"), "{right}");
+
+    app.terminal.send(Key::Char('h'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen) == unwrapped_rows)?;
+
+    // Re-enable wrapping while scrolled away from the beginning of the line.
+    app.terminal.send(Key::Char('l'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen)[0].starts_with("1 EGIN-"))?;
+    app.terminal.send(Key::Char('w'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen) == wrapped_rows)?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn hides_and_restores_preview_line_numbers_without_changing_the_text() -> Result<()> {
+    let storage = Storage::new(&["stu-preview-numbers"]).await?;
+    storage
+        .put_object(
+            "stu-preview-numbers",
+            "notes.txt",
+            b"alpha body\nbravo body\ncharlie body",
+        )
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-numbers") && selected_item(screen, "notes.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-numbers") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    let numbered = ["1 alpha body", "2 bravo body", "3 charlie body"].map(str::to_owned);
+    let initial = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && !screen.contains("Loading...")
+            && content_rows(screen).starts_with(&numbered)
+    })?;
+    let numbered_rows = content_rows(&initial);
+
+    app.terminal.send(Key::Char('n'))?;
+    let unnumbered = ["alpha body", "bravo body", "charlie body"].map(str::to_owned);
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]") && content_rows(screen).starts_with(&unnumbered)
+    })?;
+
+    app.terminal.send(Key::Char('n'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen) == numbered_rows)?;
 
     app.quit()
 }

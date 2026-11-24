@@ -317,11 +317,18 @@ pub fn footer_contains(screen: &Screen, text: &str) -> bool {
 }
 
 pub fn list_rows(screen: &Screen) -> Vec<String> {
-    // For list pages without a dialog: exclude the three-row header,
-    // the list's top and bottom borders, and the two-row footer.
+    content_rows(screen)
+        .into_iter()
+        .filter(|row| !row.is_empty())
+        .collect()
+}
+
+pub fn content_rows(screen: &Screen) -> Vec<String> {
+    // For bordered list and text preview pages without a dialog: exclude the
+    // three-row header, content borders, and two-row footer. Keep empty rows
+    // so preview assertions can distinguish wrapping from horizontal scrolling.
     (4..screen.rows().saturating_sub(3))
         .map(|row| screen.row_text(row).trim_matches(['│', ' ']).to_string())
-        .filter(|row| !row.is_empty())
         .collect()
 }
 
