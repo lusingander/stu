@@ -233,6 +233,7 @@ impl Client {
         let versions = output
             .versions()
             .iter()
+            .filter(|v| v.key() == Some(key))
             .map(|v| {
                 let version_id = v.version_id().map(String::from);
                 let size_byte = v.size().unwrap() as usize;
