@@ -771,6 +771,42 @@ async fn opens_an_object_from_a_later_s3_list_page() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn shows_only_versions_of_the_selected_object() -> Result<()> {
+    let storage = Storage::new(&["stu-version-prefix"]).await?;
+    storage.enable_versioning("stu-version-prefix").await?;
+    let previous_id = storage
+        .put_object_version("stu-version-prefix", "notes.txt", b"previous revision")
+        .await?;
+    let current_id = storage
+        .put_object_version("stu-version-prefix", "notes.txt", b"current revision")
+        .await?;
+    let other_id = storage
+        .put_object_version("stu-version-prefix", "notes.txt.bak", b"backup content")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.resize(140, 30)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-prefix")
+            && selected_item(screen, "notes.txt")
+            && screen.contains("notes.txt.bak")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-prefix") && screen.contains("Content-Type:")
+    })?;
+
+    app.terminal.send(Key::Char('l'))?;
+    let versions = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-version-prefix")
+            && screen.contains(&previous_id)
+            && screen.contains(&current_id)
+    })?;
+    assert!(!versions.contains(&other_id), "{versions}");
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn previews_the_selected_previous_object_version() -> Result<()> {
     let storage = Storage::new(&["stu-version-preview"]).await?;
     storage.enable_versioning("stu-version-preview").await?;
