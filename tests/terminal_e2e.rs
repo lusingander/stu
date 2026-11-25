@@ -11,7 +11,8 @@ use rstest::rstest;
 use termlens::Key;
 
 use support::{
-    at_path, footer_contains, list_rows, selected_item, selected_version, Storage, TestApp,
+    at_path, content_rows, footer_contains, list_rows, selected_item, selected_version, Storage,
+    TestApp,
 };
 
 // Keep runtime workers available while termlens waits synchronously for the PTY.
@@ -140,6 +141,54 @@ async fn navigates_into_nested_directories_and_back_to_the_bucket_list() -> Resu
         .terminal
         .snapshot_after(|screen| at_path(screen, "stu-beta") && screen.contains("other.txt"))?;
     assert!(!other_bucket.contains("root.txt"), "{other_bucket}");
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn returns_directly_from_a_nested_directory_and_opens_another_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-beta"]).await?;
+    storage
+        .put_object("stu-alpha", "docs/nested/deep.txt", b"nested object")
+        .await?;
+    storage
+        .put_object("stu-beta", "other.txt", b"other bucket")
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-alpha") && screen.contains("stu-beta")
+    })?;
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| at_path(screen, "stu-alpha") && selected_item(screen, "docs/"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-alpha / docs") && selected_item(screen, "nested/")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-alpha / docs / nested") && selected_item(screen, "deep.txt")
+    })?;
+
+    app.terminal.send(Key::Char('~'))?;
+    let buckets = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "") && selected_item(screen, "stu-alpha") && screen.contains("stu-beta")
+    })?;
+    assert!(!buckets.contains("deep.txt"), "{buckets}");
+
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "stu-beta"))?;
+    app.terminal.send(Key::Enter)?;
+    let objects = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-beta") && selected_item(screen, "other.txt")
+    })?;
+    assert!(!objects.contains("deep.txt"), "{objects}");
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-beta") && screen.contains("Content-Type:") && screen.contains("12 B")
+    })?;
 
     app.quit()
 }
@@ -418,6 +467,53 @@ async fn clears_a_bucket_filter_with_no_matches_and_opens_a_bucket() -> Result<(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sorts_buckets_by_descending_name_and_opens_the_selected_bucket() -> Result<()> {
+    let storage = Storage::new(&["stu-alpha", "stu-bravo", "stu-charlie"]).await?;
+    for (bucket, key, content) in [
+        ("stu-alpha", "alpha.txt", "a"),
+        ("stu-bravo", "bravo.txt", "bravo"),
+        ("stu-charlie", "charlie.txt", "charlie"),
+    ] {
+        storage.put_object(bucket, key, content.as_bytes()).await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-alpha")
+            && screen.contains("stu-bravo")
+            && screen.contains("stu-charlie")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Name (Desc)") && footer_contains(screen, "Sort"))?;
+    // Name (Asc) is the test default; the next entry is Name (Desc).
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal.send(Key::Enter)?;
+    let sorted = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-charlie")
+            && !screen.contains("Name (Desc)")
+    })?;
+    let rows = list_rows(&sorted);
+    assert_eq!(rows.len(), 3, "{sorted}");
+    for (row, name) in rows.iter().zip(["stu-charlie", "stu-bravo", "stu-alpha"]) {
+        assert!(row.starts_with(name), "{sorted}");
+    }
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-charlie") && selected_item(screen, "charlie.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-charlie") && screen.contains("Content-Type:") && screen.contains("7 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn sorts_and_filters_objects_before_opening_the_selected_details() -> Result<()> {
     let storage = Storage::new(&["stu-objects"]).await?;
     for (key, body) in [
@@ -678,6 +774,9 @@ async fn opens_an_object_from_a_later_s3_list_page() -> Result<()> {
 async fn previews_the_selected_previous_object_version() -> Result<()> {
     let storage = Storage::new(&["stu-version-preview"]).await?;
     storage.enable_versioning("stu-version-preview").await?;
+    storage
+        .put_object("stu-version-preview", "alpha.txt", b"another object")
+        .await?;
     let previous_id = storage
         .put_object_version(
             "stu-version-preview",
@@ -685,17 +784,20 @@ async fn previews_the_selected_previous_object_version() -> Result<()> {
             b"previous preview content",
         )
         .await?;
+    let current_content = b"current revision has different content";
     let current_id = storage
-        .put_object_version(
-            "stu-version-preview",
-            "notes.txt",
-            b"current revision has different content",
-        )
+        .put_object_version("stu-version-preview", "notes.txt", current_content)
         .await?;
     assert_ne!(previous_id, current_id);
     let mut app = TestApp::spawn(&storage.endpoint, &[])?;
     // Keep complete version IDs visible in the right half of the detail page.
     app.terminal.resize(140, 30)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("notes.txt")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
     app.terminal.wait_until(|screen| {
         at_path(screen, "stu-version-preview") && selected_item(screen, "notes.txt")
     })?;
@@ -723,6 +825,30 @@ async fn previews_the_selected_previous_object_version() -> Result<()> {
             && !screen.contains("Loading...")
     })?;
     assert!(!preview.contains("current revision"), "{preview}");
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && selected_version(screen, &previous_id)
+            && screen.contains(&current_id)
+            && !screen.contains("Preview [")
+    })?;
+
+    app.terminal.send(Key::Char('h'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && screen.contains("Content-Type:")
+            && screen.contains(&format!("{} B", current_content.len()))
+            && !screen.contains("Version ID:")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-version-preview")
+            && selected_item(screen, "notes.txt")
+            && screen.contains("alpha.txt")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Content-Type:")
+    })?;
 
     app.quit()
 }
@@ -806,9 +932,27 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
     })?;
 
     app.terminal.send(Key::Char('p'))?;
-    app.terminal.wait_until(|screen| {
-        screen.contains("Preview [notes.txt]") && screen.contains("preview line 01")
+    let first_page = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && screen.contains("preview line 01")
+            && !screen.contains("Loading...")
     })?;
+    let first_rows = content_rows(&first_page);
+    let next_line = first_rows.len() + 1;
+    assert!(next_line < 60, "{first_page}");
+    let target = format!("preview line {next_line:02}");
+
+    app.terminal.send(Key::Ctrl('f'))?;
+    let next_page = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]") && content_rows(screen)[0].ends_with(&target)
+    })?;
+    assert!(!next_page.contains("preview line 01"), "{next_page}");
+
+    app.terminal.send(Key::Ctrl('b'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]") && content_rows(screen) == first_rows
+    })?;
+
     app.terminal.send(Key::Char('G'))?;
     let bottom = app
         .terminal
@@ -831,6 +975,103 @@ async fn previews_text_and_returns_to_the_selected_object() -> Result<()> {
             && selected_item(screen, "notes.txt")
             && !screen.contains("Content-Type:")
     })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn wraps_preview_text_and_scrolls_horizontally_after_unwrapping() -> Result<()> {
+    let storage = Storage::new(&["stu-preview-wrap"]).await?;
+    let content = format!("BEGIN-{}-END", "0123456789".repeat(12));
+    storage
+        .put_object("stu-preview-wrap", "long.txt", content.as_bytes())
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-wrap") && selected_item(screen, "long.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-wrap") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    let wrapped = app.terminal.snapshot_after(|screen| {
+        let rows = content_rows(screen);
+        screen.contains("Preview [long.txt]")
+            && !screen.contains("Loading...")
+            && rows[0].starts_with("1 BEGIN-")
+            && rows[1].ends_with("-END")
+    })?;
+    let wrapped_rows = content_rows(&wrapped);
+
+    app.terminal.send(Key::Char('w'))?;
+    let unwrapped = app.terminal.snapshot_after(|screen| {
+        let rows = content_rows(screen);
+        screen.contains("Preview [long.txt]")
+            && rows[0].starts_with("1 BEGIN-")
+            && rows[1].is_empty()
+    })?;
+    assert!(!unwrapped.contains("-END"), "{unwrapped}");
+    let unwrapped_rows = content_rows(&unwrapped);
+
+    app.terminal.send(Key::Char('l'))?;
+    let right = app.terminal.snapshot_after(|screen| {
+        let rows = content_rows(screen);
+        rows[0].starts_with("1 EGIN-") && rows[1].is_empty()
+    })?;
+    assert!(!right.contains("BEGIN-"), "{right}");
+
+    app.terminal.send(Key::Char('h'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen) == unwrapped_rows)?;
+
+    // Re-enable wrapping while scrolled away from the beginning of the line.
+    app.terminal.send(Key::Char('l'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen)[0].starts_with("1 EGIN-"))?;
+    app.terminal.send(Key::Char('w'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen) == wrapped_rows)?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn hides_and_restores_preview_line_numbers_without_changing_the_text() -> Result<()> {
+    let storage = Storage::new(&["stu-preview-numbers"]).await?;
+    storage
+        .put_object(
+            "stu-preview-numbers",
+            "notes.txt",
+            b"alpha body\nbravo body\ncharlie body",
+        )
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-numbers") && selected_item(screen, "notes.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-preview-numbers") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    let numbered = ["1 alpha body", "2 bravo body", "3 charlie body"].map(str::to_owned);
+    let initial = app.terminal.snapshot_after(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && !screen.contains("Loading...")
+            && content_rows(screen).starts_with(&numbered)
+    })?;
+    let numbered_rows = content_rows(&initial);
+
+    app.terminal.send(Key::Char('n'))?;
+    let unnumbered = ["alpha body", "bravo body", "charlie body"].map(str::to_owned);
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]") && content_rows(screen).starts_with(&unnumbered)
+    })?;
+
+    app.terminal.send(Key::Char('n'))?;
+    app.terminal
+        .wait_until(|screen| content_rows(screen) == numbered_rows)?;
 
     app.quit()
 }
@@ -958,7 +1199,8 @@ async fn saves_the_previewed_bytes_after_the_object_changes(
 #[rstest]
 #[case::from_list(false, None)]
 #[case::from_details(true, None)]
-#[case::save_as(true, Some("renamed.bin"))]
+#[case::save_as_from_list(false, Some("renamed.bin"))]
+#[case::save_as_from_details(true, Some("renamed.bin"))]
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn downloads_an_object_to_the_expected_file(
     #[case] open_details: bool,
@@ -1252,6 +1494,61 @@ async fn downloads_an_entire_bucket_with_its_relative_paths_and_contents() -> Re
     let expected: BTreeMap<_, _> = objects
         .into_iter()
         .map(|(key, content)| (PathBuf::from("stu-bucket").join(key), content.to_vec()))
+        .collect();
+    assert_eq!(app.downloaded_files()?, expected);
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn downloads_a_bucket_as_a_new_name_with_its_relative_paths_and_contents() -> Result<()> {
+    let storage = Storage::new(&["stu-bucket-save-as", "stu-other"]).await?;
+    let objects: [(&str, &[u8]); 3] = [
+        ("root.txt", b"bucket root"),
+        ("docs/intro.txt", b"introduction"),
+        ("docs/nested/payload.bin", b"nested\0\xff"),
+    ];
+    for (key, content) in objects {
+        storage
+            .put_object("stu-bucket-save-as", key, content)
+            .await?;
+    }
+    for key in ["root.txt", "docs/nested/payload.bin", "other-only.txt"] {
+        storage
+            .put_object("stu-other", key, b"excluded bucket")
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "")
+            && selected_item(screen, "stu-bucket-save-as")
+            && screen.contains("stu-other")
+    })?;
+
+    app.terminal.send(Key::Char('S'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("3 objects (Total size:")
+            && screen.contains("Do you want to proceed?")
+            && !screen.contains("Loading...")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Save As")
+            && footer_contains(screen, "Close")
+            && !screen.contains("Do you want to proceed?")
+    })?;
+    app.terminal.send(Key::Ctrl('u'))?;
+    app.terminal.send_str("renamed-bucket")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed-bucket"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "") && footer_contains(screen, "Download completed successfully:")
+    })?;
+
+    let expected: BTreeMap<_, _> = objects
+        .into_iter()
+        .map(|(key, content)| (PathBuf::from("renamed-bucket").join(key), content.to_vec()))
         .collect();
     assert_eq!(app.downloaded_files()?, expected);
 
