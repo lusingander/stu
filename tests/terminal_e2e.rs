@@ -43,6 +43,58 @@ async fn opens_the_only_bucket_automatically() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn browses_previews_and_downloads_without_a_config_file() -> Result<()> {
+    let storage = Storage::new(&["stu-no-config"]).await?;
+    let content = b"preview without configuration\r\noriginal bytes\r\n";
+    storage
+        .put_object("stu-no-config", "notes.txt", content)
+        .await?;
+    let mut app = TestApp::spawn_without_config(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config") && selected_item(screen, "notes.txt")
+    })?;
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && screen.contains("preview without configuration")
+            && screen.contains("original bytes")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from("notes.txt"), content.to_vec())])
+    );
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config")
+            && screen.contains("Content-Type:")
+            && !screen.contains("Preview [")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config")
+            && selected_item(screen, "notes.txt")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Content-Type:")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn returns_from_an_empty_bucket_and_opens_an_object_in_another_bucket() -> Result<()> {
     let storage = Storage::new(&["stu-empty", "stu-populated"]).await?;
     storage
@@ -141,6 +193,83 @@ async fn navigates_into_nested_directories_and_back_to_the_bucket_list() -> Resu
         .terminal
         .snapshot_after(|screen| at_path(screen, "stu-beta") && screen.contains("other.txt"))?;
     assert!(!other_bucket.contains("root.txt"), "{other_bucket}");
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn browses_filters_previews_and_downloads_names_with_japanese_and_spaces() -> Result<()> {
+    let storage = Storage::new(&["stu-japanese-names"]).await?;
+    let directory = "共有 資料";
+    let name = "売上 2026.txt";
+    let content = "2026 年の売上レポートです。\r\n金額: 12345 円\r\n";
+    for (key, body) in [
+        ("outside.txt", "outside directory"),
+        ("共有 資料/メモ.txt", "another file"),
+        ("共有 資料/売上 2025.txt", "previous year"),
+        ("共有 資料/売上 2026.txt", content),
+    ] {
+        storage
+            .put_object("stu-japanese-names", key, body.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-japanese-names")
+            && selected_item(screen, "outside.txt")
+            && screen.contains(&format!("{directory}/"))
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, &format!("{directory}/")))?;
+
+    app.terminal.send(Key::Enter)?;
+    let path = format!("stu-japanese-names / {directory}");
+    app.terminal.wait_until(|screen| {
+        at_path(screen, &path)
+            && screen.contains("メモ.txt")
+            && screen.contains("売上 2025.txt")
+            && screen.contains(name)
+    })?;
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str("売上 2026")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        at_path(screen, &path)
+            && selected_item(screen, name)
+            && footer_contains(screen, "Clear filter")
+    })?;
+    assert_eq!(list_rows(&filtered).len(), 1, "{filtered}");
+    assert!(!filtered.contains("売上 2025.txt"), "{filtered}");
+    assert!(!filtered.contains("メモ.txt"), "{filtered}");
+    assert!(!filtered.contains("outside.txt"), "{filtered}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, &path)
+            && screen.contains("Content-Type:")
+            && screen.contains(&format!("{} B", content.len()))
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains(&format!("Preview [{name}]"))
+            && screen.contains("2026 年の売上レポートです。")
+            && screen.contains("金額: 12345 円")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains(&format!("Preview [{name}]"))
+            && footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from(name), content.as_bytes().to_vec())])
+    );
 
     app.quit()
 }
@@ -388,6 +517,278 @@ async fn recovers_from_a_deleted_objects_detail_error_and_opens_another_object()
     app.quit()
 }
 
+#[rstest]
+#[case::preview('p')]
+#[case::download('s')]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn recovers_from_a_deleted_objects_transfer_error_and_opens_another_object(
+    #[case] action: char,
+) -> Result<()> {
+    let storage = Storage::new(&["stu-transfer-recovery"]).await?;
+    let content = b"available after a transfer error\n";
+    storage
+        .put_object(
+            "stu-transfer-recovery",
+            "alpha.txt",
+            b"deleted after details",
+        )
+        .await?;
+    storage
+        .put_object("stu-transfer-recovery", "bravo.txt", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("bravo.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "Preview")
+    })?;
+
+    // Keep the cached details, but make fetching the object's body fail.
+    storage
+        .delete_object("stu-transfer-recovery", "alpha.txt")
+        .await?;
+    app.terminal.send(Key::Char(action))?;
+    let failed = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "ERROR: Failed to download object")
+    })?;
+    assert!(!failed.contains("Preview ["), "{failed}");
+    assert!(
+        !footer_contains(&failed, "Download completed successfully:"),
+        "{failed}"
+    );
+
+    // Dismiss the error before navigating; the dismissal key is consumed.
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "Preview")
+            && !footer_contains(screen, "ERROR:")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && selected_item(screen, "alpha.txt")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.txt"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && screen.contains(&format!("{} B", content.len()))
+    })?;
+
+    app.terminal.send(Key::Char(action))?;
+    if action == 'p' {
+        app.terminal.wait_until(|screen| {
+            screen.contains("Preview [bravo.txt]")
+                && screen.contains("available after a transfer error")
+                && !screen.contains("Loading...")
+        })?;
+        assert!(app.downloaded_files()?.is_empty());
+    } else {
+        app.terminal.wait_until(|screen| {
+            at_path(screen, "stu-transfer-recovery")
+                && footer_contains(screen, "Download completed successfully:")
+        })?;
+        assert_eq!(
+            app.downloaded_files()?.get(&PathBuf::from("bravo.txt")),
+            Some(&content.to_vec())
+        );
+    }
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opens_help_and_restores_the_filtered_object_list() -> Result<()> {
+    let storage = Storage::new(&["stu-list-help"]).await?;
+    for (key, content) in [
+        ("alpha.txt", "a"),
+        ("bravo.log", "excluded"),
+        ("charlie.txt", "charlie"),
+    ] {
+        storage
+            .put_object("stu-list-help", key, content.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-list-help") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str(".txt")?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Clear filter") && selected_item(screen, "alpha.txt")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-list-help")
+            && footer_contains(screen, "Clear filter")
+            && selected_item(screen, "charlie.txt")
+    })?;
+    assert!(!filtered.contains("bravo.log"), "{filtered}");
+
+    app.terminal.send(Key::Char('?'))?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Close help")
+            && screen.contains("Open file or folder")
+            && screen.contains("Clear filter")
+    })?;
+
+    app.terminal.send(Key::Char('?'))?;
+    let restored = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-list-help")
+            && footer_contains(screen, "Clear filter")
+            && selected_item(screen, "charlie.txt")
+            && !footer_contains(screen, "Close help")
+    })?;
+    assert_eq!(list_rows(&restored), list_rows(&filtered), "{restored}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-list-help")
+            && screen.contains("Content-Type:")
+            && screen.contains("7 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opens_help_and_resumes_editing_a_save_as_name() -> Result<()> {
+    let storage = Storage::new(&["stu-save-help"]).await?;
+    let content = b"save after help\0\xff";
+    storage
+        .put_object("stu-save-help", "payload.bin", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-help") && selected_item(screen, "payload.bin")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Content-Type:") && !screen.contains("Loading..."))?;
+
+    app.terminal.send(Key::Char('S'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && footer_contains(screen, "Close"))?;
+    app.terminal.send(Key::Ctrl('u'))?;
+    app.terminal.send_str("renamed")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed"))?;
+
+    app.terminal.send(Key::Char('?'))?;
+    let help = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Close help")
+            && screen.contains("Close save dialog")
+            && screen.contains("Download object")
+    })?;
+    assert!(!help.contains("Preview object"), "{help}");
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Save As")
+            && screen.contains("renamed")
+            && !footer_contains(screen, "Close help")
+    })?;
+    app.terminal.send_str(".bin")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed.bin"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-help")
+            && footer_contains(screen, "Download completed successfully:")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from("renamed.bin"), content.to_vec())])
+    );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn uses_custom_navigation_keys_and_keeps_unspecified_bindings() -> Result<()> {
+    let storage = Storage::new(&["stu-custom-keys"]).await?;
+    for (key, content) in [
+        ("alpha.txt", "first object"),
+        ("bravo.txt", "chosen with custom keybindings"),
+        ("charlie.txt", "last object"),
+    ] {
+        storage
+            .put_object("stu-custom-keys", key, content.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn_with_keybindings(
+        &storage.endpoint,
+        &[],
+        r#"
+[object_list]
+down = ["down"]
+up = ["up"]
+"#,
+    )?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-custom-keys") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Down)?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.txt"))?;
+    app.terminal.send(Key::Up)?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "alpha.txt"))?;
+    app.terminal.send(Key::Down)?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.txt"))?;
+
+    app.terminal.send(Key::Char('?'))?;
+    let help = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Close help")
+            && screen.contains("<Down>: Select next item")
+            && screen.contains("<Up>: Select previous item")
+    })?;
+    assert!(!help.contains("<j>"), "{help}");
+    assert!(!help.contains("<k>"), "{help}");
+    app.terminal.send(Key::Char('?'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-custom-keys")
+            && selected_item(screen, "bravo.txt")
+            && !footer_contains(screen, "Close help")
+    })?;
+
+    // Unspecified actions keep their default keys, including opening and previewing.
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-custom-keys") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [bravo.txt]")
+            && screen.contains("chosen with custom keybindings")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.quit()
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta", "stu-gamma"]).await?;
@@ -613,6 +1014,68 @@ async fn sorts_objects_by_size_before_opening_the_selected_details() -> Result<(
             && screen.contains("Content-Type:")
             && screen.contains("text/plain")
             && screen.contains("9 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sorts_objects_by_last_modified_before_opening_the_selected_details() -> Result<()> {
+    let storage = Storage::new(&["stu-date-sort"]).await?;
+    // Date order differs from both name and size order in either direction.
+    for (index, (key, content)) in [
+        ("charlie.txt", "old-entry"),
+        ("alpha.txt", "middle-entry-body"),
+        ("bravo.txt", "newest"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if index > 0 {
+            // S3 Last-Modified values have second precision.
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+        storage
+            .put_object("stu-date-sort", key, content.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-date-sort")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("charlie.txt")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Last Modified (Desc)"))?;
+    // The test configuration starts at Name (Asc); advance to Last Modified (Desc).
+    for _ in 0..3 {
+        app.terminal.send(Key::Char('j'))?;
+    }
+    app.terminal.send(Key::Enter)?;
+    let sorted = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-date-sort")
+            && selected_item(screen, "bravo.txt")
+            && !screen.contains("Last Modified (Desc)")
+    })?;
+    let rows = list_rows(&sorted);
+    assert_eq!(rows.len(), 3, "{sorted}");
+    for (row, name) in rows.iter().zip(["bravo.txt", "alpha.txt", "charlie.txt"]) {
+        assert!(row.starts_with(name), "{sorted}");
+    }
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-date-sort")
+            && screen.contains("Content-Type:")
+            && screen.contains("6 B")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [bravo.txt]")
+            && screen.contains("newest")
+            && !screen.contains("Loading...")
     })?;
 
     app.quit()
