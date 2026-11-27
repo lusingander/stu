@@ -216,6 +216,10 @@ impl TestApp {
         Self::spawn_with_files(endpoint, args, Some(config), None)
     }
 
+    pub fn spawn_without_config(endpoint: &str, args: &[&str]) -> Result<Self> {
+        Self::spawn_with_files(endpoint, args, None, None)
+    }
+
     pub fn spawn_with_keybindings(
         endpoint: &str,
         args: &[&str],

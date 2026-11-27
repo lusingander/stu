@@ -43,6 +43,58 @@ async fn opens_the_only_bucket_automatically() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn browses_previews_and_downloads_without_a_config_file() -> Result<()> {
+    let storage = Storage::new(&["stu-no-config"]).await?;
+    let content = b"preview without configuration\r\noriginal bytes\r\n";
+    storage
+        .put_object("stu-no-config", "notes.txt", content)
+        .await?;
+    let mut app = TestApp::spawn_without_config(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config") && selected_item(screen, "notes.txt")
+    })?;
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && screen.contains("preview without configuration")
+            && screen.contains("original bytes")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [notes.txt]")
+            && footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from("notes.txt"), content.to_vec())])
+    );
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config")
+            && screen.contains("Content-Type:")
+            && !screen.contains("Preview [")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-no-config")
+            && selected_item(screen, "notes.txt")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Content-Type:")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn returns_from_an_empty_bucket_and_opens_an_object_in_another_bucket() -> Result<()> {
     let storage = Storage::new(&["stu-empty", "stu-populated"]).await?;
     storage
