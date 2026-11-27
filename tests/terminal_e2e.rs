@@ -146,6 +146,83 @@ async fn navigates_into_nested_directories_and_back_to_the_bucket_list() -> Resu
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn browses_filters_previews_and_downloads_names_with_japanese_and_spaces() -> Result<()> {
+    let storage = Storage::new(&["stu-japanese-names"]).await?;
+    let directory = "共有 資料";
+    let name = "売上 2026.txt";
+    let content = "2026 年の売上レポートです。\r\n金額: 12345 円\r\n";
+    for (key, body) in [
+        ("outside.txt", "outside directory"),
+        ("共有 資料/メモ.txt", "another file"),
+        ("共有 資料/売上 2025.txt", "previous year"),
+        ("共有 資料/売上 2026.txt", content),
+    ] {
+        storage
+            .put_object("stu-japanese-names", key, body.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-japanese-names")
+            && selected_item(screen, "outside.txt")
+            && screen.contains(&format!("{directory}/"))
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, &format!("{directory}/")))?;
+
+    app.terminal.send(Key::Enter)?;
+    let path = format!("stu-japanese-names / {directory}");
+    app.terminal.wait_until(|screen| {
+        at_path(screen, &path)
+            && screen.contains("メモ.txt")
+            && screen.contains("売上 2025.txt")
+            && screen.contains(name)
+    })?;
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str("売上 2026")?;
+    app.terminal.send(Key::Enter)?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        at_path(screen, &path)
+            && selected_item(screen, name)
+            && footer_contains(screen, "Clear filter")
+    })?;
+    assert_eq!(list_rows(&filtered).len(), 1, "{filtered}");
+    assert!(!filtered.contains("売上 2025.txt"), "{filtered}");
+    assert!(!filtered.contains("メモ.txt"), "{filtered}");
+    assert!(!filtered.contains("outside.txt"), "{filtered}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, &path)
+            && screen.contains("Content-Type:")
+            && screen.contains(&format!("{} B", content.len()))
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains(&format!("Preview [{name}]"))
+            && screen.contains("2026 年の売上レポートです。")
+            && screen.contains("金額: 12345 円")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.terminal.send(Key::Char('s'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains(&format!("Preview [{name}]"))
+            && footer_contains(screen, "Download completed successfully:")
+            && !screen.contains("Loading...")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from(name), content.as_bytes().to_vec())])
+    );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn returns_directly_from_a_nested_directory_and_opens_another_bucket() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta"]).await?;
     storage
