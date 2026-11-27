@@ -968,6 +968,68 @@ async fn sorts_objects_by_size_before_opening_the_selected_details() -> Result<(
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn sorts_objects_by_last_modified_before_opening_the_selected_details() -> Result<()> {
+    let storage = Storage::new(&["stu-date-sort"]).await?;
+    // Date order differs from both name and size order in either direction.
+    for (index, (key, content)) in [
+        ("charlie.txt", "old-entry"),
+        ("alpha.txt", "middle-entry-body"),
+        ("bravo.txt", "newest"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        if index > 0 {
+            // S3 Last-Modified values have second precision.
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+        storage
+            .put_object("stu-date-sort", key, content.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-date-sort")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("charlie.txt")
+    })?;
+
+    app.terminal.send(Key::Char('o'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Last Modified (Desc)"))?;
+    // The test configuration starts at Name (Asc); advance to Last Modified (Desc).
+    for _ in 0..3 {
+        app.terminal.send(Key::Char('j'))?;
+    }
+    app.terminal.send(Key::Enter)?;
+    let sorted = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-date-sort")
+            && selected_item(screen, "bravo.txt")
+            && !screen.contains("Last Modified (Desc)")
+    })?;
+    let rows = list_rows(&sorted);
+    assert_eq!(rows.len(), 3, "{sorted}");
+    for (row, name) in rows.iter().zip(["bravo.txt", "alpha.txt", "charlie.txt"]) {
+        assert!(row.starts_with(name), "{sorted}");
+    }
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-date-sort")
+            && screen.contains("Content-Type:")
+            && screen.contains("6 B")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [bravo.txt]")
+            && screen.contains("newest")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn clears_an_object_filter_with_no_matches_and_opens_an_object() -> Result<()> {
     let storage = Storage::new(&["stu-filter"]).await?;
     storage.put_object("stu-filter", "alpha.txt", b"a").await?;
