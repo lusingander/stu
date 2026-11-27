@@ -465,6 +465,101 @@ async fn recovers_from_a_deleted_objects_detail_error_and_opens_another_object()
     app.quit()
 }
 
+#[rstest]
+#[case::preview('p')]
+#[case::download('s')]
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn recovers_from_a_deleted_objects_transfer_error_and_opens_another_object(
+    #[case] action: char,
+) -> Result<()> {
+    let storage = Storage::new(&["stu-transfer-recovery"]).await?;
+    let content = b"available after a transfer error\n";
+    storage
+        .put_object(
+            "stu-transfer-recovery",
+            "alpha.txt",
+            b"deleted after details",
+        )
+        .await?;
+    storage
+        .put_object("stu-transfer-recovery", "bravo.txt", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && selected_item(screen, "alpha.txt")
+            && screen.contains("bravo.txt")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "Preview")
+    })?;
+
+    // Keep the cached details, but make fetching the object's body fail.
+    storage
+        .delete_object("stu-transfer-recovery", "alpha.txt")
+        .await?;
+    app.terminal.send(Key::Char(action))?;
+    let failed = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "ERROR: Failed to download object")
+    })?;
+    assert!(!failed.contains("Preview ["), "{failed}");
+    assert!(
+        !footer_contains(&failed, "Download completed successfully:"),
+        "{failed}"
+    );
+
+    // Dismiss the error before navigating; the dismissal key is consumed.
+    app.terminal.send(Key::Esc)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && footer_contains(screen, "Preview")
+            && !footer_contains(screen, "ERROR:")
+    })?;
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && selected_item(screen, "alpha.txt")
+            && footer_contains(screen, "Open")
+            && !screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.txt"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-transfer-recovery")
+            && screen.contains("Content-Type:")
+            && screen.contains(&format!("{} B", content.len()))
+    })?;
+
+    app.terminal.send(Key::Char(action))?;
+    if action == 'p' {
+        app.terminal.wait_until(|screen| {
+            screen.contains("Preview [bravo.txt]")
+                && screen.contains("available after a transfer error")
+                && !screen.contains("Loading...")
+        })?;
+        assert!(app.downloaded_files()?.is_empty());
+    } else {
+        app.terminal.wait_until(|screen| {
+            at_path(screen, "stu-transfer-recovery")
+                && footer_contains(screen, "Download completed successfully:")
+        })?;
+        assert_eq!(
+            app.downloaded_files()?.get(&PathBuf::from("bravo.txt")),
+            Some(&content.to_vec())
+        );
+    }
+
+    app.quit()
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn opens_help_and_restores_the_filtered_object_list() -> Result<()> {
     let storage = Storage::new(&["stu-list-help"]).await?;
