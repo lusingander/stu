@@ -190,18 +190,7 @@ impl Storage {
     }
 }
 
-pub struct TestApp {
-    pub terminal: Terminal,
-    directory: TempDir,
-    exited: bool,
-}
-
-impl TestApp {
-    pub fn spawn(endpoint: &str, args: &[&str]) -> Result<Self> {
-        Self::spawn_with_config(
-            endpoint,
-            args,
-            r#"
+const DEFAULT_TEST_CONFIG: &str = r#"
 [ui.bucket_list]
 default_sort = "name_asc"
 
@@ -210,13 +199,44 @@ default_sort = "name_asc"
 
 [preview]
 image = false
-"#,
-        )
+"#;
+
+pub struct TestApp {
+    pub terminal: Terminal,
+    directory: TempDir,
+    exited: bool,
+}
+
+impl TestApp {
+    pub fn spawn(endpoint: &str, args: &[&str]) -> Result<Self> {
+        Self::spawn_with_config(endpoint, args, DEFAULT_TEST_CONFIG)
     }
 
     pub fn spawn_with_config(endpoint: &str, args: &[&str], config: &str) -> Result<Self> {
+        Self::spawn_with_files(endpoint, args, Some(config), None)
+    }
+
+    pub fn spawn_with_keybindings(
+        endpoint: &str,
+        args: &[&str],
+        keybindings: &str,
+    ) -> Result<Self> {
+        Self::spawn_with_files(endpoint, args, Some(DEFAULT_TEST_CONFIG), Some(keybindings))
+    }
+
+    fn spawn_with_files(
+        endpoint: &str,
+        args: &[&str],
+        config: Option<&str>,
+        keybindings: Option<&str>,
+    ) -> Result<Self> {
         let directory = tempdir()?;
-        fs::write(directory.path().join("config.toml"), config)?;
+        if let Some(config) = config {
+            fs::write(directory.path().join("config.toml"), config)?;
+        }
+        if let Some(keybindings) = keybindings {
+            fs::write(directory.path().join("keybindings.toml"), keybindings)?;
+        }
         let terminal = termlens::bin!(
             "stu",
             size(100, 30),

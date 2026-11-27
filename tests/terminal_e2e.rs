@@ -673,6 +673,71 @@ async fn opens_help_and_resumes_editing_a_save_as_name() -> Result<()> {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn uses_custom_navigation_keys_and_keeps_unspecified_bindings() -> Result<()> {
+    let storage = Storage::new(&["stu-custom-keys"]).await?;
+    for (key, content) in [
+        ("alpha.txt", "first object"),
+        ("bravo.txt", "chosen with custom keybindings"),
+        ("charlie.txt", "last object"),
+    ] {
+        storage
+            .put_object("stu-custom-keys", key, content.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn_with_keybindings(
+        &storage.endpoint,
+        &[],
+        r#"
+[object_list]
+down = ["down"]
+up = ["up"]
+"#,
+    )?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-custom-keys") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Down)?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.txt"))?;
+    app.terminal.send(Key::Up)?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "alpha.txt"))?;
+    app.terminal.send(Key::Down)?;
+    app.terminal
+        .wait_until(|screen| selected_item(screen, "bravo.txt"))?;
+
+    app.terminal.send(Key::Char('?'))?;
+    let help = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Close help")
+            && screen.contains("<Down>: Select next item")
+            && screen.contains("<Up>: Select previous item")
+    })?;
+    assert!(!help.contains("<j>"), "{help}");
+    assert!(!help.contains("<k>"), "{help}");
+    app.terminal.send(Key::Char('?'))?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-custom-keys")
+            && selected_item(screen, "bravo.txt")
+            && !footer_contains(screen, "Close help")
+    })?;
+
+    // Unspecified actions keep their default keys, including opening and previewing.
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-custom-keys") && screen.contains("Content-Type:")
+    })?;
+    app.terminal.send(Key::Char('p'))?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Preview [bravo.txt]")
+            && screen.contains("chosen with custom keybindings")
+            && !screen.contains("Loading...")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta", "stu-gamma"]).await?;
     storage
