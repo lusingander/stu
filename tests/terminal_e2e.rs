@@ -389,6 +389,118 @@ async fn recovers_from_a_deleted_objects_detail_error_and_opens_another_object()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opens_help_and_restores_the_filtered_object_list() -> Result<()> {
+    let storage = Storage::new(&["stu-list-help"]).await?;
+    for (key, content) in [
+        ("alpha.txt", "a"),
+        ("bravo.log", "excluded"),
+        ("charlie.txt", "charlie"),
+    ] {
+        storage
+            .put_object("stu-list-help", key, content.as_bytes())
+            .await?;
+    }
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-list-help") && selected_item(screen, "alpha.txt")
+    })?;
+
+    app.terminal.send(Key::Char('/'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Filter") && footer_contains(screen, "Close"))?;
+    app.terminal.send_str(".txt")?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Clear filter") && selected_item(screen, "alpha.txt")
+    })?;
+    app.terminal.send(Key::Char('j'))?;
+    let filtered = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-list-help")
+            && footer_contains(screen, "Clear filter")
+            && selected_item(screen, "charlie.txt")
+    })?;
+    assert!(!filtered.contains("bravo.log"), "{filtered}");
+
+    app.terminal.send(Key::Char('?'))?;
+    app.terminal.wait_until(|screen| {
+        footer_contains(screen, "Close help")
+            && screen.contains("Open file or folder")
+            && screen.contains("Clear filter")
+    })?;
+
+    app.terminal.send(Key::Char('?'))?;
+    let restored = app.terminal.snapshot_after(|screen| {
+        at_path(screen, "stu-list-help")
+            && footer_contains(screen, "Clear filter")
+            && selected_item(screen, "charlie.txt")
+            && !footer_contains(screen, "Close help")
+    })?;
+    assert_eq!(list_rows(&restored), list_rows(&filtered), "{restored}");
+
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-list-help")
+            && screen.contains("Content-Type:")
+            && screen.contains("7 B")
+    })?;
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn opens_help_and_resumes_editing_a_save_as_name() -> Result<()> {
+    let storage = Storage::new(&["stu-save-help"]).await?;
+    let content = b"save after help\0\xff";
+    storage
+        .put_object("stu-save-help", "payload.bin", content)
+        .await?;
+    let mut app = TestApp::spawn(&storage.endpoint, &[])?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-help") && selected_item(screen, "payload.bin")
+    })?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Content-Type:") && !screen.contains("Loading..."))?;
+
+    app.terminal.send(Key::Char('S'))?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && footer_contains(screen, "Close"))?;
+    app.terminal.send(Key::Ctrl('u'))?;
+    app.terminal.send_str("renamed")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed"))?;
+
+    app.terminal.send(Key::Char('?'))?;
+    let help = app.terminal.snapshot_after(|screen| {
+        footer_contains(screen, "Close help")
+            && screen.contains("Close save dialog")
+            && screen.contains("Download object")
+    })?;
+    assert!(!help.contains("Preview object"), "{help}");
+
+    app.terminal.send(Key::Backspace)?;
+    app.terminal.wait_until(|screen| {
+        screen.contains("Save As")
+            && screen.contains("renamed")
+            && !footer_contains(screen, "Close help")
+    })?;
+    app.terminal.send_str(".bin")?;
+    app.terminal
+        .wait_until(|screen| screen.contains("Save As") && screen.contains("renamed.bin"))?;
+    app.terminal.send(Key::Enter)?;
+    app.terminal.wait_until(|screen| {
+        at_path(screen, "stu-save-help")
+            && footer_contains(screen, "Download completed successfully:")
+    })?;
+    assert_eq!(
+        app.downloaded_files()?,
+        BTreeMap::from([(PathBuf::from("renamed.bin"), content.to_vec())])
+    );
+
+    app.quit()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn filters_buckets_and_restores_the_full_list_after_returning() -> Result<()> {
     let storage = Storage::new(&["stu-alpha", "stu-beta", "stu-gamma"]).await?;
     storage
